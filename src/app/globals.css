@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0c0e14;
+  --foreground: #e8eaf0;
+  --surface: #161923;
+  --surface-hover: #1e2235;
+  --border: #2a2f42;
+  --accent: #00d4ff;
+  --accent-dim: rgba(0, 212, 255, 0.15);
+  --gold: #C9A84C;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Hide number input spinners */
+input[type="number"].no-spinners::-webkit-inner-spin-button,
+input[type="number"].no-spinners::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"].no-spinners {
+  -moz-appearance: textfield;
+}
+
+/* Dark form inputs */
+input, select, textarea {
+  color-scheme: dark;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a4058;
+}
