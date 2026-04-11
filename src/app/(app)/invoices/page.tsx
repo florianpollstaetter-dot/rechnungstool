@@ -45,8 +45,12 @@ export default function InvoicesPage() {
 
   async function handleLanguageToggle(id: string, currentLang: Language) {
     const newLang: Language = currentLang === "de" ? "en" : "de";
-    await updateInvoice(id, { language: newLang });
-    await loadData();
+    try {
+      await updateInvoice(id, { language: newLang });
+      await loadData();
+    } catch {
+      alert("Sprachumschaltung fehlgeschlagen. Bitte Datenbank-Migration ausfuehren.");
+    }
   }
 
   async function handleCancel(id: string) {
@@ -92,7 +96,7 @@ export default function InvoicesPage() {
         </Link>
       </div>
 
-      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
             <tr>
@@ -100,7 +104,6 @@ export default function InvoicesPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kunde</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Projekt</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faellig</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faelligkeit</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Netto</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
@@ -112,7 +115,7 @@ export default function InvoicesPage() {
           <tbody className="divide-y divide-[var(--border)]">
             {invoices.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
                   Noch keine Rechnungen erstellt.
                 </td>
               </tr>
@@ -149,8 +152,7 @@ export default function InvoicesPage() {
                     <td className="px-6 py-4 text-sm text-gray-400">{getCustomerName(inv.customer_id)}</td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-[150px] truncate">{inv.project_description || "—"}</td>
                     <td className="px-6 py-4 text-sm text-gray-400">{formatDateLong(inv.invoice_date)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-400">{formatDateLong(inv.due_date)}</td>
-                    <td className={`px-6 py-4 text-sm ${dueColor}`}>{dueLabel || "—"}</td>
+                    <td className={`px-6 py-4 text-sm ${dueColor}`} title={formatDateLong(inv.due_date)}>{dueLabel || formatDateLong(inv.due_date)}</td>
                     <td className="px-6 py-4 text-sm text-right text-gray-400">{formatCurrency(inv.subtotal)}</td>
                     <td className="px-6 py-4 text-sm text-white text-right font-medium">{formatCurrency(inv.total)}</td>
                     <td className="px-6 py-4 text-center">
