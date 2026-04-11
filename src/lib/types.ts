@@ -145,3 +145,41 @@ export interface Reference {
   description: string;
   imageUrl?: string;
 }
+
+export type FixedCostInterval = "monthly" | "quarterly" | "yearly";
+
+export const FIXED_COST_INTERVAL_OPTIONS: { value: FixedCostInterval; label: string }[] = [
+  { value: "monthly", label: "Monatlich" },
+  { value: "quarterly", label: "Quartalsweise" },
+  { value: "yearly", label: "Jaehrlich" },
+];
+
+export const FIXED_COST_CATEGORIES: { value: string; label: string }[] = [
+  { value: "rent", label: "Miete" },
+  { value: "insurance", label: "Versicherung" },
+  { value: "subscription", label: "Abonnement" },
+  { value: "salary", label: "Gehalt" },
+  { value: "telecom", label: "Telekommunikation" },
+  { value: "software", label: "Software" },
+  { value: "other", label: "Sonstiges" },
+];
+
+export interface FixedCost {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  amount: number;
+  currency: string;
+  vat_rate: number;
+  interval: FixedCostInterval;
+  start_date: string;
+  end_date: string | null;
+  is_active: boolean;
+  account_number: string;
+  account_label: string;
+  supplier: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}

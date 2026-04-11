@@ -7,6 +7,7 @@ import {
   Product,
   Quote,
   QuoteItem,
+  FixedCost,
 } from "./types";
 
 const DEFAULT_SETTINGS: CompanySettings = {
@@ -471,6 +472,52 @@ export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
   return invoice;
 }
 
+// Fixed Costs
+export async function getFixedCosts(): Promise<FixedCost[]> {
+  const { data } = await supabase()
+    .from("fixed_costs")
+    .select("*")
+    .order("name", { ascending: true });
+  return (data ?? []).map(mapFixedCost);
+}
+
+export async function getActiveFixedCosts(): Promise<FixedCost[]> {
+  const { data } = await supabase()
+    .from("fixed_costs")
+    .select("*")
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+  return (data ?? []).map(mapFixedCost);
+}
+
+export async function createFixedCost(
+  cost: Omit<FixedCost, "id" | "created_at" | "updated_at">
+): Promise<FixedCost> {
+  const { data } = await supabase()
+    .from("fixed_costs")
+    .insert(cost)
+    .select()
+    .single();
+  return mapFixedCost(data!);
+}
+
+export async function updateFixedCost(
+  id: string,
+  updates: Partial<FixedCost>
+): Promise<FixedCost> {
+  const { data } = await supabase()
+    .from("fixed_costs")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  return mapFixedCost(data!);
+}
+
+export async function deleteFixedCost(id: string): Promise<void> {
+  await supabase().from("fixed_costs").delete().eq("id", id);
+}
+
 // Mappers
 function mapCustomer(row: Record<string, unknown>): Customer {
   return {
@@ -583,5 +630,27 @@ function mapQuote(
     notes: (row.notes as string) || "",
     converted_invoice_id: (row.converted_invoice_id as string) || null,
     created_at: row.created_at as string,
+  };
+}
+
+function mapFixedCost(row: Record<string, unknown>): FixedCost {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    description: (row.description as string) || "",
+    category: (row.category as string) || "other",
+    amount: Number(row.amount),
+    currency: (row.currency as string) || "EUR",
+    vat_rate: Number(row.vat_rate ?? 20),
+    interval: (row.interval as FixedCost["interval"]) || "monthly",
+    start_date: row.start_date as string,
+    end_date: (row.end_date as string) || null,
+    is_active: row.is_active as boolean,
+    account_number: (row.account_number as string) || "",
+    account_label: (row.account_label as string) || "",
+    supplier: (row.supplier as string) || "",
+    notes: (row.notes as string) || "",
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
   };
 }

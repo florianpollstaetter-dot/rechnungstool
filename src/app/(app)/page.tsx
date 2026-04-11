@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Invoice, Customer, Quote, CompanySettings } from "@/lib/types";
-import { getInvoices, getCustomers, getQuotes, getSettings } from "@/lib/db";
+import { Invoice, Customer, Quote, CompanySettings, FixedCost } from "@/lib/types";
+import { getInvoices, getCustomers, getQuotes, getSettings, getActiveFixedCosts } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -26,6 +26,7 @@ export default function DashboardPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
@@ -40,11 +41,12 @@ export default function DashboardPage() {
   }
 
   const loadData = useCallback(async () => {
-    const [inv, cust, q, s] = await Promise.all([getInvoices(), getCustomers(), getQuotes(), getSettings()]);
+    const [inv, cust, q, s, fc] = await Promise.all([getInvoices(), getCustomers(), getQuotes(), getSettings(), getActiveFixedCosts()]);
     setInvoices(inv);
     setCustomers(cust);
     setQuotes(q);
     setSettings(s);
+    setFixedCosts(fc);
     setLoading(false);
   }, []);
 
@@ -63,6 +65,12 @@ export default function DashboardPage() {
   const totalOverdueNet = overdueInvoices.reduce((sum, i) => sum + i.subtotal, 0);
 
   const openQuotes = quotes.filter((q) => q.status === "draft" || q.status === "sent");
+
+  const monthlyFixedCosts = fixedCosts.reduce((sum, c) => {
+    if (c.interval === "monthly") return sum + c.amount;
+    if (c.interval === "quarterly") return sum + c.amount / 3;
+    return sum + c.amount / 12;
+  }, 0);
 
   const companyType = settings?.company_type || "gmbh";
   const isSollBesteuerung = companyType === "gmbh";
@@ -150,6 +158,20 @@ export default function DashboardPage() {
         </svg>
       ),
     },
+    {
+      title: "Fixkosten",
+      valueGross: formatCurrency(monthlyFixedCosts),
+      valueNet: formatCurrency(monthlyFixedCosts * 12),
+      subtitle: `${fixedCosts.length} aktive Positionen`,
+      borderColor: "border-cyan-500",
+      iconBg: "bg-cyan-500/10",
+      iconColor: "text-cyan-400",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+        </svg>
+      ),
+    },
   ];
 
   const recentInvoices = [...invoices].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5);
@@ -166,7 +188,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {cards.map((card) => (
           <div key={card.title} className={`bg-[var(--surface)] rounded-xl border-l-4 ${card.borderColor} border border-[var(--border)] p-5 hover:bg-[var(--surface-hover)] transition`}>
             <div className="flex items-center gap-3 mb-3">
