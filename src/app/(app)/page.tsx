@@ -104,6 +104,7 @@ export default function DashboardPage() {
   const cards = [
     {
       title: "Gesamtumsatz",
+      href: "/invoices",
       valueGross: formatCurrency(totalRevenueGross),
       valueNet: formatCurrency(totalRevenueNet),
       subtitle: `${paidInvoices.length} bezahlte Rechnungen`,
@@ -118,6 +119,7 @@ export default function DashboardPage() {
     },
     {
       title: "Offene Rechnungen",
+      href: "/invoices",
       valueGross: formatCurrency(totalOpenGross),
       valueNet: formatCurrency(totalOpenNet),
       subtitle: `${openInvoices.length} offen`,
@@ -132,6 +134,7 @@ export default function DashboardPage() {
     },
     {
       title: "Ueberfaellig",
+      href: "/invoices",
       valueGross: formatCurrency(totalOverdueGross),
       valueNet: formatCurrency(totalOverdueNet),
       subtitle: `${overdueInvoices.length} ueberfaellig`,
@@ -146,6 +149,7 @@ export default function DashboardPage() {
     },
     {
       title: "Kunden / Angebote",
+      href: "/customers",
       valueGross: String(customers.length),
       valueNet: `${openQuotes.length} offene Angebote`,
       subtitle: `${quotes.length} Angebote gesamt`,
@@ -160,6 +164,7 @@ export default function DashboardPage() {
     },
     {
       title: "Fixkosten",
+      href: "/fixed-costs",
       valueGross: formatCurrency(monthlyFixedCosts),
       valueNet: formatCurrency(monthlyFixedCosts * 12),
       subtitle: `${fixedCosts.length} aktive Positionen`,
@@ -190,7 +195,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {cards.map((card) => (
-          <div key={card.title} className={`bg-[var(--surface)] rounded-xl border-l-4 ${card.borderColor} border border-[var(--border)] p-5 hover:bg-[var(--surface-hover)] transition`}>
+          <Link key={card.title} href={card.href} className={`bg-[var(--surface)] rounded-xl border-l-4 ${card.borderColor} border border-[var(--border)] p-5 hover:bg-[var(--surface-hover)] transition cursor-pointer`}>
             <div className="flex items-center gap-3 mb-3">
               <div className={`w-9 h-9 rounded-lg ${card.iconBg} flex items-center justify-center ${card.iconColor}`}>
                 {card.icon}
@@ -200,7 +205,7 @@ export default function DashboardPage() {
             <p className="text-2xl font-bold text-white">{card.valueGross}</p>
             <p className="text-sm text-gray-500 mt-0.5">Netto: {card.valueNet}</p>
             <p className="text-xs text-gray-600 mt-1">{card.subtitle}</p>
-          </div>
+          </Link>
         ))}
       </div>
 

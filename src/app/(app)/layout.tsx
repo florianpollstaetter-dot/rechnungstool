@@ -41,7 +41,7 @@ export default function AppLayout({
           <div className="flex justify-between h-16">
             <div className="flex items-center space-x-8">
               <Link href="/" className="flex items-center">
-                <Image src="/logo.png" alt="VR the Fans" width={44} height={44} className="rounded" />
+                <Image src="/logo.png" alt="VR the Fans" width={64} height={64} className="rounded" style={{ filter: "invert(1)" }} />
               </Link>
               {navItems.map((item) => (
                 <Link
