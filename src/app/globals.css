@@ -9,6 +9,27 @@
   --accent: #00d4ff;
   --accent-dim: rgba(0, 212, 255, 0.15);
   --gold: #C9A84C;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --logo-filter: invert(1);
+  --color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --background: #f5f7fa;
+  --foreground: #1a1a2e;
+  --surface: #ffffff;
+  --surface-hover: #f0f1f5;
+  --border: #d1d5db;
+  --accent: #0099cc;
+  --accent-dim: rgba(0, 153, 204, 0.1);
+  --gold: #b8942e;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --logo-filter: none;
+  --color-scheme: light;
 }
 
 body {
@@ -26,12 +47,12 @@ input[type="number"].no-spinners {
   -moz-appearance: textfield;
 }
 
-/* Dark form inputs */
+/* Form inputs follow theme */
 input, select, textarea {
-  color-scheme: dark;
+  color-scheme: var(--color-scheme);
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

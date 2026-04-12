@@ -41,7 +41,7 @@ export default function AppLayout({
           <div className="flex justify-between h-16">
             <div className="flex items-center space-x-8">
               <Link href="/" className="flex items-center">
-                <Image src="/logo.png" alt="VR the Fans" width={64} height={64} className="rounded" style={{ filter: "invert(1)" }} />
+                <Image src="/logo.png" alt="VR the Fans" width={64} height={64} className="rounded" style={{ filter: "var(--logo-filter)" }} />
               </Link>
               {navItems.map((item) => (
                 <Link
@@ -50,7 +50,7 @@ export default function AppLayout({
                   className={`px-3 py-2 text-sm font-medium transition-colors ${
                     isActive(item.href, item.exact)
                       ? "text-[var(--accent)]"
-                      : "text-gray-400 hover:text-white"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   }`}
                 >
                   {item.label}
@@ -61,7 +61,7 @@ export default function AppLayout({
               <Link
                 href="/settings"
                 className={`transition-colors ${
-                  isActive("/settings") ? "text-[var(--accent)]" : "text-gray-500 hover:text-gray-300"
+                  isActive("/settings") ? "text-[var(--accent)]" : "text-gray-500 hover:text-[var(--text-primary)]"
                 }`}
                 title="Einstellungen"
               >
@@ -72,7 +72,7 @@ export default function AppLayout({
               </Link>
               <button
                 onClick={handleLogout}
-                className="text-gray-500 hover:text-gray-300 text-sm font-medium transition-colors"
+                className="text-gray-500 hover:text-[var(--text-primary)] text-sm font-medium transition-colors"
               >
                 Abmelden
               </button>

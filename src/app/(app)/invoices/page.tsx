@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Invoice, Customer, InvoiceStatus, Language } from "@/lib/types";
-import { getInvoices, getCustomers, updateInvoice, cancelInvoice, deleteInvoice } from "@/lib/db";
+import { Invoice, Customer, CompanySettings, InvoiceStatus, Language } from "@/lib/types";
+import { getInvoices, getCustomers, getSettings, updateInvoice, cancelInvoice, deleteInvoice } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
+import PDFPreviewModal from "@/components/PDFPreviewModal";
 
 const statusConfig: { value: InvoiceStatus; label: string; color: string; activeColor: string }[] = [
   { value: "entwurf", label: "Entwurf", color: "text-gray-500 hover:text-gray-300", activeColor: "bg-gray-500/20 text-gray-300 ring-1 ring-gray-500/40" },
@@ -17,22 +18,83 @@ const statusConfig: { value: InvoiceStatus; label: string; color: string; active
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentModal, setPaymentModal] = useState<{ invoice: Invoice } | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [pdfLoading, setPdfLoading] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const [inv, cust] = await Promise.all([getInvoices(), getCustomers()]);
+    const [inv, cust, s] = await Promise.all([getInvoices(), getCustomers(), getSettings()]);
     setInvoices(inv);
     setCustomers(cust);
+    setSettings(s);
     setLoading(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  function getCustomer(id: string): Customer | undefined {
+    return customers.find((c) => c.id === id);
+  }
+
   function getCustomerName(id: string): string {
-    const c = customers.find((c) => c.id === id);
+    const c = getCustomer(id);
     return c ? c.company || c.name : "Unbekannt";
+  }
+
+  async function generatePdfBlob(inv: Invoice): Promise<{ blob: Blob; filename: string } | null> {
+    if (!settings) return null;
+    const customer = getCustomer(inv.customer_id);
+    if (!customer) return null;
+
+    const { pdf } = await import("@react-pdf/renderer");
+    const { default: InvoicePDF } = await import("@/components/InvoicePDF");
+
+    let logoUrl = settings.logo_url;
+    if (logoUrl && !logoUrl.startsWith("http")) {
+      logoUrl = `${window.location.origin}${logoUrl}`;
+    }
+    const absSettings = { ...settings, logo_url: logoUrl || "" };
+
+    const blob = await pdf(
+      <InvoicePDF invoice={inv} customer={customer} settings={absSettings} />
+    ).toBlob();
+    return { blob, filename: `Rechnung_${inv.invoice_number.replace(/\s/g, "_")}.pdf` };
+  }
+
+  async function handleDirectDownload(inv: Invoice) {
+    setPdfLoading(inv.id);
+    try {
+      const result = await generatePdfBlob(inv);
+      if (result) {
+        const url = URL.createObjectURL(result.blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = result.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error("PDF download failed:", err);
+    } finally {
+      setPdfLoading(null);
+    }
+  }
+
+  async function handleDirectPreview(inv: Invoice) {
+    setPdfLoading(inv.id);
+    try {
+      const result = await generatePdfBlob(inv);
+      if (result) setPreviewBlob(result.blob);
+    } catch (err) {
+      console.error("PDF preview failed:", err);
+    } finally {
+      setPdfLoading(null);
+    }
   }
 
   function openPaymentModal(inv: Invoice) {
@@ -93,7 +155,7 @@ export default function InvoicesPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Rechnungen</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Rechnungen</h1>
         <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ Neue Rechnung</Link>
       </div>
 
@@ -101,36 +163,37 @@ export default function InvoicesPage() {
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nr.</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kunde</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bezahlt</th>
-              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">DE/EN</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Nr.</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Kunde</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Datum</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">Brutto</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">Bezahlt</th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-[var(--text-muted)] uppercase">DE/EN</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Status</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {invoices.length === 0 && (
-              <tr><td colSpan={8} className="px-3 py-8 text-center text-gray-500">Noch keine Rechnungen erstellt.</td></tr>
+              <tr><td colSpan={8} className="px-3 py-8 text-center text-[var(--text-muted)]">Noch keine Rechnungen erstellt.</td></tr>
             )}
             {invoices.sort((a, b) => b.created_at.localeCompare(a.created_at)).map((inv) => {
               const isStorniert = inv.status === "storniert";
               const isPaid = inv.status === "bezahlt";
               const isPartial = inv.status === "teilbezahlt";
               const isEN = inv.language === "en";
+              const isLoadingPdf = pdfLoading === inv.id;
 
               return (
                 <tr key={inv.id} className={`hover:bg-[var(--surface-hover)] transition ${isStorniert ? "opacity-50" : ""}`}>
-                  <td className="px-3 py-3 font-medium text-white text-sm">{inv.invoice_number}</td>
-                  <td className="px-3 py-3 text-sm text-gray-400 max-w-[120px] truncate">{getCustomerName(inv.customer_id)}</td>
-                  <td className="px-3 py-3 text-sm text-gray-400">{formatDateLong(inv.invoice_date)}</td>
-                  <td className="px-3 py-3 text-sm text-white text-right font-medium">{formatCurrency(inv.total)}</td>
+                  <td className="px-3 py-3 font-medium text-[var(--text-primary)] text-sm">{inv.invoice_number}</td>
+                  <td className="px-3 py-3 text-sm text-[var(--text-secondary)] max-w-[120px] truncate">{getCustomerName(inv.customer_id)}</td>
+                  <td className="px-3 py-3 text-sm text-[var(--text-secondary)]">{formatDateLong(inv.invoice_date)}</td>
+                  <td className="px-3 py-3 text-sm text-[var(--text-primary)] text-right font-medium">{formatCurrency(inv.total)}</td>
                   <td className="px-3 py-3 text-sm text-right">
                     {(isPaid || isPartial) ? (
                       <span className={isPaid ? "text-emerald-400" : "text-cyan-400"}>{formatCurrency(inv.paid_amount)}</span>
-                    ) : <span className="text-gray-600">—</span>}
+                    ) : <span className="text-[var(--text-muted)]">—</span>}
                   </td>
                   <td className="px-3 py-3 text-center">
                     <button
@@ -162,16 +225,30 @@ export default function InvoicesPage() {
                   </td>
                   <td className="px-3 py-3 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1">
-                      <Link href={`/invoices/${inv.id}`} className="text-[var(--accent)] hover:brightness-110 p-1" title="Ansehen">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />
-                        </svg>
-                      </Link>
-                      <Link href={`/invoices/${inv.id}?download=1`} className="text-gray-500 hover:text-gray-300 p-1" title="PDF Download">
+                      <button
+                        onClick={() => handleDirectPreview(inv)}
+                        disabled={isLoadingPdf}
+                        className="text-[var(--accent)] hover:brightness-110 p-1 disabled:opacity-50"
+                        title="Vorschau"
+                      >
+                        {isLoadingPdf ? (
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" /></svg>
+                        ) : (
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleDirectDownload(inv)}
+                        disabled={isLoadingPdf}
+                        className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] p-1 disabled:opacity-50"
+                        title="PDF Download"
+                      >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                         </svg>
-                      </Link>
+                      </button>
                       {!isStorniert && (
                         <button onClick={() => handleCancel(inv.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title="Stornieren">
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -188,22 +265,24 @@ export default function InvoicesPage() {
         </table>
       </div>
 
+      <PDFPreviewModal blob={previewBlob} onClose={() => setPreviewBlob(null)} />
+
       {/* Payment Modal */}
       {paymentModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setPaymentModal(null)}>
           <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-white mb-4">Zahlung erfassen</h2>
-            <p className="text-sm text-gray-400 mb-1">Rechnung: <span className="text-white font-medium">{paymentModal.invoice.invoice_number}</span></p>
-            <p className="text-sm text-gray-400 mb-4">Bruttobetrag: <span className="text-white font-medium">{formatCurrency(paymentModal.invoice.total)}</span></p>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Zahlung erfassen</h2>
+            <p className="text-sm text-[var(--text-secondary)] mb-1">Rechnung: <span className="text-[var(--text-primary)] font-medium">{paymentModal.invoice.invoice_number}</span></p>
+            <p className="text-sm text-[var(--text-secondary)] mb-4">Bruttobetrag: <span className="text-[var(--text-primary)] font-medium">{formatCurrency(paymentModal.invoice.total)}</span></p>
 
-            <label className="block text-sm font-medium text-gray-400 mb-1">Gezahlter Betrag (brutto)</label>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Gezahlter Betrag (brutto)</label>
             <input
               type="number"
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
               step="0.01"
               min={0}
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] mb-3 no-spinners"
+              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] mb-3 no-spinners"
               autoFocus
               onKeyDown={(e) => { if (e.key === "Enter") submitPayment(); }}
             />
@@ -233,7 +312,7 @@ export default function InvoicesPage() {
               <button
                 type="button"
                 onClick={() => setPaymentModal(null)}
-                className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
+                className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
               >
                 Abbrechen
               </button>

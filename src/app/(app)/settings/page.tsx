@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS } from "@/lib/types";
 import { getSettings, updateSettings } from "@/lib/db";
+import { useTheme } from "@/components/ThemeProvider";
 
 const COMPANY_TYPE_WARNINGS: Record<CompanyType, string> = {
   gmbh: "GmbH: Soll-Besteuerung — die Umsatzsteuer wird faellig bei Rechnungsstellung, unabhaengig davon ob die Zahlung bereits eingegangen ist.",
@@ -10,9 +11,10 @@ const COMPANY_TYPE_WARNINGS: Record<CompanyType, string> = {
   verein: "Verein: Es gelten Sonderregelungen fuer die Umsatzsteuer. Bitte pruefen Sie die steuerlichen Auswirkungen mit Ihrem Steuerberater.",
 };
 
-const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
+const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -67,13 +69,44 @@ export default function SettingsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Einstellungen</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Einstellungen</h1>
         {saved && <span className="text-sm text-emerald-400 font-medium">Gespeichert!</span>}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Gesellschaftsform</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Erscheinungsbild</h2>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-[var(--text-secondary)]">Theme:</span>
+            <div className="flex rounded-lg overflow-hidden border border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() => setTheme("dark")}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  theme === "dark"
+                    ? "bg-[var(--accent)] text-black"
+                    : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                Dunkel
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme("light")}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  theme === "light"
+                    ? "bg-[var(--accent)] text-black"
+                    : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                Hell
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Gesellschaftsform</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {COMPANY_TYPE_OPTIONS.map((opt) => (
               <label
@@ -92,88 +125,88 @@ export default function SettingsPage() {
                   onChange={(e) => handleCompanyTypeChange(e.target.value)}
                   className="sr-only"
                 />
-                <span className="font-semibold text-white">{opt.label}</span>
+                <span className="font-semibold text-[var(--text-primary)]">{opt.label}</span>
                 <span className="text-xs text-gray-500 mt-1">{opt.description}</span>
               </label>
             ))}
           </div>
           {selectedType && (
-            <p className="text-sm text-gray-400 mt-3">
-              Aktiv: <strong className="text-white">{selectedType.label}</strong> — {selectedType.description}
+            <p className="text-sm text-[var(--text-secondary)] mt-3">
+              Aktiv: <strong className="text-[var(--text-primary)]">{selectedType.label}</strong> — {selectedType.description}
             </p>
           )}
         </div>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Firmendaten</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Firmendaten</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Firmenname</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Firmenname</label>
               <input type="text" value={settings.company_name} onChange={(e) => update("company_name", e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">UID-Nummer</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">UID-Nummer</label>
               <input type="text" value={settings.uid} onChange={(e) => update("uid", e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Adresse</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Adresse</label>
               <input type="text" value={settings.address} onChange={(e) => update("address", e.target.value)} className={inputClass} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">PLZ</label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">PLZ</label>
                 <input type="text" value={settings.zip} onChange={(e) => update("zip", e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Stadt</label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Stadt</label>
                 <input type="text" value={settings.city} onChange={(e) => update("city", e.target.value)} className={inputClass} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Telefon</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Telefon</label>
               <input type="text" value={settings.phone} onChange={(e) => update("phone", e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">E-Mail</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">E-Mail</label>
               <input type="email" value={settings.email} onChange={(e) => update("email", e.target.value)} className={inputClass} />
             </div>
           </div>
         </div>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Bankverbindung</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Bankverbindung</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">IBAN</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">IBAN</label>
               <input type="text" value={settings.iban} onChange={(e) => update("iban", e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">BIC</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">BIC</label>
               <input type="text" value={settings.bic} onChange={(e) => update("bic", e.target.value)} className={inputClass} />
             </div>
           </div>
         </div>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Standards</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Standards</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Standard-Zahlungsziel (Tage)</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Standard-Zahlungsziel (Tage)</label>
               <input type="number" value={settings.default_payment_terms_days} onChange={(e) => update("default_payment_terms_days", Number(e.target.value))} min={1} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Standard-Steuersatz (%)</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Standard-Steuersatz (%)</label>
               <input type="number" value={settings.default_tax_rate} onChange={(e) => update("default_tax_rate", Number(e.target.value))} min={0} max={100} className={inputClass} />
             </div>
           </div>
         </div>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Begleittext (Rechnungen)</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Begleittext (Rechnungen)</h2>
           <p className="text-sm text-gray-500 mb-4">Dieser Text wird auf jeder Rechnung und im PDF angezeigt. Pflegen Sie eine deutsche und eine englische Version.</p>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Begleittext (Deutsch)</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Begleittext (Deutsch)</label>
               <textarea
                 value={settings.accompanying_text_de}
                 onChange={(e) => update("accompanying_text_de", e.target.value)}
@@ -183,7 +216,7 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Begleittext (English)</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Begleittext (English)</label>
               <textarea
                 value={settings.accompanying_text_en}
                 onChange={(e) => update("accompanying_text_en", e.target.value)}
@@ -211,16 +244,16 @@ export default function SettingsPage() {
                 <path d="M12 9v4" />
                 <path d="M12 17h.01" />
               </svg>
-              <h3 className="text-lg font-semibold text-white">Gesellschaftsform aendern</h3>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Gesellschaftsform aendern</h3>
             </div>
             <p className="text-sm text-gray-300 mb-2">
-              Sie wechseln von <strong className="text-white">{COMPANY_TYPE_OPTIONS.find((o) => o.value === settings?.company_type)?.label}</strong> zu <strong className="text-white">{COMPANY_TYPE_OPTIONS.find((o) => o.value === pendingTypeChange)?.label}</strong>.
+              Sie wechseln von <strong className="text-[var(--text-primary)]">{COMPANY_TYPE_OPTIONS.find((o) => o.value === settings?.company_type)?.label}</strong> zu <strong className="text-[var(--text-primary)]">{COMPANY_TYPE_OPTIONS.find((o) => o.value === pendingTypeChange)?.label}</strong>.
             </p>
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-4">
               <p className="text-sm text-amber-300">{COMPANY_TYPE_WARNINGS[pendingTypeChange]}</p>
             </div>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setPendingTypeChange(null)} className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-[var(--surface-hover)] rounded-lg transition">
+              <button onClick={() => setPendingTypeChange(null)} className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-lg transition">
                 Abbrechen
               </button>
               <button onClick={confirmTypeChange} className="px-4 py-2 text-sm font-medium text-black bg-amber-500 hover:bg-amber-400 rounded-lg transition">

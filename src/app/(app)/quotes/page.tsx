@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Quote, Customer, QuoteStatus, Language } from "@/lib/types";
-import { getQuotes, getCustomers, updateQuote, deleteQuote, convertQuoteToInvoice } from "@/lib/db";
+import { Quote, Customer, CompanySettings, QuoteStatus, Language } from "@/lib/types";
+import { getQuotes, getCustomers, getSettings, updateQuote, deleteQuote, convertQuoteToInvoice } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
+import PDFPreviewModal from "@/components/PDFPreviewModal";
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   draft: { label: "Entwurf", color: "bg-gray-500/15 text-gray-400" },
@@ -17,20 +18,81 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 export default function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [pdfLoading, setPdfLoading] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const [q, cust] = await Promise.all([getQuotes(), getCustomers()]);
+    const [q, cust, s] = await Promise.all([getQuotes(), getCustomers(), getSettings()]);
     setQuotes(q);
     setCustomers(cust);
+    setSettings(s);
     setLoading(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  function getCustomer(id: string): Customer | undefined {
+    return customers.find((c) => c.id === id);
+  }
+
   function getCustomerName(id: string): string {
-    const c = customers.find((c) => c.id === id);
+    const c = getCustomer(id);
     return c ? c.company || c.name : "Unbekannt";
+  }
+
+  async function generatePdfBlob(q: Quote): Promise<{ blob: Blob; filename: string } | null> {
+    if (!settings) return null;
+    const customer = getCustomer(q.customer_id);
+    if (!customer) return null;
+
+    const { pdf } = await import("@react-pdf/renderer");
+    const { default: QuotePDF } = await import("@/components/QuotePDF");
+
+    let logoUrl = settings.logo_url;
+    if (logoUrl && !logoUrl.startsWith("http")) {
+      logoUrl = `${window.location.origin}${logoUrl}`;
+    }
+    const absSettings = { ...settings, logo_url: logoUrl || "" };
+
+    const blob = await pdf(
+      <QuotePDF quote={q} customer={customer} settings={absSettings} />
+    ).toBlob();
+    return { blob, filename: `Angebot_${q.quote_number.replace(/\s/g, "_")}.pdf` };
+  }
+
+  async function handleDirectDownload(q: Quote) {
+    setPdfLoading(q.id);
+    try {
+      const result = await generatePdfBlob(q);
+      if (result) {
+        const url = URL.createObjectURL(result.blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = result.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error("PDF download failed:", err);
+    } finally {
+      setPdfLoading(null);
+    }
+  }
+
+  async function handleDirectPreview(q: Quote) {
+    setPdfLoading(q.id);
+    try {
+      const result = await generatePdfBlob(q);
+      if (result) setPreviewBlob(result.blob);
+    } catch (err) {
+      console.error("PDF preview failed:", err);
+    } finally {
+      setPdfLoading(null);
+    }
   }
 
   async function handleLanguageToggle(id: string, currentLang: Language) {
@@ -62,12 +124,12 @@ export default function QuotesPage() {
     }
   }
 
-  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="text-[var(--text-muted)]">Laden...</div></div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Angebote</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Angebote</h1>
         <Link href="/quotes/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ Neues Angebot</Link>
       </div>
 
@@ -75,30 +137,31 @@ export default function QuotesPage() {
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nr.</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kunde</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Projekt</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gueltig bis</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Sprache</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aktionen</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Nr.</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Kunde</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Projekt</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Gueltig bis</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">Brutto</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-[var(--text-muted)] uppercase">Sprache</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Status</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">Aktionen</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {quotes.length === 0 && (
-              <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-500">Noch keine Angebote erstellt.</td></tr>
+              <tr><td colSpan={8} className="px-6 py-8 text-center text-[var(--text-muted)]">Noch keine Angebote erstellt.</td></tr>
             )}
             {quotes.sort((a, b) => b.created_at.localeCompare(a.created_at)).map((q) => {
               const st = statusLabels[q.status] || statusLabels.draft;
               const isEN = q.language === "en";
+              const isLoadingPdf = pdfLoading === q.id;
               return (
                 <tr key={q.id} className="hover:bg-[var(--surface-hover)] transition">
-                  <td className="px-6 py-4 font-medium text-white">{q.quote_number}</td>
-                  <td className="px-6 py-4 text-sm text-gray-400">{getCustomerName(q.customer_id)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-400">{q.project_description || "-"}</td>
-                  <td className="px-6 py-4 text-sm text-gray-400">{formatDateLong(q.valid_until)}</td>
-                  <td className="px-6 py-4 text-sm text-right font-medium text-white">{formatCurrency(q.total)}</td>
+                  <td className="px-6 py-4 font-medium text-[var(--text-primary)]">{q.quote_number}</td>
+                  <td className="px-6 py-4 text-sm text-[var(--text-secondary)]">{getCustomerName(q.customer_id)}</td>
+                  <td className="px-6 py-4 text-sm text-[var(--text-secondary)]">{q.project_description || "-"}</td>
+                  <td className="px-6 py-4 text-sm text-[var(--text-secondary)]">{formatDateLong(q.valid_until)}</td>
+                  <td className="px-6 py-4 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(q.total)}</td>
                   <td className="px-6 py-4 text-center">
                     <button
                       onClick={() => handleLanguageToggle(q.id, q.language)}
@@ -120,12 +183,37 @@ export default function QuotesPage() {
                       <option value="expired">Abgelaufen</option>
                     </select>
                   </td>
-                  <td className="px-6 py-4 text-right space-x-2">
-                    <Link href={`/quotes/${q.id}`} className="text-sm text-[var(--accent)] hover:brightness-110">Ansehen</Link>
-                    {q.status !== "accepted" && !q.converted_invoice_id && (
-                      <button onClick={() => handleConvert(q.id)} className="text-sm text-emerald-400 hover:text-emerald-300">→ Rechnung</button>
-                    )}
-                    <button onClick={() => handleDelete(q.id)} className="text-sm text-rose-400 hover:text-rose-300">Loeschen</button>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => handleDirectPreview(q)}
+                        disabled={isLoadingPdf}
+                        className="text-[var(--accent)] hover:brightness-110 p-1 disabled:opacity-50"
+                        title="Vorschau"
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDirectDownload(q)}
+                        disabled={isLoadingPdf}
+                        className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] p-1 disabled:opacity-50"
+                        title="PDF Download"
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                      </button>
+                      {q.status !== "accepted" && !q.converted_invoice_id && (
+                        <button onClick={() => handleConvert(q.id)} className="text-sm text-emerald-400 hover:text-emerald-300 px-1">→ RE</button>
+                      )}
+                      <button onClick={() => handleDelete(q.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title="Loeschen">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -133,6 +221,8 @@ export default function QuotesPage() {
           </tbody>
         </table>
       </div>
+
+      <PDFPreviewModal blob={previewBlob} onClose={() => setPreviewBlob(null)} />
     </div>
   );
 }
