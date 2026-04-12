@@ -8,6 +8,9 @@ import {
   Quote,
   QuoteItem,
   FixedCost,
+  Template,
+  TemplateItem,
+  TemplateType,
   Language,
   DisplayMode,
 } from "./types";
@@ -475,6 +478,34 @@ export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
   return invoice;
 }
 
+// Templates
+export async function getTemplates(type?: TemplateType): Promise<Template[]> {
+  let query = supabase().from("templates").select("*").order("name", { ascending: true });
+  if (type) query = query.eq("template_type", type);
+  const { data } = await query;
+  return (data ?? []).map(mapTemplate);
+}
+
+export async function getTemplate(id: string): Promise<Template | undefined> {
+  const { data } = await supabase().from("templates").select("*").eq("id", id).single();
+  return data ? mapTemplate(data) : undefined;
+}
+
+export async function createTemplate(
+  template: Omit<Template, "id" | "created_at">
+): Promise<Template> {
+  const { data } = await supabase()
+    .from("templates")
+    .insert({ ...template, items: JSON.stringify(template.items) })
+    .select()
+    .single();
+  return mapTemplate(data!);
+}
+
+export async function deleteTemplate(id: string): Promise<void> {
+  await supabase().from("templates").delete().eq("id", id);
+}
+
 // Fixed Costs
 export async function getFixedCosts(): Promise<FixedCost[]> {
   const { data } = await supabase()
@@ -658,5 +689,28 @@ function mapFixedCost(row: Record<string, unknown>): FixedCost {
     notes: (row.notes as string) || "",
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
+  };
+}
+
+function mapTemplate(row: Record<string, unknown>): Template {
+  let items: TemplateItem[] = [];
+  try {
+    const raw = row.items;
+    if (typeof raw === "string") items = JSON.parse(raw);
+    else if (Array.isArray(raw)) items = raw as TemplateItem[];
+  } catch { /* empty */ }
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    template_type: (row.template_type as TemplateType) || "invoice",
+    customer_id: (row.customer_id as string) || null,
+    project_description: (row.project_description as string) || "",
+    items,
+    tax_rate: Number(row.tax_rate ?? 20),
+    overall_discount_percent: Number(row.overall_discount_percent || 0),
+    overall_discount_amount: Number(row.overall_discount_amount || 0),
+    notes: (row.notes as string) || "",
+    language: (row.language as Language) || "de",
+    created_at: row.created_at as string,
   };
 }

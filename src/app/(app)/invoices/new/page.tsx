@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Customer, InvoiceItem, Product, UNIT_OPTIONS, Language } from "@/lib/types";
-import { getCustomers, getSettings, getActiveProducts, createInvoice } from "@/lib/db";
+import { getCustomers, getSettings, getActiveProducts, createInvoice, getTemplate } from "@/lib/db";
 import { addDays, formatCurrency } from "@/lib/format";
 import { calcItemTotal, calcTotals } from "@/lib/calc";
 
@@ -13,8 +13,13 @@ function emptyItem(pos: number): ItemRow {
   return { position: pos, description: "", unit: "Stueck", product_id: null, quantity: 1, unit_price: 0, discount_percent: 0, discount_amount: 0, total: 0 };
 }
 
-export default function NewInvoicePage() {
+export default function NewInvoicePageWrapper() {
+  return <Suspense fallback={<div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>}><NewInvoicePage /></Suspense>;
+}
+
+function NewInvoicePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [customerId, setCustomerId] = useState("");
@@ -36,7 +41,28 @@ export default function NewInvoicePage() {
     setProducts(prods);
     setTaxRate(settings.default_tax_rate);
     setPaymentTermsDays(settings.default_payment_terms_days);
-  }, []);
+
+    // Load template if ?template=ID is present
+    const templateId = searchParams.get("template");
+    if (templateId) {
+      const tpl = await getTemplate(templateId);
+      if (tpl) {
+        setProjectDescription(tpl.project_description);
+        setNotes(tpl.notes);
+        setLanguage(tpl.language);
+        setTaxRate(tpl.tax_rate);
+        setOverallDiscountPercent(tpl.overall_discount_percent);
+        setOverallDiscountAmount(tpl.overall_discount_amount);
+        if (tpl.customer_id) setCustomerId(tpl.customer_id);
+        if (tpl.items.length > 0) {
+          setItems(tpl.items.map((i) => ({
+            ...i,
+            total: (i.quantity * i.unit_price) - (i.discount_percent > 0 ? i.quantity * i.unit_price * i.discount_percent / 100 : i.discount_amount),
+          })));
+        }
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

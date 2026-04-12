@@ -169,6 +169,34 @@ export const FIXED_COST_CATEGORIES: { value: string; label: string }[] = [
   { value: "other", label: "Sonstiges" },
 ];
 
+export type TemplateType = "invoice" | "quote";
+
+export interface TemplateItem {
+  position: number;
+  description: string;
+  unit: string;
+  product_id: string | null;
+  quantity: number;
+  unit_price: number;
+  discount_percent: number;
+  discount_amount: number;
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  template_type: TemplateType;
+  customer_id: string | null;
+  project_description: string;
+  items: TemplateItem[];
+  tax_rate: number;
+  overall_discount_percent: number;
+  overall_discount_amount: number;
+  notes: string;
+  language: Language;
+  created_at: string;
+}
+
 export interface FixedCost {
   id: string;
   name: string;

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Invoice, Customer, CompanySettings, InvoiceStatus, Language } from "@/lib/types";
-import { getInvoices, getCustomers, getSettings, updateInvoice, cancelInvoice, deleteInvoice } from "@/lib/db";
+import { Invoice, Customer, CompanySettings, InvoiceStatus, Language, Template } from "@/lib/types";
+import { getInvoices, getCustomers, getSettings, updateInvoice, cancelInvoice, deleteInvoice, getTemplates } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
 
@@ -24,12 +24,15 @@ export default function InvoicesPage() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [inv, cust, s] = await Promise.all([getInvoices(), getCustomers(), getSettings()]);
+    const [inv, cust, s, tpl] = await Promise.all([getInvoices(), getCustomers(), getSettings(), getTemplates("invoice")]);
     setInvoices(inv);
     setCustomers(cust);
     setSettings(s);
+    setTemplates(tpl);
     setLoading(false);
   }, []);
 
@@ -156,7 +159,12 @@ export default function InvoicesPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Rechnungen</h1>
-        <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ Neue Rechnung</Link>
+        <div className="flex gap-2">
+          {templates.length > 0 && (
+            <button onClick={() => setShowTemplateModal(true)} className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">Aus Vorlage</button>
+          )}
+          <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ Neue Rechnung</Link>
+        </div>
       </div>
 
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
@@ -317,6 +325,30 @@ export default function InvoicesPage() {
                 Abbrechen
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template Selection Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowTemplateModal(false)}>
+          <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Rechnung aus Vorlage</h2>
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {templates.map((tpl) => (
+                <Link
+                  key={tpl.id}
+                  href={`/invoices/new?template=${tpl.id}`}
+                  className="block bg-[var(--background)] border border-[var(--border)] rounded-lg p-3 hover:bg-[var(--surface-hover)] transition"
+                >
+                  <p className="font-medium text-[var(--text-primary)] text-sm">{tpl.name}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{tpl.items.length} Positionen — {tpl.project_description || "Keine Projektbeschreibung"}</p>
+                </Link>
+              ))}
+            </div>
+            <button onClick={() => setShowTemplateModal(false)} className="mt-4 bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition w-full">
+              Abbrechen
+            </button>
           </div>
         </div>
       )}

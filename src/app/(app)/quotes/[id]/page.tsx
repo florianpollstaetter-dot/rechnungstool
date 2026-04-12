@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Quote, Customer, CompanySettings, QuoteStatus, UNIT_OPTIONS, Language, DisplayMode } from "@/lib/types";
-import { getQuote, getCustomer, getSettings, updateQuote, convertQuoteToInvoice, createInvoice } from "@/lib/db";
+import { Quote, Customer, CompanySettings, QuoteStatus, UNIT_OPTIONS, Language, DisplayMode, TemplateItem } from "@/lib/types";
+import { getQuote, getCustomer, getSettings, updateQuote, convertQuoteToInvoice, createInvoice, createTemplate } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
@@ -69,6 +69,24 @@ export default function QuoteDetailPage() {
     await updateQuote(quote!.id, { display_mode: newMode });
     const updated = await getQuote(quote!.id);
     if (updated) setQuote(updated);
+  }
+
+  async function handleSaveAsTemplate() {
+    const name = prompt("Vorlagenname:", quote!.project_description || quote!.quote_number);
+    if (!name) return;
+    const items: TemplateItem[] = quote!.items.map((i) => ({
+      position: i.position, description: i.description, unit: i.unit,
+      product_id: i.product_id, quantity: i.quantity, unit_price: i.unit_price,
+      discount_percent: i.discount_percent, discount_amount: i.discount_amount,
+    }));
+    await createTemplate({
+      name, template_type: "quote", customer_id: quote!.customer_id,
+      project_description: quote!.project_description, items,
+      tax_rate: quote!.tax_rate, overall_discount_percent: quote!.overall_discount_percent,
+      overall_discount_amount: quote!.overall_discount_amount,
+      notes: quote!.notes, language: quote!.language || "de",
+    });
+    alert("Vorlage gespeichert: " + name);
   }
 
   async function handleConvert() {
@@ -178,6 +196,9 @@ export default function QuoteDetailPage() {
               )}
             </>
           )}
+          <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-gray-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title="Als Vorlage speichern">
+            Vorlage
+          </button>
           <PDFDownloadButton quote={quote} customer={customer} settings={settings} onPreview={setPreviewBlob} />
         </div>
       </div>

@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Invoice, Customer, CompanySettings, InvoiceStatus, UNIT_OPTIONS } from "@/lib/types";
-import { getInvoice, getCustomer, getSettings, updateInvoice } from "@/lib/db";
+import { Invoice, Customer, CompanySettings, InvoiceStatus, UNIT_OPTIONS, TemplateItem } from "@/lib/types";
+import { getInvoice, getCustomer, getSettings, updateInvoice, createTemplate } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
@@ -55,6 +55,24 @@ export default function InvoiceDetailPage() {
     return UNIT_OPTIONS.find((u) => u.value === unit)?.label || unit;
   }
 
+  async function handleSaveAsTemplate() {
+    const name = prompt("Vorlagenname:", invoice!.project_description || invoice!.invoice_number);
+    if (!name) return;
+    const items: TemplateItem[] = invoice!.items.map((i) => ({
+      position: i.position, description: i.description, unit: i.unit,
+      product_id: i.product_id, quantity: i.quantity, unit_price: i.unit_price,
+      discount_percent: i.discount_percent, discount_amount: i.discount_amount,
+    }));
+    await createTemplate({
+      name, template_type: "invoice", customer_id: invoice!.customer_id,
+      project_description: invoice!.project_description, items,
+      tax_rate: invoice!.tax_rate, overall_discount_percent: invoice!.overall_discount_percent,
+      overall_discount_amount: invoice!.overall_discount_amount,
+      notes: invoice!.notes, language: invoice!.language,
+    });
+    alert("Vorlage gespeichert: " + name);
+  }
+
   const hasDiscounts = invoice.items.some((i) => i.discount_percent > 0 || i.discount_amount > 0) ||
     invoice.overall_discount_percent > 0 || invoice.overall_discount_amount > 0;
 
@@ -81,6 +99,9 @@ export default function InvoiceDetailPage() {
               <option value="ueberfaellig">Ueberfaellig</option>
             </select>
           )}
+          <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-gray-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title="Als Vorlage speichern">
+            Vorlage
+          </button>
           <PDFDownloadButton invoice={invoice} customer={customer} settings={settings} onPreview={setPreviewBlob} />
         </div>
       </div>
