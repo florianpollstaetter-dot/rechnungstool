@@ -9,7 +9,8 @@ import {
   Image,
   Font,
 } from "@react-pdf/renderer";
-import { Quote, Customer, CompanySettings, Reference, UNIT_OPTIONS } from "@/lib/types";
+import { Quote, Customer, CompanySettings, Reference, UNIT_OPTIONS, Language } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 Font.register({
   family: "Inter",
@@ -38,6 +39,13 @@ const DEFAULT_REFERENCES: Reference[] = [
   { title: "Sales Enablement", description: "VR-gestuetztes Verkaufsgespraech-Tool fuer Aussendienst" },
 ];
 
+const DEFAULT_REFERENCES_EN: Reference[] = [
+  { title: "Product Launch Event", description: "Immersive Apple Vision Pro presentation for market launch" },
+  { title: "Trade Show Experience", description: "Spatial Computing showcase at international trade show" },
+  { title: "Brand Storytelling", description: "Interactive brand world for premium clients" },
+  { title: "Sales Enablement", description: "VR-powered sales conversation tool for field teams" },
+];
+
 function fmtEuro(n: number): string {
   return n.toLocaleString("de-AT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " \u20AC";
 }
@@ -47,8 +55,10 @@ function fmtDate(date: string): string {
   return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
 }
 
-function unitLabel(unit: string) {
-  return UNIT_OPTIONS.find((u) => u.value === unit)?.label || unit;
+function unitLabel(unit: string, lang: Language) {
+  const opt = UNIT_OPTIONS.find((u) => u.value === unit);
+  if (!opt) return unit;
+  return lang === "en" ? opt.label_en : opt.label;
 }
 
 const s = StyleSheet.create({
@@ -131,9 +141,13 @@ interface Props {
   references?: Reference[];
 }
 
-export default function QuotePDF({ quote, customer, settings, references = DEFAULT_REFERENCES }: Props) {
+export default function QuotePDF({ quote, customer, settings, references }: Props) {
+  const lang = quote.language || "de";
+  const isSimple = quote.display_mode === "simple";
   const hasDiscounts = quote.items.some((i) => i.discount_percent > 0 || i.discount_amount > 0) ||
     quote.overall_discount_percent > 0 || quote.overall_discount_amount > 0;
+
+  const refs = references || (lang === "en" ? DEFAULT_REFERENCES_EN : DEFAULT_REFERENCES);
 
   return (
     <Document>
@@ -143,115 +157,119 @@ export default function QuotePDF({ quote, customer, settings, references = DEFAU
           {settings.logo_url ? <Image src={settings.logo_url} style={s.coverLogo} /> : null}
         </View>
         <View style={s.goldLine} />
-        <Text style={s.coverTitle}>ANGEBOT</Text>
-        <Text style={s.coverSubtitle}>{quote.project_description || "Projektangebot"}</Text>
-        <Text style={s.coverClient}>Fuer: {customer.company || customer.name}</Text>
+        <Text style={s.coverTitle}>{t("quote", lang)}</Text>
+        <Text style={s.coverSubtitle}>{quote.project_description || (lang === "de" ? "Projektangebot" : "Project Quote")}</Text>
+        <Text style={s.coverClient}>{t("forClient", lang)}: {customer.company || customer.name}</Text>
         <View style={{ marginTop: 15 }}>
-          <Text style={s.coverMeta}>Angebotsnummer: {quote.quote_number}</Text>
-          <Text style={s.coverMeta}>Datum: {fmtDate(quote.quote_date)}</Text>
-          <Text style={s.coverMeta}>Gueltig bis: {fmtDate(quote.valid_until)}</Text>
+          <Text style={s.coverMeta}>{t("quoteNumber", lang)}: {quote.quote_number}</Text>
+          <Text style={s.coverMeta}>{t("date", lang)}: {fmtDate(quote.quote_date)}</Text>
+          <Text style={s.coverMeta}>{t("validUntil", lang)}: {fmtDate(quote.valid_until)}</Text>
         </View>
         <View style={s.goldLine} />
         <Text style={s.coverCompany}>{settings.company_name}</Text>
         <Text style={s.coverCompany}>{settings.address}, {settings.zip} {settings.city}</Text>
       </Page>
 
-      {/* Page 2: About Us */}
-      <Page size="A4" style={[s.contentPage, { fontFamily: "Inter" }]}>
-        <View style={s.goldBar} />
-        <View style={s.pageHeader}>
-          {settings.logo_url ? <Image src={settings.logo_url} style={s.pageHeaderLogo} /> : null}
-          <Text style={s.pageHeaderTitle}>Ueber uns</Text>
-        </View>
-        <Text style={s.sectionLabel}>UEBER UNS</Text>
-        <Text style={s.sectionTitle}>VR the Fans {"\u2014"}{"\n"}Immersive Erlebnisse fuer Marken.</Text>
-        <Text style={s.bodyText}>
-          VR the Fans GmbH ist Oesterreichs fuehrender Spezialist fuer immersive Produktpraesentationen mit Apple Vision Pro. Wir verwandeln Produkte, Marken und Raeume in unvergessliche Erlebnisse {"\u2013"} fuer Messen, Events und Sales-Praesentationen.
-        </Text>
-        <View style={s.statsRow}>
-          <View style={s.statCard}>
-            <Text style={s.statNumber}>50+</Text>
-            <Text style={s.statLabel}>PROJEKTE</Text>
+      {/* Page 2: About Us (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={[s.contentPage, { fontFamily: "Inter" }]}>
+          <View style={s.goldBar} />
+          <View style={s.pageHeader}>
+            {settings.logo_url ? <Image src={settings.logo_url} style={s.pageHeaderLogo} /> : null}
+            <Text style={s.pageHeaderTitle}>{t("aboutUs", lang)}</Text>
           </View>
-          <View style={s.statCard}>
-            <Text style={s.statNumber}>Apple</Text>
-            <Text style={s.statLabel}>VISION PRO</Text>
+          <Text style={s.sectionLabel}>{t("aboutUs", lang)}</Text>
+          <Text style={s.sectionTitle}>VR the Fans {"\u2014"}{"\n"}{t("aboutUsTitle", lang)}</Text>
+          <Text style={s.bodyText}>{t("aboutUsBody", lang)}</Text>
+          <View style={s.statsRow}>
+            <View style={s.statCard}>
+              <Text style={s.statNumber}>50+</Text>
+              <Text style={s.statLabel}>{t("projects", lang)}</Text>
+            </View>
+            <View style={s.statCard}>
+              <Text style={s.statNumber}>Apple</Text>
+              <Text style={s.statLabel}>VISION PRO</Text>
+            </View>
+            <View style={s.statCard}>
+              <Text style={s.statNumber}>Wien</Text>
+              <Text style={s.statLabel}>{t("base", lang)}</Text>
+            </View>
           </View>
-          <View style={s.statCard}>
-            <Text style={s.statNumber}>Wien</Text>
-            <Text style={s.statLabel}>BASIS</Text>
-          </View>
-        </View>
-      </Page>
+        </Page>
+      )}
 
-      {/* Page 3: References */}
-      <Page size="A4" style={[s.contentPage, { fontFamily: "Inter" }]}>
-        <View style={s.goldBar} />
-        <View style={s.pageHeader}>
-          {settings.logo_url ? <Image src={settings.logo_url} style={s.pageHeaderLogo} /> : null}
-          <Text style={s.pageHeaderTitle}>Referenzen</Text>
-        </View>
-        <Text style={s.sectionLabel}>REFERENZEN</Text>
-        <Text style={[s.sectionTitle, { fontSize: 20 }]}>Ausgewaehlte Projekte</Text>
-        <View style={s.refGrid}>
-          {references.map((ref, idx) => (
-            <View key={idx} style={s.refCard}>
-              {ref.imageUrl ? (
-                <Image src={ref.imageUrl} style={s.refImage} />
-              ) : (
-                <View style={s.refImage} />
-              )}
-              <Text style={s.refTitle}>{ref.title}</Text>
-              <Text style={s.refDesc}>{ref.description}</Text>
+      {/* Page 3: References (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={[s.contentPage, { fontFamily: "Inter" }]}>
+          <View style={s.goldBar} />
+          <View style={s.pageHeader}>
+            {settings.logo_url ? <Image src={settings.logo_url} style={s.pageHeaderLogo} /> : null}
+            <Text style={s.pageHeaderTitle}>{t("references", lang)}</Text>
+          </View>
+          <Text style={s.sectionLabel}>{t("references", lang)}</Text>
+          <Text style={[s.sectionTitle, { fontSize: 20 }]}>{t("selectedProjects", lang)}</Text>
+          <View style={s.refGrid}>
+            {refs.map((ref, idx) => (
+              <View key={idx} style={s.refCard}>
+                {ref.imageUrl ? (
+                  <Image src={ref.imageUrl} style={s.refImage} />
+                ) : (
+                  <View style={s.refImage} />
+                )}
+                <Text style={s.refTitle}>{ref.title}</Text>
+                <Text style={s.refDesc}>{ref.description}</Text>
+              </View>
+            ))}
+          </View>
+        </Page>
+      )}
+
+      {/* Page 4: Service Description (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={[s.contentPage, { fontFamily: "Inter" }]}>
+          <View style={s.goldBar} />
+          <View style={s.pageHeader}>
+            {settings.logo_url ? <Image src={settings.logo_url} style={s.pageHeaderLogo} /> : null}
+            <Text style={s.pageHeaderTitle}>{t("serviceScope", lang)}</Text>
+          </View>
+          <Text style={s.sectionLabel}>{t("serviceScope", lang)}</Text>
+          <Text style={[s.sectionTitle, { fontSize: 22 }]}>{quote.project_description || t("projectServices", lang)}</Text>
+          {quote.notes && <Text style={[s.bodyText, { marginBottom: 20 }]}>{quote.notes}</Text>}
+          {quote.items.map((item, idx) => (
+            <View key={idx} style={s.serviceItem}>
+              <Text style={s.serviceName}>{item.description}</Text>
+              <Text style={s.serviceDetail}>
+                {item.quantity} {unitLabel(item.unit, lang)} x {fmtEuro(item.unit_price)}
+              </Text>
             </View>
           ))}
-        </View>
-      </Page>
+        </Page>
+      )}
 
-      {/* Page 4: Service Description */}
+      {/* Pricing Table Page */}
       <Page size="A4" style={[s.contentPage, { fontFamily: "Inter" }]}>
         <View style={s.goldBar} />
         <View style={s.pageHeader}>
           {settings.logo_url ? <Image src={settings.logo_url} style={s.pageHeaderLogo} /> : null}
-          <Text style={s.pageHeaderTitle}>Leistungsumfang</Text>
+          <Text style={s.pageHeaderTitle}>{t("pricingOverview", lang)}</Text>
         </View>
-        <Text style={s.sectionLabel}>LEISTUNGSUMFANG</Text>
-        <Text style={[s.sectionTitle, { fontSize: 22 }]}>{quote.project_description || "Projektleistungen"}</Text>
-        {quote.notes && <Text style={[s.bodyText, { marginBottom: 20 }]}>{quote.notes}</Text>}
-        {quote.items.map((item, idx) => (
-          <View key={idx} style={s.serviceItem}>
-            <Text style={s.serviceName}>{item.description}</Text>
-            <Text style={s.serviceDetail}>
-              {item.quantity} {unitLabel(item.unit)} x {fmtEuro(item.unit_price)}
-            </Text>
-          </View>
-        ))}
-      </Page>
-
-      {/* Page 5: Pricing Table */}
-      <Page size="A4" style={[s.contentPage, { fontFamily: "Inter" }]}>
-        <View style={s.goldBar} />
-        <View style={s.pageHeader}>
-          {settings.logo_url ? <Image src={settings.logo_url} style={s.pageHeaderLogo} /> : null}
-          <Text style={s.pageHeaderTitle}>Preisuebersicht</Text>
-        </View>
-        <Text style={s.sectionLabel}>PREISUEBERSICHT</Text>
-        <Text style={[s.sectionTitle, { fontSize: 20 }]}>Investitionsuebersicht</Text>
+        <Text style={s.sectionLabel}>{t("pricingOverview", lang)}</Text>
+        <Text style={[s.sectionTitle, { fontSize: 20 }]}>{t("investmentOverview", lang)}</Text>
 
         <View style={s.tableHeader}>
-          <Text style={[s.tableHeaderText, s.colPos]}>#</Text>
-          <Text style={[s.tableHeaderText, s.colDesc]}>LEISTUNG</Text>
-          <Text style={[s.tableHeaderText, s.colUnit]}>EINHEIT</Text>
-          <Text style={[s.tableHeaderText, s.colQty]}>MENGE</Text>
-          <Text style={[s.tableHeaderText, s.colPrice]}>PREIS</Text>
-          <Text style={[s.tableHeaderText, s.colTotal]}>BETRAG</Text>
+          <Text style={[s.tableHeaderText, s.colPos]}>{t("pos", lang)}</Text>
+          <Text style={[s.tableHeaderText, s.colDesc]}>{t("service", lang)}</Text>
+          <Text style={[s.tableHeaderText, s.colUnit]}>{t("unit", lang)}</Text>
+          <Text style={[s.tableHeaderText, s.colQty]}>{t("quantity", lang)}</Text>
+          <Text style={[s.tableHeaderText, s.colPrice]}>{t("price", lang)}</Text>
+          <Text style={[s.tableHeaderText, s.colTotal]}>{t("amount", lang)}</Text>
         </View>
         {quote.items.map((item, idx) => (
           <View key={idx}>
             <View style={[s.tableRow, idx % 2 === 1 ? s.tableRowEven : {}]}>
               <Text style={[s.cellNormal, s.colPos]}>{item.position}</Text>
               <Text style={[s.cellBold, s.colDesc]}>{item.description}</Text>
-              <Text style={[s.cellNormal, s.colUnit]}>{unitLabel(item.unit)}</Text>
+              <Text style={[s.cellNormal, s.colUnit]}>{unitLabel(item.unit, lang)}</Text>
               <Text style={[s.cellNormal, s.colQty]}>{item.quantity}</Text>
               <Text style={[s.cellNormal, s.colPrice]}>{fmtEuro(item.unit_price)}</Text>
               <Text style={[s.cellNormal, s.colTotal]}>{fmtEuro(item.total)}</Text>
@@ -260,7 +278,7 @@ export default function QuotePDF({ quote, customer, settings, references = DEFAU
               <View style={[s.tableRow, s.discountRow]}>
                 <Text style={[s.cellNormal, s.colPos]}></Text>
                 <Text style={[{ color: cl.accent, fontSize: 9 }, s.colDesc]}>
-                  {item.discount_percent > 0 ? `Rabatt (${item.discount_percent}%)` : "Rabatt"}
+                  {item.discount_percent > 0 ? `${t("discount", lang)} (${item.discount_percent}%)` : t("discount", lang)}
                 </Text>
                 <Text style={[s.cellNormal, s.colUnit]}></Text>
                 <Text style={[s.cellNormal, s.colQty]}></Text>
@@ -277,12 +295,12 @@ export default function QuotePDF({ quote, customer, settings, references = DEFAU
 
         <View style={s.summaryBox}>
           <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>Netto</Text>
+            <Text style={s.summaryLabel}>{t("net", lang)}</Text>
             <Text style={s.summaryValue}>{fmtEuro(quote.items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0))}</Text>
           </View>
           {hasDiscounts && (
             <View style={s.summaryRow}>
-              <Text style={[s.summaryLabel, { color: cl.accent }]}>Rabatt</Text>
+              <Text style={[s.summaryLabel, { color: cl.accent }]}>{t("discount", lang)}</Text>
               <Text style={[s.summaryValue, { color: cl.accent }]}>
                 {fmtEuro(-(quote.items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0) - quote.subtotal))}
               </Text>
@@ -290,43 +308,45 @@ export default function QuotePDF({ quote, customer, settings, references = DEFAU
           )}
           {hasDiscounts && (
             <View style={[s.summaryRow, { borderTopWidth: 1, borderTopColor: cl.border }]}>
-              <Text style={s.summaryLabel}>Netto nach Rabatt</Text>
+              <Text style={s.summaryLabel}>{t("netAfterDiscount", lang)}</Text>
               <Text style={s.summaryValue}>{fmtEuro(quote.subtotal)}</Text>
             </View>
           )}
           <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>USt {quote.tax_rate}%</Text>
+            <Text style={s.summaryLabel}>{t("vat", lang)} {quote.tax_rate}%</Text>
             <Text style={s.summaryValue}>{fmtEuro(quote.tax_amount)}</Text>
           </View>
           <View style={s.totalRow}>
-            <Text style={s.totalLabel}>GESAMT BRUTTO</Text>
+            <Text style={s.totalLabel}>{t("totalGross", lang)}</Text>
             <Text style={s.totalValue}>{fmtEuro(quote.total)}</Text>
           </View>
         </View>
 
         <View style={s.validityBox}>
           <Text>
-            Dieses Angebot ist gueltig bis {fmtDate(quote.valid_until)}. Bei Fragen stehen wir Ihnen gerne zur Verfuegung.
+            {t("validityNote", lang).replace("{date}", fmtDate(quote.valid_until))}
           </Text>
         </View>
       </Page>
 
-      {/* Page 6: Closing / CTA */}
-      <Page size="A4" style={[s.closingPage, { fontFamily: "Inter" }]}>
-        <View style={s.logoWhiteBg}>
-          {settings.logo_url ? <Image src={settings.logo_url} style={s.coverLogo} /> : null}
-        </View>
-        <View style={s.goldLine} />
-        <Text style={s.closingText}>Lassen Sie uns gemeinsam{"\n"}Grossartiges schaffen.</Text>
-        <Text style={s.closingContact}>{settings.company_name}</Text>
-        <View style={{ marginTop: 10 }}>
-          <Text style={s.closingDetails}>Tel.: {settings.phone}</Text>
-          <Text style={s.closingDetails}>E-Mail: {settings.email}</Text>
-        </View>
-        <View style={s.goldLine} />
-        <Text style={s.closingFooter}>{settings.address}, {settings.zip} {settings.city}</Text>
-        <Text style={s.closingFooter}>UID: {settings.uid}</Text>
-      </Page>
+      {/* Closing / CTA (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={[s.closingPage, { fontFamily: "Inter" }]}>
+          <View style={s.logoWhiteBg}>
+            {settings.logo_url ? <Image src={settings.logo_url} style={s.coverLogo} /> : null}
+          </View>
+          <View style={s.goldLine} />
+          <Text style={s.closingText}>{t("closingText", lang)}</Text>
+          <Text style={s.closingContact}>{settings.company_name}</Text>
+          <View style={{ marginTop: 10 }}>
+            <Text style={s.closingDetails}>{lang === "de" ? "Tel." : "Phone"}: {settings.phone}</Text>
+            <Text style={s.closingDetails}>{t("emailLabel", lang)} {settings.email}</Text>
+          </View>
+          <View style={s.goldLine} />
+          <Text style={s.closingFooter}>{settings.address}, {settings.zip} {settings.city}</Text>
+          <Text style={s.closingFooter}>UID: {settings.uid}</Text>
+        </Page>
+      )}
     </Document>
   );
 }
