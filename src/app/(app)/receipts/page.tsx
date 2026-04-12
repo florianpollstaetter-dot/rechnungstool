@@ -6,6 +6,25 @@ import { getReceipts, createReceipt, updateReceipt, deleteReceipt, uploadReceipt
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/format";
 
+const ACCOUNT_OPTIONS = [
+  { value: "", label: "—" },
+  { value: "5000", label: "5000 Wareneinkauf" },
+  { value: "5880", label: "5880 Reisekosten" },
+  { value: "6000", label: "6000 Mietaufwand" },
+  { value: "6300", label: "6300 Versicherungen" },
+  { value: "6800", label: "6800 Porto/Telefon" },
+  { value: "7200", label: "7200 Bueroaufwand" },
+  { value: "7300", label: "7300 Rechts-/Beratung" },
+  { value: "7350", label: "7350 Buchhaltung/Steuerberatung" },
+  { value: "7400", label: "7400 Werbung/Marketing" },
+  { value: "7600", label: "7600 Telefonkosten" },
+  { value: "7650", label: "7650 Internet/EDV" },
+  { value: "7700", label: "7700 KFZ-Aufwand" },
+  { value: "7780", label: "7780 Bewirtung" },
+  { value: "7800", label: "7800 Abschreibungen" },
+  { value: "7890", label: "7890 GWG (< 1000 EUR)" },
+];
+
 export default function ReceiptsPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,23 +185,21 @@ export default function ReceiptsPage() {
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datei</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Projekt</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aussteller</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Verwendungszweck</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Netto</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">USt</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Konto</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zahlung</th>
               <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Kosten</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {receipts.length === 0 && (
-              <tr><td colSpan={12} className="px-3 py-8 text-center text-gray-500">Noch keine Belege hochgeladen.</td></tr>
+              <tr><td colSpan={10} className="px-3 py-8 text-center text-gray-500">Noch keine Belege hochgeladen.</td></tr>
             )}
             {receipts.filter((r) => {
               if (!searchQuery) return true;
@@ -205,12 +222,18 @@ export default function ReceiptsPage() {
               return (
                 <tr key={r.id} className="hover:bg-[var(--surface-hover)] transition" onDoubleClick={() => setEditingId(r.id)}>
                   <td className="px-3 py-3 text-sm">
-                    <span className="font-medium text-white truncate max-w-[120px] block" title={r.file_name}>{r.file_name}</span>
-                    <span className="text-xs text-gray-500">{(r.file_size / 1024).toFixed(0)} KB</span>
+                    {isEditing ? (
+                      <input defaultValue={r.purpose || ""} onBlur={(e) => handleFieldUpdate(r.id, "purpose", e.target.value || null)} className={inputClass} placeholder="Projekt/Zweck" />
+                    ) : (
+                      <>
+                        <span className="font-medium text-white block">{r.purpose || r.file_name}</span>
+                        {r.purpose && <span className="text-[10px] text-gray-500">{r.file_name}</span>}
+                      </>
+                    )}
                   </td>
                   <td className="px-3 py-3 text-sm text-gray-400">
                     {isEditing ? (
-                      <input type="date" defaultValue={r.invoice_date || ""} onBlur={(e) => handleFieldUpdate(r.id, "invoice_date", e.target.value || null)} className={inputClass} autoFocus />
+                      <input type="date" defaultValue={r.invoice_date || ""} onBlur={(e) => handleFieldUpdate(r.id, "invoice_date", e.target.value || null)} className={inputClass} />
                     ) : (r.invoice_date || "—")}
                   </td>
                   <td className="px-3 py-3 text-sm text-gray-400">
@@ -218,26 +241,52 @@ export default function ReceiptsPage() {
                       <input defaultValue={r.issuer || ""} onBlur={(e) => handleFieldUpdate(r.id, "issuer", e.target.value || null)} className={inputClass} />
                     ) : (r.issuer || "—")}
                   </td>
-                  <td className="px-3 py-3 text-sm text-gray-400 max-w-[150px] truncate">
-                    {isEditing ? (
-                      <input defaultValue={r.purpose || ""} onBlur={(e) => handleFieldUpdate(r.id, "purpose", e.target.value || null)} className={inputClass} />
-                    ) : (r.purpose || "—")}
-                  </td>
                   <td className="px-3 py-3 text-sm text-right text-gray-400">
                     {isEditing ? (
                       <input type="number" step="0.01" defaultValue={r.amount_net ?? ""} onBlur={(e) => handleFieldUpdate(r.id, "amount_net", e.target.value ? Number(e.target.value) : null)} className={inputClass + " w-20 text-right"} />
                     ) : (r.amount_net != null ? formatCurrency(r.amount_net) : "—")}
                   </td>
-                  <td className="px-3 py-3 text-sm text-right text-orange-400">
-                    {r.amount_vat != null ? formatCurrency(r.amount_vat) : "—"}
-                    {r.vat_rate != null && <span className="text-xs text-gray-500 ml-1">({r.vat_rate}%)</span>}
+                  <td className="px-3 py-3 text-sm text-right">
+                    {(() => {
+                      const vatDetails = r.analysis_raw?.vat_details as Array<{rate: number; vat: number}> | undefined;
+                      if (vatDetails && vatDetails.length > 1) {
+                        return (
+                          <div className="space-y-0.5">
+                            {vatDetails.map((v, i) => (
+                              <div key={i} className="text-[10px]">
+                                <span className="text-orange-400">{formatCurrency(v.vat)}</span>
+                                <span className="text-gray-500 ml-1">({v.rate}%)</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return (
+                        <>
+                          <span className="text-orange-400">{r.amount_vat != null ? formatCurrency(r.amount_vat) : "—"}</span>
+                          {r.vat_rate != null && <span className="text-xs text-gray-500 ml-1">({r.vat_rate}%)</span>}
+                        </>
+                      );
+                    })()}
                   </td>
                   <td className="px-3 py-3 text-sm text-right font-medium text-white">
                     {r.amount_gross != null ? formatCurrency(r.amount_gross) : "—"}
                   </td>
-                  <td className="px-3 py-3 text-sm text-gray-400">
-                    {r.account_debit && <span title={r.account_label || ""}>{r.account_debit}</span>}
-                    {!r.account_debit && "—"}
+                  <td className="px-3 py-3 text-sm" onClick={(e) => e.stopPropagation()}>
+                    {isEditing ? (
+                      <select defaultValue={r.account_debit || ""} onChange={(e) => {
+                        const opt = ACCOUNT_OPTIONS.find(o => o.value === e.target.value);
+                        handleFieldUpdate(r.id, "account_debit", e.target.value || null);
+                        if (opt && opt.label) handleFieldUpdate(r.id, "account_label", opt.label.split(" ").slice(1).join(" ") || null);
+                      }} className={inputClass + " w-36"}>
+                        {ACCOUNT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    ) : (
+                      <span className="text-gray-400" title={r.account_label || ""}>
+                        {r.account_debit ? `${r.account_debit}` : "—"}
+                        {r.account_label && <span className="text-[10px] text-gray-500 block">{r.account_label}</span>}
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-3 text-sm" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
@@ -250,9 +299,9 @@ export default function ReceiptsPage() {
                   </td>
                   <td className="px-3 py-3 text-center">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor}`}>{statusLabel}</span>
-                  </td>
-                  <td className="px-3 py-3 text-right text-[10px] text-gray-500">
-                    {r.analysis_cost != null ? `${r.analysis_cost.toFixed(4)}€` : "—"}
+                    {r.analysis_cost != null && (
+                      <div className="text-[9px] text-gray-500 mt-0.5">Analysekosten: {r.analysis_cost.toFixed(4)}&euro;</div>
+                    )}
                   </td>
                   <td className="px-3 py-3 text-right whitespace-nowrap">
                     <div className="flex flex-col items-center gap-0.5">
