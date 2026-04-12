@@ -80,12 +80,35 @@ export default function ReceiptsPage() {
     }
   }
 
+  const [editReceiptId, setEditReceiptId] = useState<string | null>(null);
+  const [editReceiptUrl, setEditReceiptUrl] = useState<string | null>(null);
+
   async function handleViewReceipt(r: Receipt) {
     const supabase = createClient();
     const { data } = await supabase.storage.from("receipts").createSignedUrl(r.file_path, 300);
     if (data?.signedUrl) {
-      setViewUrl(data.signedUrl);
+      setEditReceiptId(r.id);
+      setEditReceiptUrl(data.signedUrl);
     }
+  }
+
+  async function handleSaveCrop(blob: Blob) {
+    if (!editReceiptId) return;
+    const receipt = receipts.find((r) => r.id === editReceiptId);
+    if (!receipt) return;
+    // Upload cropped version as new file
+    const croppedFile = new File([blob], receipt.file_name.replace(/\.\w+$/, "_cropped.jpg"), { type: "image/jpeg" });
+    const { path } = await uploadReceiptFile(croppedFile);
+    // Update the receipt with the cropped file path (original stays in analysis_raw)
+    await updateReceipt(editReceiptId, {
+      file_path: path,
+      file_name: croppedFile.name,
+      file_size: croppedFile.size,
+      analysis_raw: { ...receipt.analysis_raw, original_file_path: receipt.file_path },
+    } as Partial<Receipt>);
+    setEditReceiptId(null);
+    setEditReceiptUrl(null);
+    await loadData();
   }
 
   const loadData = useCallback(async () => {
@@ -424,19 +447,14 @@ export default function ReceiptsPage() {
         />
       )}
 
-      {/* Receipt Viewer Modal */}
-      {viewUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setViewUrl(null)}>
-          <div className="bg-[var(--surface)] rounded-xl shadow-2xl border border-[var(--border)] w-[90vw] h-[90vh] max-w-5xl flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
-              <h2 className="text-lg font-semibold text-white">Beleg-Vorschau</h2>
-              <button onClick={() => setViewUrl(null)} className="text-gray-400 hover:text-white text-2xl leading-none transition">&times;</button>
-            </div>
-            <div className="flex-1 p-4">
-              <iframe src={viewUrl} className="w-full h-full rounded-lg border border-[var(--border)]" title="Beleg" />
-            </div>
-          </div>
-        </div>
+      {/* Receipt Crop/View Modal */}
+      {editReceiptUrl && (
+        <ReceiptCaptureModal
+          imageUrl={editReceiptUrl}
+          editMode={true}
+          onSaveCrop={handleSaveCrop}
+          onCancel={() => { setEditReceiptId(null); setEditReceiptUrl(null); }}
+        />
       )}
     </div>
   );

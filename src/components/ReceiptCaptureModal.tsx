@@ -23,8 +23,11 @@ const ACCOUNT_OPTIONS = [
 interface CropRect { x: number; y: number; w: number; h: number }
 
 interface Props {
-  imageFile: File;
-  onSubmit: (croppedFile: File, meta: { purpose: string; account_debit: string; account_label: string; payment_method: PaymentMethod }) => void;
+  imageFile?: File;
+  imageUrl?: string;
+  editMode?: boolean;
+  onSubmit?: (croppedFile: File, meta: { purpose: string; account_debit: string; account_label: string; payment_method: PaymentMethod }) => void;
+  onSaveCrop?: (croppedBlob: Blob) => void;
   onCancel: () => void;
 }
 
@@ -34,15 +37,35 @@ function autoCropBounds(canvas: HTMLCanvasElement): CropRect {
   const imageData = ctx.getImageData(0, 0, width, height);
   const data = imageData.data;
 
-  // Convert to grayscale and find non-white pixels
-  const threshold = 220; // pixels brighter than this are "background"
-  let minX = width, minY = height, maxX = 0, maxY = 0;
+  // Step 1: Sample corners to determine background color
+  const cornerSamples: number[][] = [];
+  const sampleSize = Math.max(10, Math.round(Math.min(width, height) * 0.03));
+  for (let y = 0; y < sampleSize; y++) {
+    for (let x = 0; x < sampleSize; x++) {
+      for (const [ox, oy] of [[0, 0], [width - sampleSize, 0], [0, height - sampleSize], [width - sampleSize, height - sampleSize]]) {
+        const i = ((oy + y) * width + (ox + x)) * 4;
+        cornerSamples.push([data[i], data[i + 1], data[i + 2]]);
+      }
+    }
+  }
+  const bgR = cornerSamples.reduce((s, c) => s + c[0], 0) / cornerSamples.length;
+  const bgG = cornerSamples.reduce((s, c) => s + c[1], 0) / cornerSamples.length;
+  const bgB = cornerSamples.reduce((s, c) => s + c[2], 0) / cornerSamples.length;
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+  // Step 2: Find pixels that differ significantly from background
+  const threshold = 40; // color distance threshold
+  let minX = width, minY = height, maxX = 0, maxY = 0;
+  // Sample every 2nd pixel for performance
+  const step = Math.max(1, Math.round(Math.min(width, height) / 500));
+
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
       const i = (y * width + x) * 4;
-      const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
-      if (gray < threshold) {
+      const dr = data[i] - bgR;
+      const dg = data[i + 1] - bgG;
+      const db = data[i + 2] - bgB;
+      const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+      if (dist > threshold) {
         if (x < minX) minX = x;
         if (x > maxX) maxX = x;
         if (y < minY) minY = y;
@@ -51,18 +74,21 @@ function autoCropBounds(canvas: HTMLCanvasElement): CropRect {
     }
   }
 
-  // Add small margin
-  const margin = Math.max(5, Math.round(Math.min(width, height) * 0.01));
+  // Step 3: Add margin
+  const margin = Math.max(8, Math.round(Math.min(width, height) * 0.015));
   minX = Math.max(0, minX - margin);
   minY = Math.max(0, minY - margin);
   maxX = Math.min(width, maxX + margin);
   maxY = Math.min(height, maxY + margin);
 
-  if (maxX <= minX || maxY <= minY) return { x: 0, y: 0, w: width, h: height };
+  // Sanity check — crop must be at least 20% of image
+  if (maxX <= minX || maxY <= minY || (maxX - minX) * (maxY - minY) < width * height * 0.2) {
+    return { x: 0, y: 0, w: width, h: height };
+  }
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 
-export default function ReceiptCaptureModal({ imageFile, onSubmit, onCancel }: Props) {
+export default function ReceiptCaptureModal({ imageFile, imageUrl, editMode, onSubmit, onSaveCrop, onCancel }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<CropRect | null>(null);
@@ -74,17 +100,20 @@ export default function ReceiptCaptureModal({ imageFile, onSubmit, onCancel }: P
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    const url = URL.createObjectURL(imageFile);
-    setImageSrc(url);
+    let objectUrl: string | null = null;
+    const src = imageFile ? (objectUrl = URL.createObjectURL(imageFile)) : imageUrl || null;
+    if (!src) return;
+    setImageSrc(src);
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       imgRef.current = img;
       setImgSize({ w: img.width, h: img.height });
       setCrop({ x: 0, y: 0, w: img.width, h: img.height });
     };
-    img.src = url;
-    return () => URL.revokeObjectURL(url);
-  }, [imageFile]);
+    img.src = src;
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [imageFile, imageUrl]);
 
   const handleAutoCrop = useCallback(() => {
     if (!imgRef.current || !canvasRef.current) return;
@@ -110,10 +139,17 @@ export default function ReceiptCaptureModal({ imageFile, onSubmit, onCancel }: P
     ctx.drawImage(imgRef.current, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
 
     const blob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.9));
-    const croppedFile = new File([blob], imageFile.name.replace(/\.\w+$/, "_cropped.jpg"), { type: "image/jpeg" });
 
-    const acctLabel = ACCOUNT_OPTIONS.find((o) => o.value === accountDebit)?.label.split(" ").slice(1).join(" ") || "";
-    onSubmit(croppedFile, { purpose, account_debit: accountDebit, account_label: acctLabel, payment_method: paymentMethod });
+    if (editMode && onSaveCrop) {
+      onSaveCrop(blob);
+      return;
+    }
+
+    if (onSubmit && imageFile) {
+      const croppedFile = new File([blob], imageFile.name.replace(/\.\w+$/, "_cropped.jpg"), { type: "image/jpeg" });
+      const acctLabel = ACCOUNT_OPTIONS.find((o) => o.value === accountDebit)?.label.split(" ").slice(1).join(" ") || "";
+      onSubmit(croppedFile, { purpose, account_debit: accountDebit, account_label: acctLabel, payment_method: paymentMethod });
+    }
   }
 
   // Calculate display dimensions (fit in viewport)
@@ -157,8 +193,8 @@ export default function ReceiptCaptureModal({ imageFile, onSubmit, onCancel }: P
           </button>
         </div>
 
-        {/* Form fields */}
-        <div className="space-y-3 mb-4">
+        {/* Form fields (hidden in edit mode) */}
+        {!editMode && <div className="space-y-3 mb-4">
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1">Projekttitel / Verwendungszweck</label>
             <input type="text" value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="z.B. Bueroausstattung" className={inputClass} />
@@ -177,7 +213,7 @@ export default function ReceiptCaptureModal({ imageFile, onSubmit, onCancel }: P
               </select>
             </div>
           </div>
-        </div>
+        </div>}
 
         <div className="flex gap-2">
           <button
@@ -185,7 +221,7 @@ export default function ReceiptCaptureModal({ imageFile, onSubmit, onCancel }: P
             disabled={submitting}
             className="flex-1 bg-[var(--accent)] text-black px-4 py-2.5 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50"
           >
-            {submitting ? "Wird hochgeladen..." : "Hochladen & Analysieren"}
+            {submitting ? "Wird gespeichert..." : editMode ? "Zuschnitt speichern" : "Hochladen & Analysieren"}
           </button>
           <button onClick={onCancel} className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
             Abbrechen
