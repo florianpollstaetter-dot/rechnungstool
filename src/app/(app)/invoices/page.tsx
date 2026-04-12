@@ -242,7 +242,7 @@ function InvoicesPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Rechnungen</h1>
         <div className="flex gap-2">
           {templates.length > 0 && (
@@ -252,29 +252,32 @@ function InvoicesPage() {
         </div>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {filterTabs.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => setActiveFilter(tab.value)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-              activeFilter === tab.value
-                ? "bg-[var(--accent)] text-black"
-                : "bg-[var(--surface-hover)] text-gray-300 hover:bg-[var(--border)]"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-        <div className="flex-1" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Suche nach Nr., Kunde, Betrag..."
-          className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-64"
-        />
+      {/* Filter tabs + search */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <div className="flex gap-1.5 flex-wrap">
+          {filterTabs.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveFilter(tab.value)}
+              className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition ${
+                activeFilter === tab.value
+                  ? "bg-[var(--accent)] text-black"
+                  : "bg-[var(--surface-hover)] text-gray-300 hover:bg-[var(--border)]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="sm:ml-auto">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Suche..."
+            className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full sm:w-56"
+          />
+        </div>
       </div>
 
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">

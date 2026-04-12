@@ -136,16 +136,16 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
         <div className="flex gap-2">
-          <Link href="/quotes/new" className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">+ Neues Angebot</Link>
-          <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ Neue Rechnung</Link>
+          <Link href="/quotes/new" className="bg-[var(--surface-hover)] text-gray-300 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-[var(--border)] transition">+ Angebot</Link>
+          <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold hover:brightness-110 transition">+ Rechnung</Link>
         </div>
       </div>
 
       {/* 6 cards in 2 rows of 3 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
         {cards.map((card) => (
           <Link key={card.title} href={card.href} className={`bg-[var(--surface)] rounded-xl border-l-4 ${card.borderColor} border border-[var(--border)] p-5 hover:bg-[var(--surface-hover)] transition cursor-pointer`}>
             <div className="flex items-center gap-3 mb-3">
