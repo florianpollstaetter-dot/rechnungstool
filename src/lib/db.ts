@@ -9,6 +9,8 @@ import {
   QuoteItem,
   FixedCost,
   Receipt,
+  BankStatement,
+  BankTransaction,
   Template,
   TemplateItem,
   TemplateType,
@@ -479,6 +481,39 @@ export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
   return invoice;
 }
 
+// Bank Statements
+export async function getBankStatements(): Promise<BankStatement[]> {
+  const { data } = await supabase().from("bank_statements").select("*").order("created_at", { ascending: false });
+  return (data ?? []).map(mapBankStatement);
+}
+
+export async function createBankStatement(stmt: Omit<BankStatement, "id" | "created_at" | "updated_at">): Promise<BankStatement> {
+  const { data } = await supabase().from("bank_statements").insert(stmt).select().single();
+  return mapBankStatement(data!);
+}
+
+export async function deleteBankStatement(id: string): Promise<void> {
+  await supabase().from("bank_transactions").delete().eq("statement_id", id);
+  await supabase().from("bank_statements").delete().eq("id", id);
+}
+
+export async function getTransactions(statementId?: string): Promise<BankTransaction[]> {
+  let query = supabase().from("bank_transactions").select("*").order("booking_date", { ascending: false });
+  if (statementId) query = query.eq("statement_id", statementId);
+  const { data } = await query;
+  return (data ?? []).map(mapBankTransaction);
+}
+
+export async function createTransaction(tx: Omit<BankTransaction, "id" | "created_at" | "updated_at">): Promise<BankTransaction> {
+  const { data } = await supabase().from("bank_transactions").insert(tx).select().single();
+  return mapBankTransaction(data!);
+}
+
+export async function updateTransaction(id: string, updates: Partial<BankTransaction>): Promise<BankTransaction> {
+  const { data } = await supabase().from("bank_transactions").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+  return mapBankTransaction(data!);
+}
+
 // Receipts
 export async function getReceipts(): Promise<Receipt[]> {
   const { data } = await supabase().from("receipts").select("*").order("created_at", { ascending: false });
@@ -779,6 +814,40 @@ function mapReceipt(row: Record<string, unknown>): Receipt {
     notes: (row.notes as string) || null,
     analysis_status: (row.analysis_status as Receipt["analysis_status"]) || "pending",
     analysis_raw: (row.analysis_raw as Record<string, unknown>) || null,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+function mapBankStatement(row: Record<string, unknown>): BankStatement {
+  return {
+    id: row.id as string,
+    file_name: row.file_name as string,
+    upload_date: row.upload_date as string,
+    statement_date: (row.statement_date as string) || null,
+    bank_name: (row.bank_name as string) || null,
+    account_iban: (row.account_iban as string) || null,
+    currency: (row.currency as string) || "EUR",
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+function mapBankTransaction(row: Record<string, unknown>): BankTransaction {
+  return {
+    id: row.id as string,
+    statement_id: row.statement_id as string,
+    booking_date: (row.booking_date as string) || null,
+    value_date: (row.value_date as string) || null,
+    description: (row.description as string) || null,
+    amount: Number(row.amount),
+    balance_after: row.balance_after != null ? Number(row.balance_after) : null,
+    counterpart_name: (row.counterpart_name as string) || null,
+    counterpart_iban: (row.counterpart_iban as string) || null,
+    reference: (row.reference as string) || null,
+    matched_invoice_id: (row.matched_invoice_id as string) || null,
+    match_confidence: row.match_confidence != null ? Number(row.match_confidence) : null,
+    match_status: (row.match_status as BankTransaction["match_status"]) || "unmatched",
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

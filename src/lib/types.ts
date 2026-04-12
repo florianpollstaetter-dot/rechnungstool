@@ -151,6 +151,38 @@ export interface Reference {
   imageUrl?: string;
 }
 
+export type MatchStatus = "unmatched" | "auto_matched" | "confirmed" | "rejected";
+
+export interface BankStatement {
+  id: string;
+  file_name: string;
+  upload_date: string;
+  statement_date: string | null;
+  bank_name: string | null;
+  account_iban: string | null;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BankTransaction {
+  id: string;
+  statement_id: string;
+  booking_date: string | null;
+  value_date: string | null;
+  description: string | null;
+  amount: number;
+  balance_after: number | null;
+  counterpart_name: string | null;
+  counterpart_iban: string | null;
+  reference: string | null;
+  matched_invoice_id: string | null;
+  match_confidence: number | null;
+  match_status: MatchStatus;
+  created_at: string;
+  updated_at: string;
+}
+
 export type ReceiptAnalysisStatus = "pending" | "analyzing" | "done" | "error";
 
 export interface Receipt {
