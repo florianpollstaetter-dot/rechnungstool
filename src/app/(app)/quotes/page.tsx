@@ -192,7 +192,7 @@ export default function QuotesPage() {
                     </select>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex flex-col items-center gap-0.5">
                       <button
                         onClick={() => handleDirectPreview(q)}
                         disabled={isLoadingPdf}

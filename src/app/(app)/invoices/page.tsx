@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Invoice, Customer, CompanySettings, InvoiceStatus, Language, Template } from "@/lib/types";
-import { getInvoices, getCustomers, getSettings, updateInvoice, cancelInvoice, deleteInvoice, getTemplates } from "@/lib/db";
+import { getInvoices, getCustomers, getSettings, updateInvoice, cancelInvoice, deleteInvoice, createInvoice, getTemplates } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
 
@@ -120,14 +120,19 @@ export default function InvoicesPage() {
     if (amount <= 0) return;
     const inv = paymentModal.invoice;
     const isFullPayment = amount >= inv.total;
-    await updateInvoice(inv.id, {
-      status: isFullPayment ? "bezahlt" : "teilbezahlt",
-      paid_at: new Date().toISOString(),
-      paid_amount: amount,
-    });
-    setPaymentModal(null);
-    setPaymentAmount("");
-    await loadData();
+    try {
+      await updateInvoice(inv.id, {
+        status: isFullPayment ? "bezahlt" : "teilbezahlt",
+        paid_at: new Date().toISOString(),
+        paid_amount: amount,
+      });
+      setPaymentModal(null);
+      setPaymentAmount("");
+      await loadData();
+    } catch (err) {
+      console.error("Payment update failed:", err);
+      alert("Zahlung konnte nicht gespeichert werden. Bitte DB-Migration ausfuehren (teilbezahlt Status).");
+    }
   }
 
   async function handleLanguageToggle(id: string, currentLang: Language) {
@@ -137,7 +142,43 @@ export default function InvoicesPage() {
   }
 
   async function handleCancel(id: string) {
-    if (confirm("Rechnung wirklich stornieren?")) { await cancelInvoice(id); await loadData(); }
+    if (!confirm("Rechnung wirklich stornieren? Es wird automatisch eine Stornorechnung erstellt.")) return;
+    const inv = invoices.find((i) => i.id === id);
+    if (!inv) return;
+    await cancelInvoice(id);
+    // Auto-create Stornorechnung (negative amounts)
+    await createInvoice({
+      customer_id: inv.customer_id,
+      project_description: `STORNO zu ${inv.invoice_number}`,
+      invoice_date: new Date().toISOString().split("T")[0],
+      delivery_date: inv.delivery_date,
+      due_date: new Date().toISOString().split("T")[0],
+      items: inv.items.map((item) => ({
+        id: crypto.randomUUID(),
+        position: item.position,
+        description: `STORNO: ${item.description}`,
+        unit: item.unit,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: -item.unit_price,
+        discount_percent: item.discount_percent,
+        discount_amount: item.discount_amount,
+        total: -item.total,
+      })),
+      subtotal: -inv.subtotal,
+      tax_rate: inv.tax_rate,
+      tax_amount: -inv.tax_amount,
+      total: -inv.total,
+      overall_discount_percent: inv.overall_discount_percent,
+      overall_discount_amount: inv.overall_discount_amount,
+      status: "storniert",
+      paid_at: null,
+      paid_amount: 0,
+      notes: `Stornorechnung zu Rechnung ${inv.invoice_number}`,
+      language: inv.language,
+      accompanying_text: null,
+    });
+    await loadData();
   }
 
   async function handleDelete(id: string) {
@@ -232,7 +273,7 @@ export default function InvoicesPage() {
                     )}
                   </td>
                   <td className="px-3 py-3 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex flex-col items-center gap-0.5">
                       <button
                         onClick={() => handleDirectPreview(inv)}
                         disabled={isLoadingPdf}
