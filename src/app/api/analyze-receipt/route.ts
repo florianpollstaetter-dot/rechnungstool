@@ -42,17 +42,19 @@ export async function POST(request: Request) {
     }
     content.push({
       type: "text",
-      text: `Analysiere diesen Beleg/Rechnung. Extrahiere folgende Felder als JSON:
+      text: `Analysiere diesen Beleg/Rechnung (oesterreichisches Steuerrecht). Extrahiere folgende Felder als JSON:
 {
   "invoice_date": "YYYY-MM-DD oder null",
-  "purpose": "Verwendungszweck/Beschreibung",
+  "purpose": "Verwendungszweck/Beschreibung (kurz)",
   "issuer": "Ausstellende Firma/Person",
-  "amount_net": Nettobetrag als Zahl oder null,
-  "amount_gross": Bruttobetrag als Zahl oder null,
-  "amount_vat": USt-Betrag als Zahl oder null,
-  "vat_rate": USt-Satz als Zahl (z.B. 20) oder null,
-  "account_debit": "Empfohlenes Soll-Konto (oesterreichischer Kontenrahmen, z.B. 7200 fuer Bueroaufwand)",
-  "account_label": "Kontobeschreibung (z.B. Bueroaufwand)"
+  "amount_net": Gesamter Nettobetrag als Zahl oder null,
+  "amount_gross": Gesamter Bruttobetrag als Zahl oder null,
+  "amount_vat": Gesamter USt-Betrag als Zahl oder null,
+  "vat_rate": Haupt-USt-Satz als Zahl (z.B. 20) oder null,
+  "vat_details": [{"rate": 20, "net": 100, "vat": 20, "gross": 120}, ...] oder [] (fuer jeden USt-Satz einzeln, z.B. 10% Getraenke, 13% Kultur, 20% Standard),
+  "account_debit": "Empfohlenes Soll-Konto (oesterreichischer Kontenrahmen, z.B. 7200 Bueroaufwand, 5880 Reisekosten, 7600 Telefonkosten)",
+  "account_label": "Kontobeschreibung",
+  "payment_method": "bar" oder "karte" oder "ueberweisung" oder "paypal" oder "sonstige" (erkenne aus Beleg ob Kartenzahlung, Barzahlung, etc.)
 }
 Antworte NUR mit dem JSON, kein anderer Text.`,
     });
@@ -80,6 +82,13 @@ Antworte NUR mit dem JSON, kein anderer Text.`,
     const textBlock = result.content?.find((b: Record<string, string>) => b.type === "text");
     const rawText = textBlock?.text || "{}";
 
+    // Calculate API cost (approximate: input + output tokens)
+    const inputTokens = result.usage?.input_tokens || 0;
+    const outputTokens = result.usage?.output_tokens || 0;
+    // Sonnet pricing: $3/M input, $15/M output
+    const costUSD = (inputTokens * 3 + outputTokens * 15) / 1_000_000;
+    const costEUR = Math.round(costUSD * 0.92 * 10000) / 10000; // approximate USD to EUR
+
     // Parse the JSON response
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
@@ -87,7 +96,7 @@ Antworte NUR mit dem JSON, kein anderer Text.`,
     // Update the receipt with analyzed data
     await supabase.from("receipts").update({
       analysis_status: "done",
-      analysis_raw: parsed,
+      analysis_raw: { ...parsed, usage: result.usage, cost_eur: costEUR },
       invoice_date: parsed.invoice_date || null,
       purpose: parsed.purpose || null,
       issuer: parsed.issuer || null,
@@ -97,6 +106,8 @@ Antworte NUR mit dem JSON, kein anderer Text.`,
       vat_rate: parsed.vat_rate ?? null,
       account_debit: parsed.account_debit || null,
       account_label: parsed.account_label || null,
+      payment_method: parsed.payment_method || "",
+      analysis_cost: costEUR,
       updated_at: new Date().toISOString(),
     }).eq("id", receiptId);
 

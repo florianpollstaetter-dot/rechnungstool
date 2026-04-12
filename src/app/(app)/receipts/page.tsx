@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Receipt } from "@/lib/types";
+import { Receipt, PAYMENT_METHOD_OPTIONS, PaymentMethod } from "@/lib/types";
 import { getReceipts, createReceipt, updateReceipt, deleteReceipt, uploadReceiptFile } from "@/lib/db";
+import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/format";
 
 export default function ReceiptsPage() {
@@ -11,7 +12,16 @@ export default function ReceiptsPage() {
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState<string | null>(null);
+  const [viewUrl, setViewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleViewReceipt(r: Receipt) {
+    const supabase = createClient();
+    const { data } = await supabase.storage.from("receipts").createSignedUrl(r.file_path, 300);
+    if (data?.signedUrl) {
+      setViewUrl(data.signedUrl);
+    }
+  }
 
   const loadData = useCallback(async () => {
     const data = await getReceipts();
@@ -45,6 +55,8 @@ export default function ReceiptsPage() {
           account_credit: null,
           account_label: null,
           currency: "EUR",
+          payment_method: "",
+          analysis_cost: null,
           notes: null,
           analysis_status: "pending",
           analysis_raw: null,
@@ -151,13 +163,15 @@ export default function ReceiptsPage() {
               <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">USt</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Konto</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zahlung</th>
               <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Kosten</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {receipts.length === 0 && (
-              <tr><td colSpan={10} className="px-3 py-8 text-center text-gray-500">Noch keine Belege hochgeladen.</td></tr>
+              <tr><td colSpan={12} className="px-3 py-8 text-center text-gray-500">Noch keine Belege hochgeladen.</td></tr>
             )}
             {receipts.map((r) => {
               const isEditing = editingId === r.id;
@@ -207,11 +221,29 @@ export default function ReceiptsPage() {
                     {r.account_debit && <span title={r.account_label || ""}>{r.account_debit}</span>}
                     {!r.account_debit && "—"}
                   </td>
+                  <td className="px-3 py-3 text-sm" onClick={(e) => e.stopPropagation()}>
+                    {isEditing ? (
+                      <select defaultValue={r.payment_method} onChange={(e) => handleFieldUpdate(r.id, "payment_method", e.target.value as PaymentMethod)} className={inputClass + " w-28"}>
+                        {PAYMENT_METHOD_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    ) : (
+                      <span className="text-gray-400">{PAYMENT_METHOD_OPTIONS.find((o) => o.value === r.payment_method)?.label || "—"}</span>
+                    )}
+                  </td>
                   <td className="px-3 py-3 text-center">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor}`}>{statusLabel}</span>
                   </td>
+                  <td className="px-3 py-3 text-right text-[10px] text-gray-500">
+                    {r.analysis_cost != null ? `${r.analysis_cost.toFixed(4)}€` : "—"}
+                  </td>
                   <td className="px-3 py-3 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex flex-col items-center gap-0.5">
+                      {/* View receipt */}
+                      <button onClick={() => handleViewReceipt(r)} className="text-[var(--accent)] hover:brightness-110 p-1" title="Beleg ansehen">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </button>
                       {r.analysis_status !== "analyzing" && analyzing !== r.id && (
                         <button onClick={() => analyzeReceipt(r.id)} className="text-[var(--accent)] hover:brightness-110 p-1" title="KI-Analyse starten">
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -240,6 +272,21 @@ export default function ReceiptsPage() {
       </div>
 
       <p className="text-xs text-gray-600 mt-3">Doppelklick auf eine Zeile zum Bearbeiten der KI-analysierten Felder.</p>
+
+      {/* Receipt Viewer Modal */}
+      {viewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setViewUrl(null)}>
+          <div className="bg-[var(--surface)] rounded-xl shadow-2xl border border-[var(--border)] w-[90vw] h-[90vh] max-w-5xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+              <h2 className="text-lg font-semibold text-white">Beleg-Vorschau</h2>
+              <button onClick={() => setViewUrl(null)} className="text-gray-400 hover:text-white text-2xl leading-none transition">&times;</button>
+            </div>
+            <div className="flex-1 p-4">
+              <iframe src={viewUrl} className="w-full h-full rounded-lg border border-[var(--border)]" title="Beleg" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

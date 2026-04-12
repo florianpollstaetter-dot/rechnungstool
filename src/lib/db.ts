@@ -811,6 +811,8 @@ function mapReceipt(row: Record<string, unknown>): Receipt {
     account_credit: (row.account_credit as string) || null,
     account_label: (row.account_label as string) || null,
     currency: (row.currency as string) || "EUR",
+    payment_method: (row.payment_method as Receipt["payment_method"]) || "",
+    analysis_cost: row.analysis_cost != null ? Number(row.analysis_cost) : null,
     notes: (row.notes as string) || null,
     analysis_status: (row.analysis_status as Receipt["analysis_status"]) || "pending",
     analysis_raw: (row.analysis_raw as Record<string, unknown>) || null,

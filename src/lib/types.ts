@@ -185,6 +185,17 @@ export interface BankTransaction {
 
 export type ReceiptAnalysisStatus = "pending" | "analyzing" | "done" | "error";
 
+export type PaymentMethod = "bar" | "karte" | "ueberweisung" | "paypal" | "sonstige" | "";
+
+export const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
+  { value: "", label: "Unbekannt" },
+  { value: "bar", label: "Bar" },
+  { value: "karte", label: "Karte" },
+  { value: "ueberweisung", label: "Ueberweisung" },
+  { value: "paypal", label: "PayPal" },
+  { value: "sonstige", label: "Sonstige" },
+];
+
 export interface Receipt {
   id: string;
   file_name: string;
@@ -202,6 +213,8 @@ export interface Receipt {
   account_credit: string | null;
   account_label: string | null;
   currency: string;
+  payment_method: PaymentMethod;
+  analysis_cost: number | null;
   notes: string | null;
   analysis_status: ReceiptAnalysisStatus;
   analysis_raw: Record<string, unknown> | null;
