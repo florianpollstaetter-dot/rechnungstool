@@ -1,0 +1,245 @@
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Receipt } from "@/lib/types";
+import { getReceipts, createReceipt, updateReceipt, deleteReceipt, uploadReceiptFile } from "@/lib/db";
+import { formatCurrency } from "@/lib/format";
+
+export default function ReceiptsPage() {
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadData = useCallback(async () => {
+    const data = await getReceipts();
+    setReceipts(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const fileType = file.name.split(".").pop()?.toLowerCase() || "pdf";
+        const { path } = await uploadReceiptFile(file);
+        const receipt = await createReceipt({
+          file_name: file.name,
+          file_path: path,
+          file_type: fileType,
+          file_size: file.size,
+          invoice_date: null,
+          purpose: null,
+          issuer: null,
+          amount_net: null,
+          amount_gross: null,
+          amount_vat: null,
+          vat_rate: null,
+          account_debit: null,
+          account_credit: null,
+          account_label: null,
+          currency: "EUR",
+          notes: null,
+          analysis_status: "pending",
+          analysis_raw: null,
+        });
+        // Trigger AI analysis
+        analyzeReceipt(receipt.id);
+      }
+      await loadData();
+    } catch (err) {
+      alert("Upload fehlgeschlagen: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function analyzeReceipt(id: string) {
+    setAnalyzing(id);
+    try {
+      const res = await fetch("/api/analyze-receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receiptId: id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Analyse fehlgeschlagen" }));
+        console.error("Analysis error:", err);
+      }
+      await loadData();
+    } catch (err) {
+      console.error("Analysis error:", err);
+    } finally {
+      setAnalyzing(null);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (confirm("Beleg wirklich loeschen?")) {
+      await deleteReceipt(id);
+      await loadData();
+    }
+  }
+
+  async function handleFieldUpdate(id: string, field: string, value: string | number | null) {
+    await updateReceipt(id, { [field]: value });
+    await loadData();
+    setEditingId(null);
+  }
+
+  const totalGross = receipts.reduce((sum, r) => sum + (r.amount_gross || 0), 0);
+  const totalNet = receipts.reduce((sum, r) => sum + (r.amount_net || 0), 0);
+  const totalVat = receipts.reduce((sum, r) => sum + (r.amount_vat || 0), 0);
+
+  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
+
+  const inputClass = "bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full";
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-white">Belege</h1>
+        <div className="flex gap-2">
+          <label className={`bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}>
+            {uploading ? "Hochladen..." : "+ Beleg hochladen"}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg"
+              multiple
+              onChange={handleUpload}
+              disabled={uploading}
+              className="hidden"
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-[var(--surface)] rounded-xl border-l-4 border-emerald-500 border border-[var(--border)] p-4">
+          <p className="text-sm text-gray-400">Gesamt Brutto</p>
+          <p className="text-xl font-bold text-white">{formatCurrency(totalGross)}</p>
+        </div>
+        <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500 border border-[var(--border)] p-4">
+          <p className="text-sm text-gray-400">Gesamt Netto</p>
+          <p className="text-xl font-bold text-white">{formatCurrency(totalNet)}</p>
+        </div>
+        <div className="bg-[var(--surface)] rounded-xl border-l-4 border-orange-500 border border-[var(--border)] p-4">
+          <p className="text-sm text-gray-400">Gesamt USt</p>
+          <p className="text-xl font-bold text-white">{formatCurrency(totalVat)}</p>
+        </div>
+      </div>
+
+      {/* Receipts Table */}
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
+        <table className="min-w-full divide-y divide-[var(--border)]">
+          <thead className="bg-[var(--background)]">
+            <tr>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datei</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aussteller</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Verwendungszweck</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Netto</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">USt</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Konto</th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--border)]">
+            {receipts.length === 0 && (
+              <tr><td colSpan={10} className="px-3 py-8 text-center text-gray-500">Noch keine Belege hochgeladen.</td></tr>
+            )}
+            {receipts.map((r) => {
+              const isEditing = editingId === r.id;
+              const statusColor = r.analysis_status === "done" ? "text-emerald-400 bg-emerald-500/15"
+                : r.analysis_status === "analyzing" ? "text-amber-400 bg-amber-500/15"
+                : r.analysis_status === "error" ? "text-rose-400 bg-rose-500/15"
+                : "text-gray-400 bg-gray-500/15";
+              const statusLabel = r.analysis_status === "done" ? "Analysiert"
+                : r.analysis_status === "analyzing" ? "Analysiert..."
+                : r.analysis_status === "error" ? "Fehler"
+                : "Ausstehend";
+
+              return (
+                <tr key={r.id} className="hover:bg-[var(--surface-hover)] transition" onDoubleClick={() => setEditingId(r.id)}>
+                  <td className="px-3 py-3 text-sm">
+                    <span className="font-medium text-white truncate max-w-[120px] block" title={r.file_name}>{r.file_name}</span>
+                    <span className="text-xs text-gray-500">{(r.file_size / 1024).toFixed(0)} KB</span>
+                  </td>
+                  <td className="px-3 py-3 text-sm text-gray-400">
+                    {isEditing ? (
+                      <input type="date" defaultValue={r.invoice_date || ""} onBlur={(e) => handleFieldUpdate(r.id, "invoice_date", e.target.value || null)} className={inputClass} autoFocus />
+                    ) : (r.invoice_date || "—")}
+                  </td>
+                  <td className="px-3 py-3 text-sm text-gray-400">
+                    {isEditing ? (
+                      <input defaultValue={r.issuer || ""} onBlur={(e) => handleFieldUpdate(r.id, "issuer", e.target.value || null)} className={inputClass} />
+                    ) : (r.issuer || "—")}
+                  </td>
+                  <td className="px-3 py-3 text-sm text-gray-400 max-w-[150px] truncate">
+                    {isEditing ? (
+                      <input defaultValue={r.purpose || ""} onBlur={(e) => handleFieldUpdate(r.id, "purpose", e.target.value || null)} className={inputClass} />
+                    ) : (r.purpose || "—")}
+                  </td>
+                  <td className="px-3 py-3 text-sm text-right text-gray-400">
+                    {isEditing ? (
+                      <input type="number" step="0.01" defaultValue={r.amount_net ?? ""} onBlur={(e) => handleFieldUpdate(r.id, "amount_net", e.target.value ? Number(e.target.value) : null)} className={inputClass + " w-20 text-right"} />
+                    ) : (r.amount_net != null ? formatCurrency(r.amount_net) : "—")}
+                  </td>
+                  <td className="px-3 py-3 text-sm text-right text-orange-400">
+                    {r.amount_vat != null ? formatCurrency(r.amount_vat) : "—"}
+                    {r.vat_rate != null && <span className="text-xs text-gray-500 ml-1">({r.vat_rate}%)</span>}
+                  </td>
+                  <td className="px-3 py-3 text-sm text-right font-medium text-white">
+                    {r.amount_gross != null ? formatCurrency(r.amount_gross) : "—"}
+                  </td>
+                  <td className="px-3 py-3 text-sm text-gray-400">
+                    {r.account_debit && <span title={r.account_label || ""}>{r.account_debit}</span>}
+                    {!r.account_debit && "—"}
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor}`}>{statusLabel}</span>
+                  </td>
+                  <td className="px-3 py-3 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1">
+                      {r.analysis_status !== "analyzing" && analyzing !== r.id && (
+                        <button onClick={() => analyzeReceipt(r.id)} className="text-[var(--accent)] hover:brightness-110 p-1" title="KI-Analyse starten">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 12l4-4" /><path d="M16 4h4v4" />
+                          </svg>
+                        </button>
+                      )}
+                      {analyzing === r.id && <span className="text-xs text-amber-400 animate-pulse">Analysiert...</span>}
+                      <button onClick={() => setEditingId(isEditing ? null : r.id)} className="text-gray-500 hover:text-gray-300 p-1" title="Bearbeiten">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                        </svg>
+                      </button>
+                      <button onClick={() => handleDelete(r.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title="Loeschen">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="text-xs text-gray-600 mt-3">Doppelklick auf eine Zeile zum Bearbeiten der KI-analysierten Felder.</p>
+    </div>
+  );
+}

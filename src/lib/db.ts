@@ -8,6 +8,7 @@ import {
   Quote,
   QuoteItem,
   FixedCost,
+  Receipt,
   Template,
   TemplateItem,
   TemplateType,
@@ -478,6 +479,48 @@ export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
   return invoice;
 }
 
+// Receipts
+export async function getReceipts(): Promise<Receipt[]> {
+  const { data } = await supabase().from("receipts").select("*").order("created_at", { ascending: false });
+  return (data ?? []).map(mapReceipt);
+}
+
+export async function getReceipt(id: string): Promise<Receipt | undefined> {
+  const { data } = await supabase().from("receipts").select("*").eq("id", id).single();
+  return data ? mapReceipt(data) : undefined;
+}
+
+export async function createReceipt(receipt: Omit<Receipt, "id" | "created_at" | "updated_at">): Promise<Receipt> {
+  const { data } = await supabase().from("receipts").insert(receipt).select().single();
+  return mapReceipt(data!);
+}
+
+export async function updateReceipt(id: string, updates: Partial<Receipt>): Promise<Receipt> {
+  const { data } = await supabase().from("receipts").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+  return mapReceipt(data!);
+}
+
+export async function deleteReceipt(id: string): Promise<void> {
+  const receipt = await getReceipt(id);
+  if (receipt) {
+    await supabase().storage.from("receipts").remove([receipt.file_path]);
+  }
+  await supabase().from("receipts").delete().eq("id", id);
+}
+
+export async function uploadReceiptFile(file: File): Promise<{ path: string }> {
+  const ext = file.name.split(".").pop() || "pdf";
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase().storage.from("receipts").upload(path, file);
+  if (error) throw new Error(error.message);
+  return { path };
+}
+
+export function getReceiptFileUrl(path: string): string {
+  const { data } = supabase().storage.from("receipts").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 // Templates
 export async function getTemplates(type?: TemplateType): Promise<Template[]> {
   let query = supabase().from("templates").select("*").order("name", { ascending: true });
@@ -712,5 +755,31 @@ function mapTemplate(row: Record<string, unknown>): Template {
     notes: (row.notes as string) || "",
     language: (row.language as Language) || "de",
     created_at: row.created_at as string,
+  };
+}
+
+function mapReceipt(row: Record<string, unknown>): Receipt {
+  return {
+    id: row.id as string,
+    file_name: row.file_name as string,
+    file_path: row.file_path as string,
+    file_type: row.file_type as string,
+    file_size: Number(row.file_size || 0),
+    invoice_date: (row.invoice_date as string) || null,
+    purpose: (row.purpose as string) || null,
+    issuer: (row.issuer as string) || null,
+    amount_net: row.amount_net != null ? Number(row.amount_net) : null,
+    amount_gross: row.amount_gross != null ? Number(row.amount_gross) : null,
+    amount_vat: row.amount_vat != null ? Number(row.amount_vat) : null,
+    vat_rate: row.vat_rate != null ? Number(row.vat_rate) : null,
+    account_debit: (row.account_debit as string) || null,
+    account_credit: (row.account_credit as string) || null,
+    account_label: (row.account_label as string) || null,
+    currency: (row.currency as string) || "EUR",
+    notes: (row.notes as string) || null,
+    analysis_status: (row.analysis_status as Receipt["analysis_status"]) || "pending",
+    analysis_raw: (row.analysis_raw as Record<string, unknown>) || null,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
   };
 }

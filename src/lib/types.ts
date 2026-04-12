@@ -151,6 +151,32 @@ export interface Reference {
   imageUrl?: string;
 }
 
+export type ReceiptAnalysisStatus = "pending" | "analyzing" | "done" | "error";
+
+export interface Receipt {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_type: string;
+  file_size: number;
+  invoice_date: string | null;
+  purpose: string | null;
+  issuer: string | null;
+  amount_net: number | null;
+  amount_gross: number | null;
+  amount_vat: number | null;
+  vat_rate: number | null;
+  account_debit: string | null;
+  account_credit: string | null;
+  account_label: string | null;
+  currency: string;
+  notes: string | null;
+  analysis_status: ReceiptAnalysisStatus;
+  analysis_raw: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type FixedCostInterval = "monthly" | "quarterly" | "yearly";
 
 export const FIXED_COST_INTERVAL_OPTIONS: { value: FixedCostInterval; label: string }[] = [

@@ -12,6 +12,7 @@ const navItems = [
   { href: "/customers", label: "Kunden" },
   { href: "/products", label: "Produkte" },
   { href: "/fixed-costs", label: "Fixkosten" },
+  { href: "/receipts", label: "Belege" },
 ];
 
 export default function AppLayout({
