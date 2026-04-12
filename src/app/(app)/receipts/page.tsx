@@ -5,6 +5,7 @@ import { Receipt, PAYMENT_METHOD_OPTIONS, PaymentMethod } from "@/lib/types";
 import { getReceipts, createReceipt, updateReceipt, deleteReceipt, uploadReceiptFile } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/format";
+import ReceiptCaptureModal from "@/components/ReceiptCaptureModal";
 
 const ACCOUNT_OPTIONS = [
   { value: "", label: "—" },
@@ -33,7 +34,51 @@ export default function ReceiptsPage() {
   const [analyzing, setAnalyzing] = useState<string | null>(null);
   const [viewUrl, setViewUrl] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [captureFile, setCaptureFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleCameraCapture(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) setCaptureFile(file);
+    e.target.value = "";
+  }
+
+  async function handleCaptureSubmit(croppedFile: File, meta: { purpose: string; account_debit: string; account_label: string; payment_method: PaymentMethod }) {
+    setCaptureFile(null);
+    setUploading(true);
+    try {
+      const fileType = croppedFile.name.split(".").pop()?.toLowerCase() || "jpg";
+      const { path } = await uploadReceiptFile(croppedFile);
+      const receipt = await createReceipt({
+        file_name: croppedFile.name,
+        file_path: path,
+        file_type: fileType,
+        file_size: croppedFile.size,
+        invoice_date: null,
+        purpose: meta.purpose || null,
+        issuer: null,
+        amount_net: null,
+        amount_gross: null,
+        amount_vat: null,
+        vat_rate: null,
+        account_debit: meta.account_debit || null,
+        account_credit: null,
+        account_label: meta.account_label || null,
+        currency: "EUR",
+        payment_method: meta.payment_method,
+        analysis_cost: null,
+        notes: null,
+        analysis_status: "pending",
+        analysis_raw: null,
+      });
+      analyzeReceipt(receipt.id);
+      await loadData();
+    } catch (err) {
+      alert("Upload fehlgeschlagen: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleViewReceipt(r: Receipt) {
     const supabase = createClient();
@@ -159,7 +204,7 @@ export default function ReceiptsPage() {
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={handleUpload}
+              onChange={handleCameraCapture}
               disabled={uploading}
               className="hidden"
             />
@@ -369,6 +414,15 @@ export default function ReceiptsPage() {
       </div>
 
       <p className="text-xs text-gray-600 mt-3">Doppelklick auf eine Zeile zum Bearbeiten der KI-analysierten Felder.</p>
+
+      {/* Capture Edit Modal */}
+      {captureFile && (
+        <ReceiptCaptureModal
+          imageFile={captureFile}
+          onSubmit={handleCaptureSubmit}
+          onCancel={() => setCaptureFile(null)}
+        />
+      )}
 
       {/* Receipt Viewer Modal */}
       {viewUrl && (
