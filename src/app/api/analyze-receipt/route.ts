@@ -89,6 +89,10 @@ Antworte NUR mit dem JSON, kein anderer Text.`,
     const costUSD = (inputTokens * 3 + outputTokens * 15) / 1_000_000;
     const costEUR = Math.round(costUSD * 0.92 * 10000) / 10000; // approximate USD to EUR
 
+    // Accumulate cost (add to existing, don't replace)
+    const previousCost = Number(receipt.analysis_cost) || 0;
+    const totalCost = Math.round((previousCost + costEUR) * 10000) / 10000;
+
     // Parse the JSON response
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
@@ -96,7 +100,7 @@ Antworte NUR mit dem JSON, kein anderer Text.`,
     // Update the receipt with analyzed data
     await supabase.from("receipts").update({
       analysis_status: "done",
-      analysis_raw: { ...parsed, usage: result.usage, cost_eur: costEUR },
+      analysis_raw: { ...parsed, usage: result.usage, cost_eur: costEUR, total_cost_eur: totalCost },
       invoice_date: parsed.invoice_date || null,
       purpose: parsed.purpose || null,
       issuer: parsed.issuer || null,
@@ -107,7 +111,7 @@ Antworte NUR mit dem JSON, kein anderer Text.`,
       account_debit: parsed.account_debit || null,
       account_label: parsed.account_label || null,
       payment_method: parsed.payment_method || "",
-      analysis_cost: costEUR,
+      analysis_cost: totalCost,
       updated_at: new Date().toISOString(),
     }).eq("id", receiptId);
 

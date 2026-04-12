@@ -129,6 +129,16 @@ export default function ReceiptsPage() {
   const totalGross = receipts.reduce((sum, r) => sum + (r.amount_gross || 0), 0);
   const totalNet = receipts.reduce((sum, r) => sum + (r.amount_net || 0), 0);
   const totalVat = receipts.reduce((sum, r) => sum + (r.amount_vat || 0), 0);
+  const totalAnalysisCost = receipts.reduce((sum, r) => sum + (r.analysis_cost || 0), 0);
+
+  // Monthly analysis cost (current month)
+  const now = new Date();
+  const monthlyAnalysisCost = receipts
+    .filter((r) => {
+      const d = new Date(r.created_at);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    })
+    .reduce((sum, r) => sum + (r.analysis_cost || 0), 0);
 
   if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
 
@@ -155,7 +165,7 @@ export default function ReceiptsPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-emerald-500 border border-[var(--border)] p-4">
           <p className="text-sm text-gray-400">Gesamt Brutto</p>
           <p className="text-xl font-bold text-white">{formatCurrency(totalGross)}</p>
@@ -167,6 +177,11 @@ export default function ReceiptsPage() {
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-orange-500 border border-[var(--border)] p-4">
           <p className="text-sm text-gray-400">Gesamt USt</p>
           <p className="text-xl font-bold text-white">{formatCurrency(totalVat)}</p>
+        </div>
+        <div className="bg-[var(--surface)] rounded-xl border-l-4 border-purple-500 border border-[var(--border)] p-4">
+          <p className="text-sm text-gray-400">Anthropic API Kosten</p>
+          <p className="text-xl font-bold text-purple-400">{totalAnalysisCost.toFixed(4)} &euro;</p>
+          <p className="text-xs text-gray-500">Monat: {monthlyAnalysisCost.toFixed(4)} &euro;</p>
         </div>
       </div>
 
