@@ -91,6 +91,8 @@ export interface QuoteItem {
 
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "expired";
 
+export type DisplayMode = "simple" | "detailed";
+
 export interface Quote {
   id: string;
   quote_number: string;
@@ -107,6 +109,8 @@ export interface Quote {
   overall_discount_amount: number;
   status: QuoteStatus;
   notes: string;
+  language: Language;
+  display_mode: DisplayMode;
   converted_invoice_id: string | null;
   created_at: string;
 }

@@ -8,6 +8,8 @@ import {
   Quote,
   QuoteItem,
   FixedCost,
+  Language,
+  DisplayMode,
 } from "./types";
 
 const DEFAULT_SETTINGS: CompanySettings = {
@@ -460,7 +462,7 @@ export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
     status: "offen",
     paid_at: null,
     notes: quote.notes,
-    language: "de",
+    language: quote.language || "de",
     accompanying_text: null,
   });
 
@@ -628,6 +630,8 @@ function mapQuote(
     overall_discount_amount: Number(row.overall_discount_amount || 0),
     status: row.status as Quote["status"],
     notes: (row.notes as string) || "",
+    language: (row.language as Language) || "de",
+    display_mode: (row.display_mode as DisplayMode) || "detailed",
     converted_invoice_id: (row.converted_invoice_id as string) || null,
     created_at: row.created_at as string,
   };

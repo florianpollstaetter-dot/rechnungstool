@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Customer, QuoteItem, Product, UNIT_OPTIONS } from "@/lib/types";
+import { Customer, QuoteItem, Product, UNIT_OPTIONS, Language, DisplayMode } from "@/lib/types";
 import { getCustomers, getSettings, getActiveProducts, createQuote } from "@/lib/db";
 import { addDays, formatCurrency } from "@/lib/format";
 import { calcItemTotal, calcTotals } from "@/lib/calc";
@@ -22,6 +22,8 @@ export default function NewQuotePage() {
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().split("T")[0]);
   const [validDays, setValidDays] = useState(30);
   const [taxRate, setTaxRate] = useState(20);
+  const [language, setLanguage] = useState<Language>("de");
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("detailed");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<ItemRow[]>([emptyItem(1)]);
   const [overallDiscountPercent, setOverallDiscountPercent] = useState(0);
@@ -80,6 +82,8 @@ export default function NewQuotePage() {
         overall_discount_amount: overallDiscountAmount,
         status: "draft",
         notes,
+        language,
+        display_mode: displayMode,
         converted_invoice_id: null,
       });
       router.push("/quotes");
@@ -119,6 +123,20 @@ export default function NewQuotePage() {
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Gueltig bis</label>
               <input type="text" value={validUntil} readOnly className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Sprache</label>
+              <select value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
+                <option value="de">Deutsch</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Anzeige-Modus</label>
+              <select value={displayMode} onChange={(e) => setDisplayMode(e.target.value as DisplayMode)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
+                <option value="detailed">Detail (mit Design)</option>
+                <option value="simple">Einfach (nur Preise)</option>
+              </select>
             </div>
           </div>
         </div>

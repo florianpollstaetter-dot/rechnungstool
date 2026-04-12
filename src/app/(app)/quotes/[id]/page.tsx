@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Quote, Customer, CompanySettings, QuoteStatus, UNIT_OPTIONS } from "@/lib/types";
+import { Quote, Customer, CompanySettings, QuoteStatus, UNIT_OPTIONS, Language, DisplayMode } from "@/lib/types";
 import { getQuote, getCustomer, getSettings, updateQuote, convertQuoteToInvoice } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
@@ -50,6 +50,24 @@ export default function QuoteDetailPage() {
     if (updated) setQuote(updated);
   }
 
+  async function handleLanguageToggle() {
+    const newLang: Language = quote!.language === "de" ? "en" : "de";
+    try {
+      await updateQuote(quote!.id, { language: newLang });
+      const updated = await getQuote(quote!.id);
+      if (updated) setQuote(updated);
+    } catch {
+      alert("Sprachumschaltung fehlgeschlagen.");
+    }
+  }
+
+  async function handleDisplayModeToggle() {
+    const newMode: DisplayMode = quote!.display_mode === "detailed" ? "simple" : "detailed";
+    await updateQuote(quote!.id, { display_mode: newMode });
+    const updated = await getQuote(quote!.id);
+    if (updated) setQuote(updated);
+  }
+
   async function handleConvert() {
     if (confirm("Angebot zu Rechnung konvertieren?")) {
       const invoice = await convertQuoteToInvoice(quote!.id);
@@ -79,6 +97,25 @@ export default function QuoteDetailPage() {
             <option value="rejected">Abgelehnt</option>
             <option value="expired">Abgelaufen</option>
           </select>
+          <button
+            onClick={handleLanguageToggle}
+            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--background)] ${
+              quote.language === "en" ? "bg-[var(--accent)]" : "bg-gray-600"
+            }`}
+            title={quote.language === "en" ? "English — click for Deutsch" : "Deutsch — click for English"}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${quote.language === "en" ? "translate-x-6" : "translate-x-1"}`} />
+            <span className={`absolute text-[9px] font-bold ${quote.language === "en" ? "left-1.5" : "right-1.5"} text-white`}>{quote.language === "en" ? "EN" : "DE"}</span>
+          </button>
+          <button
+            onClick={handleDisplayModeToggle}
+            className={`relative inline-flex h-7 items-center rounded-full px-3 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+              quote.display_mode === "simple" ? "bg-[var(--accent)] text-black" : "bg-gray-600 text-white"
+            }`}
+            title={quote.display_mode === "simple" ? "Einfach — click for Detail" : "Detail — click for Einfach"}
+          >
+            {quote.display_mode === "simple" ? "Einfach" : "Detail"}
+          </button>
           {!quote.converted_invoice_id && quote.status !== "rejected" && (
             <button onClick={handleConvert} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">→ Rechnung erstellen</button>
           )}
