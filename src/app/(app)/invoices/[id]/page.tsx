@@ -12,6 +12,7 @@ import PDFPreviewModal from "@/components/PDFPreviewModal";
 const statusLabels: Record<string, { label: string; color: string }> = {
   entwurf: { label: "Entwurf", color: "bg-gray-500/15 text-gray-400" },
   offen: { label: "Offen", color: "bg-amber-500/15 text-amber-400" },
+  teilbezahlt: { label: "Teilbezahlt", color: "bg-cyan-500/15 text-cyan-400" },
   bezahlt: { label: "Bezahlt", color: "bg-emerald-500/15 text-emerald-400" },
   ueberfaellig: { label: "Ueberfaellig", color: "bg-rose-500/15 text-rose-400" },
   storniert: { label: "Storniert", color: "bg-purple-500/15 text-purple-400" },

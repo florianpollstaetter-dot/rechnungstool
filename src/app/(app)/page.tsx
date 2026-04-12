@@ -56,10 +56,12 @@ export default function DashboardPage() {
   const openInvoices = activeInvoices.filter((i) => i.status === "offen");
   const overdueInvoices = activeInvoices.filter((i) => i.status === "ueberfaellig");
   const paidInvoices = activeInvoices.filter((i) => i.status === "bezahlt");
+  const partialInvoices = activeInvoices.filter((i) => i.status === "teilbezahlt");
 
+  const totalPaidAmount = paidInvoices.reduce((sum, i) => sum + i.paid_amount, 0) + partialInvoices.reduce((sum, i) => sum + i.paid_amount, 0);
   const totalRevenueGross = paidInvoices.reduce((sum, i) => sum + i.total, 0);
   const totalRevenueNet = paidInvoices.reduce((sum, i) => sum + i.subtotal, 0);
-  const totalOpenGross = openInvoices.reduce((sum, i) => sum + i.total, 0);
+  const totalOpenGross = openInvoices.reduce((sum, i) => sum + i.total, 0) + partialInvoices.reduce((sum, i) => sum + (i.total - i.paid_amount), 0);
   const totalOpenNet = openInvoices.reduce((sum, i) => sum + i.subtotal, 0);
   const totalOverdueGross = overdueInvoices.reduce((sum, i) => sum + i.total, 0);
   const totalOverdueNet = overdueInvoices.reduce((sum, i) => sum + i.subtotal, 0);
@@ -233,10 +235,12 @@ export default function DashboardPage() {
               <tbody className="divide-y divide-[var(--border)]">
                 {recentInvoices.map((inv) => {
                   const statusStyle = inv.status === "bezahlt" ? "bg-emerald-500/15 text-emerald-400"
+                    : inv.status === "teilbezahlt" ? "bg-cyan-500/15 text-cyan-400"
                     : inv.status === "ueberfaellig" ? "bg-rose-500/15 text-rose-400"
                     : inv.status === "storniert" ? "bg-purple-500/15 text-purple-400"
                     : "bg-amber-500/15 text-amber-400";
                   const statusText = inv.status === "bezahlt" ? "Bezahlt"
+                    : inv.status === "teilbezahlt" ? "Teilbezahlt"
                     : inv.status === "ueberfaellig" ? "Ueberfaellig"
                     : inv.status === "storniert" ? "Storniert"
                     : "Offen";

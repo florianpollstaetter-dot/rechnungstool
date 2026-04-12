@@ -97,6 +97,7 @@ export default function NewInvoicePage() {
         overall_discount_amount: overallDiscountAmount,
         status: "offen",
         paid_at: null,
+        paid_amount: 0,
         notes,
         language,
         accompanying_text: null,

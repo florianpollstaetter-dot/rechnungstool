@@ -51,7 +51,7 @@ export interface InvoiceItem {
   total: number;
 }
 
-export type InvoiceStatus = "entwurf" | "offen" | "bezahlt" | "ueberfaellig" | "storniert";
+export type InvoiceStatus = "entwurf" | "offen" | "bezahlt" | "teilbezahlt" | "ueberfaellig" | "storniert";
 
 export interface Invoice {
   id: string;
@@ -70,6 +70,7 @@ export interface Invoice {
   overall_discount_amount: number;
   status: InvoiceStatus;
   paid_at: string | null;
+  paid_amount: number;
   notes: string;
   language: Language;
   accompanying_text: string | null;
