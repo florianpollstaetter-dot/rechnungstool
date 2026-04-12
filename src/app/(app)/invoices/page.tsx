@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Invoice, Customer, CompanySettings, InvoiceStatus, Language, Template } from "@/lib/types";
 import { getInvoices, getCustomers, getSettings, updateInvoice, cancelInvoice, deleteInvoice, createInvoice, getTemplates } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
@@ -22,7 +22,19 @@ function isOverdue(inv: Invoice): boolean {
   return due < today;
 }
 
-export default function InvoicesPage() {
+export default function InvoicesPageWrapper() {
+  return <Suspense fallback={<div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>}><InvoicesPage /></Suspense>;
+}
+
+const filterTabs = [
+  { value: "alle", label: "Alle" },
+  { value: "entwurf", label: "Entwurf" },
+  { value: "offen", label: "Offen" },
+  { value: "bezahlt", label: "Bezahlt" },
+  { value: "ueberfaellig", label: "Ueberfaellig" },
+];
+
+function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
@@ -31,6 +43,10 @@ export default function InvoicesPage() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialFilter = searchParams.get("filter") || "alle";
+  const [activeFilter, setActiveFilter] = useState(initialFilter);
+  const [searchQuery, setSearchQuery] = useState("");
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -202,6 +218,26 @@ export default function InvoicesPage() {
     });
   }, [invoices]);
 
+  // Filter logic
+  const filteredInvoices = invoices
+    .filter((inv) => {
+      if (activeFilter === "alle") return true;
+      if (activeFilter === "offen") return inv.status === "offen" || inv.status === "teilbezahlt";
+      if (activeFilter === "bezahlt") return inv.status === "bezahlt" || inv.status === "teilbezahlt";
+      if (activeFilter === "ueberfaellig") return isOverdue(inv);
+      return inv.status === activeFilter;
+    })
+    .filter((inv) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      const customerName = getCustomerName(inv.customer_id).toLowerCase();
+      return inv.invoice_number.toLowerCase().includes(q)
+        || customerName.includes(q)
+        || (inv.project_description || "").toLowerCase().includes(q)
+        || String(inv.total).includes(q);
+    })
+    .sort((a, b) => b.invoice_date.localeCompare(a.invoice_date) || b.invoice_number.localeCompare(a.invoice_number));
+
   if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
 
   return (
@@ -214,6 +250,31 @@ export default function InvoicesPage() {
           )}
           <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ Neue Rechnung</Link>
         </div>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {filterTabs.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setActiveFilter(tab.value)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+              activeFilter === tab.value
+                ? "bg-[var(--accent)] text-black"
+                : "bg-[var(--surface-hover)] text-gray-300 hover:bg-[var(--border)]"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+        <div className="flex-1" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Suche nach Nr., Kunde, Betrag..."
+          className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-64"
+        />
       </div>
 
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
@@ -234,7 +295,7 @@ export default function InvoicesPage() {
             {invoices.length === 0 && (
               <tr><td colSpan={8} className="px-3 py-8 text-center text-[var(--text-muted)]">Noch keine Rechnungen erstellt.</td></tr>
             )}
-            {invoices.sort((a, b) => b.created_at.localeCompare(a.created_at)).map((inv) => {
+            {filteredInvoices.map((inv) => {
               const isStorniert = inv.status === "storniert";
               const isPaid = inv.status === "bezahlt";
               const isPartial = inv.status === "teilbezahlt";

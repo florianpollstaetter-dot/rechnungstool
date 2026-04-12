@@ -24,6 +24,7 @@ export default function QuotesPage() {
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadData = useCallback(async () => {
     const [q, cust, s, tpl] = await Promise.all([getQuotes(), getCustomers(), getSettings(), getTemplates("quote")]);
@@ -141,6 +142,16 @@ export default function QuotesPage() {
         </div>
       </div>
 
+      <div className="mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Suche nach Nr., Kunde, Projekt, Betrag..."
+          className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-64"
+        />
+      </div>
+
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
@@ -159,7 +170,14 @@ export default function QuotesPage() {
             {quotes.length === 0 && (
               <tr><td colSpan={8} className="px-6 py-8 text-center text-[var(--text-muted)]">Noch keine Angebote erstellt.</td></tr>
             )}
-            {quotes.sort((a, b) => b.created_at.localeCompare(a.created_at)).map((q) => {
+            {quotes.filter((q) => {
+              if (!searchQuery) return true;
+              const sq = searchQuery.toLowerCase();
+              return q.quote_number.toLowerCase().includes(sq)
+                || getCustomerName(q.customer_id).toLowerCase().includes(sq)
+                || (q.project_description || "").toLowerCase().includes(sq)
+                || String(q.total).includes(sq);
+            }).sort((a, b) => b.created_at.localeCompare(a.created_at)).map((q) => {
               const st = statusLabels[q.status] || statusLabels.draft;
               const isEN = q.language === "en";
               const isLoadingPdf = pdfLoading === q.id;

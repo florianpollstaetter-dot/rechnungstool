@@ -13,6 +13,7 @@ export default function ReceiptsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState<string | null>(null);
   const [viewUrl, setViewUrl] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleViewReceipt(r: Receipt) {
@@ -150,6 +151,16 @@ export default function ReceiptsPage() {
         </div>
       </div>
 
+      <div className="mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Suche nach Datei, Aussteller, Betrag..."
+          className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-64"
+        />
+      </div>
+
       {/* Receipts Table */}
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
         <table className="min-w-full divide-y divide-[var(--border)]">
@@ -173,7 +184,14 @@ export default function ReceiptsPage() {
             {receipts.length === 0 && (
               <tr><td colSpan={12} className="px-3 py-8 text-center text-gray-500">Noch keine Belege hochgeladen.</td></tr>
             )}
-            {receipts.map((r) => {
+            {receipts.filter((r) => {
+              if (!searchQuery) return true;
+              const sq = searchQuery.toLowerCase();
+              return r.file_name.toLowerCase().includes(sq)
+                || (r.issuer || "").toLowerCase().includes(sq)
+                || (r.purpose || "").toLowerCase().includes(sq)
+                || String(r.amount_gross || "").includes(sq);
+            }).map((r) => {
               const isEditing = editingId === r.id;
               const statusColor = r.analysis_status === "done" ? "text-emerald-400 bg-emerald-500/15"
                 : r.analysis_status === "analyzing" ? "text-amber-400 bg-amber-500/15"

@@ -61,6 +61,16 @@ export default function DashboardPage() {
 
   const totalVAT = activeInvoices.filter((i) => i.status !== "entwurf").reduce((sum, i) => sum + i.tax_amount, 0);
 
+  // Monthly revenue (current month)
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const monthlyPaid = paidInvoices.filter((i) => {
+    const d = new Date(i.paid_at || i.invoice_date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+  const monthlyRevenueGross = monthlyPaid.reduce((sum, i) => sum + i.total, 0);
+
   const openQuotes = quotes.filter((q) => q.status === "draft" || q.status === "sent");
 
   const monthlyFixedCosts = fixedCosts.reduce((sum, c) => {
@@ -79,21 +89,21 @@ export default function DashboardPage() {
 
   const cards = [
     {
-      title: "Gesamtumsatz", href: "/invoices",
-      value: formatCurrency(totalRevenueGross),
-      subtitle: `${paidInvoices.length} bezahlte Rechnungen`,
+      title: "Umsatz", href: "/invoices?filter=bezahlt",
+      value: formatCurrency(monthlyRevenueGross),
+      subtitle: `Monat | Gesamt: ${formatCurrency(totalRevenueGross)}`,
       borderColor: "border-emerald-500", iconBg: "bg-emerald-500/10", iconColor: "text-emerald-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
     },
     {
-      title: "Offene Rechnungen", href: "/invoices",
+      title: "Offene Rechnungen", href: "/invoices?filter=offen",
       value: formatCurrency(totalOpenGross),
       subtitle: `${openInvoices.length + partialInvoices.length} offen/teil`,
       borderColor: "border-amber-500", iconBg: "bg-amber-500/10", iconColor: "text-amber-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
     },
     {
-      title: "Ueberfaellig", href: "/invoices",
+      title: "Ueberfaellig", href: "/invoices?filter=ueberfaellig",
       value: formatCurrency(totalOverdueGross),
       subtitle: `${overdueInvoices.length} ueberfaellig`,
       borderColor: "border-rose-500", iconBg: "bg-rose-500/10", iconColor: "text-rose-400",
