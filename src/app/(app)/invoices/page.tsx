@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Invoice, Customer, CompanySettings, InvoiceStatus, Language, Template } from "@/lib/types";
 import { getInvoices, getCustomers, getSettings, updateInvoice, cancelInvoice, deleteInvoice, createInvoice, getTemplates } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
@@ -12,8 +13,14 @@ const statusConfig: { value: InvoiceStatus; label: string; color: string; active
   { value: "offen", label: "Offen", color: "text-amber-500/60 hover:text-amber-400", activeColor: "bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/40" },
   { value: "teilbezahlt", label: "Teil", color: "text-cyan-500/60 hover:text-cyan-400", activeColor: "bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/40" },
   { value: "bezahlt", label: "Bezahlt", color: "text-emerald-500/60 hover:text-emerald-400", activeColor: "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/40" },
-  { value: "ueberfaellig", label: "Ueberfaellig", color: "text-rose-500/60 hover:text-rose-400", activeColor: "bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/40" },
 ];
+
+function isOverdue(inv: Invoice): boolean {
+  if (inv.status === "bezahlt" || inv.status === "storniert") return false;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const due = new Date(inv.due_date); due.setHours(0, 0, 0, 0);
+  return due < today;
+}
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -23,6 +30,7 @@ export default function InvoicesPage() {
   const [paymentModal, setPaymentModal] = useState<{ invoice: Invoice } | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const router = useRouter();
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -232,19 +240,26 @@ export default function InvoicesPage() {
               const isPartial = inv.status === "teilbezahlt";
               const isEN = inv.language === "en";
               const isLoadingPdf = pdfLoading === inv.id;
+              const overdue = isOverdue(inv);
 
               return (
-                <tr key={inv.id} className={`hover:bg-[var(--surface-hover)] transition ${isStorniert ? "opacity-50" : ""}`}>
-                  <td className="px-3 py-3 font-medium text-[var(--text-primary)] text-sm">{inv.invoice_number}</td>
+                <tr key={inv.id} className={`hover:bg-[var(--surface-hover)] transition cursor-pointer ${isStorniert ? "opacity-50" : ""}`} onClick={() => router.push(`/invoices/${inv.id}`)}>
+                  <td className="px-3 py-3">
+                    <div className="font-medium text-[var(--text-primary)] text-sm">{inv.invoice_number}</div>
+                    {inv.project_description && <div className="text-[10px] text-[var(--text-muted)] truncate max-w-[140px]">{inv.project_description}</div>}
+                  </td>
                   <td className="px-3 py-3 text-sm text-[var(--text-secondary)] max-w-[120px] truncate">{getCustomerName(inv.customer_id)}</td>
                   <td className="px-3 py-3 text-sm text-[var(--text-secondary)]">{formatDateLong(inv.invoice_date)}</td>
-                  <td className="px-3 py-3 text-sm text-[var(--text-primary)] text-right font-medium">{formatCurrency(inv.total)}</td>
+                  <td className="px-3 py-3 text-right">
+                    <div className={`text-sm font-medium ${overdue ? "text-rose-400" : "text-[var(--text-primary)]"}`}>{formatCurrency(inv.total)}</div>
+                    {overdue && <div className="text-[10px] text-rose-400 font-medium">ueberfaellig</div>}
+                  </td>
                   <td className="px-3 py-3 text-sm text-right">
                     {(isPaid || isPartial) ? (
                       <span className={isPaid ? "text-emerald-400" : "text-cyan-400"}>{formatCurrency(inv.paid_amount)}</span>
                     ) : <span className="text-[var(--text-muted)]">—</span>}
                   </td>
-                  <td className="px-3 py-3 text-center">
+                  <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => handleLanguageToggle(inv.id, inv.language)}
                       className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${isEN ? "bg-[var(--accent)]" : "bg-gray-600"}`}
@@ -253,7 +268,7 @@ export default function InvoicesPage() {
                       <span className={`absolute text-[8px] font-bold ${isEN ? "left-1" : "right-1"} text-white`}>{isEN ? "EN" : "DE"}</span>
                     </button>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                     {isStorniert ? (
                       <span className="text-xs font-medium px-2 py-0.5 rounded bg-purple-500/15 text-purple-400">Storniert</span>
                     ) : (
@@ -269,10 +284,13 @@ export default function InvoicesPage() {
                             {s.label}
                           </button>
                         ))}
+                        {overdue && (
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/40">Ueberfaellig</span>
+                        )}
                       </div>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-right whitespace-nowrap">
+                  <td className="px-3 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col items-center gap-0.5">
                       <button
                         onClick={() => handleDirectPreview(inv)}
