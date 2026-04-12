@@ -6,18 +6,13 @@ import { Invoice, Customer, InvoiceStatus, Language } from "@/lib/types";
 import { getInvoices, getCustomers, updateInvoice, cancelInvoice, deleteInvoice } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 
-const statusConfig: { value: InvoiceStatus; label: string; color: string; bg: string }[] = [
-  { value: "entwurf", label: "Entwurf", color: "text-gray-400", bg: "bg-gray-500/15 hover:bg-gray-500/25" },
-  { value: "offen", label: "Offen", color: "text-amber-400", bg: "bg-amber-500/15 hover:bg-amber-500/25" },
-  { value: "teilbezahlt", label: "Teilbezahlt", color: "text-cyan-400", bg: "bg-cyan-500/15 hover:bg-cyan-500/25" },
-  { value: "bezahlt", label: "Bezahlt", color: "text-emerald-400", bg: "bg-emerald-500/15 hover:bg-emerald-500/25" },
-  { value: "ueberfaellig", label: "Ueberfaellig", color: "text-rose-400", bg: "bg-rose-500/15 hover:bg-rose-500/25" },
+const statusConfig: { value: InvoiceStatus; label: string; color: string; activeColor: string }[] = [
+  { value: "entwurf", label: "Entwurf", color: "text-gray-500 hover:text-gray-300", activeColor: "bg-gray-500/20 text-gray-300 ring-1 ring-gray-500/40" },
+  { value: "offen", label: "Offen", color: "text-amber-500/60 hover:text-amber-400", activeColor: "bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/40" },
+  { value: "teilbezahlt", label: "Teil", color: "text-cyan-500/60 hover:text-cyan-400", activeColor: "bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/40" },
+  { value: "bezahlt", label: "Bezahlt", color: "text-emerald-500/60 hover:text-emerald-400", activeColor: "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/40" },
+  { value: "ueberfaellig", label: "Ueberfaellig", color: "text-rose-500/60 hover:text-rose-400", activeColor: "bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/40" },
 ];
-
-function StatusBadge({ status }: { status: string }) {
-  const cfg = statusConfig.find((s) => s.value === status) || statusConfig[0];
-  return <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>;
-}
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -25,7 +20,6 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [paymentModal, setPaymentModal] = useState<{ invoice: Invoice } | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
-  const [statusMenu, setStatusMenu] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     const [inv, cust] = await Promise.all([getInvoices(), getCustomers()]);
@@ -41,27 +35,24 @@ export default function InvoicesPage() {
     return c ? c.company || c.name : "Unbekannt";
   }
 
-  async function handleStatusChange(id: string, status: InvoiceStatus) {
+  function openPaymentModal(inv: Invoice) {
+    setPaymentModal({ invoice: inv });
+    setPaymentAmount(String(inv.total));
+  }
+
+  async function handleStatusClick(id: string, status: InvoiceStatus) {
     if (status === "bezahlt" || status === "teilbezahlt") {
       const inv = invoices.find((i) => i.id === id);
-      if (inv) {
-        setPaymentModal({ invoice: inv });
-        setPaymentAmount(String(inv.total));
-        return;
-      }
+      if (inv) { openPaymentModal(inv); return; }
     }
-    await updateInvoice(id, {
-      status,
-      paid_at: null,
-      paid_amount: 0,
-    });
-    setStatusMenu(null);
+    await updateInvoice(id, { status, paid_at: null, paid_amount: 0 });
     await loadData();
   }
 
-  async function handlePaymentSubmit() {
+  async function submitPayment() {
     if (!paymentModal) return;
     const amount = Number(paymentAmount) || 0;
+    if (amount <= 0) return;
     const inv = paymentModal.invoice;
     const isFullPayment = amount >= inv.total;
     await updateInvoice(inv.id, {
@@ -70,32 +61,22 @@ export default function InvoicesPage() {
       paid_amount: amount,
     });
     setPaymentModal(null);
-    setStatusMenu(null);
+    setPaymentAmount("");
     await loadData();
   }
 
   async function handleLanguageToggle(id: string, currentLang: Language) {
     const newLang: Language = currentLang === "de" ? "en" : "de";
-    try {
-      await updateInvoice(id, { language: newLang });
-      await loadData();
-    } catch {
-      alert("Sprachumschaltung fehlgeschlagen.");
-    }
+    await updateInvoice(id, { language: newLang }).catch(() => {});
+    await loadData();
   }
 
   async function handleCancel(id: string) {
-    if (confirm("Rechnung wirklich stornieren?")) {
-      await cancelInvoice(id);
-      await loadData();
-    }
+    if (confirm("Rechnung wirklich stornieren?")) { await cancelInvoice(id); await loadData(); }
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Rechnung wirklich loeschen?")) {
-      await deleteInvoice(id);
-      await loadData();
-    }
+    if (confirm("Rechnung wirklich loeschen?")) { await deleteInvoice(id); await loadData(); }
   }
 
   useEffect(() => {
@@ -120,106 +101,80 @@ export default function InvoicesPage() {
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nr.</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kunde</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faelligkeit</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bezahlt</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">DE/EN</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nr.</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kunde</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Bezahlt</th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">DE/EN</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {invoices.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-500">Noch keine Rechnungen erstellt.</td></tr>
+              <tr><td colSpan={8} className="px-3 py-8 text-center text-gray-500">Noch keine Rechnungen erstellt.</td></tr>
             )}
             {invoices.sort((a, b) => b.created_at.localeCompare(a.created_at)).map((inv) => {
               const isStorniert = inv.status === "storniert";
               const isPaid = inv.status === "bezahlt";
               const isPartial = inv.status === "teilbezahlt";
-              const today = new Date(); today.setHours(0, 0, 0, 0);
-              const due = new Date(inv.due_date); due.setHours(0, 0, 0, 0);
-              const diffDays = Math.round((due.getTime() - today.getTime()) / 86400000);
-              let dueLabel = "";
-              let dueColor = "text-gray-500";
-              if (!isPaid && !isStorniert) {
-                if (diffDays > 0) { dueLabel = `in ${diffDays}d`; dueColor = diffDays <= 3 ? "text-amber-400" : "text-gray-500"; }
-                else if (diffDays === 0) { dueLabel = "heute"; dueColor = "text-amber-400"; }
-                else { dueLabel = `${Math.abs(diffDays)}d ueber`; dueColor = "text-rose-400 font-medium"; }
-              }
               const isEN = inv.language === "en";
-              const showStatusMenu = statusMenu === inv.id;
 
               return (
-                <tr key={inv.id} className={`hover:bg-[var(--surface-hover)] transition ${isStorniert ? "opacity-60" : ""}`}>
-                  <td className="px-4 py-3 font-medium text-white text-sm">{inv.invoice_number}</td>
-                  <td className="px-4 py-3 text-sm text-gray-400 max-w-[140px] truncate">{getCustomerName(inv.customer_id)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-400">{formatDateLong(inv.invoice_date)}</td>
-                  <td className={`px-4 py-3 text-sm ${dueColor}`} title={formatDateLong(inv.due_date)}>{dueLabel || formatDateLong(inv.due_date)}</td>
-                  <td className="px-4 py-3 text-sm text-white text-right font-medium">{formatCurrency(inv.total)}</td>
-                  <td className="px-4 py-3 text-sm text-right">
+                <tr key={inv.id} className={`hover:bg-[var(--surface-hover)] transition ${isStorniert ? "opacity-50" : ""}`}>
+                  <td className="px-3 py-3 font-medium text-white text-sm">{inv.invoice_number}</td>
+                  <td className="px-3 py-3 text-sm text-gray-400 max-w-[120px] truncate">{getCustomerName(inv.customer_id)}</td>
+                  <td className="px-3 py-3 text-sm text-gray-400">{formatDateLong(inv.invoice_date)}</td>
+                  <td className="px-3 py-3 text-sm text-white text-right font-medium">{formatCurrency(inv.total)}</td>
+                  <td className="px-3 py-3 text-sm text-right">
                     {(isPaid || isPartial) ? (
-                      <span className={isPaid ? "text-emerald-400" : "text-cyan-400"}>
-                        {formatCurrency(inv.paid_amount)}
-                      </span>
-                    ) : (
-                      <span className="text-gray-600">—</span>
-                    )}
+                      <span className={isPaid ? "text-emerald-400" : "text-cyan-400"}>{formatCurrency(inv.paid_amount)}</span>
+                    ) : <span className="text-gray-600">—</span>}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-3 py-3 text-center">
                     <button
                       onClick={() => handleLanguageToggle(inv.id, inv.language)}
                       className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${isEN ? "bg-[var(--accent)]" : "bg-gray-600"}`}
-                      title={isEN ? "English" : "Deutsch"}
                     >
                       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isEN ? "translate-x-5" : "translate-x-1"}`} />
                       <span className={`absolute text-[8px] font-bold ${isEN ? "left-1" : "right-1"} text-white`}>{isEN ? "EN" : "DE"}</span>
                     </button>
                   </td>
-                  <td className="px-4 py-3 relative">
+                  <td className="px-3 py-2">
                     {isStorniert ? (
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400">Storniert</span>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded bg-purple-500/15 text-purple-400">Storniert</span>
                     ) : (
-                      <div>
-                        <button onClick={() => setStatusMenu(showStatusMenu ? null : inv.id)} className="w-full text-left">
-                          <StatusBadge status={inv.status} />
-                        </button>
-                        {showStatusMenu && (
-                          <div className="absolute z-10 mt-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-xl py-1 min-w-[130px]">
-                            {statusConfig.map((s) => (
-                              <button
-                                key={s.value}
-                                onClick={() => handleStatusChange(inv.id, s.value)}
-                                className={`w-full text-left px-3 py-1.5 text-xs font-medium ${s.color} hover:bg-[var(--surface-hover)] transition ${inv.status === s.value ? "bg-[var(--surface-hover)]" : ""}`}
-                              >
-                                {s.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                      <div className="flex flex-col gap-0.5">
+                        {statusConfig.map((s) => (
+                          <button
+                            key={s.value}
+                            onClick={() => handleStatusClick(inv.id, s.value)}
+                            className={`text-[10px] font-medium px-1.5 py-0.5 rounded transition text-left ${
+                              inv.status === s.value ? s.activeColor : s.color
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {/* Eye icon — view */}
+                  <td className="px-3 py-3 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1">
                       <Link href={`/invoices/${inv.id}`} className="text-[var(--accent)] hover:brightness-110 p-1" title="Ansehen">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />
                         </svg>
                       </Link>
-                      {/* Download icon */}
                       <Link href={`/invoices/${inv.id}?download=1`} className="text-gray-500 hover:text-gray-300 p-1" title="PDF Download">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                         </svg>
                       </Link>
-                      {/* Trash icon — delete */}
                       {!isStorniert && (
-                        <button onClick={() => handleCancel(inv.id)} className="text-rose-500 hover:text-rose-400 p-1" title="Stornieren">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <button onClick={() => handleCancel(inv.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title="Stornieren">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                           </svg>
                         </button>
@@ -232,9 +187,6 @@ export default function InvoicesPage() {
           </tbody>
         </table>
       </div>
-
-      {/* Close status menu when clicking outside */}
-      {statusMenu && <div className="fixed inset-0 z-0" onClick={() => setStatusMenu(null)} />}
 
       {/* Payment Modal */}
       {paymentModal && (
@@ -251,34 +203,35 @@ export default function InvoicesPage() {
               onChange={(e) => setPaymentAmount(e.target.value)}
               step="0.01"
               min={0}
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] mb-2 no-spinners"
+              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] mb-3 no-spinners"
               autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") submitPayment(); }}
             />
 
             {Number(paymentAmount) > 0 && Number(paymentAmount) < paymentModal.invoice.total && (
-              <p className="text-xs text-cyan-400 mb-2">
-                Teilzahlung — Restbetrag: {formatCurrency(paymentModal.invoice.total - Number(paymentAmount))}
-              </p>
+              <p className="text-xs text-cyan-400 mb-3">Teilzahlung — Restbetrag: {formatCurrency(paymentModal.invoice.total - Number(paymentAmount))}</p>
             )}
             {Number(paymentAmount) >= paymentModal.invoice.total && (
-              <p className="text-xs text-emerald-400 mb-2">Vollstaendig bezahlt</p>
+              <p className="text-xs text-emerald-400 mb-3">Vollstaendig bezahlt</p>
             )}
 
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-2">
               <button
-                onClick={() => { setPaymentAmount(String(paymentModal.invoice.total)); }}
+                type="button"
+                onClick={() => setPaymentAmount(String(paymentModal.invoice.total))}
                 className="bg-emerald-500/15 text-emerald-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500/25 transition"
               >
                 Voller Betrag
               </button>
               <button
-                onClick={handlePaymentSubmit}
-                disabled={!paymentAmount || Number(paymentAmount) <= 0}
-                className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50"
+                type="button"
+                onClick={submitPayment}
+                className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
               >
                 Zahlung erfassen
               </button>
               <button
+                type="button"
                 onClick={() => setPaymentModal(null)}
                 className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
               >

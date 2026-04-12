@@ -275,10 +275,7 @@ export default function InvoicePDF({ invoice, customer, settings }: Props) {
               <Text>BIC: {settings.bic}</Text>
             </View>
           </View>
-          <View style={s.factBox}>
-            <Text style={s.factLabel}>{t("factOfTheDay", lang)}</Text>
-            <Text>{factOfDay}</Text>
-          </View>
+          {/* Fact of the Day removed — now on dashboard */}
         </View>
 
         <Text style={s.pageNumber} render={({ pageNumber, totalPages }) => `${t("page", lang)} ${pageNumber} ${t("of", lang)} ${totalPages}`} fixed />
