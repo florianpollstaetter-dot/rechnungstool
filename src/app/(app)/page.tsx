@@ -254,20 +254,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Fact of the Day + Chuck Norris */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[var(--accent)] text-sm font-semibold">Wusstest du?</span>
-          </div>
-          <p className="text-sm text-gray-400 leading-relaxed">{getFactOfTheDay("de")}</p>
+      {/* Chuck Norris Fact des Tages */}
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-orange-400 text-sm font-semibold">Chuck Norris Fact des Tages</span>
         </div>
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-orange-400 text-sm font-semibold">Chuck Norris Fact des Tages</span>
-          </div>
-          <p className="text-sm text-gray-400 leading-relaxed">{getChuckNorrisFact()}</p>
-        </div>
+        <p className="text-sm text-gray-400 leading-relaxed">{getChuckNorrisFact()}</p>
       </div>
     </div>
   );
