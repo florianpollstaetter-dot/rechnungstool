@@ -45,8 +45,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-14">
             <div className="flex items-center gap-4">
-              <Link href="/" className="flex items-center shrink-0">
-                <Image src={company.logo_path} alt={company.name} width={40} height={40} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+              <Link href="/" className="flex items-center gap-2 shrink-0">
+                <Image src={company.logo_path} alt={company.name} width={36} height={36} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+                <span className="text-xs font-semibold text-[var(--text-primary)] max-w-[80px] sm:max-w-none leading-tight">{company.name.split(" GmbH")[0]}</span>
               </Link>
               {/* Desktop nav */}
               <div className="hidden md:flex items-center gap-1">
