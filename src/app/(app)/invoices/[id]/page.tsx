@@ -14,7 +14,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   offen: { label: "Offen", color: "bg-amber-500/15 text-amber-400" },
   teilbezahlt: { label: "Teilbezahlt", color: "bg-cyan-500/15 text-cyan-400" },
   bezahlt: { label: "Bezahlt", color: "bg-emerald-500/15 text-emerald-400" },
-  ueberfaellig: { label: "Ueberfaellig", color: "bg-rose-500/15 text-rose-400" },
+  überfällig: { label: "Überfällig", color: "bg-rose-500/15 text-rose-400" },
   storniert: { label: "Storniert", color: "bg-purple-500/15 text-purple-400" },
 };
 
@@ -80,7 +80,7 @@ export default function InvoiceDetailPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <Link href="/invoices" className="text-sm text-gray-500 hover:text-gray-300 transition">&larr; Zurueck zu Rechnungen</Link>
+          <Link href="/invoices" className="text-sm text-gray-500 hover:text-gray-300 transition">&larr; Zurück zu Rechnungen</Link>
           <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">Rechnung {invoice.invoice_number}</h1>
         </div>
         <div className="flex items-center gap-3">
@@ -96,7 +96,7 @@ export default function InvoiceDetailPage() {
               <option value="entwurf">Entwurf</option>
               <option value="offen">Offen</option>
               <option value="bezahlt">Bezahlt</option>
-              <option value="ueberfaellig">Ueberfaellig</option>
+              <option value="ueberfaellig">Überfällig</option>
             </select>
           )}
           <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-gray-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title="Als Vorlage speichern">
@@ -119,7 +119,7 @@ export default function InvoiceDetailPage() {
           <div className="text-right">
             <div className="mb-2"><span className="text-sm text-gray-500">Rechnungsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.invoice_date)}</span></div>
             <div className="mb-2"><span className="text-sm text-gray-500">Leistungsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.delivery_date)}</span></div>
-            <div><span className="text-sm text-gray-500">Faellig: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.due_date)}</span></div>
+            <div><span className="text-sm text-gray-500">Fällig: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.due_date)}</span></div>
             {invoice.project_description && <div className="mt-4"><span className="text-sm text-gray-500">Projekt: </span><span className="font-medium text-[var(--text-primary)]">{invoice.project_description}</span></div>}
           </div>
         </div>

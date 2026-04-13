@@ -14,7 +14,7 @@ const ACCOUNT_OPTIONS = [
   { value: "6000", label: "6000 Mietaufwand" },
   { value: "6300", label: "6300 Versicherungen" },
   { value: "6800", label: "6800 Porto/Telefon" },
-  { value: "7200", label: "7200 Bueroaufwand" },
+  { value: "7200", label: "7200 Büroaufwand" },
   { value: "7300", label: "7300 Rechts-/Beratung" },
   { value: "7350", label: "7350 Buchhaltung/Steuerberatung" },
   { value: "7400", label: "7400 Werbung/Marketing" },
@@ -22,8 +22,11 @@ const ACCOUNT_OPTIONS = [
   { value: "7650", label: "7650 Internet/EDV" },
   { value: "7700", label: "7700 KFZ-Aufwand" },
   { value: "7780", label: "7780 Bewirtung" },
+  { value: "7790", label: "7790 Catering Projekte" },
+  { value: "7795", label: "7795 Geschäftsanbahnung" },
   { value: "7800", label: "7800 Abschreibungen" },
   { value: "7890", label: "7890 GWG (< 1000 EUR)" },
+  { value: "8000", label: "8000 Sonstige Aufwendungen" },
 ];
 
 export default function ReceiptsPage() {
@@ -182,7 +185,7 @@ export default function ReceiptsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Beleg wirklich loeschen?")) {
+    if (confirm("Beleg wirklich löschen?")) {
       await deleteReceipt(id);
       await loadData();
     }
@@ -396,8 +399,20 @@ export default function ReceiptsPage() {
                     )}
                   </td>
                   <td className="px-3 py-3 text-center">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor}`}>{statusLabel}</span>
-                    {r.analysis_cost != null && (
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor} ${r.analysis_status === "error" ? "cursor-pointer" : ""}`}
+                      onClick={() => {
+                        if (r.analysis_status === "error" && r.analysis_raw) {
+                          alert(`Analysefehler:\n${(r.analysis_raw as Record<string, string>).error || JSON.stringify(r.analysis_raw)}`);
+                        }
+                      }}
+                      title={r.analysis_status === "error" ? "Klicke für Details" : ""}
+                    >{statusLabel}</span>
+                    {r.analysis_status === "error" && r.analysis_raw && (
+                      <div className="text-[9px] text-rose-400/70 mt-0.5 max-w-[80px] truncate" title={String((r.analysis_raw as Record<string, string>).error || "")}>
+                        {String((r.analysis_raw as Record<string, string>).error || "").substring(0, 30)}...
+                      </div>
+                    )}
+                    {r.analysis_cost != null && r.analysis_cost > 0 && (
                       <div className="text-[9px] text-gray-500 mt-0.5">Analysekosten: {r.analysis_cost.toFixed(4)}&euro;</div>
                     )}
                   </td>
@@ -422,7 +437,7 @@ export default function ReceiptsPage() {
                           <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
                         </svg>
                       </button>
-                      <button onClick={() => handleDelete(r.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title="Loeschen">
+                      <button onClick={() => handleDelete(r.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title="Löschen">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                         </svg>

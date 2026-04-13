@@ -158,7 +158,7 @@ export default function QuoteDetailPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <Link href="/quotes" className="text-sm text-gray-500 hover:text-gray-300 transition">&larr; Zurueck zu Angeboten</Link>
+          <Link href="/quotes" className="text-sm text-gray-500 hover:text-gray-300 transition">&larr; Zurück zu Angeboten</Link>
           <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">Angebot {quote.quote_number}</h1>
         </div>
         <div className="flex items-center gap-3">
@@ -215,7 +215,7 @@ export default function QuoteDetailPage() {
           </div>
           <div className="text-right">
             <div className="mb-2"><span className="text-sm text-gray-500">Angebotsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(quote.quote_date)}</span></div>
-            <div className="mb-2"><span className="text-sm text-gray-500">Gueltig bis: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(quote.valid_until)}</span></div>
+            <div className="mb-2"><span className="text-sm text-gray-500">Gültig bis: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(quote.valid_until)}</span></div>
             {quote.project_description && <div className="mt-4"><span className="text-sm text-gray-500">Projekt: </span><span className="font-medium text-[var(--text-primary)]">{quote.project_description}</span></div>}
             {quote.converted_invoice_id && (
               <div className="mt-2">

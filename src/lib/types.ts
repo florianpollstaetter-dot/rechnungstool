@@ -191,7 +191,7 @@ export const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] =
   { value: "", label: "Unbekannt" },
   { value: "bar", label: "Bar" },
   { value: "karte", label: "Karte" },
-  { value: "ueberweisung", label: "Ueberweisung" },
+  { value: "ueberweisung", label: "Überweisung" },
   { value: "paypal", label: "PayPal" },
   { value: "sonstige", label: "Sonstige" },
 ];
@@ -226,8 +226,8 @@ export type FixedCostInterval = "monthly" | "quarterly" | "yearly";
 
 export const FIXED_COST_INTERVAL_OPTIONS: { value: FixedCostInterval; label: string }[] = [
   { value: "monthly", label: "Monatlich" },
-  { value: "quarterly", label: "Quartalsweise" },
-  { value: "yearly", label: "Jaehrlich" },
+  { value: "quarterly", label: "Vierteljährlich" },
+  { value: "yearly", label: "Jährlich" },
 ];
 
 export const FIXED_COST_CATEGORIES: { value: string; label: string }[] = [

@@ -172,7 +172,7 @@ function NewInvoicePage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Faellig am</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Fällig am</label>
               <input type="text" value={dueDate} readOnly className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm bg-[var(--background)] text-gray-500" />
             </div>
           </div>

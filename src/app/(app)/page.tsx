@@ -9,21 +9,21 @@ import { getFactOfTheDay } from "@/lib/i18n";
 
 function getChuckNorrisFact(): string {
   const facts = [
-    "Chuck Norris kann eine Steuererklarung prufen, bevor sie eingereicht wird.",
-    "Chuck Norris braucht keinen Steuerberater. Der Steuerberater braucht Chuck Norris.",
-    "Wenn Chuck Norris eine Rechnung schreibt, bezahlt sich der Kunde selbst.",
-    "Chuck Norris kann Rechnungen mit einem Blick stornieren.",
-    "Die USt-Voranmeldung reicht sich selbst ein, wenn Chuck Norris in der Naehe ist.",
-    "Chuck Norris' IBAN hat nur 4 Stellen. Die Bank hat Angst, mehr zu verlangen.",
-    "Chuck Norris debuggt Code, indem er den Monitor anstarrt, bis der Bug gesteht.",
-    "Wenn Chuck Norris Enter drueckt, kompiliert das gesamte Internet neu.",
-    "Chuck Norris kann mit einem Roundhouse-Kick eine Excel-Tabelle in eine Datenbank verwandeln.",
-    "Chuck Norris braucht kein Backup. Seine Daten haben Angst zu verschwinden.",
-    "Chuck Norris hat einmal eine Rechnung an sich selbst geschickt. Er hat sofort bezahlt — aus Respekt.",
-    "Chuck Norris kann PDFs mit bloessen Haenden unterschreiben.",
-    "Wenn Chuck Norris eine Mahnung schickt, kommt das Geld zurueck, bevor die Post zugestellt wird.",
-    "Chuck Norris' Buchhaltung ist immer auf den Cent genau. Die Cents runden sich selbst.",
-    "Chuck Norris' Geschaeftsjahr hat 13 Monate. Der 13. heisst 'Chucktober'.",
+    "Chuck Norris konnte eine Steuererklärung prüfen, bevor sie eingereicht wurde.",
+    "Chuck Norris brauchte keinen Steuerberater. Der Steuerberater brauchte Chuck Norris.",
+    "Wenn Chuck Norris eine Rechnung schrieb, bezahlte sich der Kunde selbst.",
+    "Chuck Norris konnte Rechnungen mit einem Blick stornieren.",
+    "Die USt-Voranmeldung reichte sich selbst ein, wenn Chuck Norris in der Nähe war.",
+    "Chuck Norris' IBAN hatte nur 4 Stellen. Die Bank hatte Angst, mehr zu verlangen.",
+    "Chuck Norris debuggte Code, indem er den Monitor anstarrte, bis der Bug gestand.",
+    "Wenn Chuck Norris Enter drückte, kompilierte das gesamte Internet neu.",
+    "Chuck Norris konnte mit einem Roundhouse-Kick eine Excel-Tabelle in eine Datenbank verwandeln.",
+    "Chuck Norris brauchte kein Backup. Seine Daten hatten Angst zu verschwinden.",
+    "Chuck Norris schickte einmal eine Rechnung an sich selbst. Er bezahlte sofort — aus Respekt.",
+    "Chuck Norris konnte PDFs mit bloßen Händen unterschreiben.",
+    "Wenn Chuck Norris eine Mahnung schickte, kam das Geld zurück, bevor die Post zugestellt wurde.",
+    "Chuck Norris' Buchhaltung war immer auf den Cent genau. Die Cents rundeten sich selbst.",
+    "Chuck Norris' Geschäftsjahr hatte 13 Monate. Der 13. hieß 'Chucktober'.",
   ];
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
   return facts[dayOfYear % facts.length];
@@ -114,9 +114,9 @@ export default function DashboardPage() {
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
     },
     {
-      title: "Ueberfaellig", href: "/invoices?filter=ueberfaellig",
+      title: "Überfällig", href: "/invoices?filter=ueberfaellig",
       value: formatCurrency(totalOverdueGross),
-      subtitle: `${overdueInvoices.length} ueberfaellig`,
+      subtitle: `${overdueInvoices.length} überfällig`,
       borderColor: "border-rose-500", iconBg: "bg-rose-500/10", iconColor: "text-rose-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>,
     },
@@ -131,7 +131,7 @@ export default function DashboardPage() {
       title: "Belege", href: "/receipts",
       value: formatCurrency(monthlyReceiptsGross),
       subtitle: `${receipts.length} Belege | Gesamt: ${formatCurrency(totalReceiptsGross)}`,
-      borderColor: "border-[var(--accent)]", iconBg: "bg-[var(--accent-dim)]", iconColor: "text-[var(--accent)]",
+      borderColor: "border-violet-500", iconBg: "bg-violet-500/10", iconColor: "text-violet-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M14 8H8" /><path d="M16 12H8" /><path d="M13 16H8" /></svg>,
     },
     {
@@ -150,7 +150,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Dashboard</h1>
         <div className="flex gap-2">
-          <Link href="/quotes/new" className="bg-[var(--surface-hover)] text-gray-300 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-[var(--border)] transition">+ Angebot</Link>
+          <Link href="/quotes/new" className="bg-[var(--border)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-[var(--surface-hover)] transition">+ Angebot</Link>
           <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold hover:brightness-110 transition">+ Rechnung</Link>
         </div>
       </div>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
                     : inv.status === "ueberfaellig" ? "bg-rose-500/15 text-rose-400"
                     : inv.status === "storniert" ? "bg-purple-500/15 text-purple-400"
                     : "bg-amber-500/15 text-amber-400";
-                  const statusText = inv.status === "bezahlt" ? "Bezahlt" : inv.status === "teilbezahlt" ? "Teilbezahlt" : inv.status === "ueberfaellig" ? "Ueberfaellig" : inv.status === "storniert" ? "Storniert" : "Offen";
+                  const statusText = inv.status === "bezahlt" ? "Bezahlt" : inv.status === "teilbezahlt" ? "Teilbezahlt" : inv.status === "ueberfaellig" ? "Überfällig" : inv.status === "storniert" ? "Storniert" : "Offen";
                   return (
                     <tr key={inv.id} className="hover:bg-[var(--surface-hover)] transition">
                       <td className="px-6 py-4"><Link href={`/invoices/${inv.id}`} className="font-medium text-[var(--accent)] hover:brightness-110">{inv.invoice_number}</Link></td>
@@ -254,13 +254,13 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[var(--accent)] text-sm font-semibold">Fact of the Day</span>
+            <span className="text-[var(--accent)] text-sm font-semibold">Wusstest du?</span>
           </div>
           <p className="text-sm text-gray-400 leading-relaxed">{getFactOfTheDay("de")}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-orange-400 text-sm font-semibold">Chuck Norris Fact</span>
+            <span className="text-orange-400 text-sm font-semibold">Chuck Norris Fact des Tages</span>
           </div>
           <p className="text-sm text-gray-400 leading-relaxed">{getChuckNorrisFact()}</p>
         </div>

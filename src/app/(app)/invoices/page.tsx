@@ -31,7 +31,7 @@ const filterTabs = [
   { value: "entwurf", label: "Entwurf" },
   { value: "offen", label: "Offen" },
   { value: "bezahlt", label: "Bezahlt" },
-  { value: "ueberfaellig", label: "Ueberfaellig" },
+  { value: "ueberfaellig", label: "Überfällig" },
 ];
 
 function InvoicesPage() {
@@ -206,7 +206,7 @@ function InvoicesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Rechnung wirklich loeschen?")) { await deleteInvoice(id); await loadData(); }
+    if (confirm("Rechnung wirklich löschen?")) { await deleteInvoice(id); await loadData(); }
   }
 
   useEffect(() => {
@@ -317,7 +317,7 @@ function InvoicesPage() {
                   <td className="px-3 py-3 text-sm text-[var(--text-secondary)]">{formatDateLong(inv.invoice_date)}</td>
                   <td className="px-3 py-3 text-right">
                     <div className={`text-sm font-medium ${overdue ? "text-rose-400" : "text-[var(--text-primary)]"}`}>{formatCurrency(inv.total)}</div>
-                    {overdue && <div className="text-[10px] text-rose-400 font-medium">ueberfaellig</div>}
+                    {overdue && <div className="text-[10px] text-rose-400 font-medium">überfällig</div>}
                   </td>
                   <td className="px-3 py-3 text-sm text-right text-orange-400">{formatCurrency(inv.tax_amount)}</td>
                   <td className="px-3 py-3 text-sm text-right">
@@ -351,7 +351,7 @@ function InvoicesPage() {
                           </button>
                         ))}
                         {overdue && (
-                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/40">Ueberfaellig</span>
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/40">Überfällig</span>
                         )}
                       </div>
                     )}

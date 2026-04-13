@@ -67,7 +67,7 @@ export default function CustomersPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Kunde wirklich loeschen?")) {
+    if (confirm("Kunde wirklich löschen?")) {
       await deleteCustomer(id);
       await loadCustomers();
     }
@@ -209,7 +209,7 @@ export default function CustomersPage() {
                     onClick={() => handleDelete(c.id)}
                     className="text-sm text-rose-400 hover:text-rose-300"
                   >
-                    Loeschen
+                    Löschen
                   </button>
                 </td>
               </tr>

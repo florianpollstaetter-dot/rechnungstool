@@ -139,7 +139,7 @@ export default function BankPage() {
   }
 
   async function handleDeleteStatement(id: string) {
-    if (confirm("Kontoauszug und alle Transaktionen loeschen?")) {
+    if (confirm("Kontoauszug und alle Transaktionen löschen?")) {
       await deleteBankStatement(id);
       if (selectedStatement === id) setSelectedStatement(null);
       await loadData();
@@ -162,7 +162,7 @@ export default function BankPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Kontoauszuege</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Kontoauszüge</h1>
         <label className={`bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}>
           {uploading ? "Verarbeite..." : "+ CSV hochladen"}
           <input ref={fileRef} type="file" accept=".csv,.txt" onChange={handleUpload} disabled={uploading} className="hidden" />
@@ -172,11 +172,11 @@ export default function BankPage() {
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-emerald-500 border border-[var(--border)] p-4">
-          <p className="text-sm text-gray-400">Eingaenge</p>
+          <p className="text-sm text-gray-400">Eingänge</p>
           <p className="text-xl font-bold text-emerald-400">{formatCurrency(totalIncoming)}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-rose-500 border border-[var(--border)] p-4">
-          <p className="text-sm text-gray-400">Ausgaenge</p>
+          <p className="text-sm text-gray-400">Ausgänge</p>
           <p className="text-xl font-bold text-rose-400">{formatCurrency(Math.abs(totalOutgoing))}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500 border border-[var(--border)] p-4">

@@ -10,7 +10,7 @@ const ACCOUNT_OPTIONS = [
   { value: "6000", label: "6000 Mietaufwand" },
   { value: "6300", label: "6300 Versicherungen" },
   { value: "6800", label: "6800 Porto/Telefon" },
-  { value: "7200", label: "7200 Bueroaufwand" },
+  { value: "7200", label: "7200 Büroaufwand" },
   { value: "7300", label: "7300 Rechts-/Beratung" },
   { value: "7400", label: "7400 Werbung/Marketing" },
   { value: "7600", label: "7600 Telefonkosten" },
@@ -213,7 +213,7 @@ export default function ReceiptCaptureModal({ imageFile, imageUrl, editMode, onS
             Auto-Zuschnitt
           </button>
           <button onClick={() => setCrop(imgSize.w > 0 ? { x: 0, y: 0, w: imgSize.w, h: imgSize.h } : null)} className="bg-[var(--surface-hover)] text-gray-300 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[var(--border)] transition">
-            Zuruecksetzen
+            Zurücksetzen
           </button>
         </div>
 

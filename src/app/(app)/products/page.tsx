@@ -65,7 +65,7 @@ export default function ProductsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Produkt wirklich loeschen?")) {
+    if (confirm("Produkt wirklich löschen?")) {
       await deleteProduct(id);
       await loadData();
     }
@@ -270,7 +270,7 @@ export default function ProductsPage() {
                     onClick={() => handleDelete(p.id)}
                     className="text-sm text-rose-400 hover:text-rose-300"
                   >
-                    Loeschen
+                    Löschen
                   </button>
                 </td>
               </tr>

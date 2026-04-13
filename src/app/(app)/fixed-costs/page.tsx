@@ -91,7 +91,7 @@ export default function FixedCostsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Fixkosten wirklich loeschen?")) {
+    if (confirm("Fixkosten wirklich löschen?")) {
       await deleteFixedCost(id);
       await loadData();
     }
@@ -136,7 +136,7 @@ export default function FixedCostsPage() {
           <p className="text-xs text-gray-500 mt-1">{activeCosts.length} aktive Positionen</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500/50 border border-[var(--border)] p-5">
-          <p className="text-sm font-medium text-gray-400">Jaehrliche Fixkosten</p>
+          <p className="text-sm font-medium text-gray-400">Jährliche Fixkosten</p>
           <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{formatCurrency(totalYearly)}</p>
           <p className="text-xs text-gray-500 mt-1">Hochrechnung auf 12 Monate</p>
         </div>
@@ -275,7 +275,7 @@ export default function FixedCostsPage() {
                       Bearbeiten
                     </button>
                     <button onClick={() => handleDelete(c.id)} className="text-sm text-rose-400 hover:text-rose-300">
-                      Loeschen
+                      Löschen
                     </button>
                   </td>
                 </tr>

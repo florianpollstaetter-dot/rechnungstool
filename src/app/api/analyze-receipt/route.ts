@@ -52,9 +52,9 @@ export async function POST(request: Request) {
   "amount_vat": Gesamter USt-Betrag als Zahl oder null,
   "vat_rate": Haupt-USt-Satz als Zahl (z.B. 20) oder null,
   "vat_details": [{"rate": 20, "net": 100, "vat": 20, "gross": 120}, ...] oder [] (fuer jeden USt-Satz einzeln, z.B. 10% Getraenke, 13% Kultur, 20% Standard),
-  "account_debit": "Empfohlenes Soll-Konto (oesterreichischer Kontenrahmen, z.B. 7200 Bueroaufwand, 5880 Reisekosten, 7600 Telefonkosten)",
+  "account_debit": "Empfohlenes Soll-Konto (oesterreichischer Kontenrahmen, z.B. 7200 Büroaufwand, 5880 Reisekosten, 7600 Telefonkosten)",
   "account_label": "Kontobeschreibung",
-  "payment_method": "bar" oder "karte" oder "ueberweisung" oder "paypal" oder "sonstige" (erkenne aus Beleg ob Kartenzahlung, Barzahlung, etc.)
+  "payment_method": "bar" oder "karte" oder "überweisung" oder "paypal" oder "sonstige" (erkenne aus Beleg ob Kartenzahlung, Barzahlung, etc.)
 }
 Antworte NUR mit dem JSON, kein anderer Text.`,
     });

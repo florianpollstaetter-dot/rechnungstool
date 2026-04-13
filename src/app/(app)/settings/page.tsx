@@ -6,8 +6,8 @@ import { getSettings, updateSettings } from "@/lib/db";
 import { useTheme } from "@/components/ThemeProvider";
 
 const COMPANY_TYPE_WARNINGS: Record<CompanyType, string> = {
-  gmbh: "GmbH: Soll-Besteuerung — die Umsatzsteuer wird faellig bei Rechnungsstellung, unabhaengig davon ob die Zahlung bereits eingegangen ist.",
-  og: "OG: Ist-Besteuerung — die Umsatzsteuer wird erst faellig bei Zahlungseingang (sofern Jahresumsatz unter 2 Mio. EUR). Die USt-Berechnung im Dashboard aendert sich entsprechend.",
+  gmbh: "GmbH: Soll-Besteuerung — die Umsatzsteuer wird fällig bei Rechnungsstellung, unabhaengig davon ob die Zahlung bereits eingegangen ist.",
+  og: "OG: Ist-Besteuerung — die Umsatzsteuer wird erst fällig bei Zahlungseingang (sofern Jahresumsatz unter 2 Mio. EUR). Die USt-Berechnung im Dashboard aendert sich entsprechend.",
   verein: "Verein: Es gelten Sonderregelungen fuer die Umsatzsteuer. Bitte pruefen Sie die steuerlichen Auswirkungen mit Ihrem Steuerberater.",
 };
 

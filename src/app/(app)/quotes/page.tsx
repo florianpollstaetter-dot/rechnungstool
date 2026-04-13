@@ -115,7 +115,7 @@ export default function QuotesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Angebot wirklich loeschen?")) {
+    if (confirm("Angebot wirklich löschen?")) {
       await deleteQuote(id);
       await loadData();
     }
@@ -159,7 +159,7 @@ export default function QuotesPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Nr.</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Kunde</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Projekt</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Gueltig bis</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Gültig bis</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">Brutto</th>
               <th className="px-6 py-3 text-center text-xs font-medium text-[var(--text-muted)] uppercase">Sprache</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Status</th>
@@ -234,7 +234,7 @@ export default function QuotesPage() {
                       {q.status !== "accepted" && !q.converted_invoice_id && (
                         <button onClick={() => handleConvert(q.id)} className="text-sm text-emerald-400 hover:text-emerald-300 px-1">→ RE</button>
                       )}
-                      <button onClick={() => handleDelete(q.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title="Loeschen">
+                      <button onClick={() => handleDelete(q.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title="Löschen">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                         </svg>

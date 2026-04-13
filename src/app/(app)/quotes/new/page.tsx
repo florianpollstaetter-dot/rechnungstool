@@ -138,7 +138,7 @@ function NewQuotePage() {
               <input type="date" value={quoteDate} onChange={(e) => setQuoteDate(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Gueltig (Tage)</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Gültig (Tage)</label>
               <input type="number" value={validDays} onChange={(e) => setValidDays(Number(e.target.value))} min={1} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
             </div>
             <div>
@@ -146,7 +146,7 @@ function NewQuotePage() {
               <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Gueltig bis</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Gültig bis</label>
               <input type="text" value={validUntil} readOnly className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500" />
             </div>
             <div>
