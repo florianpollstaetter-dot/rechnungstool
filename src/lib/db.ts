@@ -135,7 +135,7 @@ export async function createCustomer(
 ): Promise<Customer> {
   const { data } = await supabase()
     .from("customers")
-    .insert(customer)
+    .insert({ ...customer, company_id: getActiveCompanyId() })
     .select()
     .single();
   return mapCustomer(data!);
@@ -177,7 +177,7 @@ export async function createProduct(
 ): Promise<Product> {
   const { data } = await supabase()
     .from("products")
-    .insert(product)
+    .insert({ ...product, company_id: getActiveCompanyId() })
     .select()
     .single();
   return mapProduct(data!);
@@ -645,7 +645,7 @@ export async function createFixedCost(
 ): Promise<FixedCost> {
   const { data } = await supabase()
     .from("fixed_costs")
-    .insert(cost)
+    .insert({ ...cost, company_id: getActiveCompanyId() })
     .select()
     .single();
   return mapFixedCost(data!);
