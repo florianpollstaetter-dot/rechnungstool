@@ -47,8 +47,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-4">
               <Link href="/" className="flex items-center gap-2 shrink-0">
                 <Image src={company.logo_path} alt={company.name} width={36} height={36} className="rounded" style={{ filter: "var(--logo-filter)" }} />
-                <span className="text-xs font-semibold text-[var(--text-primary)] max-w-[80px] sm:max-w-none leading-tight">{company.name.split(" GmbH")[0]}</span>
               </Link>
+              {userName && <span className="text-[10px] sm:text-xs text-[var(--text-muted)] italic">You rock my world, <strong className="text-[var(--text-primary)] not-italic">{userName}</strong>!</span>}
               {/* Desktop nav */}
               <div className="hidden md:flex items-center gap-1">
                 {navItems.map((item) => (
@@ -67,8 +67,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* User name */}
-              {userName && <span className="text-[10px] text-[var(--text-muted)] hidden sm:block">{userName}</span>}
               {/* Company switcher */}
               <div className="relative">
                 <button onClick={() => setShowCompanySwitcher(!showCompanySwitcher)} className="text-[10px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] px-2 py-1 rounded transition hidden sm:block" title="Unternehmen wechseln">
