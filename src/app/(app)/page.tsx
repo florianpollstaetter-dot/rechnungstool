@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Invoice, Customer, Quote, CompanySettings, FixedCost } from "@/lib/types";
-import { getInvoices, getCustomers, getQuotes, getSettings, getActiveFixedCosts } from "@/lib/db";
+import { Invoice, Customer, Quote, CompanySettings, FixedCost, Receipt } from "@/lib/types";
+import { getInvoices, getCustomers, getQuotes, getSettings, getActiveFixedCosts, getReceipts } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import { getFactOfTheDay } from "@/lib/i18n";
 
@@ -34,16 +34,18 @@ export default function DashboardPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
-    const [inv, cust, q, s, fc] = await Promise.all([getInvoices(), getCustomers(), getQuotes(), getSettings(), getActiveFixedCosts()]);
+    const [inv, cust, q, s, fc, rec] = await Promise.all([getInvoices(), getCustomers(), getQuotes(), getSettings(), getActiveFixedCosts(), getReceipts()]);
     setInvoices(inv);
     setCustomers(cust);
     setQuotes(q);
     setSettings(s);
     setFixedCosts(fc);
+    setReceipts(rec);
     setLoading(false);
   }, []);
 
@@ -73,6 +75,15 @@ export default function DashboardPage() {
 
   const openQuotes = quotes.filter((q) => q.status === "draft" || q.status === "sent");
 
+  // Receipts summary
+  const monthlyReceipts = receipts.filter((r) => {
+    if (!r.invoice_date) return false;
+    const d = new Date(r.invoice_date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const monthlyReceiptsGross = monthlyReceipts.reduce((s, r) => s + (r.amount_gross || 0), 0);
+  const totalReceiptsGross = receipts.reduce((s, r) => s + (r.amount_gross || 0), 0);
+
   const monthlyFixedCosts = fixedCosts.reduce((sum, c) => {
     if (c.interval === "monthly") return sum + c.amount;
     if (c.interval === "quarterly") return sum + c.amount / 3;
@@ -89,9 +100,9 @@ export default function DashboardPage() {
 
   const cards = [
     {
-      title: "Umsatz", href: "/invoices?filter=bezahlt",
+      title: "Monatsumsatz", href: "/invoices?filter=bezahlt",
       value: formatCurrency(monthlyRevenueGross),
-      subtitle: `Monat | Gesamt: ${formatCurrency(totalRevenueGross)}`,
+      subtitle: `Jahresumsatz: ${formatCurrency(totalRevenueGross)}`,
       borderColor: "border-emerald-500", iconBg: "bg-emerald-500/10", iconColor: "text-emerald-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
     },
@@ -117,11 +128,11 @@ export default function DashboardPage() {
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="m9 12 2 2 4-4" /></svg>,
     },
     {
-      title: "Kunden / Angebote", href: "/customers",
-      value: String(customers.length),
-      subtitle: `${openQuotes.length} offene Angebote`,
+      title: "Belege", href: "/receipts",
+      value: formatCurrency(monthlyReceiptsGross),
+      subtitle: `${receipts.length} Belege | Gesamt: ${formatCurrency(totalReceiptsGross)}`,
       borderColor: "border-[var(--accent)]", iconBg: "bg-[var(--accent-dim)]", iconColor: "text-[var(--accent)]",
-      icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+      icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M14 8H8" /><path d="M16 12H8" /><path d="M13 16H8" /></svg>,
     },
     {
       title: "Fixkosten", href: "/fixed-costs",
@@ -137,7 +148,7 @@ export default function DashboardPage() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Dashboard</h1>
         <div className="flex gap-2">
           <Link href="/quotes/new" className="bg-[var(--surface-hover)] text-gray-300 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-[var(--border)] transition">+ Angebot</Link>
           <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold hover:brightness-110 transition">+ Rechnung</Link>
@@ -152,7 +163,7 @@ export default function DashboardPage() {
               <div className={`w-9 h-9 rounded-lg ${card.iconBg} flex items-center justify-center ${card.iconColor}`}>{card.icon}</div>
               <p className="text-sm font-medium text-gray-400">{card.title}</p>
             </div>
-            <p className="text-2xl font-bold text-white">{card.value}</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)]">{card.value}</p>
             <p className="text-xs text-gray-600 mt-1">{card.subtitle}</p>
           </Link>
         ))}
@@ -162,7 +173,7 @@ export default function DashboardPage() {
         {/* Recent Invoices */}
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)]">
           <div className="px-6 py-4 border-b border-[var(--border)] flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-white">Letzte Rechnungen</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Letzte Rechnungen</h2>
             <Link href="/invoices" className="text-xs text-[var(--accent)] hover:brightness-110">Alle anzeigen</Link>
           </div>
           {recentInvoices.length === 0 ? (
@@ -189,7 +200,7 @@ export default function DashboardPage() {
                     <tr key={inv.id} className="hover:bg-[var(--surface-hover)] transition">
                       <td className="px-6 py-4"><Link href={`/invoices/${inv.id}`} className="font-medium text-[var(--accent)] hover:brightness-110">{inv.invoice_number}</Link></td>
                       <td className="px-6 py-4 text-sm text-gray-400">{getCustomerName(inv.customer_id)}</td>
-                      <td className="px-6 py-4 text-sm text-right font-medium text-white">{formatCurrency(inv.total)}</td>
+                      <td className="px-6 py-4 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(inv.total)}</td>
                       <td className="px-6 py-4"><span className={`text-xs font-medium px-2 py-1 rounded-full ${statusStyle}`}>{statusText}</span></td>
                     </tr>
                   );
@@ -202,7 +213,7 @@ export default function DashboardPage() {
         {/* Recent Quotes */}
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)]">
           <div className="px-6 py-4 border-b border-[var(--border)] flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-white">Letzte Angebote</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Letzte Angebote</h2>
             <Link href="/quotes" className="text-xs text-[var(--accent)] hover:brightness-110">Alle anzeigen</Link>
           </div>
           {recentQuotes.length === 0 ? (
@@ -228,7 +239,7 @@ export default function DashboardPage() {
                     <tr key={q.id} className="hover:bg-[var(--surface-hover)] transition">
                       <td className="px-6 py-4"><Link href={`/quotes/${q.id}`} className="font-medium text-[var(--accent)] hover:brightness-110">{q.quote_number}</Link></td>
                       <td className="px-6 py-4 text-sm text-gray-400">{getCustomerName(q.customer_id)}</td>
-                      <td className="px-6 py-4 text-sm text-right font-medium text-white">{formatCurrency(q.total)}</td>
+                      <td className="px-6 py-4 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(q.total)}</td>
                       <td className="px-6 py-4"><span className={`text-xs font-medium px-2 py-1 rounded-full ${statusStyle}`}>{statusText}</span></td>
                     </tr>
                   );

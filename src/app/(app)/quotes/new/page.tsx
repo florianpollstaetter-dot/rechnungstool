@@ -117,33 +117,33 @@ function NewQuotePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-6">Neues Angebot</h1>
+      <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Neues Angebot</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <h2 className="text-lg font-semibold mb-4">Angebotsdetails</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Kunde *</label>
-              <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} required className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
+              <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} required className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
                 <option value="">Kunde waehlen...</option>
                 {customers.map((c) => (<option key={c.id} value={c.id}>{c.company || c.name}</option>))}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Projektbeschreibung</label>
-              <input type="text" value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
+              <input type="text" value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Angebotsdatum</label>
-              <input type="date" value={quoteDate} onChange={(e) => setQuoteDate(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
+              <input type="date" value={quoteDate} onChange={(e) => setQuoteDate(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Gueltig (Tage)</label>
-              <input type="number" value={validDays} onChange={(e) => setValidDays(Number(e.target.value))} min={1} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
+              <input type="number" value={validDays} onChange={(e) => setValidDays(Number(e.target.value))} min={1} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">MwSt-Satz (%)</label>
-              <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
+              <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Gueltig bis</label>
@@ -151,14 +151,14 @@ function NewQuotePage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Sprache</label>
-              <select value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
+              <select value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
                 <option value="de">Deutsch</option>
                 <option value="en">English</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Anzeige-Modus</label>
-              <select value={displayMode} onChange={(e) => setDisplayMode(e.target.value as DisplayMode)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
+              <select value={displayMode} onChange={(e) => setDisplayMode(e.target.value as DisplayMode)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
                 <option value="detailed">Detail (mit Design)</option>
                 <option value="simple">Einfach (nur Preise)</option>
               </select>
@@ -191,21 +191,21 @@ function NewQuotePage() {
                   <tr key={idx} className="border-b border-[var(--border)]">
                     <td className="py-2 text-sm text-gray-500">{item.position}</td>
                     <td className="py-2">
-                      <select value={item.product_id || ""} onChange={(e) => e.target.value ? selectProduct(idx, e.target.value) : updateItem(idx, "product_id", null)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                      <select value={item.product_id || ""} onChange={(e) => e.target.value ? selectProduct(idx, e.target.value) : updateItem(idx, "product_id", null)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
                         <option value="">hier auswaehlen</option>
                         {products.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
                       </select>
                     </td>
-                    <td className="py-2"><input type="text" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" required /></td>
+                    <td className="py-2"><input type="text" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" required /></td>
                     <td className="py-2">
-                      <select value={item.unit} onChange={(e) => updateItem(idx, "unit", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                      <select value={item.unit} onChange={(e) => updateItem(idx, "unit", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
                         {UNIT_OPTIONS.map((u) => (<option key={u.value} value={u.value}>{u.label}</option>))}
                       </select>
                     </td>
                     <td className="py-2"><input type="number" value={item.quantity} onChange={(e) => updateItem(idx, "quantity", Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateItem(idx, "quantity", v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black" min={1} step="1" required /></td>
                     <td className="py-2"><input type="number" value={item.unit_price} onChange={(e) => updateItem(idx, "unit_price", Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateItem(idx, "unit_price", v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} required /></td>
                     <td className="py-2"><input type="number" value={item.discount_percent} onChange={(e) => updateItem(idx, "discount_percent", Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateItem(idx, "discount_percent", v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} max={100} /></td>
-                    <td className="py-2 text-sm text-right font-medium text-white">{formatCurrency(calcItemTotal(item))}</td>
+                    <td className="py-2 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(calcItemTotal(item))}</td>
                     <td className="py-2 text-center">
                       {items.length > 1 && (<button type="button" onClick={() => removeItem(idx)} className="text-rose-400 hover:text-rose-300 text-sm">X</button>)}
                     </td>
@@ -246,7 +246,7 @@ function NewQuotePage() {
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <label className="block text-sm font-medium text-gray-400 mb-1">Anmerkungen</label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
         </div>
 
         <div className="flex gap-3">

@@ -110,9 +110,9 @@ export default function ExportPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Steuerberater-Export</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Steuerberater-Export</h1>
         <div className="flex gap-2">
-          <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white">
+          <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)]">
             {months.map((m) => <option key={m} value={m}>{m.split("-")[1]}/{m.split("-")[0]}</option>)}
           </select>
           <button onClick={handleExportCSV} disabled={exporting} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
@@ -147,7 +147,7 @@ export default function ExportPage() {
       {/* Invoices for month */}
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] mb-6">
         <div className="px-6 py-4 border-b border-[var(--border)]">
-          <h2 className="text-lg font-semibold text-white">Ausgangsrechnungen ({selectedMonth.split("-")[1]}/{selectedMonth.split("-")[0]})</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Ausgangsrechnungen ({selectedMonth.split("-")[1]}/{selectedMonth.split("-")[0]})</h2>
         </div>
         {monthInvoices.length === 0 ? (
           <div className="px-6 py-6 text-center text-gray-500">Keine Rechnungen in diesem Monat.</div>
@@ -167,12 +167,12 @@ export default function ExportPage() {
             <tbody className="divide-y divide-[var(--border)]">
               {monthInvoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-[var(--surface-hover)] transition">
-                  <td className="px-4 py-3 text-sm font-medium text-white">{inv.invoice_number}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-[var(--text-primary)]">{inv.invoice_number}</td>
                   <td className="px-4 py-3 text-sm text-gray-400">{getCustomerName(inv.customer_id)}</td>
                   <td className="px-4 py-3 text-sm text-gray-400">{formatDateLong(inv.invoice_date)}</td>
                   <td className="px-4 py-3 text-sm text-right text-gray-400">{formatCurrency(inv.subtotal)}</td>
                   <td className="px-4 py-3 text-sm text-right text-orange-400">{formatCurrency(inv.tax_amount)}</td>
-                  <td className="px-4 py-3 text-sm text-right font-medium text-white">{formatCurrency(inv.total)}</td>
+                  <td className="px-4 py-3 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(inv.total)}</td>
                   <td className="px-4 py-3 text-sm text-gray-400">{inv.status}</td>
                 </tr>
               ))}
@@ -184,7 +184,7 @@ export default function ExportPage() {
       {/* Receipts for month */}
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)]">
         <div className="px-6 py-4 border-b border-[var(--border)]">
-          <h2 className="text-lg font-semibold text-white">Eingangsbelege ({selectedMonth.split("-")[1]}/{selectedMonth.split("-")[0]})</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Eingangsbelege ({selectedMonth.split("-")[1]}/{selectedMonth.split("-")[0]})</h2>
         </div>
         {monthReceipts.length === 0 ? (
           <div className="px-6 py-6 text-center text-gray-500">Keine Belege in diesem Monat.</div>
@@ -204,12 +204,12 @@ export default function ExportPage() {
             <tbody className="divide-y divide-[var(--border)]">
               {monthReceipts.map((r) => (
                 <tr key={r.id} className="hover:bg-[var(--surface-hover)] transition">
-                  <td className="px-4 py-3 text-sm text-white">{r.file_name}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--text-primary)]">{r.file_name}</td>
                   <td className="px-4 py-3 text-sm text-gray-400">{r.issuer || "—"}</td>
                   <td className="px-4 py-3 text-sm text-gray-400">{r.invoice_date ? formatDateLong(r.invoice_date) : "—"}</td>
                   <td className="px-4 py-3 text-sm text-right text-gray-400">{r.amount_net != null ? formatCurrency(r.amount_net) : "—"}</td>
                   <td className="px-4 py-3 text-sm text-right text-orange-400">{r.amount_vat != null ? formatCurrency(r.amount_vat) : "—"}</td>
-                  <td className="px-4 py-3 text-sm text-right font-medium text-white">{r.amount_gross != null ? formatCurrency(r.amount_gross) : "—"}</td>
+                  <td className="px-4 py-3 text-sm text-right font-medium text-[var(--text-primary)]">{r.amount_gross != null ? formatCurrency(r.amount_gross) : "—"}</td>
                   <td className="px-4 py-3 text-sm text-gray-400">{r.account_debit || "—"}</td>
                 </tr>
               ))}

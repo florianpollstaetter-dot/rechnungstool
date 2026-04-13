@@ -159,7 +159,7 @@ export default function QuoteDetailPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <Link href="/quotes" className="text-sm text-gray-500 hover:text-gray-300 transition">&larr; Zurueck zu Angeboten</Link>
-          <h1 className="text-2xl font-bold text-white mt-1">Angebot {quote.quote_number}</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">Angebot {quote.quote_number}</h1>
         </div>
         <div className="flex items-center gap-3">
           <select value={quote.status} onChange={(e) => handleStatusChange(e.target.value as QuoteStatus)} className={`text-sm font-medium px-3 py-1.5 rounded-full border-0 bg-transparent ${st.color}`}>
@@ -177,12 +177,12 @@ export default function QuoteDetailPage() {
             title={quote.language === "en" ? "English — click for Deutsch" : "Deutsch — click for English"}
           >
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${quote.language === "en" ? "translate-x-6" : "translate-x-1"}`} />
-            <span className={`absolute text-[9px] font-bold ${quote.language === "en" ? "left-1.5" : "right-1.5"} text-white`}>{quote.language === "en" ? "EN" : "DE"}</span>
+            <span className={`absolute text-[9px] font-bold ${quote.language === "en" ? "left-1.5" : "right-1.5"} text-[var(--text-primary)]`}>{quote.language === "en" ? "EN" : "DE"}</span>
           </button>
           <button
             onClick={handleDisplayModeToggle}
             className={`relative inline-flex h-7 items-center rounded-full px-3 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
-              quote.display_mode === "simple" ? "bg-[var(--accent)] text-black" : "bg-gray-600 text-white"
+              quote.display_mode === "simple" ? "bg-[var(--accent)] text-black" : "bg-gray-600 text-[var(--text-primary)]"
             }`}
             title={quote.display_mode === "simple" ? "Einfach — click for Detail" : "Detail — click for Einfach"}
           >
@@ -190,9 +190,9 @@ export default function QuoteDetailPage() {
           </button>
           {quote.status !== "rejected" && (
             <>
-              <button onClick={() => setShowPartialModal(true)} className="bg-cyan-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-cyan-500 transition">Teilrechnung</button>
+              <button onClick={() => setShowPartialModal(true)} className="bg-cyan-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-cyan-500 transition">Teilrechnung</button>
               {!quote.converted_invoice_id && (
-                <button onClick={handleConvert} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">Vollrechnung</button>
+                <button onClick={handleConvert} className="bg-emerald-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">Vollrechnung</button>
               )}
             </>
           )}
@@ -207,16 +207,16 @@ export default function QuoteDetailPage() {
         <div className="grid grid-cols-2 gap-8 mb-8">
           <div>
             <h3 className="text-sm font-medium text-gray-500 mb-2">Kunde</h3>
-            <p className="font-medium text-white">{customer.company || customer.name}</p>
+            <p className="font-medium text-[var(--text-primary)]">{customer.company || customer.name}</p>
             {customer.company && <p className="text-sm text-gray-400">{customer.name}</p>}
             <p className="text-sm text-gray-400">{customer.address}</p>
             <p className="text-sm text-gray-400">{customer.zip} {customer.city}</p>
             {customer.uid_number && <p className="text-sm text-gray-400">{customer.uid_number}</p>}
           </div>
           <div className="text-right">
-            <div className="mb-2"><span className="text-sm text-gray-500">Angebotsdatum: </span><span className="font-medium text-white">{formatDateLong(quote.quote_date)}</span></div>
-            <div className="mb-2"><span className="text-sm text-gray-500">Gueltig bis: </span><span className="font-medium text-white">{formatDateLong(quote.valid_until)}</span></div>
-            {quote.project_description && <div className="mt-4"><span className="text-sm text-gray-500">Projekt: </span><span className="font-medium text-white">{quote.project_description}</span></div>}
+            <div className="mb-2"><span className="text-sm text-gray-500">Angebotsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(quote.quote_date)}</span></div>
+            <div className="mb-2"><span className="text-sm text-gray-500">Gueltig bis: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(quote.valid_until)}</span></div>
+            {quote.project_description && <div className="mt-4"><span className="text-sm text-gray-500">Projekt: </span><span className="font-medium text-[var(--text-primary)]">{quote.project_description}</span></div>}
             {quote.converted_invoice_id && (
               <div className="mt-2">
                 <Link href={`/invoices/${quote.converted_invoice_id}`} className="text-sm text-[var(--accent)] hover:brightness-110">→ Zur Rechnung</Link>
@@ -241,7 +241,7 @@ export default function QuoteDetailPage() {
             {quote.items.map((item, idx) => (
               <tr key={idx} className="border-b border-[var(--border)]">
                 <td className="py-3 text-sm text-gray-400">{item.position}</td>
-                <td className="py-3 text-sm font-medium text-white">{item.description}</td>
+                <td className="py-3 text-sm font-medium text-[var(--text-primary)]">{item.description}</td>
                 <td className="py-3 text-sm text-center text-gray-400">{getUnitLabel(item.unit)}</td>
                 <td className="py-3 text-sm text-right text-gray-400">{item.quantity}</td>
                 <td className="py-3 text-sm text-right text-gray-400">{formatCurrency(item.unit_price)}</td>
@@ -250,7 +250,7 @@ export default function QuoteDetailPage() {
                     {item.discount_percent > 0 ? `${item.discount_percent}%` : item.discount_amount > 0 ? formatCurrency(item.discount_amount) : ""}
                   </td>
                 )}
-                <td className="py-3 text-sm text-right font-medium text-white">{formatCurrency(item.total)}</td>
+                <td className="py-3 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(item.total)}</td>
               </tr>
             ))}
           </tbody>
@@ -259,7 +259,7 @@ export default function QuoteDetailPage() {
         <div className="flex flex-col items-end space-y-1 text-sm">
           <div className="flex justify-between w-72">
             <span className="text-gray-400">Summe netto</span>
-            <span className="font-medium text-white">{formatCurrency(quote.subtotal)}</span>
+            <span className="font-medium text-[var(--text-primary)]">{formatCurrency(quote.subtotal)}</span>
           </div>
           {(quote.overall_discount_percent > 0 || quote.overall_discount_amount > 0) && (
             <div className="flex justify-between w-72 text-amber-400">
@@ -269,10 +269,10 @@ export default function QuoteDetailPage() {
           )}
           <div className="flex justify-between w-72">
             <span className="text-gray-400">Umsatzsteuer {quote.tax_rate}%</span>
-            <span className="font-medium text-white">{formatCurrency(quote.tax_amount)}</span>
+            <span className="font-medium text-[var(--text-primary)]">{formatCurrency(quote.tax_amount)}</span>
           </div>
           <div className="flex justify-between w-72 text-base font-bold border-t border-[var(--border)] pt-2 mt-1">
-            <span className="text-white">BRUTTO</span>
+            <span className="text-[var(--text-primary)]">BRUTTO</span>
             <span className="text-[var(--accent)]">{formatCurrency(quote.total)}</span>
           </div>
         </div>
@@ -291,9 +291,9 @@ export default function QuoteDetailPage() {
       {showPartialModal && quote && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowPartialModal(false)}>
           <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-white mb-4">Teilrechnung erstellen</h2>
-            <p className="text-sm text-gray-400 mb-1">Angebot: <span className="text-white font-medium">{quote.quote_number}</span></p>
-            <p className="text-sm text-gray-400 mb-4">Gesamtbetrag brutto: <span className="text-white font-medium">{formatCurrency(quote.total)}</span></p>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Teilrechnung erstellen</h2>
+            <p className="text-sm text-gray-400 mb-1">Angebot: <span className="text-[var(--text-primary)] font-medium">{quote.quote_number}</span></p>
+            <p className="text-sm text-gray-400 mb-4">Gesamtbetrag brutto: <span className="text-[var(--text-primary)] font-medium">{formatCurrency(quote.total)}</span></p>
 
             <div className="flex gap-2 mb-4">
               <button
@@ -320,7 +320,7 @@ export default function QuoteDetailPage() {
               step={partialMode === "percent" ? "1" : "0.01"}
               min={0}
               max={partialMode === "percent" ? 100 : undefined}
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] mb-2 no-spinners"
+              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] mb-2 no-spinners"
               autoFocus
             />
 
@@ -338,7 +338,7 @@ export default function QuoteDetailPage() {
               <button
                 onClick={handlePartialInvoice}
                 disabled={!partialValue || Number(partialValue) <= 0}
-                className="bg-cyan-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-500 transition disabled:opacity-50"
+                className="bg-cyan-600 text-[var(--text-primary)] px-6 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-500 transition disabled:opacity-50"
               >
                 Teilrechnung erstellen
               </button>

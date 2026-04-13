@@ -119,12 +119,36 @@ export default function ReceiptCaptureModal({ imageFile, imageUrl, editMode, onS
     if (!imgRef.current || !canvasRef.current) return;
     const canvas = canvasRef.current;
     const img = imgRef.current;
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(img, 0, 0);
-    const bounds = autoCropBounds(canvas);
-    setCrop(bounds);
+
+    // Downscale large images for analysis (max 800px) — then scale bounds back
+    const maxAnalysisSize = 800;
+    const analyzeScale = Math.min(1, maxAnalysisSize / Math.max(img.width, img.height));
+    const aw = Math.round(img.width * analyzeScale);
+    const ah = Math.round(img.height * analyzeScale);
+
+    canvas.width = aw;
+    canvas.height = ah;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(img, 0, 0, aw, ah);
+
+    try {
+      const bounds = autoCropBounds(canvas);
+      // Scale bounds back to original image size
+      const s = 1 / analyzeScale;
+      setCrop({
+        x: Math.round(bounds.x * s),
+        y: Math.round(bounds.y * s),
+        w: Math.round(bounds.w * s),
+        h: Math.round(bounds.h * s),
+      });
+    } catch (e) {
+      console.error("Auto-crop failed:", e);
+      // Fallback: crop 5% from each edge
+      const mx = Math.round(img.width * 0.05);
+      const my = Math.round(img.height * 0.05);
+      setCrop({ x: mx, y: my, w: img.width - mx * 2, h: img.height - my * 2 });
+    }
   }, []);
 
   async function handleSubmit() {
@@ -159,12 +183,12 @@ export default function ReceiptCaptureModal({ imageFile, imageUrl, editMode, onS
   const displayW = Math.round(imgSize.w * scale);
   const displayH = Math.round(imgSize.h * scale);
 
-  const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)]";
+  const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]";
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onCancel}>
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4 sm:p-6 w-full max-w-lg max-h-[95vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold text-white mb-4">Beleg bearbeiten</h2>
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Beleg bearbeiten</h2>
 
         {/* Image preview with crop overlay */}
         {imageSrc && (
@@ -185,7 +209,7 @@ export default function ReceiptCaptureModal({ imageFile, imageUrl, editMode, onS
         )}
 
         <div className="flex gap-2 mb-4">
-          <button onClick={handleAutoCrop} className="bg-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-cyan-500 transition">
+          <button onClick={handleAutoCrop} className="bg-cyan-600 text-[var(--text-primary)] px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-cyan-500 transition">
             Auto-Zuschnitt
           </button>
           <button onClick={() => setCrop(imgSize.w > 0 ? { x: 0, y: 0, w: imgSize.w, h: imgSize.h } : null)} className="bg-[var(--surface-hover)] text-gray-300 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[var(--border)] transition">

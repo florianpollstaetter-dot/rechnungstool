@@ -148,7 +148,7 @@ export default function QuotesPage() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Suche nach Nr., Kunde, Projekt, Betrag..."
-          className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-64"
+          className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-64"
         />
       </div>
 
@@ -197,7 +197,7 @@ export default function QuotesPage() {
                       title={isEN ? "English — click for Deutsch" : "Deutsch — click for English"}
                     >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isEN ? "translate-x-6" : "translate-x-1"}`} />
-                      <span className={`absolute text-[9px] font-bold ${isEN ? "left-1.5" : "right-1.5"} text-white`}>{isEN ? "EN" : "DE"}</span>
+                      <span className={`absolute text-[9px] font-bold ${isEN ? "left-1.5" : "right-1.5"} text-[var(--text-primary)]`}>{isEN ? "EN" : "DE"}</span>
                     </button>
                   </td>
                   <td className="px-6 py-4">

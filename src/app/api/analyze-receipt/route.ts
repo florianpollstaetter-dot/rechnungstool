@@ -97,23 +97,26 @@ Antworte NUR mit dem JSON, kein anderer Text.`,
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
-    // Update the receipt with analyzed data
-    await supabase.from("receipts").update({
+    // Update the receipt — only fill empty fields, don't overwrite manual entries
+    const updates: Record<string, unknown> = {
       analysis_status: "done",
       analysis_raw: { ...parsed, usage: result.usage, cost_eur: costEUR, total_cost_eur: totalCost },
-      invoice_date: parsed.invoice_date || null,
-      purpose: parsed.purpose || null,
-      issuer: parsed.issuer || null,
-      amount_net: parsed.amount_net ?? null,
-      amount_gross: parsed.amount_gross ?? null,
-      amount_vat: parsed.amount_vat ?? null,
-      vat_rate: parsed.vat_rate ?? null,
-      account_debit: parsed.account_debit || null,
-      account_label: parsed.account_label || null,
-      payment_method: parsed.payment_method || "",
       analysis_cost: totalCost,
       updated_at: new Date().toISOString(),
-    }).eq("id", receiptId);
+    };
+    // Only set fields that are currently empty/null in the receipt
+    if (!receipt.invoice_date && parsed.invoice_date) updates.invoice_date = parsed.invoice_date;
+    if (!receipt.purpose && parsed.purpose) updates.purpose = parsed.purpose;
+    if (!receipt.issuer && parsed.issuer) updates.issuer = parsed.issuer;
+    if (receipt.amount_net == null && parsed.amount_net != null) updates.amount_net = parsed.amount_net;
+    if (receipt.amount_gross == null && parsed.amount_gross != null) updates.amount_gross = parsed.amount_gross;
+    if (receipt.amount_vat == null && parsed.amount_vat != null) updates.amount_vat = parsed.amount_vat;
+    if (receipt.vat_rate == null && parsed.vat_rate != null) updates.vat_rate = parsed.vat_rate;
+    if (!receipt.account_debit && parsed.account_debit) updates.account_debit = parsed.account_debit;
+    if (!receipt.account_label && parsed.account_label) updates.account_label = parsed.account_label;
+    if (!receipt.payment_method && parsed.payment_method) updates.payment_method = parsed.payment_method;
+
+    await supabase.from("receipts").update(updates).eq("id", receiptId);
 
     return Response.json({ success: true, data: parsed });
   } catch (err) {

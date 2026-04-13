@@ -210,15 +210,15 @@ export default function ReceiptsPage() {
 
   if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
 
-  const inputClass = "bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full";
+  const inputClass = "bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full";
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-white">Belege</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Belege</h1>
         <div className="flex gap-2 flex-wrap">
           {/* Camera scan button (mobile) */}
-          <label className={`bg-cyan-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-500 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}>
+          <label className={`bg-cyan-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-500 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}>
             <span className="flex items-center gap-1.5">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
               Kamera
@@ -251,15 +251,15 @@ export default function ReceiptsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-emerald-500 border border-[var(--border)] p-4">
           <p className="text-sm text-gray-400">Gesamt Brutto</p>
-          <p className="text-xl font-bold text-white">{formatCurrency(totalGross)}</p>
+          <p className="text-xl font-bold text-[var(--text-primary)]">{formatCurrency(totalGross)}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500 border border-[var(--border)] p-4">
           <p className="text-sm text-gray-400">Gesamt Netto</p>
-          <p className="text-xl font-bold text-white">{formatCurrency(totalNet)}</p>
+          <p className="text-xl font-bold text-[var(--text-primary)]">{formatCurrency(totalNet)}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-orange-500 border border-[var(--border)] p-4">
           <p className="text-sm text-gray-400">Gesamt USt</p>
-          <p className="text-xl font-bold text-white">{formatCurrency(totalVat)}</p>
+          <p className="text-xl font-bold text-[var(--text-primary)]">{formatCurrency(totalVat)}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-purple-500 border border-[var(--border)] p-4">
           <p className="text-sm text-gray-400">Anthropic API Kosten</p>
@@ -274,7 +274,7 @@ export default function ReceiptsPage() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Suche nach Datei, Aussteller, Betrag..."
-          className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-64"
+          className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-64"
         />
       </div>
 
@@ -324,7 +324,7 @@ export default function ReceiptsPage() {
                       <input defaultValue={r.purpose || ""} onBlur={(e) => handleFieldUpdate(r.id, "purpose", e.target.value || null)} className={inputClass} placeholder="Projekt/Zweck" />
                     ) : (
                       <>
-                        <span className="font-medium text-white block">{r.purpose || r.file_name}</span>
+                        <span className="font-medium text-[var(--text-primary)] block">{r.purpose || r.file_name}</span>
                         {r.purpose && <span className="text-[10px] text-gray-500">{r.file_name}</span>}
                       </>
                     )}
@@ -367,7 +367,7 @@ export default function ReceiptsPage() {
                       );
                     })()}
                   </td>
-                  <td className="px-3 py-3 text-sm text-right font-medium text-white">
+                  <td className="px-3 py-3 text-sm text-right font-medium text-[var(--text-primary)]">
                     {r.amount_gross != null ? formatCurrency(r.amount_gross) : "—"}
                   </td>
                   <td className="px-3 py-3 text-sm" onClick={(e) => e.stopPropagation()}>

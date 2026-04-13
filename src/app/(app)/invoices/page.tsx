@@ -275,7 +275,7 @@ function InvoicesPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Suche..."
-            className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full sm:w-56"
+            className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full sm:w-56"
           />
         </div>
       </div>
@@ -288,6 +288,7 @@ function InvoicesPage() {
               <th className="px-3 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Kunde</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Datum</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">Brutto</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">USt</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">Bezahlt</th>
               <th className="px-3 py-3 text-center text-xs font-medium text-[var(--text-muted)] uppercase">DE/EN</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Status</th>
@@ -318,6 +319,7 @@ function InvoicesPage() {
                     <div className={`text-sm font-medium ${overdue ? "text-rose-400" : "text-[var(--text-primary)]"}`}>{formatCurrency(inv.total)}</div>
                     {overdue && <div className="text-[10px] text-rose-400 font-medium">ueberfaellig</div>}
                   </td>
+                  <td className="px-3 py-3 text-sm text-right text-orange-400">{formatCurrency(inv.tax_amount)}</td>
                   <td className="px-3 py-3 text-sm text-right">
                     {(isPaid || isPartial) ? (
                       <span className={isPaid ? "text-emerald-400" : "text-cyan-400"}>{formatCurrency(inv.paid_amount)}</span>
@@ -329,7 +331,7 @@ function InvoicesPage() {
                       className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${isEN ? "bg-[var(--accent)]" : "bg-gray-600"}`}
                     >
                       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isEN ? "translate-x-5" : "translate-x-1"}`} />
-                      <span className={`absolute text-[8px] font-bold ${isEN ? "left-1" : "right-1"} text-white`}>{isEN ? "EN" : "DE"}</span>
+                      <span className={`absolute text-[8px] font-bold ${isEN ? "left-1" : "right-1"} text-[var(--text-primary)]`}>{isEN ? "EN" : "DE"}</span>
                     </button>
                   </td>
                   <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>

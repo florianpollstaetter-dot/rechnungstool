@@ -162,7 +162,7 @@ export default function BankPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Kontoauszuege</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Kontoauszuege</h1>
         <label className={`bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}>
           {uploading ? "Verarbeite..." : "+ CSV hochladen"}
           <input ref={fileRef} type="file" accept=".csv,.txt" onChange={handleUpload} disabled={uploading} className="hidden" />
@@ -181,11 +181,11 @@ export default function BankPage() {
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500 border border-[var(--border)] p-4">
           <p className="text-sm text-gray-400">Zugeordnet</p>
-          <p className="text-xl font-bold text-white">{matchedCount} / {filteredTxs.length}</p>
+          <p className="text-xl font-bold text-[var(--text-primary)]">{matchedCount} / {filteredTxs.length}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-gray-500 border border-[var(--border)] p-4">
           <p className="text-sm text-gray-400">Auszuege</p>
-          <p className="text-xl font-bold text-white">{statements.length}</p>
+          <p className="text-xl font-bold text-[var(--text-primary)]">{statements.length}</p>
         </div>
       </div>
 
@@ -235,7 +235,7 @@ export default function BankPage() {
               return (
                 <tr key={tx.id} className="hover:bg-[var(--surface-hover)] transition">
                   <td className="px-3 py-3 text-sm text-gray-400">{tx.booking_date ? formatDateLong(tx.booking_date) : "—"}</td>
-                  <td className="px-3 py-3 text-sm text-white max-w-[150px] truncate">{tx.counterpart_name || "—"}</td>
+                  <td className="px-3 py-3 text-sm text-[var(--text-primary)] max-w-[150px] truncate">{tx.counterpart_name || "—"}</td>
                   <td className="px-3 py-3 text-sm text-gray-400 max-w-[200px] truncate" title={tx.description || ""}>{tx.description || "—"}</td>
                   <td className={`px-3 py-3 text-sm text-right font-medium ${isIncoming ? "text-emerald-400" : "text-rose-400"}`}>
                     {isIncoming ? "+" : ""}{formatCurrency(tx.amount)}

@@ -84,12 +84,12 @@ export default function ProductsPage() {
     );
   }
 
-  const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
+  const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Produkte</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Produkte</h1>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
           className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
@@ -100,7 +100,7 @@ export default function ProductsPage() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
-          <h2 className="text-lg font-semibold text-white mb-4">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
             {editingId ? "Produkt bearbeiten" : "Neues Produkt"}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -231,7 +231,7 @@ export default function ProductsPage() {
             {products.map((p) => (
               <tr key={p.id} className={`hover:bg-[var(--surface-hover)] transition ${!p.active ? "opacity-50" : ""}`}>
                 <td className="px-6 py-4">
-                  <div className="font-medium text-white">{p.name}</div>
+                  <div className="font-medium text-[var(--text-primary)]">{p.name}</div>
                   {p.description && <div className="text-xs text-gray-500">{p.description}</div>}
                 </td>
                 <td className="px-6 py-4">
@@ -247,7 +247,7 @@ export default function ProductsPage() {
                 <td className="px-6 py-4 text-sm text-gray-400">
                   {UNIT_OPTIONS.find((u) => u.value === p.unit)?.label || p.unit}
                 </td>
-                <td className="px-6 py-4 text-sm text-right font-medium text-white">{formatCurrency(p.unit_price)}</td>
+                <td className="px-6 py-4 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(p.unit_price)}</td>
                 <td className="px-6 py-4 text-sm text-right text-gray-400">{p.tax_rate}%</td>
                 <td className="px-6 py-4 text-center">
                   <button

@@ -81,7 +81,7 @@ export default function InvoiceDetailPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <Link href="/invoices" className="text-sm text-gray-500 hover:text-gray-300 transition">&larr; Zurueck zu Rechnungen</Link>
-          <h1 className="text-2xl font-bold text-white mt-1">Rechnung {invoice.invoice_number}</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">Rechnung {invoice.invoice_number}</h1>
         </div>
         <div className="flex items-center gap-3">
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
@@ -110,17 +110,17 @@ export default function InvoiceDetailPage() {
         <div className="grid grid-cols-2 gap-8 mb-8">
           <div>
             <h3 className="text-sm font-medium text-gray-500 mb-2">Kunde</h3>
-            <p className="font-medium text-white">{customer.company || customer.name}</p>
+            <p className="font-medium text-[var(--text-primary)]">{customer.company || customer.name}</p>
             {customer.company && <p className="text-sm text-gray-400">{customer.name}</p>}
             <p className="text-sm text-gray-400">{customer.address}</p>
             <p className="text-sm text-gray-400">{customer.zip} {customer.city}</p>
             {customer.uid_number && <p className="text-sm text-gray-400">{customer.uid_number}</p>}
           </div>
           <div className="text-right">
-            <div className="mb-2"><span className="text-sm text-gray-500">Rechnungsdatum: </span><span className="font-medium text-white">{formatDateLong(invoice.invoice_date)}</span></div>
-            <div className="mb-2"><span className="text-sm text-gray-500">Leistungsdatum: </span><span className="font-medium text-white">{formatDateLong(invoice.delivery_date)}</span></div>
-            <div><span className="text-sm text-gray-500">Faellig: </span><span className="font-medium text-white">{formatDateLong(invoice.due_date)}</span></div>
-            {invoice.project_description && <div className="mt-4"><span className="text-sm text-gray-500">Projekt: </span><span className="font-medium text-white">{invoice.project_description}</span></div>}
+            <div className="mb-2"><span className="text-sm text-gray-500">Rechnungsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.invoice_date)}</span></div>
+            <div className="mb-2"><span className="text-sm text-gray-500">Leistungsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.delivery_date)}</span></div>
+            <div><span className="text-sm text-gray-500">Faellig: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.due_date)}</span></div>
+            {invoice.project_description && <div className="mt-4"><span className="text-sm text-gray-500">Projekt: </span><span className="font-medium text-[var(--text-primary)]">{invoice.project_description}</span></div>}
           </div>
         </div>
 
@@ -140,7 +140,7 @@ export default function InvoiceDetailPage() {
             {invoice.items.map((item, idx) => (
               <tr key={idx} className="border-b border-[var(--border)]">
                 <td className="py-3 text-sm text-gray-400">{item.position}</td>
-                <td className="py-3 text-sm font-medium text-white">{item.description}</td>
+                <td className="py-3 text-sm font-medium text-[var(--text-primary)]">{item.description}</td>
                 <td className="py-3 text-sm text-center text-gray-400">{getUnitLabel(item.unit)}</td>
                 <td className="py-3 text-sm text-right text-gray-400">{item.quantity}</td>
                 <td className="py-3 text-sm text-right text-gray-400">{formatCurrency(item.unit_price)}</td>
@@ -149,7 +149,7 @@ export default function InvoiceDetailPage() {
                     {item.discount_percent > 0 ? `${item.discount_percent}%` : item.discount_amount > 0 ? formatCurrency(item.discount_amount) : ""}
                   </td>
                 )}
-                <td className="py-3 text-sm text-right font-medium text-white">{formatCurrency(item.total)}</td>
+                <td className="py-3 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(item.total)}</td>
               </tr>
             ))}
           </tbody>
@@ -158,7 +158,7 @@ export default function InvoiceDetailPage() {
         <div className="flex flex-col items-end space-y-1 text-sm">
           <div className="flex justify-between w-72">
             <span className="text-gray-400">Summe netto</span>
-            <span className="font-medium text-white">{formatCurrency(invoice.subtotal)}</span>
+            <span className="font-medium text-[var(--text-primary)]">{formatCurrency(invoice.subtotal)}</span>
           </div>
           {(invoice.overall_discount_percent > 0 || invoice.overall_discount_amount > 0) && (
             <div className="flex justify-between w-72 text-amber-400">
@@ -171,10 +171,10 @@ export default function InvoiceDetailPage() {
           )}
           <div className="flex justify-between w-72">
             <span className="text-gray-400">Umsatzsteuer {invoice.tax_rate}%</span>
-            <span className="font-medium text-white">{formatCurrency(invoice.tax_amount)}</span>
+            <span className="font-medium text-[var(--text-primary)]">{formatCurrency(invoice.tax_amount)}</span>
           </div>
           <div className="flex justify-between w-72 text-base font-bold border-t border-[var(--border)] pt-2 mt-1">
-            <span className="text-white">BRUTTO</span>
+            <span className="text-[var(--text-primary)]">BRUTTO</span>
             <span className="text-[var(--accent)]">{formatCurrency(invoice.total)}</span>
           </div>
         </div>

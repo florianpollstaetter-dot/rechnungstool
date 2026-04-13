@@ -114,12 +114,12 @@ export default function FixedCostsPage() {
     );
   }
 
-  const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
+  const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Fixkosten</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Fixkosten</h1>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
           className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
@@ -132,24 +132,24 @@ export default function FixedCostsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500 border border-[var(--border)] p-5">
           <p className="text-sm font-medium text-gray-400">Monatliche Fixkosten</p>
-          <p className="text-2xl font-bold text-white mt-1">{formatCurrency(totalMonthly)}</p>
+          <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{formatCurrency(totalMonthly)}</p>
           <p className="text-xs text-gray-500 mt-1">{activeCosts.length} aktive Positionen</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500/50 border border-[var(--border)] p-5">
           <p className="text-sm font-medium text-gray-400">Jaehrliche Fixkosten</p>
-          <p className="text-2xl font-bold text-white mt-1">{formatCurrency(totalYearly)}</p>
+          <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{formatCurrency(totalYearly)}</p>
           <p className="text-xs text-gray-500 mt-1">Hochrechnung auf 12 Monate</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-gray-500 border border-[var(--border)] p-5">
           <p className="text-sm font-medium text-gray-400">Gesamt Positionen</p>
-          <p className="text-2xl font-bold text-white mt-1">{costs.length}</p>
+          <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{costs.length}</p>
           <p className="text-xs text-gray-500 mt-1">{costs.length - activeCosts.length} inaktiv</p>
         </div>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
-          <h2 className="text-lg font-semibold text-white mb-4">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
             {editingId ? "Fixkosten bearbeiten" : "Neue Fixkosten"}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -252,12 +252,12 @@ export default function FixedCostsPage() {
               return (
                 <tr key={c.id} className={`hover:bg-[var(--surface-hover)] transition ${!c.is_active ? "opacity-50" : ""}`}>
                   <td className="px-6 py-4">
-                    <div className="font-medium text-white">{c.name}</div>
+                    <div className="font-medium text-[var(--text-primary)]">{c.name}</div>
                     {c.description && <div className="text-xs text-gray-500">{c.description}</div>}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-400">{catLabel}</td>
                   <td className="px-6 py-4 text-sm text-gray-400">{c.supplier || "—"}</td>
-                  <td className="px-6 py-4 text-sm text-right font-medium text-white">{formatCurrency(c.amount)}</td>
+                  <td className="px-6 py-4 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(c.amount)}</td>
                   <td className="px-6 py-4 text-sm text-gray-400">{intLabel}</td>
                   <td className="px-6 py-4 text-sm text-right text-cyan-400">{formatCurrency(getMonthlyAmount(c))}</td>
                   <td className="px-6 py-4 text-center">

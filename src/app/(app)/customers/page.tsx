@@ -96,7 +96,7 @@ export default function CustomersPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Kunden</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Kunden</h1>
         <button
           onClick={() => {
             setForm(emptyCustomer);
@@ -111,7 +111,7 @@ export default function CustomersPage() {
 
       {showForm && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
-          <h2 className="text-lg font-semibold text-white mb-4">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
             {editing ? "Kunde bearbeiten" : "Neuer Kunde"}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -124,7 +124,7 @@ export default function CustomersPage() {
                   type="text"
                   value={form[f.key]}
                   onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                  className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                  className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                 />
               </div>
             ))}
@@ -181,7 +181,7 @@ export default function CustomersPage() {
             {customers.map((c) => (
               <tr key={c.id} className="hover:bg-[var(--surface-hover)] transition">
                 <td className="px-6 py-4">
-                  <div className="font-medium text-white">
+                  <div className="font-medium text-[var(--text-primary)]">
                     {c.company || c.name}
                   </div>
                   {c.company && (
