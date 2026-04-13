@@ -20,6 +20,7 @@ interface CompanyContextType {
   company: Company;
   accessibleCompanies: Company[];
   userRole: string;
+  userName: string;
   setCompanyId: (id: string) => void;
 }
 
@@ -27,6 +28,7 @@ const CompanyContext = createContext<CompanyContextType>({
   company: COMPANIES[0],
   accessibleCompanies: COMPANIES,
   userRole: "admin",
+  userName: "",
   setCompanyId: () => {},
 });
 
@@ -34,6 +36,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const [companyId, setCompanyIdState] = useState<string>("vrthefans");
   const [accessibleCompanies, setAccessibleCompanies] = useState<Company[]>(COMPANIES);
   const [userRole, setUserRole] = useState("admin");
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
     const stored = localStorage.getItem("activeCompanyId");
@@ -54,7 +57,9 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (profile) {
-        localStorage.setItem("currentUserName", profile.display_name || profile.email || "");
+        const name = profile.display_name || profile.email || "";
+        localStorage.setItem("currentUserName", name);
+        setUserName(name);
         let access: string[] = [];
         try {
           access = typeof profile.company_access === "string"
@@ -86,7 +91,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const company = COMPANIES.find((c) => c.id === companyId) || COMPANIES[0];
 
   return (
-    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, setCompanyId }}>
+    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, setCompanyId }}>
       {children}
     </CompanyContext.Provider>
   );

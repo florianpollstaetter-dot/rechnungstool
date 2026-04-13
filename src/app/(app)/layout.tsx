@@ -23,7 +23,7 @@ const navItems = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { company, accessibleCompanies, setCompanyId } = useCompany();
+  const { company, accessibleCompanies, userName, setCompanyId } = useCompany();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
 
@@ -67,6 +67,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* User name */}
+              {userName && <span className="text-[10px] text-[var(--text-muted)] hidden sm:block">{userName}</span>}
               {/* Company switcher */}
               <div className="relative">
                 <button onClick={() => setShowCompanySwitcher(!showCompanySwitcher)} className="text-[10px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] px-2 py-1 rounded transition hidden sm:block" title="Unternehmen wechseln">
@@ -109,6 +111,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {mobileOpen && (
           <div className="md:hidden border-t border-[var(--border)] bg-[var(--surface)]">
             <div className="px-4 py-3 space-y-1">
+              {userName && <p className="px-3 py-1 text-xs text-[var(--text-muted)]">Angemeldet als: <span className="text-[var(--text-primary)] font-medium">{userName}</span></p>}
               {navItems.map((item) => (
                 <Link
                   key={item.href}
