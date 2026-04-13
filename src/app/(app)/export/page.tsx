@@ -52,19 +52,38 @@ export default function ExportPage() {
   async function handleExportCSV() {
     setExporting(true);
     try {
-      const headers = ["Typ", "Datum", "Nr/Datei", "Kunde/Aussteller", "Netto", "USt", "Brutto", "Konto", "Status"];
+      // Austrian legal requirements for invoices (§ 11 UStG)
+      const headers = [
+        "Typ", "Rechnungsnummer", "Rechnungsdatum", "Lieferdatum", "Fälligkeitsdatum",
+        "Bezahlt am", "Kunde/Aussteller", "UID des Kunden", "Adresse",
+        "Projekt", "Netto", "USt-Satz %", "USt-Betrag", "Brutto",
+        "Bezahlter Betrag", "Zahlungsmethode", "Konto Soll", "Konto Haben",
+        "Kontobeschreibung", "Währung", "Status"
+      ];
       const rows: string[][] = [];
 
       monthInvoices.forEach((inv) => {
+        const cust = customers.find((c) => c.id === inv.customer_id);
         rows.push([
           "Ausgangsrechnung",
-          inv.invoice_date,
           inv.invoice_number,
-          getCustomerName(inv.customer_id),
+          inv.invoice_date,
+          inv.delivery_date,
+          inv.due_date,
+          inv.paid_at ? inv.paid_at.split("T")[0] : "",
+          cust ? (cust.company || cust.name) : "",
+          cust?.uid_number || "",
+          cust ? `${cust.address}, ${cust.zip} ${cust.city}` : "",
+          inv.project_description || "",
           String(inv.subtotal),
+          String(inv.tax_rate),
           String(inv.tax_amount),
           String(inv.total),
+          String(inv.paid_amount || 0),
           "",
+          "", "",
+          "",
+          "EUR",
           inv.status,
         ]);
       });
@@ -72,13 +91,23 @@ export default function ExportPage() {
       monthReceipts.forEach((r) => {
         rows.push([
           "Eingangsbeleg",
-          r.invoice_date || "",
           r.file_name,
+          r.invoice_date || "",
+          "", "",
+          "",
           r.issuer || "",
+          "", "",
+          r.purpose || "",
           String(r.amount_net || 0),
+          String(r.vat_rate || ""),
           String(r.amount_vat || 0),
           String(r.amount_gross || 0),
+          "",
+          r.payment_method || "",
           r.account_debit || "",
+          r.account_credit || "",
+          r.account_label || "",
+          r.currency || "EUR",
           r.analysis_status,
         ]);
       });
@@ -117,6 +146,9 @@ export default function ExportPage() {
           </select>
           <button onClick={handleExportCSV} disabled={exporting} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
             {exporting ? "Exportiere..." : "CSV Export"}
+          </button>
+          <button onClick={() => window.print()} className="bg-emerald-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition">
+            PDF Drucken
           </button>
         </div>
       </div>

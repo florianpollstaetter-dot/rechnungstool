@@ -179,7 +179,7 @@ export default function CustomersPage() {
               </tr>
             )}
             {customers.map((c) => (
-              <tr key={c.id} className="hover:bg-[var(--surface-hover)] transition">
+              <tr key={c.id} className="hover:bg-[var(--surface-hover)] transition cursor-pointer" onClick={() => window.location.href = `/customers/${c.id}`}>
                 <td className="px-6 py-4">
                   <div className="font-medium text-[var(--text-primary)]">
                     {c.company || c.name}

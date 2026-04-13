@@ -190,20 +190,72 @@ export default function ReceiptCaptureModal({ imageFile, imageUrl, editMode, onS
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4 sm:p-6 w-full max-w-lg max-h-[95vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Beleg bearbeiten</h2>
 
-        {/* Image preview with crop overlay */}
+        {/* Image preview with draggable crop corners */}
         {imageSrc && (
-          <div className="relative mx-auto mb-4" style={{ width: displayW, height: displayH }}>
-            <img src={imageSrc} alt="Beleg" style={{ width: displayW, height: displayH }} className="rounded-lg" />
+          <div
+            className="relative mx-auto mb-4 touch-none select-none"
+            style={{ width: displayW, height: displayH }}
+            onPointerDown={(e) => {
+              if (!crop) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const px = e.clientX - rect.left;
+              const py = e.clientY - rect.top;
+              const cx = crop.x * scale;
+              const cy = crop.y * scale;
+              const cw = crop.w * scale;
+              const ch = crop.h * scale;
+              // Determine which corner is closest
+              const corners = [
+                { key: "tl", x: cx, y: cy },
+                { key: "tr", x: cx + cw, y: cy },
+                { key: "bl", x: cx, y: cy + ch },
+                { key: "br", x: cx + cw, y: cy + ch },
+              ];
+              const closest = corners.reduce((best: { key: string; x: number; y: number; d: number }, c) => {
+                const d = Math.hypot(c.x - px, c.y - py);
+                return d < best.d ? { ...c, d } : best;
+              }, { key: "", x: 0, y: 0, d: Infinity });
+              if (closest.d > 40) return; // Too far from any corner
+              const handleMove = (me: PointerEvent) => {
+                const mx = me.clientX - rect.left;
+                const my = me.clientY - rect.top;
+                setCrop((prev) => {
+                  if (!prev) return prev;
+                  const s = 1 / scale;
+                  const nx = Math.max(0, Math.min(Math.round(mx * s), imgSize.w));
+                  const ny = Math.max(0, Math.min(Math.round(my * s), imgSize.h));
+                  if (closest.key === "tl") return { x: nx, y: ny, w: prev.x + prev.w - nx, h: prev.y + prev.h - ny };
+                  if (closest.key === "tr") return { ...prev, w: nx - prev.x, y: ny, h: prev.y + prev.h - ny };
+                  if (closest.key === "bl") return { x: nx, w: prev.x + prev.w - nx, h: ny - prev.y, y: prev.y };
+                  return { ...prev, w: nx - prev.x, h: ny - prev.y };
+                });
+              };
+              const handleUp = () => {
+                window.removeEventListener("pointermove", handleMove);
+                window.removeEventListener("pointerup", handleUp);
+              };
+              window.addEventListener("pointermove", handleMove);
+              window.addEventListener("pointerup", handleUp);
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+          >
+            <img src={imageSrc} alt="Beleg" style={{ width: displayW, height: displayH }} className="rounded-lg" draggable={false} />
             {crop && (
-              <div
-                className="absolute border-2 border-[var(--accent)] bg-[var(--accent)]/10 rounded"
-                style={{
-                  left: crop.x * scale,
-                  top: crop.y * scale,
-                  width: crop.w * scale,
-                  height: crop.h * scale,
-                }}
-              />
+              <>
+                {/* Darkened outside area */}
+                <div className="absolute inset-0 bg-black/40 rounded-lg" style={{ clipPath: `polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 0, ${crop.x * scale}px ${crop.y * scale}px, ${crop.x * scale}px ${(crop.y + crop.h) * scale}px, ${(crop.x + crop.w) * scale}px ${(crop.y + crop.h) * scale}px, ${(crop.x + crop.w) * scale}px ${crop.y * scale}px, ${crop.x * scale}px ${crop.y * scale}px)` }} />
+                {/* Crop border */}
+                <div className="absolute border-2 border-[var(--accent)]" style={{ left: crop.x * scale, top: crop.y * scale, width: crop.w * scale, height: crop.h * scale }} />
+                {/* Corner handles */}
+                {[
+                  { x: crop.x * scale, y: crop.y * scale },
+                  { x: (crop.x + crop.w) * scale, y: crop.y * scale },
+                  { x: crop.x * scale, y: (crop.y + crop.h) * scale },
+                  { x: (crop.x + crop.w) * scale, y: (crop.y + crop.h) * scale },
+                ].map((p, i) => (
+                  <div key={i} className="absolute w-5 h-5 bg-[var(--accent)] border-2 border-white rounded-full shadow-lg" style={{ left: p.x - 10, top: p.y - 10, touchAction: "none" }} />
+                ))}
+              </>
             )}
           </div>
         )}
