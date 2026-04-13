@@ -198,7 +198,7 @@ export default function CustomersPage() {
                   {c.email}
                   {c.phone && <div>{c.phone}</div>}
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => handleEdit(c)}
                     className="text-sm text-[var(--accent)] hover:brightness-110 mr-3"
