@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS } from "@/lib/types";
 import { getSettings, updateSettings } from "@/lib/db";
+import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/ThemeProvider";
 
 const COMPANY_TYPE_WARNINGS: Record<CompanyType, string> = {
@@ -20,6 +21,10 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pendingTypeChange, setPendingTypeChange] = useState<CompanyType | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const loadData = useCallback(async () => {
     const s = await getSettings();
@@ -58,6 +63,32 @@ export default function SettingsPage() {
     if (!pendingTypeChange) return;
     update("company_type", pendingTypeChange);
     setPendingTypeChange(null);
+  }
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordMessage(null);
+    if (newPassword.length < 6) {
+      setPasswordMessage({ type: "error", text: "Passwort muss mindestens 6 Zeichen haben." });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ type: "error", text: "Passwörter stimmen nicht überein." });
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setPasswordMessage({ type: "success", text: "Passwort erfolgreich geändert." });
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setPasswordMessage({ type: "error", text: err instanceof Error ? err.message : "Passwort konnte nicht geändert werden." });
+    } finally {
+      setPasswordSaving(false);
+    }
   }
 
   if (loading || !settings) {
@@ -231,6 +262,30 @@ export default function SettingsPage() {
         <div className="flex gap-3">
           <button type="submit" disabled={saving} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
             {saving ? "Wird gespeichert..." : "Einstellungen speichern"}
+          </button>
+        </div>
+      </form>
+
+      {/* Password Change — separate form, only affects current user */}
+      <form onSubmit={handlePasswordChange} className="mt-6 bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Passwort ändern</h2>
+        <p className="text-sm text-[var(--text-muted)] mb-4">Ändert das Passwort nur für den aktuell angemeldeten Benutzer.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Neues Passwort</label>
+            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} className={inputClass} placeholder="Mindestens 6 Zeichen" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Passwort bestätigen</label>
+            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className={inputClass} placeholder="Passwort wiederholen" />
+          </div>
+        </div>
+        {passwordMessage && (
+          <p className={`text-sm mt-3 ${passwordMessage.type === "success" ? "text-emerald-400" : "text-rose-400"}`}>{passwordMessage.text}</p>
+        )}
+        <div className="mt-4">
+          <button type="submit" disabled={passwordSaving} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
+            {passwordSaving ? "Wird geändert..." : "Passwort ändern"}
           </button>
         </div>
       </form>
