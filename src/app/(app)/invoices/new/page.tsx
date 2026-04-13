@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Customer, InvoiceItem, Product, UNIT_OPTIONS, Language } from "@/lib/types";
 import { getCustomers, getSettings, getActiveProducts, createInvoice, getTemplate } from "@/lib/db";
+import { useAutosave } from "@/lib/use-autosave";
 import { addDays, formatCurrency } from "@/lib/format";
 import { calcItemTotal, calcTotals } from "@/lib/calc";
 
@@ -34,6 +35,26 @@ function NewInvoicePage() {
   const [overallDiscountPercent, setOverallDiscountPercent] = useState(0);
   const [overallDiscountAmount, setOverallDiscountAmount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+
+  // Auto-save form data
+  const formData = useMemo(() => ({
+    customerId, projectDescription, invoiceDate, deliveryDate, taxRate,
+    paymentTermsDays, notes, language, items, overallDiscountPercent, overallDiscountAmount,
+  }), [customerId, projectDescription, invoiceDate, deliveryDate, taxRate, paymentTermsDays, notes, language, items, overallDiscountPercent, overallDiscountAmount]);
+
+  const { clearDraft } = useAutosave("new-invoice", formData, (saved) => {
+    if (saved.customerId) setCustomerId(saved.customerId);
+    if (saved.projectDescription) setProjectDescription(saved.projectDescription);
+    if (saved.invoiceDate) setInvoiceDate(saved.invoiceDate);
+    if (saved.deliveryDate) setDeliveryDate(saved.deliveryDate);
+    if (saved.taxRate) setTaxRate(saved.taxRate);
+    if (saved.paymentTermsDays) setPaymentTermsDays(saved.paymentTermsDays);
+    if (saved.notes) setNotes(saved.notes);
+    if (saved.language) setLanguage(saved.language);
+    if (saved.items?.length) setItems(saved.items);
+    if (saved.overallDiscountPercent) setOverallDiscountPercent(saved.overallDiscountPercent);
+    if (saved.overallDiscountAmount) setOverallDiscountAmount(saved.overallDiscountAmount);
+  });
 
   const loadData = useCallback(async () => {
     const [cust, settings, prods] = await Promise.all([getCustomers(), getSettings(), getActiveProducts()]);
@@ -128,6 +149,7 @@ function NewInvoicePage() {
         language,
         accompanying_text: null,
       });
+      clearDraft();
       router.push("/invoices");
     } finally {
       setSubmitting(false);
@@ -209,7 +231,7 @@ function NewInvoicePage() {
                       </select>
                     </td>
                     <td className="py-2">
-                      <input type="text" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" required />
+                      <input type="text" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" required placeholder="**Fett** für Hervorhebung" />
                     </td>
                     <td className="py-2">
                       <select value={item.unit} onChange={(e) => updateItem(idx, "unit", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">

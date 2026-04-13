@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Customer, QuoteItem, Product, UNIT_OPTIONS, Language, DisplayMode } from "@/lib/types";
 import { getCustomers, getSettings, getActiveProducts, createQuote, getTemplate } from "@/lib/db";
+import { useAutosave } from "@/lib/use-autosave";
 import { addDays, formatCurrency } from "@/lib/format";
 import { calcItemTotal, calcTotals } from "@/lib/calc";
 
@@ -34,6 +35,24 @@ function NewQuotePage() {
   const [overallDiscountPercent, setOverallDiscountPercent] = useState(0);
   const [overallDiscountAmount, setOverallDiscountAmount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+
+  const formData = useMemo(() => ({
+    customerId, projectDescription, quoteDate, validDays, taxRate, language, displayMode, notes, items, overallDiscountPercent, overallDiscountAmount,
+  }), [customerId, projectDescription, quoteDate, validDays, taxRate, language, displayMode, notes, items, overallDiscountPercent, overallDiscountAmount]);
+
+  const { clearDraft } = useAutosave("new-quote", formData, (saved) => {
+    if (saved.customerId) setCustomerId(saved.customerId);
+    if (saved.projectDescription) setProjectDescription(saved.projectDescription);
+    if (saved.quoteDate) setQuoteDate(saved.quoteDate);
+    if (saved.validDays) setValidDays(saved.validDays);
+    if (saved.taxRate) setTaxRate(saved.taxRate);
+    if (saved.language) setLanguage(saved.language);
+    if (saved.displayMode) setDisplayMode(saved.displayMode);
+    if (saved.notes) setNotes(saved.notes);
+    if (saved.items?.length) setItems(saved.items);
+    if (saved.overallDiscountPercent) setOverallDiscountPercent(saved.overallDiscountPercent);
+    if (saved.overallDiscountAmount) setOverallDiscountAmount(saved.overallDiscountAmount);
+  });
 
   const loadData = useCallback(async () => {
     const [cust, settings, prods] = await Promise.all([getCustomers(), getSettings(), getActiveProducts()]);
@@ -111,6 +130,7 @@ function NewQuotePage() {
         display_mode: displayMode,
         converted_invoice_id: null,
       });
+      clearDraft();
       router.push("/quotes");
     } finally { setSubmitting(false); }
   }

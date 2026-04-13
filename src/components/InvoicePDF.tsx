@@ -184,7 +184,13 @@ export default function InvoicePDF({ invoice, customer, settings }: Props) {
           <View key={idx}>
             <View style={[s.tableRow, idx % 2 === 1 ? s.tableRowEven : {}]}>
               <Text style={[s.cellNormal, s.colPos]}>{item.position}</Text>
-              <Text style={[s.cellBold, s.colDesc]}>{item.description}</Text>
+              <Text style={[s.cellBold, s.colDesc]}>
+                {item.description.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+                  part.startsWith("**") && part.endsWith("**")
+                    ? <Text key={i} style={{ fontWeight: 700 }}>{part.slice(2, -2)}</Text>
+                    : part
+                )}
+              </Text>
               <Text style={[s.cellNormal, s.colUnit]}>{unitLabel(item.unit, lang)}</Text>
               <Text style={[s.cellNormal, s.colQty]}>{item.quantity}</Text>
               <Text style={[s.cellNormal, s.colPrice]}>{fmtEuro(item.unit_price)}</Text>
