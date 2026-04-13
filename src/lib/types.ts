@@ -222,6 +222,18 @@ export interface Receipt {
   updated_at: string;
 }
 
+export type UserRole = "admin" | "user";
+
+export interface UserProfile {
+  id: string;
+  auth_user_id: string;
+  display_name: string;
+  email: string;
+  role: UserRole;
+  company_access: string[]; // array of company IDs
+  created_at: string;
+}
+
 export type FixedCostInterval = "monthly" | "quarterly" | "yearly";
 
 export const FIXED_COST_INTERVAL_OPTIONS: { value: FixedCostInterval; label: string }[] = [

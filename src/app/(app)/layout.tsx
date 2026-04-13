@@ -17,12 +17,13 @@ const navItems = [
   { href: "/receipts", label: "Belege" },
   { href: "/bank", label: "Konto" },
   { href: "/export", label: "Export" },
+  { href: "/admin", label: "Admin" },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { company, setCompanyId } = useCompany();
+  const { company, accessibleCompanies, setCompanyId } = useCompany();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
 
@@ -74,7 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowCompanySwitcher(false)} />
                     <div className="absolute right-0 top-full mt-1 z-50 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-xl py-1 min-w-[200px]">
-                      {COMPANIES.map((c) => (
+                      {accessibleCompanies.map((c) => (
                         <button key={c.id} onClick={() => { setCompanyId(c.id); setShowCompanySwitcher(false); window.location.reload(); }}
                           className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--surface-hover)] transition flex items-center gap-2 ${company.id === c.id ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"}`}>
                           <Image src={c.logo_path} alt={c.name} width={20} height={20} className="rounded" style={{ filter: "var(--logo-filter)" }} />
@@ -123,7 +124,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               ))}
               <div className="border-t border-[var(--border)] mt-2 pt-2">
                 <p className="px-3 py-1 text-xs text-[var(--text-muted)]">Unternehmen wechseln:</p>
-                {COMPANIES.map((c) => (
+                {accessibleCompanies.map((c) => (
                   <button key={c.id} onClick={() => { setCompanyId(c.id); setMobileOpen(false); window.location.reload(); }}
                     className={`block w-full text-left px-3 py-2 text-sm font-medium rounded-lg transition-colors ${company.id === c.id ? "text-[var(--accent)]" : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"}`}>
                     {c.name}

@@ -9,6 +9,7 @@ import {
   QuoteItem,
   FixedCost,
   Receipt,
+  UserProfile,
   BankStatement,
   BankTransaction,
   Template,
@@ -48,6 +49,36 @@ function getActiveCompanyId(): string {
     return localStorage.getItem("activeCompanyId") || "vrthefans";
   }
   return "vrthefans";
+}
+
+// User Profiles
+export async function getUserProfile(authUserId: string): Promise<UserProfile | null> {
+  const { data } = await supabase().from("user_profiles").select("*").eq("auth_user_id", authUserId).single();
+  return data ? mapUserProfile(data) : null;
+}
+
+export async function getUserProfiles(): Promise<UserProfile[]> {
+  const { data } = await supabase().from("user_profiles").select("*").order("created_at", { ascending: true });
+  return (data ?? []).map(mapUserProfile);
+}
+
+export async function createUserProfile(profile: Omit<UserProfile, "id" | "created_at">): Promise<UserProfile> {
+  const { data } = await supabase().from("user_profiles").insert({
+    ...profile,
+    company_access: JSON.stringify(profile.company_access),
+  }).select().single();
+  return mapUserProfile(data!);
+}
+
+export async function updateUserProfile(id: string, updates: Partial<UserProfile>): Promise<UserProfile> {
+  const payload: Record<string, unknown> = { ...updates };
+  if (updates.company_access) payload.company_access = JSON.stringify(updates.company_access);
+  const { data } = await supabase().from("user_profiles").update(payload).eq("id", id).select().single();
+  return mapUserProfile(data!);
+}
+
+export async function deleteUserProfile(id: string): Promise<void> {
+  await supabase().from("user_profiles").delete().eq("id", id);
 }
 
 // Company Settings
@@ -851,5 +882,23 @@ function mapBankTransaction(row: Record<string, unknown>): BankTransaction {
     match_status: (row.match_status as BankTransaction["match_status"]) || "unmatched",
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
+  };
+}
+
+function mapUserProfile(row: Record<string, unknown>): UserProfile {
+  let companyAccess: string[] = [];
+  try {
+    const raw = row.company_access;
+    if (typeof raw === "string") companyAccess = JSON.parse(raw);
+    else if (Array.isArray(raw)) companyAccess = raw as string[];
+  } catch { /* empty */ }
+  return {
+    id: row.id as string,
+    auth_user_id: row.auth_user_id as string,
+    display_name: (row.display_name as string) || "",
+    email: (row.email as string) || "",
+    role: (row.role as UserProfile["role"]) || "user",
+    company_access: companyAccess,
+    created_at: row.created_at as string,
   };
 }

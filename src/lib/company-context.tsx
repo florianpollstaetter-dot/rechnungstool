@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export interface Company {
   id: string;
@@ -17,23 +18,64 @@ export const COMPANIES: Company[] = [
 
 interface CompanyContextType {
   company: Company;
+  accessibleCompanies: Company[];
+  userRole: string;
   setCompanyId: (id: string) => void;
 }
 
 const CompanyContext = createContext<CompanyContextType>({
   company: COMPANIES[0],
+  accessibleCompanies: COMPANIES,
+  userRole: "admin",
   setCompanyId: () => {},
 });
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
   const [companyId, setCompanyIdState] = useState<string>("vrthefans");
+  const [accessibleCompanies, setAccessibleCompanies] = useState<Company[]>(COMPANIES);
+  const [userRole, setUserRole] = useState("admin");
 
   useEffect(() => {
     const stored = localStorage.getItem("activeCompanyId");
     if (stored && COMPANIES.find((c) => c.id === stored)) {
       setCompanyIdState(stored);
     }
-  }, []);
+
+    // Load user profile to determine company access
+    async function loadUserAccess() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("auth_user_id", user.id)
+        .single();
+
+      if (profile) {
+        let access: string[] = [];
+        try {
+          access = typeof profile.company_access === "string"
+            ? JSON.parse(profile.company_access)
+            : profile.company_access || [];
+        } catch { /* empty */ }
+
+        if (access.length > 0) {
+          const filtered = COMPANIES.filter((c) => access.includes(c.id));
+          setAccessibleCompanies(filtered.length > 0 ? filtered : COMPANIES);
+          // If current company not in access list, switch to first accessible
+          if (access.length > 0 && !access.includes(companyId)) {
+            setCompanyIdState(access[0]);
+            localStorage.setItem("activeCompanyId", access[0]);
+          }
+        }
+        setUserRole(profile.role || "user");
+      }
+      // No profile = admin (first user / legacy)
+    }
+    loadUserAccess();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setCompanyId(id: string) {
     setCompanyIdState(id);
@@ -43,7 +85,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const company = COMPANIES.find((c) => c.id === companyId) || COMPANIES[0];
 
   return (
-    <CompanyContext.Provider value={{ company, setCompanyId }}>
+    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, setCompanyId }}>
       {children}
     </CompanyContext.Provider>
   );
