@@ -44,6 +44,13 @@ function supabase() {
   return createClient();
 }
 
+export function getCurrentUserName(): string {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("currentUserName") || "";
+  }
+  return "";
+}
+
 function getActiveCompanyId(): string {
   if (typeof window !== "undefined") {
     return localStorage.getItem("activeCompanyId") || "vrthefans";
@@ -505,6 +512,7 @@ export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
     notes: quote.notes,
     language: quote.language || "de",
     accompanying_text: null,
+        created_by: null,
   });
 
   await updateQuote(quoteId, {
@@ -732,6 +740,7 @@ function mapInvoice(
     notes: row.notes as string,
     language: (row.language as Invoice["language"]) || "de",
     accompanying_text: (row.accompanying_text as string) ?? null,
+    created_by: (row.created_by as string) || null,
     created_at: row.created_at as string,
   };
 }
@@ -774,6 +783,7 @@ function mapQuote(
     language: (row.language as Language) || "de",
     display_mode: (row.display_mode as DisplayMode) || "detailed",
     converted_invoice_id: (row.converted_invoice_id as string) || null,
+    created_by: (row.created_by as string) || null,
     created_at: row.created_at as string,
   };
 }

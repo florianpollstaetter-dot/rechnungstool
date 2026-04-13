@@ -54,6 +54,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (profile) {
+        localStorage.setItem("currentUserName", profile.display_name || profile.email || "");
         let access: string[] = [];
         try {
           access = typeof profile.company_access === "string"

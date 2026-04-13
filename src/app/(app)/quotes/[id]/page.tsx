@@ -141,6 +141,7 @@ export default function QuoteDetailPage() {
       notes: `Teilrechnung zu Angebot ${quote.quote_number} (${label})`,
       language: quote.language || "de",
       accompanying_text: null,
+        created_by: null,
     });
 
     setShowPartialModal(false);

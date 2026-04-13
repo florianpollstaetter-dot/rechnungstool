@@ -74,6 +74,7 @@ export interface Invoice {
   notes: string;
   language: Language;
   accompanying_text: string | null;
+  created_by: string | null;
   created_at: string;
 }
 
@@ -113,6 +114,7 @@ export interface Quote {
   language: Language;
   display_mode: DisplayMode;
   converted_invoice_id: string | null;
+  created_by: string | null;
   created_at: string;
 }
 

@@ -14,6 +14,8 @@ export default function AdminPage() {
   const [form, setForm] = useState({ email: "", password: "", display_name: "", role: "user" as "admin" | "user", company_access: ["vrthefans"] as string[] });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ display_name: "", role: "user" as "admin" | "user" });
 
   const loadData = useCallback(async () => {
     const supabase = createClient();
@@ -69,6 +71,17 @@ export default function AdminPage() {
       ? user.company_access.filter((c) => c !== companyId)
       : [...user.company_access, companyId];
     await updateUserProfile(userId, { company_access: access });
+    await loadData();
+  }
+
+  function startEditUser(u: UserProfile) {
+    setEditingUser(u.id);
+    setEditForm({ display_name: u.display_name, role: u.role });
+  }
+
+  async function saveEditUser(id: string) {
+    await updateUserProfile(id, { display_name: editForm.display_name, role: editForm.role });
+    setEditingUser(null);
     await loadData();
   }
 
@@ -163,14 +176,31 @@ export default function AdminPage() {
             {users.length === 0 && (
               <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Noch keine Benutzerprofile. Der erste Benutzer wird automatisch Admin.</td></tr>
             )}
-            {users.map((u) => (
+            {users.map((u) => {
+              const isEditing = editingUser === u.id;
+              return (
               <tr key={u.id} className="hover:bg-[var(--surface-hover)] transition">
-                <td className="px-4 py-3 text-sm font-medium text-[var(--text-primary)]">{u.display_name}</td>
+                <td className="px-4 py-3 text-sm">
+                  {isEditing ? (
+                    <input type="text" value={editForm.display_name} onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })}
+                      className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] w-full" />
+                  ) : (
+                    <span className="font-medium text-[var(--text-primary)]">{u.display_name}</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-sm text-gray-400">{u.email}</td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${u.role === "admin" ? "bg-[var(--accent)]/15 text-[var(--accent)]" : "bg-gray-500/15 text-gray-400"}`}>
-                    {u.role === "admin" ? "Admin" : "Benutzer"}
-                  </span>
+                  {isEditing ? (
+                    <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as "admin" | "user" })}
+                      className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)]">
+                      <option value="user">Benutzer</option>
+                      <option value="admin">Administrator</option>
+                    </select>
+                  ) : (
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${u.role === "admin" ? "bg-[var(--accent)]/15 text-[var(--accent)]" : "bg-gray-500/15 text-gray-400"}`}>
+                      {u.role === "admin" ? "Admin" : "Benutzer"}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
@@ -184,11 +214,22 @@ export default function AdminPage() {
                     ))}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <button onClick={() => handleDelete(u.id)} className="text-sm text-rose-400 hover:text-rose-300">Löschen</button>
+                <td className="px-4 py-3 text-right whitespace-nowrap">
+                  {isEditing ? (
+                    <>
+                      <button onClick={() => saveEditUser(u.id)} className="text-sm text-emerald-400 hover:text-emerald-300 mr-2">Speichern</button>
+                      <button onClick={() => setEditingUser(null)} className="text-sm text-gray-400 hover:text-gray-300">Abbrechen</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => startEditUser(u)} className="text-sm text-[var(--accent)] hover:brightness-110 mr-2">Bearbeiten</button>
+                      <button onClick={() => handleDelete(u.id)} className="text-sm text-rose-400 hover:text-rose-300">Löschen</button>
+                    </>
+                  )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

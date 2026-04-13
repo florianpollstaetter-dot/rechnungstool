@@ -129,6 +129,7 @@ function NewQuotePage() {
         language,
         display_mode: displayMode,
         converted_invoice_id: null,
+        created_by: null,
       });
       clearDraft();
       router.push("/quotes");

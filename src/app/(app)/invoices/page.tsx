@@ -201,6 +201,7 @@ function InvoicesPage() {
       notes: `Stornorechnung zu Rechnung ${inv.invoice_number}`,
       language: inv.language,
       accompanying_text: null,
+        created_by: null,
     });
     await loadData();
   }
@@ -290,6 +291,7 @@ function InvoicesPage() {
               <th className="px-3 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">Brutto</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">USt</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">Bezahlt</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Erstellt</th>
               <th className="px-3 py-3 text-center text-xs font-medium text-[var(--text-muted)] uppercase">DE/EN</th>
               <th className="px-3 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Status</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase"></th>
@@ -325,6 +327,7 @@ function InvoicesPage() {
                       <span className={isPaid ? "text-emerald-400" : "text-cyan-400"}>{formatCurrency(inv.paid_amount)}</span>
                     ) : <span className="text-[var(--text-muted)]">—</span>}
                   </td>
+                  <td className="px-3 py-3 text-xs text-[var(--text-muted)] max-w-[60px] truncate">{inv.created_by || "—"}</td>
                   <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => handleLanguageToggle(inv.id, inv.language)}
