@@ -169,23 +169,24 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {/* Recent Invoices */}
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)]">
-          <div className="px-6 py-4 border-b border-[var(--border)] flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Letzte Rechnungen</h2>
-            <Link href="/invoices" className="text-xs text-[var(--accent)] hover:brightness-110">Alle anzeigen</Link>
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
+          <div className="px-4 py-3 border-b border-[var(--border)] flex justify-between items-center">
+            <h2 className="text-sm sm:text-lg font-semibold text-[var(--text-primary)]">Letzte Rechnungen</h2>
+            <Link href="/invoices" className="text-[10px] text-[var(--accent)] hover:brightness-110">Alle</Link>
           </div>
           {recentInvoices.length === 0 ? (
-            <div className="px-6 py-8 text-center text-gray-500">Noch keine Rechnungen.</div>
+            <div className="px-4 py-6 text-center text-gray-500 text-sm">Noch keine Rechnungen.</div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-[var(--border)]">
               <thead className="bg-[var(--background)]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nr.</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kunde</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Nr.</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Kunde</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase">Brutto</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -195,37 +196,39 @@ export default function DashboardPage() {
                     : inv.status === "ueberfaellig" ? "bg-rose-500/15 text-rose-400"
                     : inv.status === "storniert" ? "bg-purple-500/15 text-purple-400"
                     : "bg-amber-500/15 text-amber-400";
-                  const statusText = inv.status === "bezahlt" ? "Bezahlt" : inv.status === "teilbezahlt" ? "Teilbezahlt" : inv.status === "ueberfaellig" ? "Überfällig" : inv.status === "storniert" ? "Storniert" : "Offen";
+                  const statusText = inv.status === "bezahlt" ? "Bezahlt" : inv.status === "teilbezahlt" ? "Teil" : inv.status === "ueberfaellig" ? "Fällig" : inv.status === "storniert" ? "Storno" : "Offen";
                   return (
                     <tr key={inv.id} className="hover:bg-[var(--surface-hover)] transition">
-                      <td className="px-6 py-4"><Link href={`/invoices/${inv.id}`} className="font-medium text-[var(--accent)] hover:brightness-110">{inv.invoice_number}</Link></td>
-                      <td className="px-6 py-4 text-sm text-gray-400">{getCustomerName(inv.customer_id)}</td>
-                      <td className="px-6 py-4 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(inv.total)}</td>
-                      <td className="px-6 py-4"><span className={`text-xs font-medium px-2 py-1 rounded-full ${statusStyle}`}>{statusText}</span></td>
+                      <td className="px-3 py-2.5 text-xs"><Link href={`/invoices/${inv.id}`} className="font-medium text-[var(--accent)] hover:brightness-110">{inv.invoice_number}</Link></td>
+                      <td className="px-3 py-2.5 text-xs text-gray-400 max-w-[100px] truncate">{getCustomerName(inv.customer_id)}</td>
+                      <td className="px-3 py-2.5 text-xs text-right font-medium text-[var(--text-primary)]">{formatCurrency(inv.total)}</td>
+                      <td className="px-3 py-2.5"><span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${statusStyle}`}>{statusText}</span></td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
         {/* Recent Quotes */}
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)]">
-          <div className="px-6 py-4 border-b border-[var(--border)] flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Letzte Angebote</h2>
-            <Link href="/quotes" className="text-xs text-[var(--accent)] hover:brightness-110">Alle anzeigen</Link>
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
+          <div className="px-4 py-3 border-b border-[var(--border)] flex justify-between items-center">
+            <h2 className="text-sm sm:text-lg font-semibold text-[var(--text-primary)]">Letzte Angebote</h2>
+            <Link href="/quotes" className="text-[10px] text-[var(--accent)] hover:brightness-110">Alle</Link>
           </div>
           {recentQuotes.length === 0 ? (
-            <div className="px-6 py-8 text-center text-gray-500">Noch keine Angebote.</div>
+            <div className="px-4 py-6 text-center text-gray-500 text-sm">Noch keine Angebote.</div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-[var(--border)]">
               <thead className="bg-[var(--background)]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nr.</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kunde</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Nr.</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Kunde</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase">Brutto</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -234,18 +237,19 @@ export default function DashboardPage() {
                     : q.status === "rejected" ? "bg-rose-500/15 text-rose-400"
                     : q.status === "sent" ? "bg-blue-500/15 text-blue-400"
                     : "bg-gray-500/15 text-gray-400";
-                  const statusText = q.status === "accepted" ? "Angenommen" : q.status === "rejected" ? "Abgelehnt" : q.status === "sent" ? "Gesendet" : "Entwurf";
+                  const statusText = q.status === "accepted" ? "OK" : q.status === "rejected" ? "Abgel." : q.status === "sent" ? "Gesend." : "Entw.";
                   return (
                     <tr key={q.id} className="hover:bg-[var(--surface-hover)] transition">
-                      <td className="px-6 py-4"><Link href={`/quotes/${q.id}`} className="font-medium text-[var(--accent)] hover:brightness-110">{q.quote_number}</Link></td>
-                      <td className="px-6 py-4 text-sm text-gray-400">{getCustomerName(q.customer_id)}</td>
-                      <td className="px-6 py-4 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(q.total)}</td>
-                      <td className="px-6 py-4"><span className={`text-xs font-medium px-2 py-1 rounded-full ${statusStyle}`}>{statusText}</span></td>
+                      <td className="px-3 py-2.5 text-xs"><Link href={`/quotes/${q.id}`} className="font-medium text-[var(--accent)] hover:brightness-110">{q.quote_number}</Link></td>
+                      <td className="px-3 py-2.5 text-xs text-gray-400 max-w-[100px] truncate">{getCustomerName(q.customer_id)}</td>
+                      <td className="px-3 py-2.5 text-xs text-right font-medium text-[var(--text-primary)]">{formatCurrency(q.total)}</td>
+                      <td className="px-3 py-2.5"><span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${statusStyle}`}>{statusText}</span></td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>
