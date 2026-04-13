@@ -36,7 +36,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
       <div className="max-w-sm w-full">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white">VR the Fans</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">VR the Fans</h1>
           <p className="text-sm text-gray-500 mt-1">Rechnungsverwaltung</p>
         </div>
 
@@ -45,7 +45,7 @@ export default function LoginPage() {
           className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 space-y-4"
         >
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
               E-Mail
             </label>
             <input
@@ -53,12 +53,12 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
               placeholder="email@vrthefans.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
               Passwort
             </label>
             <input
@@ -66,7 +66,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
             />
           </div>
 

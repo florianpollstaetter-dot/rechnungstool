@@ -136,7 +136,7 @@ export default function QuotesPage() {
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Angebote</h1>
         <div className="flex gap-2">
           {templates.length > 0 && (
-            <button onClick={() => setShowTemplateModal(true)} className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">Aus Vorlage</button>
+            <button onClick={() => setShowTemplateModal(true)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">Aus Vorlage</button>
           )}
           <Link href="/quotes/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ Neues Angebot</Link>
         </div>

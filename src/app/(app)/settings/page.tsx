@@ -246,7 +246,7 @@ export default function SettingsPage() {
               </svg>
               <h3 className="text-lg font-semibold text-[var(--text-primary)]">Gesellschaftsform aendern</h3>
             </div>
-            <p className="text-sm text-gray-300 mb-2">
+            <p className="text-sm text-[var(--text-secondary)] mb-2">
               Sie wechseln von <strong className="text-[var(--text-primary)]">{COMPANY_TYPE_OPTIONS.find((o) => o.value === settings?.company_type)?.label}</strong> zu <strong className="text-[var(--text-primary)]">{COMPANY_TYPE_OPTIONS.find((o) => o.value === pendingTypeChange)?.label}</strong>.
             </p>
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-4">

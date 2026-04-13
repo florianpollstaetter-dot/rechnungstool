@@ -80,7 +80,7 @@ export default function InvoiceDetailPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <Link href="/invoices" className="text-sm text-gray-500 hover:text-gray-300 transition">&larr; Zurück zu Rechnungen</Link>
+          <Link href="/invoices" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; Zurück zu Rechnungen</Link>
           <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">Rechnung {invoice.invoice_number}</h1>
         </div>
         <div className="flex items-center gap-3">
@@ -99,7 +99,7 @@ export default function InvoiceDetailPage() {
               <option value="ueberfaellig">Überfällig</option>
             </select>
           )}
-          <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-gray-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title="Als Vorlage speichern">
+          <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title="Als Vorlage speichern">
             Vorlage
           </button>
           <PDFDownloadButton invoice={invoice} customer={customer} settings={settings} onPreview={setPreviewBlob} />

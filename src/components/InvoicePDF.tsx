@@ -33,7 +33,7 @@ const c = {
 };
 
 const s = StyleSheet.create({
-  page: { paddingTop: 45, paddingBottom: 80, paddingLeft: 50, paddingRight: 50, fontFamily: "Inter", fontSize: 9.5, color: c.grayDark },
+  page: { paddingTop: 45, paddingBottom: 110, paddingLeft: 50, paddingRight: 50, fontFamily: "Inter", fontSize: 9.5, color: c.grayDark },
   goldBar: { position: "absolute", top: 0, left: 0, width: 4, height: "100%", backgroundColor: c.accent },
   header: { flexDirection: "row", justifyContent: "space-between", paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: c.accent },
   logo: { width: 130, height: 55, objectFit: "contain" },

@@ -141,7 +141,7 @@ export default function AdminPage() {
             <button type="submit" disabled={saving} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
               {saving ? "Erstelle..." : "Benutzer erstellen"}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
+            <button type="button" onClick={() => setShowForm(false)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
               Abbrechen
             </button>
           </div>

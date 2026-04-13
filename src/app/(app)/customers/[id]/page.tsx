@@ -57,7 +57,7 @@ export default function CustomerDetailPage() {
 
   return (
     <div>
-      <Link href="/customers" className="text-sm text-gray-500 hover:text-gray-300 transition">&larr; Zurück zu Kunden</Link>
+      <Link href="/customers" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; Zurück zu Kunden</Link>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-2 mb-6">
         <div>
@@ -83,7 +83,7 @@ export default function CustomerDetailPage() {
         <div className="flex gap-1.5">
           {tabs.map((tab) => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition ${activeTab === tab.key ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-gray-300 hover:bg-[var(--border)]"}`}
+              className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition ${activeTab === tab.key ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--border)]"}`}
             >{tab.label}</button>
           ))}
         </div>

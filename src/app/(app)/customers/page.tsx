@@ -141,7 +141,7 @@ export default function CustomersPage() {
                 setShowForm(false);
                 setEditing(null);
               }}
-              className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
+              className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
             >
               Abbrechen
             </button>
@@ -179,7 +179,7 @@ export default function CustomersPage() {
               </tr>
             )}
             {customers.map((c) => (
-              <tr key={c.id} className="hover:bg-[var(--surface-hover)] transition cursor-pointer" onClick={() => window.location.href = `/customers/${c.id}`}>
+              <tr key={c.id} className="hover:bg-[var(--surface-hover)] transition cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest('button, a, input, select')) return; window.location.href = `/customers/${c.id}`; }}>
                 <td className="px-6 py-4">
                   <div className="font-medium text-[var(--text-primary)]">
                     {c.company || c.name}

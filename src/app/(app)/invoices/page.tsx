@@ -9,7 +9,7 @@ import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
 
 const statusConfig: { value: InvoiceStatus; label: string; color: string; activeColor: string }[] = [
-  { value: "entwurf", label: "Entwurf", color: "text-gray-500 hover:text-gray-300", activeColor: "bg-gray-500/20 text-gray-300 ring-1 ring-gray-500/40" },
+  { value: "entwurf", label: "Entwurf", color: "text-gray-500 hover:text-[var(--text-secondary)]", activeColor: "bg-gray-500/20 text-[var(--text-secondary)] ring-1 ring-gray-500/40" },
   { value: "offen", label: "Offen", color: "text-amber-500/60 hover:text-amber-400", activeColor: "bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/40" },
   { value: "teilbezahlt", label: "Teil", color: "text-cyan-500/60 hover:text-cyan-400", activeColor: "bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/40" },
   { value: "bezahlt", label: "Bezahlt", color: "text-emerald-500/60 hover:text-emerald-400", activeColor: "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/40" },
@@ -246,7 +246,7 @@ function InvoicesPage() {
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Rechnungen</h1>
         <div className="flex gap-2">
           {templates.length > 0 && (
-            <button onClick={() => setShowTemplateModal(true)} className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">Aus Vorlage</button>
+            <button onClick={() => setShowTemplateModal(true)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">Aus Vorlage</button>
           )}
           <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ Neue Rechnung</Link>
         </div>
@@ -262,7 +262,7 @@ function InvoicesPage() {
               className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition ${
                 activeFilter === tab.value
                   ? "bg-[var(--accent)] text-black"
-                  : "bg-[var(--surface-hover)] text-gray-300 hover:bg-[var(--border)]"
+                  : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--border)]"
               }`}
             >
               {tab.label}

@@ -192,10 +192,10 @@ export default function BankPage() {
       {/* Statement filter */}
       {statements.length > 0 && (
         <div className="flex gap-2 mb-4 flex-wrap">
-          <button onClick={() => setSelectedStatement(null)} className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${!selectedStatement ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-gray-300 hover:bg-[var(--border)]"}`}>Alle</button>
+          <button onClick={() => setSelectedStatement(null)} className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${!selectedStatement ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--border)]"}`}>Alle</button>
           {statements.map((s) => (
             <div key={s.id} className="flex items-center gap-1">
-              <button onClick={() => setSelectedStatement(s.id)} className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${selectedStatement === s.id ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-gray-300 hover:bg-[var(--border)]"}`}>
+              <button onClick={() => setSelectedStatement(s.id)} className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${selectedStatement === s.id ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--border)]"}`}>
                 {s.file_name}
               </button>
               <button onClick={() => handleDeleteStatement(s.id)} className="text-rose-500/60 hover:text-rose-400 text-xs">x</button>

@@ -89,7 +89,7 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
           <button
             onClick={handlePreview}
             disabled={previewLoading}
-            className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] disabled:opacity-50 transition"
+            className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] disabled:opacity-50 transition"
           >
             {previewLoading ? "Laden..." : "Vorschau"}
           </button>

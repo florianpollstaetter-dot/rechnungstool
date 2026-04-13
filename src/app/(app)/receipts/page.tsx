@@ -229,7 +229,6 @@ export default function ReceiptsPage() {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={handleCameraCapture}
               disabled={uploading}
               className="hidden"
@@ -432,7 +431,7 @@ export default function ReceiptsPage() {
                         </button>
                       )}
                       {analyzing === r.id && <span className="text-xs text-amber-400 animate-pulse">Analysiert...</span>}
-                      <button onClick={() => setEditingId(isEditing ? null : r.id)} className="text-gray-500 hover:text-gray-300 p-1" title="Bearbeiten">
+                      <button onClick={() => setEditingId(isEditing ? null : r.id)} className="text-gray-500 hover:text-[var(--text-secondary)] p-1" title="Bearbeiten">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
                         </svg>

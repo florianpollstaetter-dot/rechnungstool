@@ -199,7 +199,7 @@ export default function ProductsPage() {
             <button
               type="button"
               onClick={resetForm}
-              className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
+              className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
             >
               Abbrechen
             </button>
@@ -237,7 +237,7 @@ export default function ProductsPage() {
                 <td className="px-6 py-4">
                   {p.name_en ? (
                     <>
-                      <div className="text-sm text-gray-300">{p.name_en}</div>
+                      <div className="text-sm text-[var(--text-secondary)]">{p.name_en}</div>
                       {p.description_en && <div className="text-xs text-gray-500">{p.description_en}</div>}
                     </>
                   ) : (

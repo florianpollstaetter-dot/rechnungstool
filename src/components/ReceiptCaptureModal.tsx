@@ -311,7 +311,7 @@ export default function ReceiptCaptureModal({ imageFile, imageUrl, editMode, onS
           <button onClick={handleAutoCrop} className="bg-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-cyan-500 transition">
             Auto-Zuschnitt
           </button>
-          <button onClick={() => imgSize.w > 0 && setQuad(defaultQuad(imgSize.w, imgSize.h))} className="bg-[var(--surface-hover)] text-gray-300 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[var(--border)] transition">
+          <button onClick={() => imgSize.w > 0 && setQuad(defaultQuad(imgSize.w, imgSize.h))} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[var(--border)] transition">
             Zurücksetzen
           </button>
         </div>
@@ -346,7 +346,7 @@ export default function ReceiptCaptureModal({ imageFile, imageUrl, editMode, onS
           >
             {submitting ? "Wird gespeichert..." : editMode ? "Zuschnitt speichern" : "Hochladen & Analysieren"}
           </button>
-          <button onClick={onCancel} className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
+          <button onClick={onCancel} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
             Abbrechen
           </button>
         </div>

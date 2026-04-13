@@ -158,7 +158,7 @@ export default function QuoteDetailPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <Link href="/quotes" className="text-sm text-gray-500 hover:text-gray-300 transition">&larr; Zurück zu Angeboten</Link>
+          <Link href="/quotes" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; Zurück zu Angeboten</Link>
           <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">Angebot {quote.quote_number}</h1>
         </div>
         <div className="flex items-center gap-3">
@@ -196,7 +196,7 @@ export default function QuoteDetailPage() {
               )}
             </>
           )}
-          <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-gray-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title="Als Vorlage speichern">
+          <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title="Als Vorlage speichern">
             Vorlage
           </button>
           <PDFDownloadButton quote={quote} customer={customer} settings={settings} onPreview={setPreviewBlob} />
@@ -298,13 +298,13 @@ export default function QuoteDetailPage() {
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => { setPartialMode("percent"); setPartialValue("30"); }}
-                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition ${partialMode === "percent" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-gray-300"}`}
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition ${partialMode === "percent" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"}`}
               >
                 Prozent
               </button>
               <button
                 onClick={() => { setPartialMode("amount"); setPartialValue(String(Math.round(quote.total / 3 * 100) / 100)); }}
-                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition ${partialMode === "amount" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-gray-300"}`}
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition ${partialMode === "amount" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"}`}
               >
                 Betrag
               </button>
@@ -344,7 +344,7 @@ export default function QuoteDetailPage() {
               </button>
               <button
                 onClick={() => setShowPartialModal(false)}
-                className="bg-[var(--surface-hover)] text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
+                className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
               >
                 Abbrechen
               </button>
