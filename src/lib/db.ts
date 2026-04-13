@@ -43,12 +43,20 @@ function supabase() {
   return createClient();
 }
 
+function getActiveCompanyId(): string {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("activeCompanyId") || "vrthefans";
+  }
+  return "vrthefans";
+}
+
 // Company Settings
 export async function getSettings(): Promise<CompanySettings> {
+  const companyId = getActiveCompanyId();
   const { data } = await supabase()
     .from("company_settings")
     .select("*")
-    .eq("id", "default")
+    .eq("company_id", companyId)
     .single();
   return data ? { ...DEFAULT_SETTINGS, ...data } : DEFAULT_SETTINGS;
 }
@@ -56,10 +64,11 @@ export async function getSettings(): Promise<CompanySettings> {
 export async function updateSettings(
   settings: Partial<CompanySettings>
 ): Promise<CompanySettings> {
+  const companyId = getActiveCompanyId();
   const { data } = await supabase()
     .from("company_settings")
     .update(settings)
-    .eq("id", "default")
+    .eq("company_id", companyId)
     .select()
     .single();
   return data!;
@@ -68,9 +77,7 @@ export async function updateSettings(
 // Customers
 export async function getCustomers(): Promise<Customer[]> {
   const { data } = await supabase()
-    .from("customers")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .from("customers").select("*").eq("company_id", getActiveCompanyId()).order("created_at", { ascending: false });
   return (data ?? []).map(mapCustomer);
 }
 
@@ -116,17 +123,13 @@ export async function deleteCustomer(id: string): Promise<void> {
 // Products
 export async function getProducts(): Promise<Product[]> {
   const { data } = await supabase()
-    .from("products")
-    .select("*")
-    .order("name", { ascending: true });
+    .from("products").select("*").eq("company_id", getActiveCompanyId()).order("name", { ascending: true });
   return (data ?? []).map(mapProduct);
 }
 
 export async function getActiveProducts(): Promise<Product[]> {
   const { data } = await supabase()
-    .from("products")
-    .select("*")
-    .eq("active", true)
+    .from("products").select("*").eq("company_id", getActiveCompanyId()).eq("active", true)
     .order("name", { ascending: true });
   return (data ?? []).map(mapProduct);
 }
@@ -162,9 +165,7 @@ export async function deleteProduct(id: string): Promise<void> {
 // Invoices
 export async function getInvoices(): Promise<Invoice[]> {
   const { data: invoices } = await supabase()
-    .from("invoices")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .from("invoices").select("*").eq("company_id", getActiveCompanyId()).order("created_at", { ascending: false });
   if (!invoices || invoices.length === 0) return [];
 
   const ids = invoices.map((i) => i.id);
@@ -223,6 +224,7 @@ export async function createInvoice(
     .insert({
       ...invoiceData,
       invoice_number: invoiceNumber,
+      company_id: getActiveCompanyId(),
     })
     .select()
     .single();
@@ -233,6 +235,7 @@ export async function createInvoice(
       .insert(
         items.map((item) => ({
           invoice_id: inv!.id,
+          company_id: getActiveCompanyId(),
           position: item.position,
           description: item.description,
           unit: item.unit || "Stueck",
@@ -304,9 +307,7 @@ export async function deleteInvoice(id: string): Promise<void> {
 // Quotes
 export async function getQuotes(): Promise<Quote[]> {
   const { data: quotes } = await supabase()
-    .from("quotes")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .from("quotes").select("*").eq("company_id", getActiveCompanyId()).order("created_at", { ascending: false });
   if (!quotes || quotes.length === 0) return [];
 
   const ids = quotes.map((q) => q.id);
@@ -363,6 +364,7 @@ export async function createQuote(
     .insert({
       ...quoteData,
       quote_number: quoteNumber,
+      company_id: getActiveCompanyId(),
     })
     .select()
     .single();
@@ -373,6 +375,7 @@ export async function createQuote(
       .insert(
         items.map((item) => ({
           quote_id: q!.id,
+          company_id: getActiveCompanyId(),
           position: item.position,
           description: item.description,
           unit: item.unit || "Stueck",
@@ -483,12 +486,12 @@ export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
 
 // Bank Statements
 export async function getBankStatements(): Promise<BankStatement[]> {
-  const { data } = await supabase().from("bank_statements").select("*").order("created_at", { ascending: false });
+  const { data } = await supabase().from("bank_statements").select("*").eq("company_id", getActiveCompanyId()).order("created_at", { ascending: false });
   return (data ?? []).map(mapBankStatement);
 }
 
 export async function createBankStatement(stmt: Omit<BankStatement, "id" | "created_at" | "updated_at">): Promise<BankStatement> {
-  const { data } = await supabase().from("bank_statements").insert(stmt).select().single();
+  const { data } = await supabase().from("bank_statements").insert({ ...stmt, company_id: getActiveCompanyId() }).select().single();
   return mapBankStatement(data!);
 }
 
@@ -498,14 +501,14 @@ export async function deleteBankStatement(id: string): Promise<void> {
 }
 
 export async function getTransactions(statementId?: string): Promise<BankTransaction[]> {
-  let query = supabase().from("bank_transactions").select("*").order("booking_date", { ascending: false });
+  let query = supabase().from("bank_transactions").select("*").eq("company_id", getActiveCompanyId()).order("booking_date", { ascending: false });
   if (statementId) query = query.eq("statement_id", statementId);
   const { data } = await query;
   return (data ?? []).map(mapBankTransaction);
 }
 
 export async function createTransaction(tx: Omit<BankTransaction, "id" | "created_at" | "updated_at">): Promise<BankTransaction> {
-  const { data } = await supabase().from("bank_transactions").insert(tx).select().single();
+  const { data } = await supabase().from("bank_transactions").insert({ ...tx, company_id: getActiveCompanyId() }).select().single();
   return mapBankTransaction(data!);
 }
 
@@ -516,7 +519,7 @@ export async function updateTransaction(id: string, updates: Partial<BankTransac
 
 // Receipts
 export async function getReceipts(): Promise<Receipt[]> {
-  const { data } = await supabase().from("receipts").select("*").order("created_at", { ascending: false });
+  const { data } = await supabase().from("receipts").select("*").eq("company_id", getActiveCompanyId()).order("created_at", { ascending: false });
   return (data ?? []).map(mapReceipt);
 }
 
@@ -526,7 +529,7 @@ export async function getReceipt(id: string): Promise<Receipt | undefined> {
 }
 
 export async function createReceipt(receipt: Omit<Receipt, "id" | "created_at" | "updated_at">): Promise<Receipt> {
-  const { data } = await supabase().from("receipts").insert(receipt).select().single();
+  const { data } = await supabase().from("receipts").insert({ ...receipt, company_id: getActiveCompanyId() }).select().single();
   return mapReceipt(data!);
 }
 
@@ -558,7 +561,7 @@ export function getReceiptFileUrl(path: string): string {
 
 // Templates
 export async function getTemplates(type?: TemplateType): Promise<Template[]> {
-  let query = supabase().from("templates").select("*").order("name", { ascending: true });
+  let query = supabase().from("templates").select("*").eq("company_id", getActiveCompanyId()).order("name", { ascending: true });
   if (type) query = query.eq("template_type", type);
   const { data } = await query;
   return (data ?? []).map(mapTemplate);
@@ -574,7 +577,7 @@ export async function createTemplate(
 ): Promise<Template> {
   const { data } = await supabase()
     .from("templates")
-    .insert({ ...template, items: JSON.stringify(template.items) })
+    .insert({ ...template, items: JSON.stringify(template.items), company_id: getActiveCompanyId() })
     .select()
     .single();
   return mapTemplate(data!);
@@ -587,17 +590,13 @@ export async function deleteTemplate(id: string): Promise<void> {
 // Fixed Costs
 export async function getFixedCosts(): Promise<FixedCost[]> {
   const { data } = await supabase()
-    .from("fixed_costs")
-    .select("*")
-    .order("name", { ascending: true });
+    .from("fixed_costs").select("*").eq("company_id", getActiveCompanyId()).order("name", { ascending: true });
   return (data ?? []).map(mapFixedCost);
 }
 
 export async function getActiveFixedCosts(): Promise<FixedCost[]> {
   const { data } = await supabase()
-    .from("fixed_costs")
-    .select("*")
-    .eq("is_active", true)
+    .from("fixed_costs").select("*").eq("company_id", getActiveCompanyId()).eq("is_active", true)
     .order("name", { ascending: true });
   return (data ?? []).map(mapFixedCost);
 }
