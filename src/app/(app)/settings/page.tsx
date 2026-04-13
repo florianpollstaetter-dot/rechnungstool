@@ -21,6 +21,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pendingTypeChange, setPendingTypeChange] = useState<CompanyType | null>(null);
+  const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -68,8 +69,12 @@ export default function SettingsPage() {
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault();
     setPasswordMessage(null);
+    if (!oldPassword) {
+      setPasswordMessage({ type: "error", text: "Bitte altes Passwort eingeben." });
+      return;
+    }
     if (newPassword.length < 6) {
-      setPasswordMessage({ type: "error", text: "Passwort muss mindestens 6 Zeichen haben." });
+      setPasswordMessage({ type: "error", text: "Neues Passwort muss mindestens 6 Zeichen haben." });
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -79,9 +84,20 @@ export default function SettingsPage() {
     setPasswordSaving(true);
     try {
       const supabase = createClient();
+      // Verify old password by re-authenticating
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error("Benutzer nicht gefunden.");
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email, password: oldPassword });
+      if (signInError) {
+        setPasswordMessage({ type: "error", text: "Altes Passwort ist falsch." });
+        setPasswordSaving(false);
+        return;
+      }
+      // Now change the password
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       setPasswordMessage({ type: "success", text: "Passwort erfolgreich geändert." });
+      setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
@@ -270,7 +286,11 @@ export default function SettingsPage() {
       <form onSubmit={handlePasswordChange} className="mt-6 bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
         <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Passwort ändern</h2>
         <p className="text-sm text-[var(--text-muted)] mb-4">Ändert das Passwort nur für den aktuell angemeldeten Benutzer.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Altes Passwort</label>
+            <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} required className={inputClass} placeholder="Aktuelles Passwort" />
+          </div>
           <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Neues Passwort</label>
             <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} className={inputClass} placeholder="Mindestens 6 Zeichen" />

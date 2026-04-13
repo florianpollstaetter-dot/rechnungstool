@@ -56,8 +56,10 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         .eq("auth_user_id", user.id)
         .single();
 
+      // Fallback: use auth email if no profile
+      const fallbackName = user.email?.split("@")[0] || "User";
       if (profile) {
-        const name = profile.display_name || profile.email || "";
+        const name = profile.display_name || profile.email || fallbackName;
         localStorage.setItem("currentUserName", name);
         setUserName(name);
         let access: string[] = [];
@@ -77,8 +79,11 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
           }
         }
         setUserRole(profile.role || "user");
+      } else {
+        // No profile = admin (first user / legacy) — use email as name
+        localStorage.setItem("currentUserName", fallbackName);
+        setUserName(fallbackName);
       }
-      // No profile = admin (first user / legacy)
     }
     loadUserAccess();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
