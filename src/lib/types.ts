@@ -224,7 +224,23 @@ export interface Receipt {
   updated_at: string;
 }
 
-export type UserRole = "admin" | "user";
+export type UserRole = "admin" | "manager" | "accountant" | "employee";
+
+export const USER_ROLE_OPTIONS: { value: UserRole; label: string; description: string }[] = [
+  { value: "admin", label: "Administrator", description: "Voller Zugriff auf alle Funktionen" },
+  { value: "manager", label: "Geschäftsführer", description: "Rechnungen, Angebote, Kunden, Spesen-Genehmigung" },
+  { value: "accountant", label: "Buchhalter", description: "Rechnungen, Belege, Export, Spesen-Genehmigung" },
+  { value: "employee", label: "Mitarbeiter", description: "Nur Spesen und Zeiterfassung" },
+];
+
+export type AppSection = "dashboard" | "invoices" | "quotes" | "customers" | "products" | "receipts" | "bank" | "export" | "fixed-costs" | "expenses" | "time" | "admin";
+
+export const ROLE_PERMISSIONS: Record<UserRole, AppSection[]> = {
+  admin: ["dashboard", "invoices", "quotes", "customers", "products", "receipts", "bank", "export", "fixed-costs", "expenses", "time", "admin"],
+  manager: ["dashboard", "invoices", "quotes", "customers", "products", "receipts", "bank", "export", "fixed-costs", "expenses", "time"],
+  accountant: ["dashboard", "invoices", "receipts", "bank", "export", "fixed-costs", "expenses"],
+  employee: ["expenses", "time"],
+};
 
 export interface UserProfile {
   id: string;
@@ -232,7 +248,63 @@ export interface UserProfile {
   display_name: string;
   email: string;
   role: UserRole;
-  company_access: string[]; // array of company IDs
+  job_title: string;
+  iban: string;
+  address: string;
+  company_access: string[];
+  created_at: string;
+}
+
+export type ExpenseStatus = "draft" | "submitted" | "approved" | "rejected" | "booked";
+
+export interface ExpenseReport {
+  id: string;
+  company_id: string;
+  user_id: string;
+  user_name: string;
+  period_month: string;
+  report_number: string;
+  status: ExpenseStatus;
+  total_amount: number;
+  submitted_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  notes: string;
+  created_at: string;
+}
+
+export interface ExpenseItem {
+  id: string;
+  expense_report_id: string;
+  company_id: string;
+  date: string;
+  issuer: string;
+  purpose: string;
+  category: string;
+  amount_net: number;
+  vat_rate: number;
+  amount_vat: number;
+  amount_gross: number;
+  payment_method: string;
+  receipt_file_path: string | null;
+  account_debit: string;
+  notes: string;
+  created_at: string;
+}
+
+export interface TimeEntry {
+  id: string;
+  company_id: string;
+  user_id: string;
+  user_name: string;
+  quote_id: string | null;
+  project_label: string;
+  description: string;
+  start_time: string;
+  end_time: string | null;
+  duration_minutes: number;
+  billable: boolean;
+  hourly_rate: number;
   created_at: string;
 }
 

@@ -9,6 +9,8 @@ import {
   QuoteItem,
   FixedCost,
   Receipt,
+  ExpenseReport,
+  ExpenseItem,
   UserProfile,
   BankStatement,
   BankTransaction,
@@ -523,6 +525,41 @@ export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
   return invoice;
 }
 
+// Expense Reports
+export async function getExpenseReports(): Promise<ExpenseReport[]> {
+  const { data } = await supabase().from("expense_reports").select("*").eq("company_id", getActiveCompanyId()).order("created_at", { ascending: false });
+  return (data ?? []).map((r) => ({ ...r, id: r.id as string } as ExpenseReport));
+}
+
+export async function createExpenseReport(report: Omit<ExpenseReport, "id" | "created_at">): Promise<ExpenseReport> {
+  const { data } = await supabase().from("expense_reports").insert({ ...report, company_id: getActiveCompanyId() }).select().single();
+  return data as unknown as ExpenseReport;
+}
+
+export async function updateExpenseReport(id: string, updates: Partial<ExpenseReport>): Promise<void> {
+  await supabase().from("expense_reports").update(updates).eq("id", id);
+}
+
+export async function deleteExpenseReport(id: string): Promise<void> {
+  await supabase().from("expense_items").delete().eq("expense_report_id", id);
+  await supabase().from("expense_reports").delete().eq("id", id);
+}
+
+// Expense Items
+export async function getExpenseItems(): Promise<ExpenseItem[]> {
+  const { data } = await supabase().from("expense_items").select("*").eq("company_id", getActiveCompanyId()).order("date", { ascending: true });
+  return (data ?? []).map((i) => ({ ...i, id: i.id as string } as ExpenseItem));
+}
+
+export async function createExpenseItem(item: Omit<ExpenseItem, "id" | "created_at">): Promise<ExpenseItem> {
+  const { data } = await supabase().from("expense_items").insert({ ...item, company_id: getActiveCompanyId() }).select().single();
+  return data as unknown as ExpenseItem;
+}
+
+export async function deleteExpenseItem(id: string): Promise<void> {
+  await supabase().from("expense_items").delete().eq("id", id);
+}
+
 // Bank Statements
 export async function getBankStatements(): Promise<BankStatement[]> {
   const { data } = await supabase().from("bank_statements").select("*").eq("company_id", getActiveCompanyId()).order("created_at", { ascending: false });
@@ -907,7 +944,10 @@ function mapUserProfile(row: Record<string, unknown>): UserProfile {
     auth_user_id: row.auth_user_id as string,
     display_name: (row.display_name as string) || "",
     email: (row.email as string) || "",
-    role: (row.role as UserProfile["role"]) || "user",
+    role: (row.role as UserProfile["role"]) || "employee",
+    job_title: (row.job_title as string) || "",
+    iban: (row.iban as string) || "",
+    address: (row.address as string) || "",
     company_access: companyAccess,
     created_at: row.created_at as string,
   };

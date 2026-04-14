@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { UserProfile } from "@/lib/types";
+import { UserProfile, USER_ROLE_OPTIONS, UserRole } from "@/lib/types";
 import { getUserProfiles, createUserProfile, updateUserProfile, deleteUserProfile } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { COMPANIES } from "@/lib/company-context";
@@ -11,11 +11,11 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string>("user");
-  const [form, setForm] = useState({ email: "", password: "", display_name: "", role: "user" as "admin" | "user", company_access: ["vrthefans"] as string[] });
+  const [form, setForm] = useState({ email: "", password: "", display_name: "", role: "employee" as UserRole, company_access: ["vrthefans"] as string[] });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [editingUser, setEditingUser] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ display_name: "", role: "user" as "admin" | "user" });
+  const [editForm, setEditForm] = useState({ display_name: "", role: "employee" as UserRole });
 
   const loadData = useCallback(async () => {
     const supabase = createClient();
@@ -51,10 +51,13 @@ export default function AdminPage() {
         display_name: form.display_name,
         email: form.email,
         role: form.role,
+        job_title: "",
+        iban: "",
+        address: "",
         company_access: form.company_access,
       });
 
-      setForm({ email: "", password: "", display_name: "", role: "user", company_access: ["vrthefans"] });
+      setForm({ email: "", password: "", display_name: "", role: "employee", company_access: ["vrthefans"] });
       setShowForm(false);
       await loadData();
     } catch (err) {
@@ -124,9 +127,8 @@ export default function AdminPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Rolle</label>
-              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as "admin" | "user" })} className={inputClass}>
-                <option value="user">Benutzer</option>
-                <option value="admin">Administrator</option>
+              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className={inputClass}>
+                {USER_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div className="md:col-span-2">
@@ -191,14 +193,13 @@ export default function AdminPage() {
                 <td className="px-4 py-3 text-sm text-gray-400">{u.email}</td>
                 <td className="px-4 py-3">
                   {isEditing ? (
-                    <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as "admin" | "user" })}
+                    <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
                       className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)]">
-                      <option value="user">Benutzer</option>
-                      <option value="admin">Administrator</option>
+                      {USER_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   ) : (
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${u.role === "admin" ? "bg-[var(--accent)]/15 text-[var(--accent)]" : "bg-gray-500/15 text-gray-400"}`}>
-                      {u.role === "admin" ? "Admin" : "Benutzer"}
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${u.role === "admin" ? "bg-[var(--accent)]/15 text-[var(--accent)]" : u.role === "manager" ? "bg-emerald-500/15 text-emerald-400" : u.role === "accountant" ? "bg-orange-500/15 text-orange-400" : "bg-gray-500/15 text-gray-400"}`}>
+                      {USER_ROLE_OPTIONS.find((o) => o.value === u.role)?.label || u.role}
                     </span>
                   )}
                 </td>

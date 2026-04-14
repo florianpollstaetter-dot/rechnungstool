@@ -6,24 +6,29 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useCompany, COMPANIES } from "@/lib/company-context";
+import { ROLE_PERMISSIONS, AppSection, UserRole } from "@/lib/types";
 
-const navItems = [
-  { href: "/", label: "Dashboard", exact: true },
-  { href: "/quotes", label: "Angebote" },
-  { href: "/invoices", label: "Rechnungen" },
-  { href: "/customers", label: "Kunden" },
-  { href: "/products", label: "Produkte" },
-  { href: "/fixed-costs", label: "Fixkosten" },
-  { href: "/receipts", label: "Belege" },
-  { href: "/bank", label: "Konto" },
-  { href: "/export", label: "Export" },
-  { href: "/admin", label: "Admin" },
+const allNavItems: { href: string; label: string; exact?: boolean; section: AppSection }[] = [
+  { href: "/", label: "Dashboard", exact: true, section: "dashboard" },
+  { href: "/quotes", label: "Angebote", section: "quotes" },
+  { href: "/invoices", label: "Rechnungen", section: "invoices" },
+  { href: "/customers", label: "Kunden", section: "customers" },
+  { href: "/products", label: "Produkte", section: "products" },
+  { href: "/fixed-costs", label: "Fixkosten", section: "fixed-costs" },
+  { href: "/receipts", label: "Belege", section: "receipts" },
+  { href: "/bank", label: "Konto", section: "bank" },
+  { href: "/export", label: "Export", section: "export" },
+  { href: "/expenses", label: "Spesen", section: "expenses" },
+  { href: "/time", label: "Zeiterfassung", section: "time" },
+  { href: "/admin", label: "Admin", section: "admin" },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { company, accessibleCompanies, userName, setCompanyId } = useCompany();
+  const { company, accessibleCompanies, userName, userRole, setCompanyId } = useCompany();
+  const permissions = ROLE_PERMISSIONS[(userRole as UserRole) || "admin"] || ROLE_PERMISSIONS.admin;
+  const navItems = allNavItems.filter((item) => permissions.includes(item.section));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
 
