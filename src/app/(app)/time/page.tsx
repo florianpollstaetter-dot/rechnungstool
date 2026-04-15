@@ -167,9 +167,9 @@ export default function TimePage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Zeiterfassung</h1>
         <div className="flex items-center gap-4">
-          {/* Mini pie chart */}
+          {/* Mini pie chart — clickable to analytics */}
           {todayByProject.size > 0 && todayMinutes > 0 && (
-            <div className="flex items-center gap-2">
+            <a href="/time/analytics" className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer" title="Auswertungen öffnen">
               <svg width="40" height="40" viewBox="0 0 40 40">
                 {(() => {
                   let offset = 0;
@@ -187,7 +187,7 @@ export default function TimePage() {
                 <p className="text-xs text-[var(--text-muted)]">Heute</p>
                 <p className="font-bold text-[var(--text-primary)] text-sm">{formatDuration(todayMinutes)}</p>
               </div>
-            </div>
+            </a>
           )}
           <div className="text-center">
             <p className="text-[var(--text-muted)] text-xs">Woche</p>
