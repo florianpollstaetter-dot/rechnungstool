@@ -94,11 +94,16 @@ export default function TimePage() {
 
   async function handleDescriptionSubmit() {
     if (!activeTimer || !description.trim()) return;
-    setSavedDescription(description.trim());
-    await updateTimeEntry(activeTimer.id, { description: description.trim() });
+    const newDesc = savedDescription
+      ? `${savedDescription}, ${description.trim()}`
+      : description.trim();
+    await updateTimeEntry(activeTimer.id, { description: newDesc });
+    setDescription("");
     setDescAnimation(true);
-    setTimeout(() => { setDescription(""); setDescAnimation(false); }, 400);
-    await loadData();
+    setTimeout(() => {
+      setSavedDescription(newDesc);
+      setDescAnimation(false);
+    }, 300);
   }
 
   async function handleStop() {
