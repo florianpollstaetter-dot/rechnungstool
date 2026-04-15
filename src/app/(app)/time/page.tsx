@@ -19,6 +19,17 @@ function dateKey(iso: string): string { return iso.split("T")[0]; }
 const GENERAL_ITEMS = ["Pause", "Daily", "Weekly", "Meeting Team", "Meeting Agentur", "Neues Projekt", "Briefing", "Administration", "E-Mails"];
 const OTHER_ITEMS = ["Weiterbildung", "Reise", "Krankheit", "Urlaub", "Sonstiges"];
 
+const COLOR_PALETTE = [
+  "#10b981", "#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444", "#06b6d4", "#ec4899",
+  "#14b8a6", "#f97316", "#6366f1", "#a855f7", "#e11d48", "#0891b2", "#d946ef",
+  "#059669", "#d97706", "#2563eb", "#7c3aed", "#dc2626", "#0e7490", "#c026d3",
+];
+
+function getProjectColor(project: string, allProjects: string[]): string {
+  const idx = allProjects.indexOf(project);
+  return COLOR_PALETTE[idx >= 0 ? idx % COLOR_PALETTE.length : 0];
+}
+
 type PickerTab = "allgemein" | "projekte" | "other";
 
 export default function TimePage() {
@@ -64,9 +75,10 @@ export default function TimePage() {
     setElapsed(0);
   }, [activeTimer]);
 
-  // Project frequency for sorting
+  // Project frequency for sorting + color assignment
   const projectFreq = new Map<string, number>();
   entries.forEach((e) => { projectFreq.set(e.project_label, (projectFreq.get(e.project_label) || 0) + 1); });
+  const allProjectLabels = Array.from(new Set(entries.map((e) => e.project_label))).sort((a, b) => (projectFreq.get(b) || 0) - (projectFreq.get(a) || 0));
 
   async function handleStart(label: string) {
     if (!label) return;
@@ -80,13 +92,33 @@ export default function TimePage() {
     await loadData();
   }
 
+  // Debounced auto-save for description
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function handleDescriptionChange(val: string) {
+    setDescription(val);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    if (!activeTimer) return;
+    saveTimerRef.current = setTimeout(async () => {
+      const newDesc = savedDescription ? `${savedDescription}, ${val.trim()}` : val.trim();
+      if (val.trim()) {
+        await updateTimeEntry(activeTimer.id, { description: newDesc });
+        setSavedDescription(newDesc);
+        setDescription("");
+        setDescAnimation(true);
+        setTimeout(() => setDescAnimation(false), 300);
+      }
+    }, 2000);
+  }
+
   async function handleDescriptionSubmit() {
     if (!activeTimer || !description.trim()) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     const newDesc = savedDescription ? `${savedDescription}, ${description.trim()}` : description.trim();
     await updateTimeEntry(activeTimer.id, { description: newDesc });
     setDescription("");
+    setSavedDescription(newDesc);
     setDescAnimation(true);
-    setTimeout(() => { setSavedDescription(newDesc); setDescAnimation(false); }, 300);
+    setTimeout(() => setDescAnimation(false), 300);
   }
 
   async function handleStop() {
@@ -126,7 +158,7 @@ export default function TimePage() {
   });
   if (activeTimer) todayByProject.set(activeTimer.project_label, (todayByProject.get(activeTimer.project_label) || 0) + elapsed);
 
-  const chartColors = ["#10b981", "#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444", "#06b6d4", "#ec4899"];
+  // chartColors replaced by getProjectColor()
 
   if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
 
@@ -147,7 +179,7 @@ export default function TimePage() {
                     const dashArray = `${pct * 125.66} ${125.66 * (1 - pct)}`;
                     const dashOffset = -offset * 125.66;
                     offset += pct;
-                    return <circle key={i} cx="20" cy="20" r="16" fill="none" stroke={chartColors[i % chartColors.length]} strokeWidth="6" strokeDasharray={dashArray} strokeDashoffset={dashOffset} transform="rotate(-90 20 20)" />;
+                    return <circle key={i} cx="20" cy="20" r="16" fill="none" stroke={getProjectColor(Array.from(todayByProject.keys())[i], allProjectLabels)} strokeWidth="6" strokeDasharray={dashArray} strokeDashoffset={dashOffset} transform="rotate(-90 20 20)" />;
                   });
                 })()}
               </svg>
@@ -179,7 +211,7 @@ export default function TimePage() {
               <span className="text-2xl font-bold text-[var(--text-primary)] ml-auto">{formatDuration(elapsed)}</span>
             </div>
             <div className="flex gap-2">
-              <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
+              <input type="text" value={description} onChange={(e) => handleDescriptionChange(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleDescriptionSubmit(); }}
                 placeholder={savedDescription ? "Weitere Notiz..." : "Was machst du gerade?"}
                 className="flex-1 bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -189,15 +221,15 @@ export default function TimePage() {
           </div>
         ) : (
           <div>
-            {/* Tab picker */}
-            <div className="flex gap-1.5 mb-3">
+            {/* Tab picker with visual connection */}
+            <div className="flex gap-0 mb-0 border-b border-[var(--border)]">
               {([["allgemein", "Allgemein"], ["projekte", "Projekte"], ["other", "Other"]] as [PickerTab, string][]).map(([key, label]) => (
                 <button key={key} onClick={() => setPickerTab(key)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${pickerTab === key ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--border)]"}`}
+                  className={`px-4 py-2 text-xs font-medium transition border-b-2 ${pickerTab === key ? "border-[var(--accent)] text-[var(--accent)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"}`}
                 >{label}</button>
               ))}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pt-3 pb-1">
               {pickerTab === "allgemein" && GENERAL_ITEMS.map((item) => (
                 <button key={item} onClick={() => handleStart(item)}
                   className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-emerald-500/20 hover:text-emerald-400 transition"
@@ -261,12 +293,12 @@ export default function TimePage() {
                     <svg width="24" height="24" viewBox="0 0 24 24">
                       {(() => {
                         let off = 0;
-                        return Array.from(dayByProject.entries()).map(([, mins], i) => {
+                        return Array.from(dayByProject.entries()).map(([proj, mins], i) => {
                           const pct = mins / dayTotal;
                           const da = `${pct * 75.4} ${75.4 * (1 - pct)}`;
                           const doff = -off * 75.4;
                           off += pct;
-                          return <circle key={i} cx="12" cy="12" r="9" fill="none" stroke={chartColors[i % chartColors.length]} strokeWidth="4" strokeDasharray={da} strokeDashoffset={doff} transform="rotate(-90 12 12)" />;
+                          return <circle key={i} cx="12" cy="12" r="9" fill="none" stroke={getProjectColor(proj, allProjectLabels)} strokeWidth="4" strokeDasharray={da} strokeDashoffset={doff} transform="rotate(-90 12 12)" />;
                         });
                       })()}
                     </svg>
@@ -287,7 +319,10 @@ export default function TimePage() {
                               {isEditing ? (
                                 <input type="text" value={editForm.project_label} onChange={(ev) => setEditForm({ ...editForm, project_label: ev.target.value })} className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)] w-full" />
                               ) : (
-                                <span className="font-medium text-[var(--text-primary)]">{e.project_label}</span>
+                                <span className="flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getProjectColor(e.project_label, allProjectLabels) }} />
+                                  <span className="font-medium text-[var(--text-primary)]">{e.project_label}</span>
+                                </span>
                               )}
                             </td>
                             <td className="px-4 py-2.5 text-xs text-[var(--text-muted)] max-w-[200px]">
@@ -319,9 +354,9 @@ export default function TimePage() {
                   {/* Expanded day chart */}
                   {dayByProject.size > 1 && (
                     <div className="px-4 py-3 border-t border-[var(--border)] flex flex-wrap gap-3">
-                      {Array.from(dayByProject.entries()).map(([project, mins], i) => (
+                      {Array.from(dayByProject.entries()).map(([project, mins]) => (
                         <div key={project} className="flex items-center gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: chartColors[i % chartColors.length] }} />
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getProjectColor(project, allProjectLabels) }} />
                           <span className="text-[10px] text-[var(--text-secondary)]">{project}</span>
                           <span className="text-[10px] font-medium text-[var(--text-primary)]">{formatDuration(mins)}</span>
                         </div>
