@@ -31,6 +31,8 @@ export default function TimePage() {
   const [elapsed, setElapsed] = useState(0);
   const [selectedProject, setSelectedProject] = useState("");
   const [description, setDescription] = useState("");
+  const [savedDescription, setSavedDescription] = useState("");
+  const [descAnimation, setDescAnimation] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadData = useCallback(async () => {
@@ -49,7 +51,7 @@ export default function TimePage() {
     setActiveTimerState(timer);
     if (timer) {
       setSelectedProject(timer.project_label);
-      setDescription(timer.description);
+      setSavedDescription(timer.description || "");
     }
     setLoading(false);
   }, []);
@@ -90,6 +92,15 @@ export default function TimePage() {
     await loadData();
   }
 
+  async function handleDescriptionSubmit() {
+    if (!activeTimer || !description.trim()) return;
+    setSavedDescription(description.trim());
+    await updateTimeEntry(activeTimer.id, { description: description.trim() });
+    setDescAnimation(true);
+    setTimeout(() => { setDescription(""); setDescAnimation(false); }, 400);
+    await loadData();
+  }
+
   async function handleStop() {
     if (!activeTimer) return;
     const end = new Date();
@@ -98,10 +109,11 @@ export default function TimePage() {
     await updateTimeEntry(activeTimer.id, {
       end_time: end.toISOString(),
       duration_minutes: duration,
-      description,
+      description: description || savedDescription,
     });
     setActiveTimerState(null);
     setDescription("");
+    setSavedDescription("");
     await loadData();
   }
 
@@ -157,6 +169,11 @@ export default function TimePage() {
             <div className="flex items-center gap-3 mb-3">
               <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-sm font-medium text-emerald-400">Läuft — {activeTimer.project_label}</span>
+              {savedDescription && (
+                <span className={`text-xs text-[var(--text-muted)] italic transition-all duration-300 ${descAnimation ? "opacity-0 translate-x-4" : "opacity-100"}`}>
+                  {savedDescription}
+                </span>
+              )}
               <span className="text-2xl font-bold text-[var(--text-primary)] ml-auto">{formatDuration(elapsed)}</span>
             </div>
             <div className="flex gap-2">
@@ -164,7 +181,8 @@ export default function TimePage() {
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Was machst du gerade?"
+                onKeyDown={(e) => { if (e.key === "Enter") handleDescriptionSubmit(); }}
+                placeholder={savedDescription ? "Weitere Notiz..." : "Was machst du gerade?"}
                 className="flex-1 bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
               <button onClick={handleStop} className="bg-rose-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-rose-500 transition">
