@@ -11,6 +11,7 @@ import {
   Receipt,
   ExpenseReport,
   ExpenseItem,
+  TimeEntry,
   UserProfile,
   BankStatement,
   BankTransaction,
@@ -558,6 +559,32 @@ export async function createExpenseItem(item: Omit<ExpenseItem, "id" | "created_
 
 export async function deleteExpenseItem(id: string): Promise<void> {
   await supabase().from("expense_items").delete().eq("id", id);
+}
+
+// Time Entries
+export async function getTimeEntries(userId?: string): Promise<TimeEntry[]> {
+  let query = supabase().from("time_entries").select("*").eq("company_id", getActiveCompanyId()).order("start_time", { ascending: false });
+  if (userId) query = query.eq("user_id", userId);
+  const { data } = await query;
+  return (data ?? []).map((t) => ({ ...t, id: t.id as string } as TimeEntry));
+}
+
+export async function getActiveTimer(userId: string): Promise<TimeEntry | null> {
+  const { data } = await supabase().from("time_entries").select("*").eq("company_id", getActiveCompanyId()).eq("user_id", userId).is("end_time", null).single();
+  return data ? ({ ...data, id: data.id as string } as TimeEntry) : null;
+}
+
+export async function createTimeEntry(entry: Omit<TimeEntry, "id" | "created_at">): Promise<TimeEntry> {
+  const { data } = await supabase().from("time_entries").insert({ ...entry, company_id: getActiveCompanyId() }).select().single();
+  return data as unknown as TimeEntry;
+}
+
+export async function updateTimeEntry(id: string, updates: Partial<TimeEntry>): Promise<void> {
+  await supabase().from("time_entries").update(updates).eq("id", id);
+}
+
+export async function deleteTimeEntry(id: string): Promise<void> {
+  await supabase().from("time_entries").delete().eq("id", id);
 }
 
 // Bank Statements
