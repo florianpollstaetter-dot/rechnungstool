@@ -40,7 +40,8 @@ export default function AnalyticsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const e = await getTimeEntries();
-    setEntries(e);
+    // Pauses don't count toward work aggregates (SCH-368)
+    setEntries(e.filter((entry) => entry.entry_type !== "pause"));
     setLoading(false);
   }, []);
 

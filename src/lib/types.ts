@@ -292,6 +292,8 @@ export interface ExpenseItem {
   created_at: string;
 }
 
+export type TimeEntryType = "work" | "pause";
+
 export interface TimeEntry {
   id: string;
   company_id: string;
@@ -305,6 +307,7 @@ export interface TimeEntry {
   duration_minutes: number;
   billable: boolean;
   hourly_rate: number;
+  entry_type: TimeEntryType;
   created_at: string;
 }
 

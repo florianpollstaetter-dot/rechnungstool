@@ -17,7 +17,7 @@ function formatTime(iso: string): string { return new Date(iso).toLocaleTimeStri
 function formatDate(iso: string): string { return new Date(iso).toLocaleDateString("de-AT", { weekday: "short", day: "2-digit", month: "2-digit" }); }
 function dateKey(iso: string): string { return iso.split("T")[0]; }
 
-const GENERAL_ITEMS = ["Pause", "Daily", "Weekly", "Meeting Team", "Meeting Agentur", "Neues Projekt", "Briefing", "Administration", "E-Mails"];
+const GENERAL_ITEMS = ["Daily", "Weekly", "Meeting Team", "Meeting Agentur", "Neues Projekt", "Briefing", "Administration", "E-Mails"];
 const OTHER_ITEMS = ["Weiterbildung", "Reise", "Krankheit", "Urlaub", "Sonstiges"];
 
 const COLOR_PALETTE = [
@@ -85,11 +85,42 @@ export default function TimePage() {
     if (!label) return;
     setSelectedProject(label);
     const q = quotes.find((qt) => (qt.project_description || qt.quote_number) === label);
+    const now = new Date();
+    // If currently paused, close out the pause entry first so start_time of the new work entry lines up with the pause end.
+    if (activeTimer && activeTimer.entry_type === "pause") {
+      const duration = Math.round((now.getTime() - new Date(activeTimer.start_time).getTime()) / 60000);
+      await updateTimeEntry(activeTimer.id, { end_time: now.toISOString(), duration_minutes: duration });
+    }
     await createTimeEntry({
       company_id: "", user_id: userId, user_name: userName || getCurrentUserName(),
       quote_id: q?.id || null, project_label: label, description: "",
-      start_time: new Date().toISOString(), end_time: null, duration_minutes: 0, billable: true, hourly_rate: 0,
+      start_time: now.toISOString(), end_time: null, duration_minutes: 0, billable: true, hourly_rate: 0,
+      entry_type: "work",
     });
+    await loadData();
+  }
+
+  async function handlePause() {
+    if (!activeTimer || activeTimer.entry_type !== "work") return;
+    const now = new Date();
+    const duration = Math.round((now.getTime() - new Date(activeTimer.start_time).getTime()) / 60000);
+    await updateTimeEntry(activeTimer.id, { end_time: now.toISOString(), duration_minutes: duration, description: description || savedDescription });
+    await createTimeEntry({
+      company_id: "", user_id: userId, user_name: userName || getCurrentUserName(),
+      quote_id: null, project_label: "Pause", description: "",
+      start_time: now.toISOString(), end_time: null, duration_minutes: 0, billable: false, hourly_rate: 0,
+      entry_type: "pause",
+    });
+    setDescription(""); setSavedDescription("");
+    await loadData();
+  }
+
+  async function handleEndPause() {
+    if (!activeTimer || activeTimer.entry_type !== "pause") return;
+    const now = new Date();
+    const duration = Math.round((now.getTime() - new Date(activeTimer.start_time).getTime()) / 60000);
+    await updateTimeEntry(activeTimer.id, { end_time: now.toISOString(), duration_minutes: duration });
+    setActiveTimerState(null);
     await loadData();
   }
 
@@ -142,22 +173,26 @@ export default function TimePage() {
     setExpandedDays((prev) => { const next = new Set(prev); if (next.has(day)) next.delete(day); else next.add(day); return next; });
   }
 
+  // Pauses don't count toward work aggregates (SCH-368)
+  const isWork = (e: TimeEntry) => e.entry_type !== "pause";
+  const activeTimerCountsAsWork = activeTimer && activeTimer.entry_type !== "pause";
+
   // Group entries by date
   const todayStr = new Date().toISOString().split("T")[0];
-  const todayMinutes = entries.filter((e) => dateKey(e.start_time) === todayStr).reduce((s, e) => s + e.duration_minutes, 0) + (activeTimer ? elapsed : 0);
+  const todayMinutes = entries.filter((e) => dateKey(e.start_time) === todayStr && isWork(e)).reduce((s, e) => s + e.duration_minutes, 0) + (activeTimerCountsAsWork ? elapsed : 0);
   const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); weekStart.setHours(0, 0, 0, 0);
-  const weekMinutes = entries.filter((e) => new Date(e.start_time) >= weekStart).reduce((s, e) => s + e.duration_minutes, 0) + (activeTimer ? elapsed : 0);
+  const weekMinutes = entries.filter((e) => new Date(e.start_time) >= weekStart && isWork(e)).reduce((s, e) => s + e.duration_minutes, 0) + (activeTimerCountsAsWork ? elapsed : 0);
 
   const dayGroups = new Map<string, TimeEntry[]>();
   entries.forEach((e) => { const d = dateKey(e.start_time); dayGroups.set(d, [...(dayGroups.get(d) || []), e]); });
   const sortedDays = Array.from(dayGroups.keys()).sort((a, b) => b.localeCompare(a));
 
-  // Today's project breakdown for mini chart
+  // Today's project breakdown for mini chart (work only)
   const todayByProject = new Map<string, number>();
-  entries.filter((e) => dateKey(e.start_time) === todayStr).forEach((e) => {
+  entries.filter((e) => dateKey(e.start_time) === todayStr && isWork(e)).forEach((e) => {
     todayByProject.set(e.project_label, (todayByProject.get(e.project_label) || 0) + e.duration_minutes);
   });
-  if (activeTimer) todayByProject.set(activeTimer.project_label, (todayByProject.get(activeTimer.project_label) || 0) + elapsed);
+  if (activeTimerCountsAsWork) todayByProject.set(activeTimer!.project_label, (todayByProject.get(activeTimer!.project_label) || 0) + elapsed);
 
   // chartColors replaced by getProjectColor()
 
@@ -198,8 +233,55 @@ export default function TimePage() {
       </div>
 
       {/* Timer widget */}
-      <div className={`bg-[var(--surface)] rounded-xl border-2 ${activeTimer ? "border-emerald-500" : "border-[var(--border)]"} p-5 mb-6 transition`}>
-        {activeTimer ? (
+      <div className={`bg-[var(--surface)] rounded-xl border-2 ${activeTimer ? (activeTimer.entry_type === "pause" ? "border-amber-500" : "border-emerald-500") : "border-[var(--border)]"} p-5 mb-6 transition`}>
+        {activeTimer && activeTimer.entry_type === "pause" ? (
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
+              <span className="text-sm font-medium text-amber-400">Pausiert — seit {formatTime(activeTimer.start_time)}</span>
+              <span className="text-2xl font-bold text-[var(--text-primary)] ml-auto">{formatDuration(elapsed)}</span>
+            </div>
+            <div className="flex gap-2 items-center">
+              <p className="flex-1 text-xs text-[var(--text-muted)]">Wähle unten ein Projekt um die Pause zu beenden und weiter zu tracken.</p>
+              <button onClick={handleEndPause} className="bg-amber-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-amber-500 transition">Pause beenden</button>
+            </div>
+            {/* Project picker stays visible so user can resume directly into a project */}
+            <div className="mt-4 pt-4 border-t border-[var(--border)]">
+              <div className="flex gap-0.5 mb-0 px-0.5 pb-1 border-b border-[var(--border)]">
+                {([["allgemein", "Allgemein"], ["projekte", "Projekte"], ["other", "Other"]] as [PickerTab, string][]).map(([key, label]) => (
+                  <TabButton key={key} active={pickerTab === key} onClick={() => setPickerTab(key)}>
+                    {label}
+                  </TabButton>
+                ))}
+              </div>
+              <div key={pickerTab} className="tab-content-enter flex flex-wrap gap-2 pt-3 pb-1">
+                {pickerTab === "allgemein" && GENERAL_ITEMS.map((item) => (
+                  <button key={item} onClick={() => handleStart(item)}
+                    className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
+                  >{item}</button>
+                ))}
+                {pickerTab === "projekte" && (
+                  quotes.length > 0 ? quotes
+                    .sort((a, b) => (projectFreq.get(b.project_description || b.quote_number) || 0) - (projectFreq.get(a.project_description || a.quote_number) || 0))
+                    .map((q) => {
+                      const label = q.project_description || q.quote_number;
+                      return (
+                        <button key={q.id} onClick={() => handleStart(label)}
+                          className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
+                        >{label}</button>
+                      );
+                    })
+                  : <p className="text-xs text-[var(--text-muted)]">Keine freigegebenen Angebote. Erstelle zuerst ein Angebot.</p>
+                )}
+                {pickerTab === "other" && OTHER_ITEMS.map((item) => (
+                  <button key={item} onClick={() => handleStart(item)}
+                    className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
+                  >{item}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : activeTimer ? (
           <div>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
@@ -217,6 +299,7 @@ export default function TimePage() {
                 placeholder={savedDescription ? "Weitere Notiz..." : "Was machst du gerade?"}
                 className="flex-1 bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
+              <button onClick={handlePause} className="bg-amber-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-amber-500 transition">Pause</button>
               <button onClick={handleStop} className="bg-rose-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-rose-500 transition">Stop</button>
             </div>
           </div>
@@ -263,13 +346,16 @@ export default function TimePage() {
       <div className="space-y-3">
         {sortedDays.map((day) => {
           const dayEntries = dayGroups.get(day) || [];
-          const dayTotal = dayEntries.reduce((s, e) => s + e.duration_minutes, 0) + (activeTimer && dateKey(activeTimer.start_time) === day ? elapsed : 0);
+          const workEntries = dayEntries.filter(isWork);
+          const pauseEntries = dayEntries.filter((e) => !isWork(e));
+          const dayTotal = workEntries.reduce((s, e) => s + e.duration_minutes, 0) + (activeTimerCountsAsWork && dateKey(activeTimer!.start_time) === day ? elapsed : 0);
+          const pauseTotal = pauseEntries.reduce((s, e) => s + e.duration_minutes, 0) + (activeTimer && activeTimer.entry_type === "pause" && dateKey(activeTimer.start_time) === day ? elapsed : 0);
           const isExpanded = expandedDays.has(day);
           const isToday = day === todayStr;
 
-          // Day project breakdown
+          // Day project breakdown (work only)
           const dayByProject = new Map<string, number>();
-          dayEntries.forEach((e) => { dayByProject.set(e.project_label, (dayByProject.get(e.project_label) || 0) + e.duration_minutes); });
+          workEntries.forEach((e) => { dayByProject.set(e.project_label, (dayByProject.get(e.project_label) || 0) + e.duration_minutes); });
 
           return (
             <div key={day} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
@@ -305,6 +391,9 @@ export default function TimePage() {
                     </svg>
                   )}
                   <span className="text-sm font-bold text-[var(--text-primary)]">{formatDuration(dayTotal)}</span>
+                  {pauseTotal > 0 && (
+                    <span className="text-[10px] text-amber-400/80" title="Pause, nicht in Arbeitszeit gezählt">+ {formatDuration(pauseTotal)} Pause</span>
+                  )}
                 </div>
               </button>
 
@@ -314,15 +403,16 @@ export default function TimePage() {
                     <tbody className="divide-y divide-[var(--border)]">
                       {dayEntries.sort((a, b) => b.start_time.localeCompare(a.start_time)).map((e) => {
                         const isEditing = editingEntry === e.id;
+                        const isPause = e.entry_type === "pause";
                         return (
-                          <tr key={e.id} className="hover:bg-[var(--surface-hover)] transition" onDoubleClick={() => { setEditingEntry(e.id); setEditForm({ project_label: e.project_label, description: e.description, duration_minutes: e.duration_minutes }); }}>
+                          <tr key={e.id} className={`hover:bg-[var(--surface-hover)] transition ${isPause ? "opacity-60" : ""}`} onDoubleClick={() => { setEditingEntry(e.id); setEditForm({ project_label: e.project_label, description: e.description, duration_minutes: e.duration_minutes }); }}>
                             <td className="px-4 py-2.5 text-xs w-24">
                               {isEditing ? (
                                 <input type="text" value={editForm.project_label} onChange={(ev) => setEditForm({ ...editForm, project_label: ev.target.value })} className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)] w-full" />
                               ) : (
                                 <span className="flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getProjectColor(e.project_label, allProjectLabels) }} />
-                                  <span className="font-medium text-[var(--text-primary)]">{e.project_label}</span>
+                                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: isPause ? "#f59e0b" : getProjectColor(e.project_label, allProjectLabels) }} />
+                                  <span className={`font-medium ${isPause ? "text-amber-400 italic" : "text-[var(--text-primary)]"}`}>{isPause ? "Pause" : e.project_label}</span>
                                 </span>
                               )}
                             </td>
