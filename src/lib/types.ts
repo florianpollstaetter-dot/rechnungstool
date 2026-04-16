@@ -294,6 +294,24 @@ export interface ExpenseItem {
 
 export type TimeEntryType = "work" | "pause";
 
+// Weekday encoding used across scheduling: 0 = Monday … 6 = Sunday (ISO-style),
+// matching the Mo Di Mi Do Fr Sa So header order used in the analytics UI.
+export const WEEKDAY_LABELS: readonly string[] = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+export const WEEKDAY_LABELS_LONG: readonly string[] = [
+  "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag",
+];
+
+export interface UserWorkSchedule {
+  id: string;
+  user_id: string;
+  weekday: number;
+  start_time: string | null;
+  end_time: string | null;
+  daily_target_minutes: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TimeEntry {
   id: string;
   company_id: string;

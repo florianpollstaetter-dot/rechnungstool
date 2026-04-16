@@ -13,6 +13,7 @@ import {
   ExpenseItem,
   TimeEntry,
   UserProfile,
+  UserWorkSchedule,
   BankStatement,
   BankTransaction,
   Template,
@@ -587,6 +588,46 @@ export async function deleteTimeEntry(id: string): Promise<void> {
   await supabase().from("time_entries").delete().eq("id", id);
 }
 
+// User Work Schedules (per-user weekly pensum — SCH-369)
+export async function getUserWorkSchedules(userId: string): Promise<UserWorkSchedule[]> {
+  const { data } = await supabase()
+    .from("user_work_schedules")
+    .select("*")
+    .eq("user_id", userId)
+    .order("weekday", { ascending: true });
+  return (data ?? []).map(mapUserWorkSchedule);
+}
+
+export async function getCurrentUserWorkSchedules(): Promise<UserWorkSchedule[]> {
+  const { data: { user } } = await supabase().auth.getUser();
+  if (!user) return [];
+  const profile = await getUserProfile(user.id);
+  if (!profile) return [];
+  return getUserWorkSchedules(profile.id);
+}
+
+export async function upsertUserWorkSchedule(
+  schedule: Omit<UserWorkSchedule, "id" | "created_at" | "updated_at">
+): Promise<UserWorkSchedule> {
+  const { data } = await supabase()
+    .from("user_work_schedules")
+    .upsert(
+      { ...schedule, updated_at: new Date().toISOString() },
+      { onConflict: "user_id,weekday" }
+    )
+    .select()
+    .single();
+  return mapUserWorkSchedule(data!);
+}
+
+export async function deleteUserWorkSchedule(userId: string, weekday: number): Promise<void> {
+  await supabase()
+    .from("user_work_schedules")
+    .delete()
+    .eq("user_id", userId)
+    .eq("weekday", weekday);
+}
+
 // Bank Statements
 export async function getBankStatements(): Promise<BankStatement[]> {
   const { data } = await supabase().from("bank_statements").select("*").eq("company_id", getActiveCompanyId()).order("created_at", { ascending: false });
@@ -954,6 +995,24 @@ function mapBankTransaction(row: Record<string, unknown>): BankTransaction {
     matched_invoice_id: (row.matched_invoice_id as string) || null,
     match_confidence: row.match_confidence != null ? Number(row.match_confidence) : null,
     match_status: (row.match_status as BankTransaction["match_status"]) || "unmatched",
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+function mapUserWorkSchedule(row: Record<string, unknown>): UserWorkSchedule {
+  const trim = (v: unknown): string | null => {
+    if (typeof v !== "string" || !v) return null;
+    // Postgres time columns round-trip as "HH:MM:SS"; keep only "HH:MM".
+    return v.length >= 5 ? v.slice(0, 5) : v;
+  };
+  return {
+    id: row.id as string,
+    user_id: row.user_id as string,
+    weekday: Number(row.weekday),
+    start_time: trim(row.start_time),
+    end_time: trim(row.end_time),
+    daily_target_minutes: Number(row.daily_target_minutes ?? 0),
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };
