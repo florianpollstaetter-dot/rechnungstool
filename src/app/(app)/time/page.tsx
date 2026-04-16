@@ -6,6 +6,7 @@ import { getTimeEntries, getActiveTimer, createTimeEntry, updateTimeEntry, delet
 import { formatCurrency } from "@/lib/format";
 import { useCompany } from "@/lib/company-context";
 import { createClient } from "@/lib/supabase/client";
+import { TabButton } from "@/components/TabButton";
 
 function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -221,18 +222,18 @@ export default function TimePage() {
           </div>
         ) : (
           <div>
-            {/* Tab picker with visual connection */}
-            <div className="flex gap-0 mb-0 border-b border-[var(--border)]">
+            {/* Unified tab picker */}
+            <div className="flex gap-0.5 mb-0 px-0.5 pb-1 border-b border-[var(--border)]">
               {([["allgemein", "Allgemein"], ["projekte", "Projekte"], ["other", "Other"]] as [PickerTab, string][]).map(([key, label]) => (
-                <button key={key} onClick={() => setPickerTab(key)}
-                  className={`px-4 py-2 text-xs font-medium transition border-b-2 ${pickerTab === key ? "border-[var(--accent)] text-[var(--accent)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"}`}
-                >{label}</button>
+                <TabButton key={key} active={pickerTab === key} onClick={() => setPickerTab(key)}>
+                  {label}
+                </TabButton>
               ))}
             </div>
-            <div className="flex flex-wrap gap-2 pt-3 pb-1">
+            <div key={pickerTab} className="tab-content-enter flex flex-wrap gap-2 pt-3 pb-1">
               {pickerTab === "allgemein" && GENERAL_ITEMS.map((item) => (
                 <button key={item} onClick={() => handleStart(item)}
-                  className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-emerald-500/20 hover:text-emerald-400 transition"
+                  className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
                 >{item}</button>
               ))}
               {pickerTab === "projekte" && (
@@ -242,7 +243,7 @@ export default function TimePage() {
                     const label = q.project_description || q.quote_number;
                     return (
                       <button key={q.id} onClick={() => handleStart(label)}
-                        className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-emerald-500/20 hover:text-emerald-400 transition"
+                        className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
                       >{label}</button>
                     );
                   })
@@ -250,7 +251,7 @@ export default function TimePage() {
               )}
               {pickerTab === "other" && OTHER_ITEMS.map((item) => (
                 <button key={item} onClick={() => handleStart(item)}
-                  className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-emerald-500/20 hover:text-emerald-400 transition"
+                  className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
                 >{item}</button>
               ))}
             </div>

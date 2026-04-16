@@ -5,6 +5,7 @@ import Link from "next/link";
 import { TimeEntry } from "@/lib/types";
 import { getTimeEntries } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
+import { TabButton } from "@/components/TabButton";
 
 const COLOR_PALETTE = [
   "#10b981", "#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444", "#06b6d4", "#ec4899",
@@ -98,11 +99,11 @@ export default function AnalyticsPage() {
           <Link href="/time" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; Zurück</Link>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">Auswertungen</h1>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex gap-0.5 px-0.5 pb-1 border-b border-[var(--border)]">
           {(["week", "month", "year"] as const).map((p) => (
-            <button key={p} onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${period === p ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--border)]"}`}
-            >{p === "week" ? "Woche" : p === "month" ? "Monat" : "Jahr"}</button>
+            <TabButton key={p} active={period === p} onClick={() => setPeriod(p)}>
+              {p === "week" ? "Woche" : p === "month" ? "Monat" : "Jahr"}
+            </TabButton>
           ))}
         </div>
       </div>

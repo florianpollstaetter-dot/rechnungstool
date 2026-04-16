@@ -9,6 +9,9 @@
   --accent: #00d4ff;
   --accent-dim: rgba(0, 212, 255, 0.15);
   --gold: #C9A84C;
+  --brand-orange: #F7901E;
+  --brand-orange-dim: rgba(247, 144, 30, 0.12);
+  --brand-orange-hover: rgba(247, 144, 30, 0.20);
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;
@@ -25,11 +28,80 @@
   --accent: #0099cc;
   --accent-dim: rgba(0, 153, 204, 0.1);
   --gold: #b8942e;
+  --brand-orange: #E07810;
+  --brand-orange-dim: rgba(224, 120, 16, 0.10);
+  --brand-orange-hover: rgba(224, 120, 16, 0.18);
   --text-primary: #111827;
   --text-secondary: #4b5563;
   --text-muted: #9ca3af;
   --logo-filter: none;
   --color-scheme: light;
+}
+
+@keyframes tab-fade-slide {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tab-content-enter {
+  animation: tab-fade-slide 150ms ease-out both;
+}
+
+/* Brand-logo light/dark swap (driven by [data-theme] on <html>) */
+.brand-logo-light { display: none; }
+.brand-logo-dark  { display: block; }
+[data-theme="light"] .brand-logo-light { display: block; }
+[data-theme="light"] .brand-logo-dark  { display: none; }
+
+/* Long-form legal copy */
+.prose-legal h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+.prose-legal h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+.prose-legal h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+.prose-legal p { margin-bottom: 0.75rem; }
+.prose-legal ul { list-style: disc; margin: 0.5rem 0 0.75rem 1.25rem; }
+.prose-legal ol { list-style: decimal; margin: 0.5rem 0 0.75rem 1.25rem; }
+.prose-legal li { margin-bottom: 0.25rem; }
+.prose-legal a { color: var(--brand-orange); text-decoration: underline; }
+.prose-legal a:hover { color: var(--accent); }
+.prose-legal strong { color: var(--text-primary); font-weight: 600; }
+.prose-legal table {
+  width: 100%;
+  margin: 0.75rem 0;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.prose-legal th, .prose-legal td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+.prose-legal th {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.prose-legal .legal-meta {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-style: italic;
+  margin-top: 2rem;
 }
 
 body {
