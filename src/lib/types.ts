@@ -380,6 +380,20 @@ export interface Task {
   updated_at: string;
 }
 
+// SCH-366 Modul 1 — Dashboard-Layout-Persistenz pro User. Das layout_json
+// enthält das react-grid-layout-Objekt opak; die UI ist die einzige
+// Schreib-/Leseinstanz. dashboard_key erlaubt mehrere benannte Dashboards
+// pro User (Default "main").
+export interface UserDashboardLayout {
+  id: string;
+  company_id: string;
+  user_id: string;
+  dashboard_key: string;
+  layout_json: unknown;
+  created_at: string;
+  updated_at: string;
+}
+
 export type FixedCostInterval = "monthly" | "quarterly" | "yearly";
 
 export const FIXED_COST_INTERVAL_OPTIONS: { value: FixedCostInterval; label: string }[] = [

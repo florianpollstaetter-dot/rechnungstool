@@ -16,6 +16,7 @@ import {
   Task,
   TaskStatus,
   TimeEntry,
+  UserDashboardLayout,
   UserProfile,
   UserWorkSchedule,
   BankStatement,
@@ -827,6 +828,58 @@ export async function createProjectFromQuote(quoteId: string): Promise<Project> 
   return project;
 }
 
+// User Dashboard Layouts (SCH-366 Modul 1) ----------------------------------
+const DEFAULT_DASHBOARD_KEY = "main";
+
+export async function getUserDashboardLayout(
+  userId: string,
+  dashboardKey: string = DEFAULT_DASHBOARD_KEY
+): Promise<UserDashboardLayout | null> {
+  const { data } = await supabase()
+    .from("user_dashboard_layouts")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .eq("user_id", userId)
+    .eq("dashboard_key", dashboardKey)
+    .maybeSingle();
+  return data ? mapUserDashboardLayout(data) : null;
+}
+
+export async function upsertUserDashboardLayout(
+  userId: string,
+  layoutJson: unknown,
+  dashboardKey: string = DEFAULT_DASHBOARD_KEY
+): Promise<UserDashboardLayout> {
+  const { data, error } = await supabase()
+    .from("user_dashboard_layouts")
+    .upsert(
+      {
+        company_id: getActiveCompanyId(),
+        user_id: userId,
+        dashboard_key: dashboardKey,
+        layout_json: layoutJson,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "company_id,user_id,dashboard_key" }
+    )
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapUserDashboardLayout(data!);
+}
+
+export async function deleteUserDashboardLayout(
+  userId: string,
+  dashboardKey: string = DEFAULT_DASHBOARD_KEY
+): Promise<void> {
+  await supabase()
+    .from("user_dashboard_layouts")
+    .delete()
+    .eq("company_id", getActiveCompanyId())
+    .eq("user_id", userId)
+    .eq("dashboard_key", dashboardKey);
+}
+
 // Bank Statements
 export async function getBankStatements(): Promise<BankStatement[]> {
   const { data } = await supabase().from("bank_statements").select("*").eq("company_id", getActiveCompanyId()).order("created_at", { ascending: false });
@@ -1224,6 +1277,18 @@ function mapTask(row: Record<string, unknown>): Task {
     due_date: (row.due_date as string) || null,
     estimated_hours: row.estimated_hours != null ? Number(row.estimated_hours) : null,
     position: Number(row.position ?? 0),
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+function mapUserDashboardLayout(row: Record<string, unknown>): UserDashboardLayout {
+  return {
+    id: row.id as string,
+    company_id: row.company_id as string,
+    user_id: row.user_id as string,
+    dashboard_key: (row.dashboard_key as string) || "main",
+    layout_json: row.layout_json ?? [],
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };
