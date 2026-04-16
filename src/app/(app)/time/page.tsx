@@ -7,6 +7,8 @@ import { formatCurrency } from "@/lib/format";
 import { useCompany } from "@/lib/company-context";
 import { createClient } from "@/lib/supabase/client";
 import { TabButton } from "@/components/TabButton";
+import { TimeCalendarView } from "@/components/time/TimeCalendarView";
+import type { ModalResult } from "@/components/time/TimeCalendarCreateModal";
 
 function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -49,6 +51,7 @@ export default function TimePage() {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set([new Date().toISOString().split("T")[0]]));
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ project_label: "", description: "", duration_minutes: 0 });
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadData = useCallback(async () => {
@@ -164,6 +167,17 @@ export default function TimePage() {
 
   async function handleDelete(id: string) { if (confirm("Löschen?")) { await deleteTimeEntry(id); await loadData(); } }
 
+  async function handleCalendarCreate(r: ModalResult) {
+    const duration = Math.max(0, Math.round((r.end.getTime() - r.start.getTime()) / 60000));
+    await createTimeEntry({
+      company_id: "", user_id: userId, user_name: userName || getCurrentUserName(),
+      quote_id: r.quote_id, project_label: r.project_label, description: r.description,
+      start_time: r.start.toISOString(), end_time: r.end.toISOString(), duration_minutes: duration,
+      billable: true, hourly_rate: 0, entry_type: "work",
+    });
+    await loadData();
+  }
+
   async function handleSaveEdit(id: string) {
     await updateTimeEntry(id, { project_label: editForm.project_label, description: editForm.description, duration_minutes: editForm.duration_minutes });
     setEditingEntry(null); await loadData();
@@ -201,7 +215,39 @@ export default function TimePage() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Zeiterfassung</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Zeiterfassung</h1>
+          <div className="flex gap-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5" role="tablist" aria-label="Ansicht">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "list"}
+              onClick={() => setViewMode("list")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "list" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+              title="Listenansicht"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+                <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+              Liste
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "calendar"}
+              onClick={() => setViewMode("calendar")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "calendar" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+              title="Kalenderansicht"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              Kalender
+            </button>
+          </div>
+        </div>
         <div className="flex items-center gap-4">
           {/* Mini pie chart — clickable to analytics */}
           {todayByProject.size > 0 && todayMinutes > 0 && (
@@ -342,8 +388,21 @@ export default function TimePage() {
         )}
       </div>
 
+      {/* Calendar view */}
+      {viewMode === "calendar" && (
+        <TimeCalendarView
+          entries={entries}
+          activeElapsed={elapsed}
+          quotes={quotes}
+          projectFreq={projectFreq}
+          allProjectLabels={allProjectLabels}
+          getProjectColor={getProjectColor}
+          onCreate={handleCalendarCreate}
+        />
+      )}
+
       {/* Day-grouped entries */}
-      <div className="space-y-3">
+      {viewMode === "list" && <div className="space-y-3">
         {sortedDays.map((day) => {
           const dayEntries = dayGroups.get(day) || [];
           const workEntries = dayEntries.filter(isWork);
@@ -462,7 +521,7 @@ export default function TimePage() {
         {sortedDays.length === 0 && !activeTimer && (
           <div className="text-center text-[var(--text-muted)] py-8 text-sm">Noch keine Zeiteinträge. Wähle ein Projekt oben und starte.</div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
