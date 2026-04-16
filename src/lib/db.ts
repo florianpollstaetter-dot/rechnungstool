@@ -5,12 +5,16 @@ import {
   InvoiceItem,
   CompanySettings,
   Product,
+  Project,
+  ProjectStatus,
   Quote,
   QuoteItem,
   FixedCost,
   Receipt,
   ExpenseReport,
   ExpenseItem,
+  Task,
+  TaskStatus,
   TimeEntry,
   UserProfile,
   UserWorkSchedule,
@@ -680,6 +684,149 @@ export async function replaceUserWorkSchedules(
   return (data ?? []).map(mapUserWorkSchedule);
 }
 
+// Projects (SCH-366 Modul 4) ------------------------------------------------
+export async function getProjects(): Promise<Project[]> {
+  const { data } = await supabase()
+    .from("projects")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .order("created_at", { ascending: false });
+  return (data ?? []).map(mapProject);
+}
+
+export async function getProject(id: string): Promise<Project | null> {
+  const { data } = await supabase().from("projects").select("*").eq("id", id).single();
+  return data ? mapProject(data) : null;
+}
+
+export async function getProjectByQuoteId(quoteId: string): Promise<Project | null> {
+  const { data } = await supabase()
+    .from("projects")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .eq("quote_id", quoteId)
+    .maybeSingle();
+  return data ? mapProject(data) : null;
+}
+
+export async function createProject(
+  project: Omit<Project, "id" | "company_id" | "created_at" | "updated_at">
+): Promise<Project> {
+  const { data, error } = await supabase()
+    .from("projects")
+    .insert({ ...project, company_id: getActiveCompanyId() })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapProject(data!);
+}
+
+export async function updateProject(id: string, updates: Partial<Project>): Promise<Project> {
+  const { data, error } = await supabase()
+    .from("projects")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapProject(data!);
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  await supabase().from("projects").delete().eq("id", id);
+}
+
+// Tasks (SCH-366 Modul 4) ---------------------------------------------------
+export async function getTasks(projectId?: string): Promise<Task[]> {
+  let query = supabase()
+    .from("tasks")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (projectId) query = query.eq("project_id", projectId);
+  const { data } = await query;
+  return (data ?? []).map(mapTask);
+}
+
+export async function getTask(id: string): Promise<Task | null> {
+  const { data } = await supabase().from("tasks").select("*").eq("id", id).single();
+  return data ? mapTask(data) : null;
+}
+
+export async function createTask(
+  task: Omit<Task, "id" | "company_id" | "created_at" | "updated_at">
+): Promise<Task> {
+  const { data, error } = await supabase()
+    .from("tasks")
+    .insert({ ...task, company_id: getActiveCompanyId() })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapTask(data!);
+}
+
+export async function updateTask(id: string, updates: Partial<Task>): Promise<Task> {
+  const { data, error } = await supabase()
+    .from("tasks")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapTask(data!);
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  await supabase().from("tasks").delete().eq("id", id);
+}
+
+// Promote a Quote into a Project + Tasks (one per QuoteItem). Idempotent on
+// quote_id: if a project already exists for this quote, we return it without
+// re-inserting tasks. Safe to call from the UI on quote acceptance; the server
+// route (/api/projects/create-from-quote) uses the same logic with the
+// service-role client.
+export async function createProjectFromQuote(quoteId: string): Promise<Project> {
+  const existing = await getProjectByQuoteId(quoteId);
+  if (existing) return existing;
+
+  const quote = await getQuote(quoteId);
+  if (!quote) throw new Error(`Angebot ${quoteId} nicht gefunden`);
+
+  const projectName = quote.project_description?.trim()
+    ? quote.project_description.trim()
+    : `Angebot ${quote.quote_number}`;
+
+  const project = await createProject({
+    name: projectName,
+    color: null,
+    status: "active",
+    quote_id: quoteId,
+  });
+
+  if (quote.items.length > 0) {
+    const sb = supabase();
+    const companyId = getActiveCompanyId();
+    const { error } = await sb.from("tasks").insert(
+      quote.items.map((item, idx) => ({
+        company_id: companyId,
+        project_id: project.id,
+        title: item.description?.trim() || `Position ${item.position}`,
+        description: null,
+        status: "open" as TaskStatus,
+        assignee_user_id: null,
+        due_date: null,
+        estimated_hours:
+          item.unit === "Stunden" && item.quantity > 0 ? item.quantity : null,
+        position: item.position ?? idx + 1,
+      }))
+    );
+    if (error) throw new Error(error.message);
+  }
+
+  return project;
+}
+
 // Bank Statements
 export async function getBankStatements(): Promise<BankStatement[]> {
   const { data } = await supabase().from("bank_statements").select("*").eq("company_id", getActiveCompanyId()).order("created_at", { ascending: false });
@@ -1047,6 +1194,36 @@ function mapBankTransaction(row: Record<string, unknown>): BankTransaction {
     matched_invoice_id: (row.matched_invoice_id as string) || null,
     match_confidence: row.match_confidence != null ? Number(row.match_confidence) : null,
     match_status: (row.match_status as BankTransaction["match_status"]) || "unmatched",
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+function mapProject(row: Record<string, unknown>): Project {
+  return {
+    id: row.id as string,
+    company_id: row.company_id as string,
+    name: (row.name as string) || "",
+    color: (row.color as string) || null,
+    status: (row.status as ProjectStatus) || "active",
+    quote_id: (row.quote_id as string) || null,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+function mapTask(row: Record<string, unknown>): Task {
+  return {
+    id: row.id as string,
+    company_id: row.company_id as string,
+    project_id: row.project_id as string,
+    title: (row.title as string) || "",
+    description: (row.description as string) || null,
+    status: (row.status as TaskStatus) || "open",
+    assignee_user_id: (row.assignee_user_id as string) || null,
+    due_date: (row.due_date as string) || null,
+    estimated_hours: row.estimated_hours != null ? Number(row.estimated_hours) : null,
+    position: Number(row.position ?? 0),
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

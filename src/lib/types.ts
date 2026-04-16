@@ -319,6 +319,11 @@ export interface TimeEntry {
   user_name: string;
   quote_id: string | null;
   project_label: string;
+  // SCH-366 Modul 4: structured Projekt/Task-FKs. Optional, damit die
+  // bestehenden Timer/Manual-UIs weiter ohne project_id/task_id arbeiten,
+  // bis die Projekt/Aufgaben-UI live ist. DB-Spalten sind nullable.
+  project_id?: string | null;
+  task_id?: string | null;
   description: string;
   start_time: string;
   end_time: string | null;
@@ -327,6 +332,52 @@ export interface TimeEntry {
   hourly_rate: number;
   entry_type: TimeEntryType;
   created_at: string;
+}
+
+// SCH-366 Modul 4 — Projekte & Aufgaben (neue Strukturebenen).
+
+export type ProjectStatus = "active" | "paused" | "completed" | "archived";
+
+export const PROJECT_STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
+  { value: "active", label: "Aktiv" },
+  { value: "paused", label: "Pausiert" },
+  { value: "completed", label: "Abgeschlossen" },
+  { value: "archived", label: "Archiviert" },
+];
+
+export interface Project {
+  id: string;
+  company_id: string;
+  name: string;
+  color: string | null;
+  status: ProjectStatus;
+  quote_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type TaskStatus = "open" | "in_progress" | "done" | "cancelled";
+
+export const TASK_STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
+  { value: "open", label: "Offen" },
+  { value: "in_progress", label: "In Arbeit" },
+  { value: "done", label: "Erledigt" },
+  { value: "cancelled", label: "Abgebrochen" },
+];
+
+export interface Task {
+  id: string;
+  company_id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  assignee_user_id: string | null;
+  due_date: string | null;
+  estimated_hours: number | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export type FixedCostInterval = "monthly" | "quarterly" | "yearly";
