@@ -1,5 +1,5 @@
 -- Migration: Projects + Tasks foundation (SCH-366 — Modul 4 Backend)
--- Run this AFTER supabase_migration_user_work_schedules_v2.sql.
+-- Self-contained — Reihenfolge gegenüber anderen Migrationen egal.
 --
 -- Introduces structured Project/Task ebenen, extends time_entries with
 -- optional project_id / task_id FKs, and adds reporting-oriented indexes.
@@ -10,12 +10,24 @@
 -- Migrations-Pass kann die existierenden Einträge auf die neuen FKs mappen.
 --
 -- Scope (parallel zum Founding Engineer auf SCH-367 — UI-frei):
---   1. projects-Tabelle        — company-scoped, optional quote_id
---   2. tasks-Tabelle           — project-scoped, assignee & estimate
---   3. time_entries.project_id + task_id (nullable)
---   4. Reporting-Indexes (company + user + start_time, company + project_id)
---   5. updated_at-Trigger auf projects / tasks (nutzt public.set_updated_at
---      aus v2-Migration)
+--   1. public.set_updated_at   — CREATE OR REPLACE (idempotent, selbst wenn
+--                                v2-Migration sie bereits definiert hat)
+--   2. projects-Tabelle        — company-scoped, optional quote_id
+--   3. tasks-Tabelle           — project-scoped, assignee & estimate
+--   4. time_entries.project_id + task_id (nullable)
+--   5. Reporting-Indexes (company + user + start_time, company + project_id)
+--   6. updated_at-Trigger auf projects / tasks
+
+-- 0. updated_at trigger helper (idempotent, same shape as v2-migration) -------
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
 
 -- 1. projects -----------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.projects (

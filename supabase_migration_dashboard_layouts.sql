@@ -1,12 +1,22 @@
 -- Migration: User Dashboard Layouts (SCH-366 — Modul 1 Backend)
--- Run AFTER supabase_migration_user_work_schedules_v2.sql (für die
--- public.set_updated_at-Funktion).
+-- Self-contained — Reihenfolge gegenüber anderen Migrationen egal.
 --
 -- Eine Zeile pro (company_id, user_id, dashboard_key). dashboard_key
 -- erlaubt mehrere Dashboards pro User in der Zukunft (Default: 'main').
 -- layout_json speichert das react-grid-layout-Objekt opak — die UI
 -- schreibt es als Ganzes, kein Server-seitiger Schema-Lookup nötig
 -- (vgl. Feasibility-Report SCH-375, Abschnitt 3 Modul 1).
+
+-- 0. updated_at trigger helper (idempotent, same shape as v2-migration) -------
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
 
 CREATE TABLE IF NOT EXISTS public.user_dashboard_layouts (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
