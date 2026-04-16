@@ -628,6 +628,58 @@ export async function deleteUserWorkSchedule(userId: string, weekday: number): P
     .eq("weekday", weekday);
 }
 
+// Replace the entire weekly schedule for a user in one round-trip pair (delete
+// of removed weekdays + bulk upsert of kept rows). Each row's
+// daily_target_minutes/Von–Bis is validated against the same rules the DB
+// enforces; rejected rows throw before any write so a partial save can't
+// leave the user with a half-applied schedule.
+export async function replaceUserWorkSchedules(
+  userId: string,
+  rows: Array<Omit<UserWorkSchedule, "id" | "user_id" | "created_at" | "updated_at">>
+): Promise<UserWorkSchedule[]> {
+  // Lazy import keeps work-schedule.ts free of supabase deps.
+  const { validateScheduleRow, isEmptyRow } = await import("./work-schedule");
+
+  const kept: typeof rows = [];
+  const removedWeekdays: number[] = [];
+  for (let i = 0; i < 7; i++) {
+    const row = rows.find((r) => r.weekday === i);
+    if (!row || isEmptyRow(row)) {
+      removedWeekdays.push(i);
+      continue;
+    }
+    const errs = validateScheduleRow(row);
+    if (errs.length > 0) {
+      throw new Error(`Ungültiges Arbeitszeitmodell für Wochentag ${i}: ${errs.join(", ")}`);
+    }
+    kept.push(row);
+  }
+
+  const sb = supabase();
+
+  if (removedWeekdays.length > 0) {
+    await sb
+      .from("user_work_schedules")
+      .delete()
+      .eq("user_id", userId)
+      .in("weekday", removedWeekdays);
+  }
+
+  if (kept.length === 0) return [];
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await sb
+    .from("user_work_schedules")
+    .upsert(
+      kept.map((r) => ({ ...r, user_id: userId, updated_at: nowIso })),
+      { onConflict: "user_id,weekday" }
+    )
+    .select();
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapUserWorkSchedule);
+}
+
 // Bank Statements
 export async function getBankStatements(): Promise<BankStatement[]> {
   const { data } = await supabase().from("bank_statements").select("*").eq("company_id", getActiveCompanyId()).order("created_at", { ascending: false });

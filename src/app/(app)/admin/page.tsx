@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { UserProfile, USER_ROLE_OPTIONS, UserRole, WEEKDAY_LABELS_LONG } from "@/lib/types";
 import {
   getUserProfiles, createUserProfile, updateUserProfile, deleteUserProfile,
-  getUserWorkSchedules, upsertUserWorkSchedule, deleteUserWorkSchedule,
+  getUserWorkSchedules, replaceUserWorkSchedules,
 } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { COMPANIES } from "@/lib/company-context";
@@ -208,19 +208,13 @@ export default function AdminPage() {
     if (!scheduleUser) return;
     setScheduleSaving(true);
     try {
-      for (const row of scheduleDraft) {
-        if (!row.enabled || (!row.daily_target_minutes && !row.start_time && !row.end_time)) {
-          await deleteUserWorkSchedule(scheduleUser.id, row.weekday);
-          continue;
-        }
-        await upsertUserWorkSchedule({
-          user_id: scheduleUser.id,
-          weekday: row.weekday,
-          start_time: row.start_time || null,
-          end_time: row.end_time || null,
-          daily_target_minutes: row.daily_target_minutes,
-        });
-      }
+      const payload = scheduleDraft.map((row) => ({
+        weekday: row.weekday,
+        start_time: row.enabled ? (row.start_time || null) : null,
+        end_time: row.enabled ? (row.end_time || null) : null,
+        daily_target_minutes: row.enabled ? row.daily_target_minutes : 0,
+      }));
+      await replaceUserWorkSchedules(scheduleUser.id, payload);
       setScheduleSaved(true);
       setTimeout(() => setScheduleSaved(false), 1500);
     } finally {
