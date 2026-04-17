@@ -215,6 +215,10 @@ const pl: Record<string, string> = {
   "quoteStatus.accepted": "Zaakceptowana",
   "quoteStatus.rejected": "Odrzucona",
   "quoteStatus.expired": "Wygasła",
+  "quoteStatus.markSent": "Oznacz jako wysłane",
+  "quoteStatus.markAccepted": "Zaakceptuj",
+  "quoteStatus.markRejected": "Odrzuć",
+  "quoteStatus.correctStatus": "Popraw status",
 
   // ── Quotes ──
   "quotes.title": "Oferty",

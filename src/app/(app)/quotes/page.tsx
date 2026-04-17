@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Quote, Customer, CompanySettings, QuoteStatus, Language, Template } from "@/lib/types";
+import { Quote, Customer, CompanySettings, Language, Template } from "@/lib/types";
 import { getQuotes, getCustomers, getSettings, updateQuote, deleteQuote, convertQuoteToInvoice, getTemplates } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
@@ -111,11 +111,6 @@ export default function QuotesPage() {
     }
   }
 
-  async function handleStatusChange(id: string, status: QuoteStatus) {
-    await updateQuote(id, { status });
-    await loadData();
-  }
-
   async function handleDelete(id: string) {
     if (confirm(t("quotes.confirmDelete"))) {
       await deleteQuote(id);
@@ -203,13 +198,9 @@ export default function QuotesPage() {
                     </button>
                   </td>
                   <td className="px-6 py-4">
-                    <select value={q.status} onChange={(e) => handleStatusChange(q.id, e.target.value as QuoteStatus)} className={`text-xs font-medium px-2 py-1 rounded-full border-0 bg-transparent ${color}`}>
-                      <option value="draft">{t("quoteStatus.draft")}</option>
-                      <option value="sent">{t("quoteStatus.sent")}</option>
-                      <option value="accepted">{t("quoteStatus.accepted")}</option>
-                      <option value="rejected">{t("quoteStatus.rejected")}</option>
-                      <option value="expired">{t("quoteStatus.expired")}</option>
-                    </select>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${color}`}>
+                      {t(`quoteStatus.${q.status}`)}
+                    </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex flex-col items-center gap-0.5">

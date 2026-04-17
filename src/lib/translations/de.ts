@@ -215,6 +215,10 @@ const de = {
   "quoteStatus.accepted": "Angenommen",
   "quoteStatus.rejected": "Abgelehnt",
   "quoteStatus.expired": "Abgelaufen",
+  "quoteStatus.markSent": "Als Gesendet markieren",
+  "quoteStatus.markAccepted": "Annehmen",
+  "quoteStatus.markRejected": "Ablehnen",
+  "quoteStatus.correctStatus": "Status korrigieren",
 
   // ── Quotes ──
   "quotes.title": "Angebote",

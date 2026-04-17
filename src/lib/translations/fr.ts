@@ -215,6 +215,10 @@ const fr: Record<string, string> = {
   "quoteStatus.accepted": "Accepté",
   "quoteStatus.rejected": "Refusé",
   "quoteStatus.expired": "Expiré",
+  "quoteStatus.markSent": "Marquer comme envoyé",
+  "quoteStatus.markAccepted": "Accepter",
+  "quoteStatus.markRejected": "Refuser",
+  "quoteStatus.correctStatus": "Corriger le statut",
 
   // ── Quotes ──
   "quotes.title": "Devis",

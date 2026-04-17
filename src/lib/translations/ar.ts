@@ -215,6 +215,10 @@ const ar: Record<string, string> = {
   "quoteStatus.accepted": "مقبول",
   "quoteStatus.rejected": "مرفوض",
   "quoteStatus.expired": "منتهي الصلاحية",
+  "quoteStatus.markSent": "تعيين كمرسل",
+  "quoteStatus.markAccepted": "قبول",
+  "quoteStatus.markRejected": "رفض",
+  "quoteStatus.correctStatus": "تصحيح الحالة",
 
   // ── Quotes ──
   "quotes.title": "عروض الأسعار",

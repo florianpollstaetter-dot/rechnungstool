@@ -215,6 +215,10 @@ const tr: Record<string, string> = {
   "quoteStatus.accepted": "Kabul Edildi",
   "quoteStatus.rejected": "Reddedildi",
   "quoteStatus.expired": "Süresi Doldu",
+  "quoteStatus.markSent": "Gönderildi olarak işaretle",
+  "quoteStatus.markAccepted": "Kabul et",
+  "quoteStatus.markRejected": "Reddet",
+  "quoteStatus.correctStatus": "Durumu düzelt",
 
   // ── Quotes ──
   "quotes.title": "Teklifler",
