@@ -6,6 +6,7 @@ import { getSettings, updateSettings, getSmartInsightsConfig, upsertSmartInsight
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/ThemeProvider";
 import { useCompany } from "@/lib/company-context";
+import AiCompanySetup from "@/components/AiCompanySetup";
 
 const COMPANY_TYPE_WARNINGS: Record<CompanyType, string> = {
   gmbh: "GmbH: Soll-Besteuerung — die Umsatzsteuer wird fällig bei Rechnungsstellung, unabhaengig davon ob die Zahlung bereits eingegangen ist.",
@@ -313,6 +314,9 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* AI Company Setup — admin only */}
+      {isAdmin && <AiCompanySetup companyName={settings.company_name} />}
 
       {/* Smart Insights Thresholds — admin only */}
       {isAdmin && insightsConfig && (
