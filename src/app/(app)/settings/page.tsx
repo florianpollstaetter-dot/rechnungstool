@@ -443,6 +443,18 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">E-Mail</label>
               <input type="email" value={settings.email} onChange={(e) => update("email", e.target.value)} className={inputClass} />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Website <span className="text-[var(--text-muted)] font-normal">(optional)</span></label>
+              <input type="text" value={settings.website} onChange={(e) => update("website", e.target.value)} className={inputClass} placeholder="z.B. www.firma.at" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Branche <span className="text-[var(--text-muted)] font-normal">(optional)</span></label>
+              <input type="text" value={settings.industry} onChange={(e) => update("industry", e.target.value)} className={inputClass} placeholder="z.B. Filmproduktion, IT, Gastronomie" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Beschreibung <span className="text-[var(--text-muted)] font-normal">(optional)</span></label>
+              <input type="text" value={settings.description} onChange={(e) => update("description", e.target.value)} className={inputClass} placeholder="Was macht die Firma?" />
+            </div>
           </div>
         </div>
         )}
@@ -552,7 +564,7 @@ export default function SettingsPage() {
       )}
 
       {/* AI Company Setup — admin only */}
-      {isAdmin && <div className="mt-6"><AiCompanySetup companyName={settings.company_name} /></div>}
+      {isAdmin && <div className="mt-6"><AiCompanySetup companyName={settings.company_name} industry={settings.industry} website={settings.website} description={settings.description} /></div>}
 
       {/* Smart Insights Thresholds — admin only */}
       {isAdmin && insightsConfig && (

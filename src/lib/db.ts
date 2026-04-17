@@ -51,6 +51,9 @@ const DEFAULT_SETTINGS: CompanySettings = {
   next_quote_number: 1,
   accompanying_text_de: "Vielen Dank fuer Ihren Auftrag! Wir freuen uns auf die weitere Zusammenarbeit.",
   accompanying_text_en: "Thank you for your order! We look forward to our continued collaboration.",
+  industry: "",
+  website: "",
+  description: "",
 };
 
 function supabase() {

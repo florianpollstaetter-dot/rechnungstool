@@ -147,6 +147,9 @@ export interface CompanySettings {
   next_quote_number: number;
   accompanying_text_de: string;
   accompanying_text_en: string;
+  industry: string;
+  website: string;
+  description: string;
 }
 
 export interface Reference {

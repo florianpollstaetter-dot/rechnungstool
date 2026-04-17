@@ -67,14 +67,26 @@ const ROLE_COLOR_PRESETS = [
   "#3b82f6", "#6366f1", "#a855f7", "#ec4899", "#78716c",
 ];
 
-export default function AiCompanySetup({ companyName }: { companyName: string }) {
+interface AiCompanySetupProps {
+  companyName: string;
+  industry?: string;
+  website?: string;
+  description?: string;
+}
+
+export default function AiCompanySetup({ companyName, industry: initialIndustry, website: initialWebsite, description: initialDescription }: AiCompanySetupProps) {
   const { company } = useCompany();
 
-  // Form fields
-  const [name, setName] = useState(companyName);
-  const [industry, setIndustry] = useState("");
-  const [website, setWebsite] = useState("");
-  const [description, setDescription] = useState("");
+  // Form fields — pre-filled from company settings
+  const [name] = useState(companyName);
+  const [industry, setIndustry] = useState(initialIndustry || "");
+  const [website, setWebsite] = useState(initialWebsite || "");
+  const [description, setDescription] = useState(initialDescription || "");
+
+  // Track which fields were pre-filled from company settings (read-only in AI form)
+  const hasPrefilledIndustry = !!initialIndustry;
+  const hasPrefilledWebsite = !!initialWebsite;
+  const hasPrefilledDescription = !!initialDescription;
 
   // Track which fields were pre-filled before AI run
   const preFilledRef = useRef<{ industry: string; website: string; description: string } | null>(null);
@@ -299,45 +311,54 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                className={inputClass}
-                placeholder="z.B. VR the Fans GmbH"
+                readOnly
+                className={`${inputClass} opacity-70 cursor-not-allowed`}
+                title="Firmenname wird aus den Einstellungen übernommen"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Branche <span className="text-[var(--text-muted)] font-normal">(optional)</span>
+                {hasPrefilledIndustry && <span className="text-[var(--text-muted)] font-normal ml-1" title="Aus Einstellungen übernommen">— gespeichert</span>}
               </label>
               <input
                 type="text"
                 value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-                className={inputClass}
+                onChange={hasPrefilledIndustry ? undefined : (e) => setIndustry(e.target.value)}
+                readOnly={hasPrefilledIndustry}
+                className={`${inputClass}${hasPrefilledIndustry ? " opacity-70 cursor-not-allowed" : ""}`}
                 placeholder="z.B. Filmproduktion, IT, Gastronomie"
+                title={hasPrefilledIndustry ? "Wird aus den Einstellungen übernommen — dort änderbar" : undefined}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Website <span className="text-[var(--text-muted)] font-normal">(optional)</span>
+                {hasPrefilledWebsite && <span className="text-[var(--text-muted)] font-normal ml-1" title="Aus Einstellungen übernommen">— gespeichert</span>}
               </label>
               <input
                 type="text"
                 value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                className={inputClass}
+                onChange={hasPrefilledWebsite ? undefined : (e) => setWebsite(e.target.value)}
+                readOnly={hasPrefilledWebsite}
+                className={`${inputClass}${hasPrefilledWebsite ? " opacity-70 cursor-not-allowed" : ""}`}
                 placeholder="z.B. www.firma.at"
+                title={hasPrefilledWebsite ? "Wird aus den Einstellungen übernommen — dort änderbar" : undefined}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Beschreibung <span className="text-[var(--text-muted)] font-normal">(optional)</span>
+                {hasPrefilledDescription && <span className="text-[var(--text-muted)] font-normal ml-1" title="Aus Einstellungen übernommen">— gespeichert</span>}
               </label>
               <input
                 type="text"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className={inputClass}
+                onChange={hasPrefilledDescription ? undefined : (e) => setDescription(e.target.value)}
+                readOnly={hasPrefilledDescription}
+                className={`${inputClass}${hasPrefilledDescription ? " opacity-70 cursor-not-allowed" : ""}`}
                 placeholder="Was macht die Firma?"
+                title={hasPrefilledDescription ? "Wird aus den Einstellungen übernommen — dort änderbar" : undefined}
               />
             </div>
           </div>
@@ -524,7 +545,14 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
                           className={inputClass}
                           placeholder="Stundensatz EUR"
                         />
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            type="button"
+                            onClick={cancelEditRole}
+                            className="px-3 py-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition"
+                          >
+                            Abbrechen
+                          </button>
                           <button
                             type="button"
                             onClick={saveEditedRole}
@@ -532,13 +560,6 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
                             className="bg-[var(--accent)] text-black px-3 py-1 rounded text-xs font-semibold hover:brightness-110 disabled:opacity-50 transition"
                           >
                             Speichern
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelEditRole}
-                            className="px-3 py-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition"
-                          >
-                            Abbrechen
                           </button>
                         </div>
                       </div>
