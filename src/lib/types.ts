@@ -289,8 +289,13 @@ export interface ExpenseItem {
   amount_gross: number;
   payment_method: string;
   receipt_file_path: string | null;
+  receipt_file_type: string | null;
   account_debit: string;
+  account_label: string;
   notes: string;
+  analysis_status: ReceiptAnalysisStatus;
+  analysis_raw: Record<string, unknown> | null;
+  analysis_cost: number | null;
   created_at: string;
 }
 

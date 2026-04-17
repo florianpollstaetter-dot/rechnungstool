@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ExpenseReport, ExpenseItem, ExpenseStatus } from "@/lib/types";
-import { getExpenseReports, getExpenseItems, createExpenseReport, createExpenseItem, updateExpenseReport, deleteExpenseReport, deleteExpenseItem, uploadReceiptFile, getCurrentUserName } from "@/lib/db";
+import { ExpenseReport, ExpenseItem, ExpenseStatus, PaymentMethod } from "@/lib/types";
+import { getExpenseReports, getExpenseItems, createExpenseReport, createExpenseItem, updateExpenseReport, deleteExpenseReport, deleteExpenseItem, updateExpenseItem, uploadReceiptFile, getReceiptFileUrl, getCurrentUserName } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import { useCompany } from "@/lib/company-context";
+import { createClient } from "@/lib/supabase/client";
+import ReceiptCaptureModal from "@/components/ReceiptCaptureModal";
 
 const EXPENSE_CATEGORIES = [
   { value: "travel", label: "Reisekosten" },
@@ -35,6 +37,13 @@ export default function ExpensesPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState<string | null>(null);
+  const [captureFile, setCaptureFile] = useState<File | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileUploadRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [editItemUrl, setEditItemUrl] = useState<string | null>(null);
 
   const isManager = userRole === "admin" || userRole === "manager" || userRole === "accountant";
 
@@ -80,12 +89,14 @@ export default function ExpensesPage() {
       const vat = Math.round((gross - net) * 100) / 100;
 
       let receiptPath: string | null = null;
+      let receiptFileType: string | null = null;
       if (uploadFile) {
         const { path } = await uploadReceiptFile(uploadFile);
         receiptPath = path;
+        receiptFileType = uploadFile.name.split(".").pop()?.toLowerCase() || null;
       }
 
-      await createExpenseItem({
+      const newItem = await createExpenseItem({
         expense_report_id: activeReport,
         company_id: company.id,
         date: itemForm.date,
@@ -98,9 +109,19 @@ export default function ExpensesPage() {
         amount_gross: gross,
         payment_method: itemForm.payment_method,
         receipt_file_path: receiptPath,
+        receipt_file_type: receiptFileType,
         account_debit: "",
+        account_label: "",
         notes: itemForm.notes,
+        analysis_status: receiptPath ? "pending" : "done",
+        analysis_raw: null,
+        analysis_cost: null,
       });
+
+      // Auto-analyze if receipt was uploaded
+      if (receiptPath) {
+        analyzeExpenseItem(newItem.id);
+      }
 
       // Update report total
       const reportItems = items.filter((i) => i.expense_report_id === activeReport);
@@ -113,6 +134,147 @@ export default function ExpensesPage() {
       if (fileRef.current) fileRef.current.value = "";
       await loadData();
     } finally { setSaving(false); }
+  }
+
+  // Camera capture flow: open ReceiptCaptureModal, then create item from cropped image
+  function handleCameraCapture(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) setCaptureFile(file);
+    e.target.value = "";
+  }
+
+  async function handleCaptureSubmit(croppedFile: File, meta: { purpose: string; account_debit: string; account_label: string; payment_method: PaymentMethod }) {
+    setCaptureFile(null);
+    if (!activeReport) return;
+    setUploading(true);
+    try {
+      const fileType = croppedFile.name.split(".").pop()?.toLowerCase() || "jpg";
+      const { path } = await uploadReceiptFile(croppedFile);
+      const newItem = await createExpenseItem({
+        expense_report_id: activeReport,
+        company_id: company.id,
+        date: new Date().toISOString().split("T")[0],
+        issuer: "",
+        purpose: meta.purpose || "",
+        category: "other",
+        amount_net: 0,
+        vat_rate: 0,
+        amount_vat: 0,
+        amount_gross: 0,
+        payment_method: meta.payment_method || "bar",
+        receipt_file_path: path,
+        receipt_file_type: fileType,
+        account_debit: meta.account_debit || "",
+        account_label: meta.account_label || "",
+        notes: "",
+        analysis_status: "pending",
+        analysis_raw: null,
+        analysis_cost: null,
+      });
+      analyzeExpenseItem(newItem.id);
+      await loadData();
+    } catch (err) {
+      alert("Upload fehlgeschlagen: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  // File upload flow (without camera/crop): upload directly + analyze
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !activeReport) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const fileType = file.name.split(".").pop()?.toLowerCase() || "pdf";
+        const { path } = await uploadReceiptFile(file);
+        const newItem = await createExpenseItem({
+          expense_report_id: activeReport,
+          company_id: company.id,
+          date: new Date().toISOString().split("T")[0],
+          issuer: "",
+          purpose: "",
+          category: "other",
+          amount_net: 0,
+          vat_rate: 0,
+          amount_vat: 0,
+          amount_gross: 0,
+          payment_method: "",
+          receipt_file_path: path,
+          receipt_file_type: fileType,
+          account_debit: "",
+          account_label: "",
+          notes: "",
+          analysis_status: "pending",
+          analysis_raw: null,
+          analysis_cost: null,
+        });
+        analyzeExpenseItem(newItem.id);
+      }
+      await loadData();
+    } catch (err) {
+      alert("Upload fehlgeschlagen: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setUploading(false);
+      if (fileUploadRef.current) fileUploadRef.current.value = "";
+    }
+  }
+
+  async function analyzeExpenseItem(id: string) {
+    setAnalyzing(id);
+    try {
+      const res = await fetch("/api/analyze-expense", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expenseItemId: id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Analyse fehlgeschlagen" }));
+        console.error("Analysis error:", err);
+      }
+      await loadData();
+    } catch (err) {
+      console.error("Analysis error:", err);
+    } finally {
+      setAnalyzing(null);
+    }
+  }
+
+  async function handleViewReceipt(item: ExpenseItem) {
+    if (!item.receipt_file_path) return;
+    const supabase = createClient();
+    const { data } = await supabase.storage.from("receipts").createSignedUrl(item.receipt_file_path, 300);
+    if (data?.signedUrl) {
+      setEditItemId(item.id);
+      setEditItemUrl(data.signedUrl);
+    }
+  }
+
+  async function handleSaveCrop(blob: Blob) {
+    if (!editItemId) return;
+    const item = items.find((i) => i.id === editItemId);
+    if (!item) return;
+    const croppedFile = new File([blob], (item.receipt_file_path || "receipt").replace(/\.\w+$/, "_cropped.jpg"), { type: "image/jpeg" });
+    const { path } = await uploadReceiptFile(croppedFile);
+    await updateExpenseItem(editItemId, {
+      receipt_file_path: path,
+      receipt_file_type: "jpg",
+    } as Partial<ExpenseItem>);
+    setEditItemId(null);
+    setEditItemUrl(null);
+    await loadData();
+  }
+
+  async function handleDeleteReceiptFile(itemId: string) {
+    if (!confirm("Beleg-Datei entfernen?")) return;
+    const item = items.find((i) => i.id === itemId);
+    if (item?.receipt_file_path) {
+      const supabase = createClient();
+      await supabase.storage.from("receipts").remove([item.receipt_file_path]);
+    }
+    await updateExpenseItem(itemId, { receipt_file_path: null, receipt_file_type: null, analysis_status: "done", analysis_raw: null, analysis_cost: null } as unknown as Partial<ExpenseItem>);
+    await loadData();
   }
 
   async function handleSubmitReport(id: string) {
@@ -197,10 +359,37 @@ export default function ExpensesPage() {
                 Gesamt: <span className="font-bold text-[var(--text-primary)]">{formatCurrency(activeTotal)}</span> · {activeItems.length} Positionen
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {activeReportData.status === "draft" && (
                 <>
-                  <button onClick={() => setShowNewItem(true)} className="bg-[var(--accent)] text-black px-3 py-1.5 rounded-lg text-xs font-semibold hover:brightness-110 transition">+ Position</button>
+                  {/* Camera button */}
+                  <label className={`bg-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-cyan-500 transition cursor-pointer flex items-center gap-1.5 ${uploading ? "opacity-50" : ""}`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                    Kamera
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleCameraCapture}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                  </label>
+                  {/* File upload button */}
+                  <label className={`bg-[var(--accent)] text-black px-3 py-1.5 rounded-lg text-xs font-semibold hover:brightness-110 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}>
+                    {uploading ? "Hochladen..." : "+ Beleg hochladen"}
+                    <input
+                      ref={fileUploadRef}
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      multiple
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                  </label>
+                  <button onClick={() => setShowNewItem(true)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[var(--border)] transition">+ Manuell</button>
                   <button onClick={() => handleSubmitReport(activeReportData.id)} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-500 transition">Einreichen</button>
                 </>
               )}
@@ -213,7 +402,7 @@ export default function ExpensesPage() {
             </div>
           </div>
 
-          {/* New item form */}
+          {/* New item form (manual entry) */}
           {showNewItem && activeReportData.status === "draft" && (
             <form onSubmit={handleAddItem} className="bg-[var(--background)] rounded-lg p-4 mb-4 border border-[var(--border)]">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -275,46 +464,118 @@ export default function ExpensesPage() {
             <table className="min-w-full divide-y divide-[var(--border)]">
               <thead className="bg-[var(--background)]">
                 <tr>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Status</th>
                   <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Datum</th>
                   <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Lieferant</th>
                   <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Zweck</th>
                   <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Kategorie</th>
                   <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)] uppercase">Brutto</th>
                   <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)] uppercase">USt</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Konto</th>
                   <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Zahlung</th>
-                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)] uppercase"></th>
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)] uppercase">Aktionen</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {activeItems.length === 0 && <tr><td colSpan={8} className="px-3 py-6 text-center text-[var(--text-muted)] text-sm">Noch keine Positionen.</td></tr>}
-                {activeItems.sort((a, b) => a.date.localeCompare(b.date)).map((item) => (
-                  <tr key={item.id} className="hover:bg-[var(--surface-hover)] transition">
-                    <td className="px-3 py-2.5 text-xs text-[var(--text-secondary)]">{formatDateLong(item.date)}</td>
-                    <td className="px-3 py-2.5 text-xs text-[var(--text-primary)] font-medium">{item.issuer}</td>
-                    <td className="px-3 py-2.5 text-xs text-[var(--text-secondary)]">{item.purpose}</td>
-                    <td className="px-3 py-2.5 text-xs text-[var(--text-muted)]">{EXPENSE_CATEGORIES.find((c) => c.value === item.category)?.label || item.category}</td>
-                    <td className="px-3 py-2.5 text-xs text-right font-medium text-[var(--text-primary)]">{formatCurrency(item.amount_gross)}</td>
-                    <td className="px-3 py-2.5 text-xs text-right text-orange-400">{formatCurrency(item.amount_vat)} ({item.vat_rate}%)</td>
-                    <td className="px-3 py-2.5 text-xs text-[var(--text-muted)]">{item.payment_method}</td>
-                    <td className="px-3 py-2.5 text-right">
-                      {activeReportData.status === "draft" && (
-                        <button onClick={() => handleDeleteItem(item.id)} className="text-rose-400 hover:text-rose-300 text-xs">×</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {activeItems.length === 0 && <tr><td colSpan={10} className="px-3 py-6 text-center text-[var(--text-muted)] text-sm">Noch keine Positionen. Lade einen Beleg hoch oder erstelle manuell.</td></tr>}
+                {activeItems.sort((a, b) => a.date.localeCompare(b.date)).map((item) => {
+                  const isItemAnalyzing = analyzing === item.id || item.analysis_status === "analyzing";
+                  return (
+                    <tr key={item.id} className="hover:bg-[var(--surface-hover)] transition">
+                      {/* Analysis status */}
+                      <td className="px-3 py-2.5 text-xs">
+                        {item.receipt_file_path ? (
+                          item.analysis_status === "done" ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-400" title="AI-Analyse abgeschlossen">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+                              {item.analysis_cost != null && <span className="text-[10px] text-[var(--text-muted)]">{item.analysis_cost.toFixed(4)}€</span>}
+                            </span>
+                          ) : item.analysis_status === "analyzing" || isItemAnalyzing ? (
+                            <span className="inline-flex items-center gap-1 text-amber-400 animate-pulse" title="Wird analysiert...">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                            </span>
+                          ) : item.analysis_status === "error" ? (
+                            <span className="inline-flex items-center gap-1 text-rose-400 cursor-pointer" title={typeof item.analysis_raw?.error === "string" ? item.analysis_raw.error : "Fehler"} onClick={() => alert(typeof item.analysis_raw?.error === "string" ? item.analysis_raw.error : "Analyse fehlgeschlagen")}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                            </span>
+                          ) : (
+                            <span className="text-gray-500" title="Ausstehend">—</span>
+                          )
+                        ) : (
+                          <span className="text-gray-600" title="Kein Beleg">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-[var(--text-secondary)]">{formatDateLong(item.date)}</td>
+                      <td className="px-3 py-2.5 text-xs text-[var(--text-primary)] font-medium">{item.issuer || <span className="text-[var(--text-muted)] italic">—</span>}</td>
+                      <td className="px-3 py-2.5 text-xs text-[var(--text-secondary)]">{item.purpose || <span className="text-[var(--text-muted)] italic">—</span>}</td>
+                      <td className="px-3 py-2.5 text-xs text-[var(--text-muted)]">{EXPENSE_CATEGORIES.find((c) => c.value === item.category)?.label || item.category}</td>
+                      <td className="px-3 py-2.5 text-xs text-right font-medium text-[var(--text-primary)]">{item.amount_gross ? formatCurrency(item.amount_gross) : "—"}</td>
+                      <td className="px-3 py-2.5 text-xs text-right text-orange-400">{item.amount_vat ? `${formatCurrency(item.amount_vat)} (${item.vat_rate}%)` : "—"}</td>
+                      <td className="px-3 py-2.5 text-xs text-[var(--text-muted)]">{item.account_debit ? <span title={item.account_label || ""}>{item.account_debit}</span> : "—"}</td>
+                      <td className="px-3 py-2.5 text-xs text-[var(--text-muted)]">{item.payment_method || "—"}</td>
+                      <td className="px-3 py-2.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {/* View receipt */}
+                          {item.receipt_file_path && (
+                            <button onClick={() => handleViewReceipt(item)} className="text-blue-400 hover:text-blue-300 p-1" title="Beleg anzeigen">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                          )}
+                          {/* Re-analyze */}
+                          {item.receipt_file_path && activeReportData.status === "draft" && (
+                            <button onClick={() => analyzeExpenseItem(item.id)} disabled={isItemAnalyzing} className="text-[var(--accent)] hover:brightness-110 p-1 disabled:opacity-50" title="KI-Analyse starten">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                            </button>
+                          )}
+                          {/* Delete receipt file */}
+                          {item.receipt_file_path && activeReportData.status === "draft" && (
+                            <button onClick={() => handleDeleteReceiptFile(item.id)} className="text-orange-400 hover:text-orange-300 p-1" title="Beleg entfernen">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+                            </button>
+                          )}
+                          {/* Delete item */}
+                          {activeReportData.status === "draft" && (
+                            <button onClick={() => handleDeleteItem(item.id)} className="text-rose-400 hover:text-rose-300 p-1" title="Position löschen">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {activeItems.length > 0 && (
                   <tr className="bg-[var(--background)]">
+                    <td className="px-3 py-2.5"></td>
                     <td colSpan={4} className="px-3 py-2.5 text-xs font-bold text-[var(--text-primary)]">Gesamt</td>
                     <td className="px-3 py-2.5 text-xs text-right font-bold text-[var(--text-primary)]">{formatCurrency(activeTotal)}</td>
                     <td className="px-3 py-2.5 text-xs text-right text-orange-400">{formatCurrency(activeItems.reduce((s, i) => s + i.amount_vat, 0))}</td>
-                    <td colSpan={2}></td>
+                    <td colSpan={3}></td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+
+      {/* Camera capture modal */}
+      {captureFile && (
+        <ReceiptCaptureModal
+          imageFile={captureFile}
+          onSubmit={handleCaptureSubmit}
+          onCancel={() => setCaptureFile(null)}
+        />
+      )}
+
+      {/* Edit/view receipt modal */}
+      {editItemId && editItemUrl && (
+        <ReceiptCaptureModal
+          imageUrl={editItemUrl}
+          editMode
+          onSaveCrop={handleSaveCrop}
+          onCancel={() => { setEditItemId(null); setEditItemUrl(null); }}
+        />
       )}
     </div>
   );

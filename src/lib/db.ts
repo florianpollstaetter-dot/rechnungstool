@@ -569,7 +569,15 @@ export async function createExpenseItem(item: Omit<ExpenseItem, "id" | "created_
   return data as unknown as ExpenseItem;
 }
 
+export async function updateExpenseItem(id: string, updates: Partial<ExpenseItem>): Promise<void> {
+  await supabase().from("expense_items").update(updates).eq("id", id);
+}
+
 export async function deleteExpenseItem(id: string): Promise<void> {
+  const { data } = await supabase().from("expense_items").select("receipt_file_path").eq("id", id).single();
+  if (data?.receipt_file_path) {
+    await supabase().storage.from("receipts").remove([data.receipt_file_path]);
+  }
   await supabase().from("expense_items").delete().eq("id", id);
 }
 
