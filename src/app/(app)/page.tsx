@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Invoice, Customer, Quote, CompanySettings, FixedCost, Receipt } from "@/lib/types";
-import { getInvoices, getCustomers, getQuotes, getSettings, getActiveFixedCosts, getReceipts } from "@/lib/db";
+import { Invoice, Customer, Quote, CompanySettings, FixedCost, Receipt, Project } from "@/lib/types";
+import { getInvoices, getCustomers, getQuotes, getSettings, getActiveFixedCosts, getReceipts, getSmartInsightsConfig, getProjects } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import { getFactOfTheDay } from "@/lib/i18n";
+import { SmartInsight, SmartInsightContext, buildSmartInsightRules, evaluateSmartInsights } from "@/lib/smart-insights";
+import { getTimeReportEntries, periodPreset } from "@/lib/reports";
 
 function getChuckNorrisFact(): string {
   const facts = [
@@ -36,6 +38,8 @@ export default function DashboardPage() {
   const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
+  const [insights, setInsights] = useState<SmartInsight[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
@@ -49,7 +53,41 @@ export default function DashboardPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const loadInsights = useCallback(async () => {
+    try {
+      const [config, projects] = await Promise.all([getSmartInsightsConfig(), getProjects()]);
+      const rules = buildSmartInsightRules(config);
+
+      const thisWeek = periodPreset("this_week");
+      const lastWeek = periodPreset("last_week");
+      const [currentEntries, priorEntries] = await Promise.all([
+        getTimeReportEntries({ startDate: thisWeek.startDate, endDate: thisWeek.endDate }),
+        getTimeReportEntries({ startDate: lastWeek.startDate, endDate: lastWeek.endDate }),
+      ]);
+
+      const projectBudgets = new Map<string, { budgetHours: number; name: string }>();
+      for (const p of projects) {
+        if (p.budget_hours && p.budget_hours > 0) {
+          projectBudgets.set(p.id, { budgetHours: p.budget_hours, name: p.name });
+        }
+      }
+
+      const ctx: SmartInsightContext = {
+        currentEntries,
+        priorEntries,
+        periodLabel: thisWeek.label,
+        projectBudgets: projectBudgets.size > 0 ? projectBudgets : undefined,
+      };
+
+      setInsights(evaluateSmartInsights(ctx, rules));
+    } catch {
+      setInsights([]);
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadData(); loadInsights(); }, [loadData, loadInsights]);
 
   const activeInvoices = invoices.filter((i) => i.status !== "storniert");
   const openInvoices = activeInvoices.filter((i) => i.status === "offen");
@@ -168,6 +206,50 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      {/* Smart Insight Cards */}
+      {!insightsLoading && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Smart Insights</h2>
+          {insights.length === 0 ? (
+            <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5 text-center">
+              <p className="text-sm text-gray-500">Keine Auffälligkeiten</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {insights.map((insight) => {
+                const severityStyles = {
+                  info: { border: "border-blue-500", bg: "bg-blue-500/10", text: "text-blue-400", badgeBg: "bg-blue-500/15", badgeText: "text-blue-300" },
+                  warning: { border: "border-amber-500", bg: "bg-amber-500/10", text: "text-amber-400", badgeBg: "bg-amber-500/15", badgeText: "text-amber-300" },
+                  critical: { border: "border-rose-500", bg: "bg-rose-500/10", text: "text-rose-400", badgeBg: "bg-rose-500/15", badgeText: "text-rose-300" },
+                }[insight.severity];
+
+                const severityIcon = {
+                  info: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>,
+                  warning: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
+                  critical: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>,
+                }[insight.severity];
+
+                return (
+                  <div key={insight.id} className={`bg-[var(--surface)] rounded-xl border-l-4 ${severityStyles.border} border border-[var(--border)] p-4`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-7 h-7 rounded-lg ${severityStyles.bg} flex items-center justify-center ${severityStyles.text}`}>{severityIcon}</div>
+                      <span className="text-sm font-semibold text-[var(--text-primary)]">{insight.title}</span>
+                      {insight.metric && (
+                        <span className={`ml-auto text-xs font-medium px-2 py-0.5 rounded-full ${severityStyles.badgeBg} ${severityStyles.badgeText}`}>
+                          {insight.metric.value}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 leading-relaxed"
+                       dangerouslySetInnerHTML={{ __html: insight.body.replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--text-primary)]">$1</strong>') }} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {/* Recent Invoices */}
