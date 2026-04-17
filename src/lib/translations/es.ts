@@ -221,6 +221,7 @@ const es: Record<string, string> = {
   "quoteStatus.correctStatus": "Corregir estado",
   "quoteStatus.currentStatus": "Estado actual",
   "quoteStatus.changeTo": "Cambiar a {status}",
+  "quoteStatus.changeStatus": "Cambiar estado",
 
   // ── Quotes ──
   "quotes.title": "Presupuestos",

@@ -3,20 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Quote, Customer, CompanySettings, Language, Template } from "@/lib/types";
+import { Quote, Customer, CompanySettings, Language, Template, QuoteStatus } from "@/lib/types";
 import { getQuotes, getCustomers, getSettings, updateQuote, deleteQuote, convertQuoteToInvoice, getTemplates } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
 import QuoteDesignWindow from "@/components/QuoteDesignWindow";
+import QuoteStatusPicker from "@/components/QuoteStatusPicker";
 import { useI18n } from "@/lib/i18n-context";
-
-const statusColors: Record<string, string> = {
-  draft: "bg-gray-500/15 text-gray-400",
-  sent: "bg-blue-500/15 text-blue-400",
-  accepted: "bg-emerald-500/15 text-emerald-400",
-  rejected: "bg-rose-500/15 text-rose-400",
-  expired: "bg-amber-500/15 text-amber-400",
-};
 
 export default function QuotesPage() {
   const { t } = useI18n();
@@ -129,6 +122,11 @@ export default function QuotesPage() {
     }
   }
 
+  async function handleStatusChange(id: string, status: QuoteStatus) {
+    await updateQuote(id, { status });
+    await loadData();
+  }
+
   if (loading) return <div className="flex justify-center py-12"><div className="text-[var(--text-muted)]">{t("common.loading")}</div></div>;
 
   return (
@@ -179,7 +177,6 @@ export default function QuotesPage() {
                 || (q.project_description || "").toLowerCase().includes(sq)
                 || String(q.total).includes(sq);
             }).sort((a, b) => b.created_at.localeCompare(a.created_at)).map((q) => {
-              const color = statusColors[q.status] || statusColors.draft;
               const isEN = q.language === "en";
               const isLoadingPdf = pdfLoading === q.id;
               return (
@@ -202,9 +199,11 @@ export default function QuotesPage() {
                     </button>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${color}`}>
-                      {t(`quoteStatus.${q.status}`)}
-                    </span>
+                    <QuoteStatusPicker
+                      status={q.status}
+                      onChange={(next) => handleStatusChange(q.id, next)}
+                      size="sm"
+                    />
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex flex-col items-center gap-0.5">

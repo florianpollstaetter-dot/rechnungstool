@@ -221,6 +221,7 @@ const ar: Record<string, string> = {
   "quoteStatus.correctStatus": "تصحيح الحالة",
   "quoteStatus.currentStatus": "الحالة الحالية",
   "quoteStatus.changeTo": "تغيير إلى {status}",
+  "quoteStatus.changeStatus": "تغيير الحالة",
 
   // ── Quotes ──
   "quotes.title": "عروض الأسعار",

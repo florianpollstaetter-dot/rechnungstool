@@ -11,25 +11,8 @@ import PDFPreviewModal from "@/components/PDFPreviewModal";
 import QuoteApprovalPopup from "@/components/QuoteApprovalPopup";
 import QuoteDesignWindow from "@/components/QuoteDesignWindow";
 import InvoiceEditModal from "@/components/InvoiceEditModal";
+import QuoteStatusPicker from "@/components/QuoteStatusPicker";
 import { useI18n } from "@/lib/i18n-context";
-
-const statusColors: Record<string, string> = {
-  draft: "bg-gray-500/15 text-gray-400",
-  sent: "bg-blue-500/15 text-blue-400",
-  accepted: "bg-emerald-500/15 text-emerald-400",
-  rejected: "bg-rose-500/15 text-rose-400",
-  expired: "bg-amber-500/15 text-amber-400",
-};
-
-const statusActiveColors: Record<string, string> = {
-  draft: "bg-gray-500 text-white",
-  sent: "bg-blue-600 text-white",
-  accepted: "bg-emerald-600 text-white",
-  rejected: "bg-rose-600 text-white",
-  expired: "bg-amber-600 text-white",
-};
-
-const STATUS_ORDER: QuoteStatus[] = ["draft", "sent", "accepted", "rejected", "expired"];
 
 export default function QuoteDetailPage() {
   const { t } = useI18n();
@@ -150,25 +133,7 @@ export default function QuoteDetailPage() {
           <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">{t("quoteDetail.quoteNumber", { number: quote.quote_number })}</h1>
         </div>
         <div className="flex items-center gap-3">
-          <div className="inline-flex items-center gap-1 bg-[var(--background)] border border-[var(--border)] rounded-lg p-1">
-            {STATUS_ORDER.map((s) => {
-              const isActive = quote.status === s;
-              const cls = isActive
-                ? statusActiveColors[s]
-                : `${statusColors[s]} hover:brightness-125`;
-              return (
-                <button
-                  key={s}
-                  onClick={() => handleStatusChange(s)}
-                  disabled={isActive}
-                  className={`text-xs font-medium px-2.5 py-1 rounded-md transition ${cls} ${isActive ? "cursor-default" : "cursor-pointer"}`}
-                  title={isActive ? t("quoteStatus.currentStatus") : t("quoteStatus.changeTo", { status: t(`quoteStatus.${s}`) })}
-                >
-                  {t(`quoteStatus.${s}`)}
-                </button>
-              );
-            })}
-          </div>
+          <QuoteStatusPicker status={quote.status} onChange={handleStatusChange} />
           <button
             onClick={handleLanguageToggle}
             className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--background)] ${

@@ -221,6 +221,7 @@ const de = {
   "quoteStatus.correctStatus": "Status korrigieren",
   "quoteStatus.currentStatus": "Aktueller Status",
   "quoteStatus.changeTo": "Status ändern auf {status}",
+  "quoteStatus.changeStatus": "Status ändern",
 
   // ── Quotes ──
   "quotes.title": "Angebote",
