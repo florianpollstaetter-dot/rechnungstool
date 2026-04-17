@@ -11,6 +11,7 @@ import {
 } from "@react-pdf/renderer";
 import { Invoice, Customer, CompanySettings, UNIT_OPTIONS, Language } from "@/lib/types";
 import { t, getFactOfTheDay } from "@/lib/i18n";
+import { resolveTranslation } from "@/lib/i18n-content";
 
 Font.register({
   family: "Inter",
@@ -110,8 +111,13 @@ export default function InvoicePDF({ invoice, customer, settings }: Props) {
   const hasDiscounts = invoice.items.some((i) => i.discount_percent > 0 || i.discount_amount > 0) ||
     invoice.overall_discount_percent > 0 || invoice.overall_discount_amount > 0;
 
+  // SCH-447 — resolve accompanying text via translations JSONB with fallback to legacy de/en columns.
   const accompanyingText = invoice.accompanying_text ??
-    (lang === "en" ? settings.accompanying_text_en : settings.accompanying_text_de);
+    resolveTranslation(
+      settings.accompanying_text_translations,
+      lang,
+      lang === "en" ? settings.accompanying_text_en : settings.accompanying_text_de,
+    );
 
   const factOfDay = getFactOfTheDay(lang);
 

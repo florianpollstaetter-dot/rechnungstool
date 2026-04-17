@@ -15,6 +15,14 @@ export interface Customer {
 
 export type Language = "de" | "en";
 
+// SCH-447 — Extended locale set for user-content translations. Mirrors AppLocale
+// in i18n-context.tsx. PDF documents still store `de` or `en` in `language`; this
+// type is used for content-translation JSONB keys (products.name_translations,
+// company_settings.accompanying_text_translations, user_profiles.accompanying_text_translations).
+export type ContentLocale = "de" | "en" | "fr" | "es" | "it" | "tr" | "pl" | "ar";
+
+export type TranslationMap = Partial<Record<ContentLocale, string>>;
+
 export type UnitType = "Stueck" | "Stunden" | "Tage" | "Monate" | "Pauschale" | "km";
 
 export const UNIT_OPTIONS: { value: UnitType; label: string; label_en: string }[] = [
@@ -32,6 +40,11 @@ export interface Product {
   description: string;
   name_en: string;
   description_en: string;
+  // SCH-447 — per-locale overrides for the 6 additional UI languages (fr, es, it, tr, pl, ar).
+  // DE/EN keys are also mirrored here so consumers can resolve any locale uniformly.
+  // Optional on input; `mapProduct` always returns populated objects from the DB.
+  name_translations?: TranslationMap;
+  description_translations?: TranslationMap;
   unit: UnitType;
   unit_price: number;
   tax_rate: number;
@@ -157,6 +170,9 @@ export interface CompanySettings {
   next_quote_number: number;
   accompanying_text_de: string;
   accompanying_text_en: string;
+  // SCH-447 — per-locale overrides for 8 UI languages. Falls back to de/en columns.
+  // Optional on input; mappers return populated objects from the DB.
+  accompanying_text_translations?: TranslationMap;
   industry: string;
   website: string;
   description: string;
@@ -269,6 +285,9 @@ export interface UserProfile {
   company_access: string[];
   accompanying_text_de: string;
   accompanying_text_en: string;
+  // SCH-447 — per-locale overrides for 8 UI languages.
+  // Optional on input; mapper returns populated objects from the DB.
+  accompanying_text_translations?: TranslationMap;
   created_at: string;
 }
 

@@ -369,6 +369,11 @@ const tr: Record<string, string> = {
   "products.noProducts": "Henüz ürün oluşturulmadı.",
   "products.noRole": "Rol yok",
   "products.notSet": "belirlenmedi",
+  "products.moreLanguages": "Daha fazla dil",
+  "products.translateAll": "Tümünü çevir (YZ)",
+  "products.translateWithAi": "YZ ile çevir",
+  "products.translating": "Çevriliyor...",
+  "products.translateNeedsSource": "Önce ad veya açıklama (DE veya EN) girin.",
 
   // ── Fixed Costs ──
   "fixedCosts.title": "Sabit Giderler",

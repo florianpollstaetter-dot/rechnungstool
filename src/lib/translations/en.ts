@@ -400,6 +400,11 @@ const en: Record<string, string> = {
   "products.noProducts": "No products created yet.",
   "products.noRole": "No role",
   "products.notSet": "not set",
+  "products.moreLanguages": "More languages",
+  "products.translateAll": "Translate all (AI)",
+  "products.translateWithAi": "AI translate",
+  "products.translating": "Translating...",
+  "products.translateNeedsSource": "Please enter name or description (DE or EN) first.",
 
   // ── Fixed Costs ──
   "fixedCosts.title": "Fixed costs",

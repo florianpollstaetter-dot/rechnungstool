@@ -369,6 +369,11 @@ const ar: Record<string, string> = {
   "products.noProducts": "لم يتم إضافة منتجات بعد.",
   "products.noRole": "بدون دور",
   "products.notSet": "غير محدد",
+  "products.moreLanguages": "لغات إضافية",
+  "products.translateAll": "ترجمة الكل (ذكاء اصطناعي)",
+  "products.translateWithAi": "ترجمة بالذكاء الاصطناعي",
+  "products.translating": "جارٍ الترجمة...",
+  "products.translateNeedsSource": "يرجى إدخال الاسم أو الوصف (DE أو EN) أولاً.",
 
   // ── Fixed Costs ──
   "fixedCosts.title": "التكاليف الثابتة",

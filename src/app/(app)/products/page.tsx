@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Product, UNIT_OPTIONS, UnitType, CompanyRole } from "@/lib/types";
+import { Product, UNIT_OPTIONS, UnitType, CompanyRole, ContentLocale, TranslationMap } from "@/lib/types";
 import { getProducts, createProduct, updateProduct, deleteProduct, getCompanyRoles } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { useI18n } from "@/lib/i18n-context";
+import { CONTENT_LOCALES } from "@/lib/i18n-content";
+
+// SCH-447 — Extra locales beyond the first-class de/en inputs. Rendered in a collapsible panel.
+const EXTRA_LOCALES: ContentLocale[] = ["fr", "es", "it", "tr", "pl", "ar"];
 
 export default function ProductsPage() {
   const { t } = useI18n();
@@ -24,6 +28,12 @@ export default function ProductsPage() {
     active: true,
     role_id: "" as string,
   });
+  // SCH-447 — translation overrides for fr/es/it/tr/pl/ar. de/en live in the legacy form fields.
+  const [nameTranslations, setNameTranslations] = useState<TranslationMap>({});
+  const [descriptionTranslations, setDescriptionTranslations] = useState<TranslationMap>({});
+  const [showTranslationsPanel, setShowTranslationsPanel] = useState(false);
+  const [translatingLocale, setTranslatingLocale] = useState<ContentLocale | "all" | null>(null);
+  const [translateError, setTranslateError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     const [data, rolesData] = await Promise.all([getProducts(), getCompanyRoles()]);
@@ -38,6 +48,11 @@ export default function ProductsPage() {
 
   function resetForm() {
     setForm({ name: "", description: "", name_en: "", description_en: "", unit: "Stueck", unit_price: "", tax_rate: 20, active: true, role_id: "" });
+    setNameTranslations({});
+    setDescriptionTranslations({});
+    setShowTranslationsPanel(false);
+    setTranslateError(null);
+    setTranslatingLocale(null);
     setEditingId(null);
     setShowForm(false);
   }
@@ -54,13 +69,51 @@ export default function ProductsPage() {
       active: product.active,
       role_id: product.role_id || "",
     });
+    // SCH-447 — preload only extra-locale overrides; de/en live in legacy fields.
+    const extras = (src: TranslationMap | undefined): TranslationMap => {
+      if (!src) return {};
+      const out: TranslationMap = {};
+      for (const loc of EXTRA_LOCALES) {
+        if (src[loc]) out[loc] = src[loc];
+      }
+      return out;
+    };
+    setNameTranslations(extras(product.name_translations));
+    setDescriptionTranslations(extras(product.description_translations));
+    setShowTranslationsPanel(
+      EXTRA_LOCALES.some((loc) => (product.name_translations?.[loc] ?? "") !== "" || (product.description_translations?.[loc] ?? "") !== ""),
+    );
+    setTranslateError(null);
     setEditingId(product.id);
     setShowForm(true);
   }
 
+  function buildTranslationsFromForm() {
+    const nameMap: TranslationMap = {};
+    const descMap: TranslationMap = {};
+    if (form.name) nameMap.de = form.name;
+    if (form.name_en) nameMap.en = form.name_en;
+    if (form.description) descMap.de = form.description;
+    if (form.description_en) descMap.en = form.description_en;
+    for (const loc of EXTRA_LOCALES) {
+      const n = nameTranslations[loc]?.trim();
+      const d = descriptionTranslations[loc]?.trim();
+      if (n) nameMap[loc] = n;
+      if (d) descMap[loc] = d;
+    }
+    return { nameMap, descMap };
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const data = { ...form, unit_price: Number(form.unit_price) || 0, role_id: form.role_id || null };
+    const { nameMap, descMap } = buildTranslationsFromForm();
+    const data = {
+      ...form,
+      unit_price: Number(form.unit_price) || 0,
+      role_id: form.role_id || null,
+      name_translations: nameMap,
+      description_translations: descMap,
+    };
     if (editingId) {
       await updateProduct(editingId, data);
     } else {
@@ -68,6 +121,77 @@ export default function ProductsPage() {
     }
     resetForm();
     await loadData();
+  }
+
+  // SCH-447 — AI-translate helper. Uses DE name/description as source; falls back to EN if DE is empty.
+  async function runAiTranslate(targets: ContentLocale[]) {
+    const hasSource = form.name || form.description || form.name_en || form.description_en;
+    if (!hasSource) {
+      setTranslateError(t("products.translateNeedsSource"));
+      return;
+    }
+    setTranslateError(null);
+    setTranslatingLocale(targets.length === 1 ? targets[0] : "all");
+    try {
+      const sourceLocale: ContentLocale = form.name || form.description ? "de" : "en";
+      const sourceName = sourceLocale === "de" ? form.name : form.name_en;
+      const sourceDescription = sourceLocale === "de" ? form.description : form.description_en;
+      const filteredTargets = targets.filter((l) => l !== sourceLocale);
+      if (filteredTargets.length === 0) return;
+
+      const calls: Promise<void>[] = [];
+
+      if (sourceName) {
+        calls.push(
+          fetch("/api/translate-content", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              source: sourceName,
+              sourceLocale,
+              targetLocales: filteredTargets,
+              kind: "short",
+            }),
+          })
+            .then((r) => r.json())
+            .then((j: { translations?: Record<string, string>; error?: string }) => {
+              if (j.error) throw new Error(j.error);
+              if (j.translations) {
+                setNameTranslations((prev) => ({ ...prev, ...(j.translations as TranslationMap) }));
+              }
+            }),
+        );
+      }
+
+      if (sourceDescription) {
+        calls.push(
+          fetch("/api/translate-content", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              source: sourceDescription,
+              sourceLocale,
+              targetLocales: filteredTargets,
+              kind: "long",
+            }),
+          })
+            .then((r) => r.json())
+            .then((j: { translations?: Record<string, string>; error?: string }) => {
+              if (j.error) throw new Error(j.error);
+              if (j.translations) {
+                setDescriptionTranslations((prev) => ({ ...prev, ...(j.translations as TranslationMap) }));
+              }
+            }),
+        );
+      }
+
+      await Promise.all(calls);
+      setShowTranslationsPanel(true);
+    } catch (err) {
+      setTranslateError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTranslatingLocale(null);
+    }
   }
 
   async function handleDelete(id: string) {
@@ -208,6 +332,76 @@ export default function ProductsPage() {
               </label>
             </div>
           </div>
+          {/* SCH-447 — Translations panel: 6 extra UI languages + AI translate. */}
+          <div className="mt-5 border-t border-[var(--border)] pt-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowTranslationsPanel((s) => !s)}
+                className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-2"
+              >
+                <span>{showTranslationsPanel ? "▾" : "▸"}</span>
+                <span>{t("products.moreLanguages")}</span>
+                <span className="text-xs text-gray-500">({EXTRA_LOCALES.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => runAiTranslate(EXTRA_LOCALES)}
+                disabled={translatingLocale !== null}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--border)] disabled:opacity-50 transition"
+              >
+                {translatingLocale === "all" ? t("products.translating") : t("products.translateAll")}
+              </button>
+            </div>
+            {translateError && (
+              <div className="mt-2 text-xs text-rose-400">{translateError}</div>
+            )}
+            {showTranslationsPanel && (
+              <div className="mt-3 space-y-3">
+                {EXTRA_LOCALES.map((loc) => {
+                  const meta = CONTENT_LOCALES.find((l) => l.code === loc);
+                  return (
+                    <div key={loc} className="rounded-lg border border-[var(--border)] p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium text-[var(--text-primary)]">
+                          <span className="mr-2">{meta?.flag}</span>
+                          {meta?.label}
+                          <span className="ml-2 text-xs text-gray-500 uppercase">{loc}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => runAiTranslate([loc])}
+                          disabled={translatingLocale !== null}
+                          className="text-xs font-medium px-2 py-1 rounded-md bg-[var(--accent)]/20 text-[var(--accent)] hover:bg-[var(--accent)]/30 disabled:opacity-50 transition"
+                        >
+                          {translatingLocale === loc ? t("products.translating") : t("products.translateWithAi")}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          value={nameTranslations[loc] ?? ""}
+                          onChange={(e) => setNameTranslations((prev) => ({ ...prev, [loc]: e.target.value }))}
+                          placeholder={`${t("products.nameDe")} (${loc})`}
+                          className={inputClass}
+                          dir={loc === "ar" ? "rtl" : "ltr"}
+                        />
+                        <input
+                          type="text"
+                          value={descriptionTranslations[loc] ?? ""}
+                          onChange={(e) => setDescriptionTranslations((prev) => ({ ...prev, [loc]: e.target.value }))}
+                          placeholder={`${t("products.descriptionDe")} (${loc})`}
+                          className={inputClass}
+                          dir={loc === "ar" ? "rtl" : "ltr"}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-3 mt-4">
             <button
               type="submit"

@@ -54,6 +54,10 @@ const DEFAULT_SETTINGS: CompanySettings = {
   next_quote_number: 1,
   accompanying_text_de: "Vielen Dank fuer Ihren Auftrag! Wir freuen uns auf die weitere Zusammenarbeit.",
   accompanying_text_en: "Thank you for your order! We look forward to our continued collaboration.",
+  accompanying_text_translations: {
+    de: "Vielen Dank fuer Ihren Auftrag! Wir freuen uns auf die weitere Zusammenarbeit.",
+    en: "Thank you for your order! We look forward to our continued collaboration.",
+  },
   industry: "",
   website: "",
   description: "",
@@ -125,7 +129,15 @@ export async function getSettings(): Promise<CompanySettings> {
     .select("*")
     .eq("company_id", companyId)
     .single();
-  return data ? { ...DEFAULT_SETTINGS, ...data } : DEFAULT_SETTINGS;
+  if (!data) return DEFAULT_SETTINGS;
+  const merged = { ...DEFAULT_SETTINGS, ...data } as Record<string, unknown>;
+  const deText = (data.accompanying_text_de as string) || DEFAULT_SETTINGS.accompanying_text_de;
+  const enText = (data.accompanying_text_en as string) || DEFAULT_SETTINGS.accompanying_text_en;
+  merged.accompanying_text_translations = normalizeTranslations(
+    data.accompanying_text_translations,
+    { de: deText, en: enText },
+  );
+  return merged as unknown as CompanySettings;
 }
 
 export async function updateSettings(
@@ -1266,12 +1278,19 @@ function mapCustomer(row: Record<string, unknown>): Customer {
 }
 
 function mapProduct(row: Record<string, unknown>): Product {
+  const nameDe = (row.name as string) || "";
+  const nameEn = (row.name_en as string) || "";
+  const descDe = (row.description as string) || "";
+  const descEn = (row.description_en as string) || "";
   return {
     id: row.id as string,
-    name: row.name as string,
-    description: (row.description as string) || "",
-    name_en: (row.name_en as string) || "",
-    description_en: (row.description_en as string) || "",
+    name: nameDe,
+    description: descDe,
+    name_en: nameEn,
+    description_en: descEn,
+    // SCH-447: JSONB may be absent on older rows — fall back to legacy de/en columns.
+    name_translations: normalizeTranslations(row.name_translations, { de: nameDe, en: nameEn }),
+    description_translations: normalizeTranslations(row.description_translations, { de: descDe, en: descEn }),
     unit: (row.unit as Product["unit"]) || "Stueck",
     unit_price: Number(row.unit_price),
     tax_rate: Number(row.tax_rate),
@@ -1279,6 +1298,22 @@ function mapProduct(row: Record<string, unknown>): Product {
     role_id: (row.role_id as string) || null,
     created_at: row.created_at as string,
   };
+}
+
+function normalizeTranslations(
+  raw: unknown,
+  fallback: Partial<Record<"de" | "en" | "fr" | "es" | "it" | "tr" | "pl" | "ar", string>>,
+): Partial<Record<"de" | "en" | "fr" | "es" | "it" | "tr" | "pl" | "ar", string>> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(fallback)) {
+    if (v) out[k] = v;
+  }
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+      if (typeof v === "string" && v.trim() !== "") out[k] = v;
+    }
+  }
+  return out;
 }
 
 function mapInvoiceItem(row: Record<string, unknown>): InvoiceItem {
@@ -1596,6 +1631,10 @@ function mapUserProfile(row: Record<string, unknown>): UserProfile {
     company_access: companyAccess,
     accompanying_text_de: (row.accompanying_text_de as string) || "",
     accompanying_text_en: (row.accompanying_text_en as string) || "",
+    accompanying_text_translations: normalizeTranslations(row.accompanying_text_translations, {
+      de: (row.accompanying_text_de as string) || "",
+      en: (row.accompanying_text_en as string) || "",
+    }),
     created_at: row.created_at as string,
   };
 }

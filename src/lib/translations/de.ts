@@ -400,6 +400,11 @@ const de = {
   "products.noProducts": "Noch keine Produkte angelegt.",
   "products.noRole": "Keine Rolle",
   "products.notSet": "nicht gesetzt",
+  "products.moreLanguages": "Weitere Sprachen",
+  "products.translateAll": "Alle übersetzen (KI)",
+  "products.translateWithAi": "KI-Übersetzung",
+  "products.translating": "Übersetze...",
+  "products.translateNeedsSource": "Bitte zuerst Name oder Beschreibung (DE oder EN) eingeben.",
 
   // ── Fixed Costs ──
   "fixedCosts.title": "Fixkosten",

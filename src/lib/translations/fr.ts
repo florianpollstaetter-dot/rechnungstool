@@ -369,6 +369,11 @@ const fr: Record<string, string> = {
   "products.noProducts": "Aucun produit enregistré pour le moment.",
   "products.noRole": "Aucun rôle",
   "products.notSet": "non défini",
+  "products.moreLanguages": "Plus de langues",
+  "products.translateAll": "Traduire tout (IA)",
+  "products.translateWithAi": "Traduction IA",
+  "products.translating": "Traduction en cours...",
+  "products.translateNeedsSource": "Veuillez d'abord saisir le nom ou la description (DE ou EN).",
 
   // ── Fixed Costs ──
   "fixedCosts.title": "Charges fixes",
