@@ -426,16 +426,7 @@ export default function ExpensesPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Betrag brutto (€) *</label>
-                  <input type="number" step="0.01" value={itemForm.amount_gross} onChange={(e) => setItemForm({ ...itemForm, amount_gross: e.target.value })} required placeholder="0.00" className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">USt-Satz (%)</label>
-                  <select value={itemForm.vat_rate} onChange={(e) => setItemForm({ ...itemForm, vat_rate: e.target.value })} className={inputClass}>
-                    <option value="20">20%</option>
-                    <option value="13">13%</option>
-                    <option value="10">10%</option>
-                    <option value="0">0%</option>
-                  </select>
+                  <input type="number" step="0.01" value={itemForm.amount_gross} onChange={(e) => setItemForm({ ...itemForm, amount_gross: e.target.value })} required placeholder="0.00" className={`${inputClass} no-spinners`} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Zahlungsart</label>
