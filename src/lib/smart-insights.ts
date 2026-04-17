@@ -10,24 +10,20 @@
 // `SmartInsightRule` hinzugefügt; Reihenfolge im Array = Reihenfolge in
 // der Ausgabe.
 //
-// MVP-Regeln (aus dem Feasibility-Report):
-//   - billable-rate           — abgedeckt durch `billableRateRule`
-//   - period-growth           — abgedeckt durch `periodGrowthRule`
-//                               (generischer Überstunden-Trend-Ersatz,
-//                               braucht keine Work-Schedule-Daten)
-//   - top-project-share       — abgedeckt durch `topProjectShareRule`
-//                               (Konzentrations-Hinweis fürs Dashboard)
+// Alle Schwellwerte konfigurierbar über SmartInsightsConfig (Admin-Settings).
+// `buildSmartInsightRules(config)` baut das Rule-Set aus gespeicherten Werten;
+// `DEFAULT_SMART_INSIGHT_RULES` nutzt die Defaultwerte.
 //
-// Offen bis das Schema erweitert ist:
-//   - budget-overshoot        — braucht `projects.budget_hours` oder eine
-//                               Ableitung aus quote.total → todo, wenn Board
-//                               das Budget-Feld freigibt.
-//   - overtime-vs-schedule    — braucht `user_work_schedules` Expected-Hours;
-//                               die Daten-Pipeline liegt bereits (v2-Migration),
-//                               kann nachgezogen werden wenn Produkt die
-//                               exakte Regel festzurrt.
+// Regeln:
+//   - billable-rate       — Anteil abrechenbarer Stunden
+//   - period-growth       — Stundenanstieg ggü. Vorperiode
+//   - top-project-share   — Konzentrations-Hinweis
+//   - budget-overshoot    — Projekt-Stundenbudget vs. gebuchte Stunden
+//   - overtime-vs-schedule — Ist-Stunden vs. Soll-Stunden (Work-Schedule)
 
 import type { TimeEntry } from "./types";
+import type { SmartInsightsConfig } from "./types";
+import { DEFAULT_SMART_INSIGHTS_CONFIG } from "./types";
 
 export type InsightSeverity = "info" | "warning" | "critical";
 
@@ -51,6 +47,10 @@ export interface SmartInsightContext {
   priorEntries?: TimeEntry[];
   /** Klartext-Label der aktuellen Periode (z.B. "Diese Woche"). */
   periodLabel?: string;
+  /** Projekt-Budgets: Map projectId → { budgetHours, projectName }. */
+  projectBudgets?: Map<string, { budgetHours: number; name: string }>;
+  /** Soll-Stunden pro User im Zeitraum (aus user_work_schedules berechnet). */
+  expectedHoursPerUser?: Map<string, { expectedHours: number; userName: string }>;
 }
 
 export interface SmartInsightRule {
@@ -82,7 +82,7 @@ export function evaluateSmartInsights(
   return out;
 }
 
-// --- Built-in rules ---------------------------------------------------------
+// --- Helpers -----------------------------------------------------------------
 
 function sumMinutes(entries: TimeEntry[]): number {
   let total = 0;
@@ -104,14 +104,12 @@ function formatPct(ratio: number): string {
   return `${Math.round(ratio * 100)}%`;
 }
 
-/**
- * Warnung, wenn der Anteil abrechenbarer Stunden unter `minRatio` fällt.
- * Default: 60% — konsistent mit dem Feasibility-Report-Vorschlag.
- */
+// --- Built-in rules ---------------------------------------------------------
+
 export function billableRateRule(
   opts: { minRatio?: number } = {}
 ): SmartInsightRule {
-  const minRatio = opts.minRatio ?? 0.6;
+  const minRatio = opts.minRatio ?? DEFAULT_SMART_INSIGHTS_CONFIG.billable_rate_min;
   return {
     id: "billable-rate",
     evaluate({ currentEntries, periodLabel }) {
@@ -136,15 +134,10 @@ export function billableRateRule(
   };
 }
 
-/**
- * Info-Hinweis bei starkem Stundenanstieg gegenüber der Vorperiode.
- * `threshold`: Wachstum (z.B. 0.3 = +30%). Benötigt `priorEntries`
- * im Context — fehlt der, macht die Regel nichts.
- */
 export function periodGrowthRule(
   opts: { threshold?: number } = {}
 ): SmartInsightRule {
-  const threshold = opts.threshold ?? 0.3;
+  const threshold = opts.threshold ?? DEFAULT_SMART_INSIGHTS_CONFIG.period_growth_threshold;
   return {
     id: "period-growth",
     evaluate({ currentEntries, priorEntries, periodLabel }) {
@@ -169,16 +162,10 @@ export function periodGrowthRule(
   };
 }
 
-/**
- * Hinweis, wenn ein Projekt mehr als `maxShare` der gesamten Stunden
- * ausmacht — Konzentrations-Risiko / Klumpen-Signal fürs Dashboard.
- * Gruppiert bevorzugt nach project_id (Modul 4), fällt auf project_label
- * zurück — funktioniert vor und nach der Data-Migration.
- */
 export function topProjectShareRule(
   opts: { maxShare?: number } = {}
 ): SmartInsightRule {
-  const maxShare = opts.maxShare ?? 0.4;
+  const maxShare = opts.maxShare ?? DEFAULT_SMART_INSIGHTS_CONFIG.top_project_share_max;
   return {
     id: "top-project-share",
     evaluate({ currentEntries, periodLabel }) {
@@ -226,9 +213,120 @@ export function topProjectShareRule(
   };
 }
 
-/** Default-Set für die erste Dashboard-Version. */
-export const DEFAULT_SMART_INSIGHT_RULES: SmartInsightRule[] = [
-  billableRateRule(),
-  periodGrowthRule(),
-  topProjectShareRule(),
-];
+/**
+ * Budget-Überschreitungs-Rule. Braucht `projectBudgets` im Context.
+ * Warnt bei warnPct (Default 80%), critical bei criticalPct (Default 95%).
+ * Emittiert eine Insight-Card pro überschrittenem Projekt.
+ */
+export function budgetOvershootRule(
+  opts: { warnPct?: number; criticalPct?: number } = {}
+): SmartInsightRule {
+  const warnPct = opts.warnPct ?? DEFAULT_SMART_INSIGHTS_CONFIG.budget_overshoot_warn_pct;
+  const criticalPct = opts.criticalPct ?? DEFAULT_SMART_INSIGHTS_CONFIG.budget_overshoot_critical_pct;
+  return {
+    id: "budget-overshoot",
+    evaluate({ currentEntries, projectBudgets }) {
+      if (!projectBudgets || projectBudgets.size === 0) return [];
+
+      const byProject = new Map<string, number>();
+      for (const e of currentEntries) {
+        if (!e.project_id) continue;
+        byProject.set(e.project_id, (byProject.get(e.project_id) ?? 0) + (Number(e.duration_minutes) || 0));
+      }
+
+      const insights: SmartInsight[] = [];
+      for (const [projectId, budget] of projectBudgets) {
+        const loggedMinutes = byProject.get(projectId) ?? 0;
+        const loggedHours = loggedMinutes / 60;
+        const ratio = loggedHours / budget.budgetHours;
+        if (ratio < warnPct) continue;
+
+        const severity: InsightSeverity = ratio >= criticalPct ? "critical" : "warning";
+        insights.push({
+          id: `budget-overshoot:${projectId}`,
+          severity,
+          title: severity === "critical" ? "Budget fast aufgebraucht" : "Budget-Warnung",
+          body:
+            `**${budget.name}**: ${formatHours(loggedMinutes)} von ` +
+            `${budget.budgetHours.toFixed(1)}h Budget verbraucht (**${formatPct(ratio)}**).`,
+          metric: { label: "Budget", value: formatPct(ratio) },
+          relatedProjectId: projectId,
+        });
+      }
+      return insights;
+    },
+  };
+}
+
+/**
+ * Überstunden vs. Soll-Stunden. Braucht `expectedHoursPerUser` im Context
+ * (berechnet aus user_work_schedules × Arbeitstage im Zeitraum).
+ * Info-Hinweis wenn Ist > Soll × (1 + threshold).
+ */
+export function overtimeVsScheduleRule(
+  opts: { threshold?: number } = {}
+): SmartInsightRule {
+  const threshold = opts.threshold ?? DEFAULT_SMART_INSIGHTS_CONFIG.overtime_threshold_pct;
+  return {
+    id: "overtime-vs-schedule",
+    evaluate({ currentEntries, expectedHoursPerUser }) {
+      if (!expectedHoursPerUser || expectedHoursPerUser.size === 0) return [];
+
+      const byUser = new Map<string, number>();
+      for (const e of currentEntries) {
+        byUser.set(e.user_id, (byUser.get(e.user_id) ?? 0) + (Number(e.duration_minutes) || 0));
+      }
+
+      const insights: SmartInsight[] = [];
+      for (const [userId, expected] of expectedHoursPerUser) {
+        const actualMinutes = byUser.get(userId) ?? 0;
+        const actualHours = actualMinutes / 60;
+        if (expected.expectedHours <= 0) continue;
+        const overshoot = (actualHours - expected.expectedHours) / expected.expectedHours;
+        if (overshoot < threshold) continue;
+
+        insights.push({
+          id: `overtime-vs-schedule:${userId}`,
+          severity: "warning",
+          title: "Überstunden",
+          body:
+            `**${expected.userName}**: ${actualHours.toFixed(1)}h gebucht vs. ` +
+            `${expected.expectedHours.toFixed(1)}h Soll (**+${formatPct(overshoot)}**).`,
+          metric: { label: "Überstunden", value: `+${formatPct(overshoot)}` },
+          relatedUserId: userId,
+        });
+      }
+      return insights;
+    },
+  };
+}
+
+// --- Config-driven rule builder ----------------------------------------------
+
+/** Baut das Rule-Set aus Admin-konfigurierbaren Schwellwerten. */
+export function buildSmartInsightRules(
+  config: Pick<
+    SmartInsightsConfig,
+    | "billable_rate_min"
+    | "period_growth_threshold"
+    | "top_project_share_max"
+    | "budget_overshoot_warn_pct"
+    | "budget_overshoot_critical_pct"
+    | "overtime_threshold_pct"
+  >
+): SmartInsightRule[] {
+  return [
+    billableRateRule({ minRatio: config.billable_rate_min }),
+    periodGrowthRule({ threshold: config.period_growth_threshold }),
+    topProjectShareRule({ maxShare: config.top_project_share_max }),
+    budgetOvershootRule({
+      warnPct: config.budget_overshoot_warn_pct,
+      criticalPct: config.budget_overshoot_critical_pct,
+    }),
+    overtimeVsScheduleRule({ threshold: config.overtime_threshold_pct }),
+  ];
+}
+
+/** Default-Set mit Standard-Schwellwerten. */
+export const DEFAULT_SMART_INSIGHT_RULES: SmartInsightRule[] =
+  buildSmartInsightRules(DEFAULT_SMART_INSIGHTS_CONFIG);

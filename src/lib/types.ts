@@ -35,6 +35,7 @@ export interface Product {
   unit_price: number;
   tax_rate: number;
   active: boolean;
+  role_id?: string | null;
   created_at: string;
 }
 
@@ -89,6 +90,7 @@ export interface QuoteItem {
   discount_percent: number;
   discount_amount: number;
   total: number;
+  role_id?: string | null;
 }
 
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "expired";
@@ -352,6 +354,7 @@ export interface Project {
   color: string | null;
   status: ProjectStatus;
   quote_id: string | null;
+  budget_hours?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -376,9 +379,54 @@ export interface Task {
   due_date: string | null;
   estimated_hours: number | null;
   position: number;
+  role_id?: string | null;
   created_at: string;
   updated_at: string;
 }
+
+// SCH-366 — Custom-Rollen-System (Admin-verwaltet, pro Firma).
+
+export interface CompanyRole {
+  id: string;
+  company_id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserRoleAssignment {
+  id: string;
+  company_id: string;
+  user_id: string;
+  role_id: string;
+  created_at: string;
+}
+
+// SCH-366 — Smart-Insights-Konfiguration (Admin-setzbare Schwellwerte).
+
+export interface SmartInsightsConfig {
+  id: string;
+  company_id: string;
+  billable_rate_min: number;
+  period_growth_threshold: number;
+  top_project_share_max: number;
+  budget_overshoot_warn_pct: number;
+  budget_overshoot_critical_pct: number;
+  overtime_threshold_pct: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export const DEFAULT_SMART_INSIGHTS_CONFIG: Omit<SmartInsightsConfig, "id" | "company_id" | "created_at" | "updated_at"> = {
+  billable_rate_min: 0.6,
+  period_growth_threshold: 0.3,
+  top_project_share_max: 0.4,
+  budget_overshoot_warn_pct: 0.8,
+  budget_overshoot_critical_pct: 0.95,
+  overtime_threshold_pct: 0.1,
+};
 
 // SCH-366 Modul 1 — Dashboard-Layout-Persistenz pro User. Das layout_json
 // enthält das react-grid-layout-Objekt opak; die UI ist die einzige

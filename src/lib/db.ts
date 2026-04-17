@@ -26,6 +26,10 @@ import {
   TemplateType,
   Language,
   DisplayMode,
+  CompanyRole,
+  UserRoleAssignment,
+  SmartInsightsConfig,
+  DEFAULT_SMART_INSIGHTS_CONFIG,
 } from "./types";
 
 const DEFAULT_SETTINGS: CompanySettings = {
@@ -798,11 +802,18 @@ export async function createProjectFromQuote(quoteId: string): Promise<Project> 
     ? quote.project_description.trim()
     : `Angebot ${quote.quote_number}`;
 
+  // Compute total budget hours from Stunden-items.
+  const budgetHours = quote.items.reduce((sum, item) => {
+    if (item.unit === "Stunden" && item.quantity > 0) return sum + item.quantity;
+    return sum;
+  }, 0);
+
   const project = await createProject({
     name: projectName,
     color: null,
     status: "active",
     quote_id: quoteId,
+    budget_hours: budgetHours > 0 ? budgetHours : null,
   });
 
   if (quote.items.length > 0) {
@@ -820,6 +831,7 @@ export async function createProjectFromQuote(quoteId: string): Promise<Project> 
         estimated_hours:
           item.unit === "Stunden" && item.quantity > 0 ? item.quantity : null,
         position: item.position ?? idx + 1,
+        role_id: item.role_id ?? null,
       }))
     );
     if (error) throw new Error(error.message);
@@ -878,6 +890,157 @@ export async function deleteUserDashboardLayout(
     .eq("company_id", getActiveCompanyId())
     .eq("user_id", userId)
     .eq("dashboard_key", dashboardKey);
+}
+
+// Company Roles (SCH-366 — Custom-Rollen-System) -----------------------------
+
+export async function getCompanyRoles(): Promise<CompanyRole[]> {
+  const { data } = await supabase()
+    .from("company_roles")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .order("name");
+  return (data ?? []).map(mapCompanyRole);
+}
+
+export async function getCompanyRole(id: string): Promise<CompanyRole | null> {
+  const { data } = await supabase()
+    .from("company_roles")
+    .select("*")
+    .eq("id", id)
+    .eq("company_id", getActiveCompanyId())
+    .maybeSingle();
+  return data ? mapCompanyRole(data) : null;
+}
+
+export async function createCompanyRole(
+  role: Pick<CompanyRole, "name" | "description" | "color">
+): Promise<CompanyRole> {
+  const { data, error } = await supabase()
+    .from("company_roles")
+    .insert({ ...role, company_id: getActiveCompanyId() })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapCompanyRole(data!);
+}
+
+export async function updateCompanyRole(
+  id: string,
+  updates: Partial<Pick<CompanyRole, "name" | "description" | "color">>
+): Promise<CompanyRole> {
+  const { data, error } = await supabase()
+    .from("company_roles")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("company_id", getActiveCompanyId())
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapCompanyRole(data!);
+}
+
+export async function deleteCompanyRole(id: string): Promise<void> {
+  await supabase()
+    .from("company_roles")
+    .delete()
+    .eq("id", id)
+    .eq("company_id", getActiveCompanyId());
+}
+
+// User ↔ Role assignments ----------------------------------------------------
+
+export async function getUserRoleAssignments(
+  userId: string
+): Promise<UserRoleAssignment[]> {
+  const { data } = await supabase()
+    .from("user_role_assignments")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .eq("user_id", userId);
+  return (data ?? []).map(mapUserRoleAssignment);
+}
+
+export async function assignRoleToUser(
+  userId: string,
+  roleId: string
+): Promise<UserRoleAssignment> {
+  const { data, error } = await supabase()
+    .from("user_role_assignments")
+    .upsert(
+      { company_id: getActiveCompanyId(), user_id: userId, role_id: roleId },
+      { onConflict: "user_id,role_id" }
+    )
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapUserRoleAssignment(data!);
+}
+
+export async function removeRoleFromUser(
+  userId: string,
+  roleId: string
+): Promise<void> {
+  await supabase()
+    .from("user_role_assignments")
+    .delete()
+    .eq("user_id", userId)
+    .eq("role_id", roleId);
+}
+
+/** Alle User die eine bestimmte Rolle haben — für Auto-Suggestion. */
+export async function getUsersWithRole(
+  roleId: string
+): Promise<{ userId: string; displayName: string }[]> {
+  const { data } = await supabase()
+    .from("user_role_assignments")
+    .select("user_id, user_profiles!inner(display_name)")
+    .eq("company_id", getActiveCompanyId())
+    .eq("role_id", roleId);
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    userId: row.user_id as string,
+    displayName:
+      (row.user_profiles as Record<string, unknown>)?.display_name as string ??
+      "",
+  }));
+}
+
+// Smart Insights Config (SCH-366 — Admin-konfigurierbare Schwellwerte) --------
+
+export async function getSmartInsightsConfig(): Promise<SmartInsightsConfig> {
+  const { data } = await supabase()
+    .from("smart_insights_config")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .maybeSingle();
+  if (data) return mapSmartInsightsConfig(data);
+  // Return defaults if no row exists for this company.
+  return {
+    id: "",
+    company_id: getActiveCompanyId(),
+    ...DEFAULT_SMART_INSIGHTS_CONFIG,
+    created_at: "",
+    updated_at: "",
+  };
+}
+
+export async function upsertSmartInsightsConfig(
+  config: Partial<Omit<SmartInsightsConfig, "id" | "company_id" | "created_at" | "updated_at">>
+): Promise<SmartInsightsConfig> {
+  const { data, error } = await supabase()
+    .from("smart_insights_config")
+    .upsert(
+      {
+        company_id: getActiveCompanyId(),
+        ...config,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "company_id" }
+    )
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapSmartInsightsConfig(data!);
 }
 
 // Bank Statements
@@ -1260,6 +1423,7 @@ function mapProject(row: Record<string, unknown>): Project {
     color: (row.color as string) || null,
     status: (row.status as ProjectStatus) || "active",
     quote_id: (row.quote_id as string) || null,
+    budget_hours: row.budget_hours != null ? Number(row.budget_hours) : null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };
@@ -1277,6 +1441,44 @@ function mapTask(row: Record<string, unknown>): Task {
     due_date: (row.due_date as string) || null,
     estimated_hours: row.estimated_hours != null ? Number(row.estimated_hours) : null,
     position: Number(row.position ?? 0),
+    role_id: (row.role_id as string) || null,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+function mapCompanyRole(row: Record<string, unknown>): CompanyRole {
+  return {
+    id: row.id as string,
+    company_id: row.company_id as string,
+    name: (row.name as string) || "",
+    description: (row.description as string) || null,
+    color: (row.color as string) || null,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+function mapUserRoleAssignment(row: Record<string, unknown>): UserRoleAssignment {
+  return {
+    id: row.id as string,
+    company_id: row.company_id as string,
+    user_id: row.user_id as string,
+    role_id: row.role_id as string,
+    created_at: row.created_at as string,
+  };
+}
+
+function mapSmartInsightsConfig(row: Record<string, unknown>): SmartInsightsConfig {
+  return {
+    id: row.id as string,
+    company_id: row.company_id as string,
+    billable_rate_min: Number(row.billable_rate_min ?? DEFAULT_SMART_INSIGHTS_CONFIG.billable_rate_min),
+    period_growth_threshold: Number(row.period_growth_threshold ?? DEFAULT_SMART_INSIGHTS_CONFIG.period_growth_threshold),
+    top_project_share_max: Number(row.top_project_share_max ?? DEFAULT_SMART_INSIGHTS_CONFIG.top_project_share_max),
+    budget_overshoot_warn_pct: Number(row.budget_overshoot_warn_pct ?? DEFAULT_SMART_INSIGHTS_CONFIG.budget_overshoot_warn_pct),
+    budget_overshoot_critical_pct: Number(row.budget_overshoot_critical_pct ?? DEFAULT_SMART_INSIGHTS_CONFIG.budget_overshoot_critical_pct),
+    overtime_threshold_pct: Number(row.overtime_threshold_pct ?? DEFAULT_SMART_INSIGHTS_CONFIG.overtime_threshold_pct),
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };
