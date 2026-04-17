@@ -13,30 +13,30 @@ export function AppFooter() {
 
   return (
     <footer className="mt-auto border-t border-[var(--border)] bg-[var(--surface)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Top row: logo left, links spread across the rest */}
-        <div className="flex flex-col sm:flex-row items-center gap-5">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
           <div className="flex flex-col items-center sm:items-start shrink-0">
             <Image
               src="/brand/octo-logo-full-white.png"
               alt="Orange Octo — easy accounting"
-              width={260}
-              height={90}
+              width={360}
+              height={120}
               priority={false}
-              className="h-auto w-auto max-h-20 brand-logo-dark"
+              className="h-auto w-auto max-h-28 sm:max-h-32 brand-logo-dark"
             />
             <Image
               src="/brand/octo-logo-full-black.png"
               alt="Orange Octo — easy accounting"
-              width={260}
-              height={90}
+              width={360}
+              height={120}
               priority={false}
-              className="h-auto w-auto max-h-20 brand-logo-light"
+              className="h-auto w-auto max-h-28 sm:max-h-32 brand-logo-light"
             />
           </div>
 
           {/* Links distributed across remaining width */}
-          <nav className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-2 flex-1 text-sm">
+          <nav className="flex flex-wrap items-center justify-center sm:justify-around gap-x-6 gap-y-2 flex-1 text-sm">
             <Link href="/impressum" className={linkClass}>Impressum</Link>
             <Link href="/agb" className={linkClass}>AGB</Link>
             <Link href="/datenschutz" className={linkClass}>Datenschutz</Link>
@@ -46,7 +46,7 @@ export function AppFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-[var(--border)] mt-4 pt-3">
+        <div className="border-t border-[var(--border)] mt-3 pt-2">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-1 text-xs text-[var(--text-muted)]">
             <p>&copy; {currentYear} VR the Fans GmbH. Alle Rechte vorbehalten.</p>
             <p className="font-mono">

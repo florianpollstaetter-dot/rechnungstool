@@ -107,7 +107,7 @@ export default function InvoiceDetailPage() {
       </div>
 
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-        <div className="grid grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-8">
           <div>
             <h3 className="text-sm font-medium text-gray-500 mb-2">Kunde</h3>
             <p className="font-medium text-[var(--text-primary)]">{customer.company || customer.name}</p>
@@ -116,7 +116,7 @@ export default function InvoiceDetailPage() {
             <p className="text-sm text-gray-400">{customer.zip} {customer.city}</p>
             {customer.uid_number && <p className="text-sm text-gray-400">{customer.uid_number}</p>}
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <div className="mb-2"><span className="text-sm text-gray-500">Rechnungsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.invoice_date)}</span></div>
             <div className="mb-2"><span className="text-sm text-gray-500">Leistungsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.delivery_date)}</span></div>
             <div><span className="text-sm text-gray-500">Fällig: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.due_date)}</span></div>

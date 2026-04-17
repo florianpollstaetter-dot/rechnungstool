@@ -210,7 +210,7 @@ export default function QuoteDetailPage() {
       </div>
 
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-        <div className="grid grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-8">
           <div>
             <h3 className="text-sm font-medium text-gray-500 mb-2">Kunde</h3>
             <p className="font-medium text-[var(--text-primary)]">{customer.company || customer.name}</p>
@@ -219,7 +219,7 @@ export default function QuoteDetailPage() {
             <p className="text-sm text-gray-400">{customer.zip} {customer.city}</p>
             {customer.uid_number && <p className="text-sm text-gray-400">{customer.uid_number}</p>}
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <div className="mb-2"><span className="text-sm text-gray-500">Angebotsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(quote.quote_date)}</span></div>
             <div className="mb-2"><span className="text-sm text-gray-500">Gültig bis: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(quote.valid_until)}</span></div>
             {quote.project_description && <div className="mt-4"><span className="text-sm text-gray-500">Projekt: </span><span className="font-medium text-[var(--text-primary)]">{quote.project_description}</span></div>}

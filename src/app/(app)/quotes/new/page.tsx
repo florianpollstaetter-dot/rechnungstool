@@ -259,15 +259,15 @@ function NewQuotePage() {
           </div>
 
           <div className="mt-4 flex flex-col items-end space-y-1 text-sm">
-            <div className="flex justify-between w-64">
+            <div className="flex justify-between w-full sm:w-64">
               <span className="text-gray-400">Summe netto</span>
               <span className="font-medium">{formatCurrency(subtotal)}</span>
             </div>
-            <div className="flex justify-between w-64">
+            <div className="flex justify-between w-full sm:w-64">
               <span className="text-gray-400">Umsatzsteuer {taxRate}%</span>
               <span className="font-medium">{formatCurrency(taxAmount)}</span>
             </div>
-            <div className="flex justify-between w-64 text-base font-bold border-t border-[var(--border)] pt-1">
+            <div className="flex justify-between w-full sm:w-64 text-base font-bold border-t border-[var(--border)] pt-1">
               <span>BRUTTO</span>
               <span>{formatCurrency(total)}</span>
             </div>
