@@ -47,11 +47,19 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       setCompanyIdState(stored);
     }
 
+    const supabase = createClient();
+
     // Load user profile to determine company access
     async function loadUserAccess() {
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        // No authenticated user — reset to defaults
+        setUserRole("");
+        setRoleLoaded(false);
+        setUserName("");
+        setAccessibleCompanies(COMPANIES);
+        return;
+      }
 
       const { data: profile } = await supabase
         .from("user_profiles")
@@ -90,7 +98,20 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       }
       setRoleLoaded(true);
     }
+
     loadUserAccess();
+
+    // Re-fetch role whenever auth state changes (login/logout/user switch)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+        setRoleLoaded(false);
+        loadUserAccess();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setCompanyId(id: string) {

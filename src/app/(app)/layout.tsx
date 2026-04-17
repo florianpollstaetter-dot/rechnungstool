@@ -66,6 +66,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   async function handleLogout() {
     const supabase = createClient();
+    localStorage.removeItem("currentUserName");
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
