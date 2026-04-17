@@ -3,13 +3,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Quote, Customer, CompanySettings, QuoteStatus, UNIT_OPTIONS, Language, DisplayMode, TemplateItem, CompanyRole } from "@/lib/types";
-import { getQuote, getCustomer, getSettings, updateQuote, convertQuoteToInvoice, createInvoice, createTemplate, getCompanyRoles, getUserAccompanyingText } from "@/lib/db";
+import { Quote, Customer, CompanySettings, QuoteStatus, UNIT_OPTIONS, Language, DisplayMode, TemplateItem, CompanyRole, Invoice } from "@/lib/types";
+import { getQuote, getCustomer, getSettings, updateQuote, createTemplate, getCompanyRoles, getInvoicesForQuote } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
 import QuoteApprovalPopup from "@/components/QuoteApprovalPopup";
 import QuoteDesignWindow from "@/components/QuoteDesignWindow";
+import InvoiceEditModal from "@/components/InvoiceEditModal";
 import { useI18n } from "@/lib/i18n-context";
 
 const statusColors: Record<string, string> = {
@@ -39,20 +40,27 @@ export default function QuoteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [showPartialModal, setShowPartialModal] = useState(false);
+  const [showInvoiceEditModal, setShowInvoiceEditModal] = useState(false);
+  const [invoiceEditMode, setInvoiceEditMode] = useState<"full" | "partial">("full");
   const [showApprovalPopup, setShowApprovalPopup] = useState(false);
   const [showDesignWindow, setShowDesignWindow] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [partialMode, setPartialMode] = useState<"percent" | "amount">("percent");
   const [partialValue, setPartialValue] = useState("30");
+  const [linkedInvoices, setLinkedInvoices] = useState<Invoice[]>([]);
+  const [invoicedTotal, setInvoicedTotal] = useState(0);
 
   const loadData = useCallback(async () => {
     const q = await getQuote(params.id as string);
     if (q) {
       setQuote(q);
-      const [cust, s, rolesData] = await Promise.all([getCustomer(q.customer_id), getSettings(), getCompanyRoles()]);
+      const [cust, s, rolesData, invoices] = await Promise.all([getCustomer(q.customer_id), getSettings(), getCompanyRoles(), getInvoicesForQuote(q.id)]);
       if (cust) setCustomer(cust);
       setSettings(s);
       setRoles(rolesData);
+      const nonCancelled = invoices.filter((inv) => inv.status !== "storniert");
+      setLinkedInvoices(nonCancelled);
+      setInvoicedTotal(nonCancelled.reduce((sum, inv) => sum + inv.total, 0));
     }
     setLoading(false);
   }, [params.id]);
@@ -106,64 +114,25 @@ export default function QuoteDetailPage() {
     alert(t("quoteDetail.templateSaved", { name }));
   }
 
-  async function handleConvert() {
-    if (confirm(t("quoteDetail.convertFull"))) {
-      const invoice = await convertQuoteToInvoice(quote!.id);
-      router.push(`/invoices/${invoice.id}`);
-    }
-  }
-
-  async function handlePartialInvoice() {
+  function handleOpenPartialEditModal() {
     if (!quote) return;
     const val = Number(partialValue) || 0;
     if (val <= 0) return;
-
-    const factor = partialMode === "percent" ? val / 100 : val / quote.total;
-    const clampedFactor = Math.min(factor, 1);
-
-    const partialItems = quote.items.map((item) => ({
-      id: crypto.randomUUID(),
-      position: item.position,
-      description: item.description + (partialMode === "percent" ? ` (${val}%)` : ""),
-      unit: item.unit,
-      product_id: item.product_id,
-      quantity: item.quantity,
-      unit_price: Math.round(item.unit_price * clampedFactor * 100) / 100,
-      discount_percent: item.discount_percent,
-      discount_amount: Math.round(item.discount_amount * clampedFactor * 100) / 100,
-      total: Math.round(item.total * clampedFactor * 100) / 100,
-    }));
-
-    const partialSubtotal = Math.round(quote.subtotal * clampedFactor * 100) / 100;
-    const partialTaxAmount = Math.round(quote.tax_amount * clampedFactor * 100) / 100;
-    const partialTotal = Math.round(quote.total * clampedFactor * 100) / 100;
-
-    const label = partialMode === "percent" ? `${val}%` : formatCurrency(val);
-    const invoice = await createInvoice({
-      customer_id: quote.customer_id,
-      project_description: `${quote.project_description || quote.quote_number} — Teilrechnung ${label}`,
-      invoice_date: new Date().toISOString().split("T")[0],
-      delivery_date: new Date().toISOString().split("T")[0],
-      due_date: new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0],
-      items: partialItems,
-      subtotal: partialSubtotal,
-      tax_rate: quote.tax_rate,
-      tax_amount: partialTaxAmount,
-      total: partialTotal,
-      overall_discount_percent: quote.overall_discount_percent,
-      overall_discount_amount: Math.round(quote.overall_discount_amount * clampedFactor * 100) / 100,
-      status: "offen",
-      paid_at: null,
-      paid_amount: 0,
-      notes: `Teilrechnung zu Angebot ${quote.quote_number} (${label})`,
-      language: quote.language || "de",
-      accompanying_text: await getUserAccompanyingText(quote.language || "de"),
-      e_invoice_format: "none",
-        created_by: null,
-    });
-
+    setInvoiceEditMode("partial");
     setShowPartialModal(false);
-    router.push(`/invoices/${invoice.id}`);
+    setShowInvoiceEditModal(true);
+  }
+
+  function getPartialFactor(): number {
+    if (!quote) return 1;
+    const val = Number(partialValue) || 0;
+    const factor = partialMode === "percent" ? val / 100 : val / quote.total;
+    return Math.min(factor, 1);
+  }
+
+  function getPartialLabel(): string {
+    const val = Number(partialValue) || 0;
+    return partialMode === "percent" ? `${val}%` : formatCurrency(val);
   }
 
   function getUnitLabel(unit: string) {
@@ -241,12 +210,12 @@ export default function QuoteDetailPage() {
           </button>
           <button onClick={() => setShowDesignWindow(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-500 transition">{t("design.openDesign")}</button>
           {quote.status !== "rejected" && (
+            <button onClick={() => setShowApprovalPopup(true)} className="bg-amber-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-500 transition">{t("quoteDetail.release")}</button>
+          )}
+          {quote.status === "accepted" && (
             <>
-              <button onClick={() => setShowApprovalPopup(true)} className="bg-amber-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-500 transition">{t("quoteDetail.release")}</button>
               <button onClick={() => setShowPartialModal(true)} className="bg-cyan-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-cyan-500 transition">{t("quoteDetail.partialInvoice")}</button>
-              {!quote.converted_invoice_id && (
-                <button onClick={handleConvert} className="bg-emerald-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">{t("quoteDetail.fullInvoice")}</button>
-              )}
+              <button onClick={() => { setInvoiceEditMode("full"); setShowInvoiceEditModal(true); }} className="bg-emerald-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">{t("quoteDetail.fullInvoice")}</button>
             </>
           )}
           <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title={t("quoteDetail.template")}>
@@ -272,7 +241,26 @@ export default function QuoteDetailPage() {
             {quote.project_description && <div className="mt-4"><span className="text-sm text-gray-500">{t("quoteDetail.project")} </span><span className="font-medium text-[var(--text-primary)]">{quote.project_description}</span></div>}
             {quote.converted_invoice_id && (
               <div className="mt-2">
-                <Link href={`/invoices/${quote.converted_invoice_id}`} className="text-sm text-[var(--accent)] hover:brightness-110">→ {t("quoteDetail.toInvoice")}</Link>
+                <Link href={`/invoices/${quote.converted_invoice_id}`} className="text-sm text-[var(--accent)] hover:brightness-110">{t("quoteDetail.toInvoice")}</Link>
+              </div>
+            )}
+            {linkedInvoices.length > 0 && (
+              <div className="mt-3 space-y-1">
+                <p className="text-xs font-medium text-gray-500 uppercase">{t("quoteDetail.linkedInvoices")}</p>
+                {linkedInvoices.map((inv) => (
+                  <Link key={inv.id} href={`/invoices/${inv.id}`} className="block text-sm text-[var(--accent)] hover:brightness-110">
+                    {inv.invoice_number} — {formatCurrency(inv.total)}
+                  </Link>
+                ))}
+                <div className="text-xs text-gray-400 mt-1">
+                  {t("quoteDetail.invoicedOf", { invoiced: formatCurrency(invoicedTotal), total: formatCurrency(quote.total) })}
+                  {invoicedTotal < quote.total && (
+                    <span className="text-cyan-400 ml-1">({t("quoteDetail.openAmount", { amount: formatCurrency(quote.total - invoicedTotal) })})</span>
+                  )}
+                  {invoicedTotal >= quote.total && (
+                    <span className="text-emerald-400 ml-1">({t("quoteDetail.fullyInvoiced")})</span>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -415,9 +403,16 @@ export default function QuoteDetailPage() {
               </p>
             )}
 
+            {invoicedTotal > 0 && (
+              <p className="text-xs text-gray-400 mb-2">
+                {t("quoteDetail.invoicedOf", { invoiced: formatCurrency(invoicedTotal), total: formatCurrency(quote.total) })}
+                {invoicedTotal < quote.total && <span className="text-cyan-400 ml-1">({t("quoteDetail.openAmount", { amount: formatCurrency(quote.total - invoicedTotal) })})</span>}
+              </p>
+            )}
+
             <div className="flex gap-2 mt-4">
               <button
-                onClick={handlePartialInvoice}
+                onClick={handleOpenPartialEditModal}
                 disabled={!partialValue || Number(partialValue) <= 0}
                 className="bg-cyan-600 text-[var(--text-primary)] px-6 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-500 transition disabled:opacity-50"
               >
@@ -432,6 +427,21 @@ export default function QuoteDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showInvoiceEditModal && quote && (
+        <InvoiceEditModal
+          quote={quote}
+          mode={invoiceEditMode}
+          partialFactor={invoiceEditMode === "partial" ? getPartialFactor() : 1}
+          partialLabel={invoiceEditMode === "partial" ? getPartialLabel() : undefined}
+          invoicedTotal={invoicedTotal}
+          onClose={() => setShowInvoiceEditModal(false)}
+          onCreated={(invoiceId) => {
+            setShowInvoiceEditModal(false);
+            router.push(`/invoices/${invoiceId}`);
+          }}
+        />
       )}
     </div>
   );

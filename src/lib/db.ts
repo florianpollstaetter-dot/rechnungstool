@@ -275,6 +275,32 @@ export async function getInvoice(
   return mapInvoice(inv, (items ?? []).map(mapInvoiceItem));
 }
 
+export async function getInvoicesForQuote(quoteId: string): Promise<Invoice[]> {
+  const { data: invoices } = await supabase()
+    .from("invoices")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .ilike("notes", `%[source_quote:${quoteId}]%`)
+    .order("created_at", { ascending: true });
+  if (!invoices || invoices.length === 0) return [];
+
+  const ids = invoices.map((i) => i.id);
+  const { data: items } = await supabase()
+    .from("invoice_items")
+    .select("*")
+    .in("invoice_id", ids)
+    .order("position", { ascending: true });
+
+  const itemsByInvoice = new Map<string, InvoiceItem[]>();
+  (items ?? []).forEach((item) => {
+    const list = itemsByInvoice.get(item.invoice_id) ?? [];
+    list.push(mapInvoiceItem(item));
+    itemsByInvoice.set(item.invoice_id, list);
+  });
+
+  return invoices.map((inv) => mapInvoice(inv, itemsByInvoice.get(inv.id) ?? []));
+}
+
 export async function generateInvoiceNumber(): Promise<string> {
   const settings = await getSettings();
   const year = new Date().getFullYear();
