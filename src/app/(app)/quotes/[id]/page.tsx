@@ -8,6 +8,7 @@ import { getQuote, getCustomer, getSettings, updateQuote, convertQuoteToInvoice,
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
+import QuoteApprovalPopup from "@/components/QuoteApprovalPopup";
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   draft: { label: "Entwurf", color: "bg-gray-500/15 text-gray-400" },
@@ -27,6 +28,7 @@ export default function QuoteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [showPartialModal, setShowPartialModal] = useState(false);
+  const [showApprovalPopup, setShowApprovalPopup] = useState(false);
   const [partialMode, setPartialMode] = useState<"percent" | "amount">("percent");
   const [partialValue, setPartialValue] = useState("30");
 
@@ -193,6 +195,7 @@ export default function QuoteDetailPage() {
           </button>
           {quote.status !== "rejected" && (
             <>
+              <button onClick={() => setShowApprovalPopup(true)} className="bg-amber-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-500 transition">Freigeben</button>
               <button onClick={() => setShowPartialModal(true)} className="bg-cyan-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-cyan-500 transition">Teilrechnung</button>
               {!quote.converted_invoice_id && (
                 <button onClick={handleConvert} className="bg-emerald-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">Vollrechnung</button>
@@ -293,6 +296,18 @@ export default function QuoteDetailPage() {
       </div>
 
       <PDFPreviewModal blob={previewBlob} onClose={() => setPreviewBlob(null)} />
+
+      {showApprovalPopup && (
+        <QuoteApprovalPopup
+          quote={quote}
+          roles={roles}
+          onClose={() => setShowApprovalPopup(false)}
+          onComplete={() => {
+            setShowApprovalPopup(false);
+            loadData();
+          }}
+        />
+      )}
 
       {/* Partial Invoice Modal */}
       {showPartialModal && quote && (
