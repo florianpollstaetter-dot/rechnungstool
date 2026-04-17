@@ -43,6 +43,17 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showChuckNorris, setShowChuckNorris] = useState(false);
   const [showTips, setShowTips] = useState(true);
+  const [cardVisibility, setCardVisibility] = useState<Record<string, boolean>>({
+    monatsumsatz: true,
+    offene_rechnungen: true,
+    ueberfaellig: true,
+    umsatzsteuer: true,
+    belege: true,
+    fixkosten: true,
+    smart_insights: true,
+    letzte_rechnungen: true,
+    letzte_angebote: true,
+  });
 
   const loadData = useCallback(async () => {
     const [inv, cust, q, s, fc, rec] = await Promise.all([getInvoices(), getCustomers(), getQuotes(), getSettings(), getActiveFixedCosts(), getReceipts()]);
@@ -96,6 +107,14 @@ export default function DashboardPage() {
     const tp = localStorage.getItem("show_tips");
     setShowChuckNorris(cn === "true");
     setShowTips(tp === null ? true : tp === "true");
+
+    const cardKeys = ["monatsumsatz", "offene_rechnungen", "ueberfaellig", "umsatzsteuer", "belege", "fixkosten", "smart_insights", "letzte_rechnungen", "letzte_angebote"];
+    const vis: Record<string, boolean> = {};
+    for (const key of cardKeys) {
+      const stored = localStorage.getItem(`show_card_${key}`);
+      vis[key] = stored === null ? true : stored === "true";
+    }
+    setCardVisibility(vis);
   }, [loadData, loadInsights]);
 
   const activeInvoices = invoices.filter((i) => i.status !== "storniert");
@@ -147,48 +166,50 @@ export default function DashboardPage() {
 
   const cards = [
     {
-      title: "Monatsumsatz", href: "/invoices?filter=bezahlt",
+      key: "monatsumsatz", title: "Monatsumsatz", href: "/invoices?filter=bezahlt",
       value: formatCurrency(monthlyRevenueGross),
       subtitle: `Jahresumsatz: ${formatCurrency(totalRevenueGross)}`,
       borderColor: "border-emerald-500", iconBg: "bg-emerald-500/10", iconColor: "text-emerald-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
     },
     {
-      title: "Offene Rechnungen", href: "/invoices?filter=offen",
+      key: "offene_rechnungen", title: "Offene Rechnungen", href: "/invoices?filter=offen",
       value: formatCurrency(totalOpenGross),
       subtitle: `${openInvoices.length + partialInvoices.length} offen/teil`,
       borderColor: "border-amber-500", iconBg: "bg-amber-500/10", iconColor: "text-amber-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
     },
     {
-      title: "Überfällig", href: "/invoices?filter=ueberfaellig",
+      key: "ueberfaellig", title: "Überfällig", href: "/invoices?filter=ueberfaellig",
       value: formatCurrency(totalOverdueGross),
       subtitle: `${overdueInvoices.length} überfällig`,
       borderColor: "border-rose-500", iconBg: "bg-rose-500/10", iconColor: "text-rose-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>,
     },
     {
-      title: "Umsatzsteuer", href: "/invoices",
+      key: "umsatzsteuer", title: "Umsatzsteuer", href: "/invoices",
       value: formatCurrency(totalVAT),
       subtitle: `${settings?.company_type === "gmbh" ? "Soll-Besteuerung" : "Ist-Besteuerung"}`,
       borderColor: "border-orange-500", iconBg: "bg-orange-500/10", iconColor: "text-orange-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="m9 12 2 2 4-4" /></svg>,
     },
     {
-      title: "Belege", href: "/receipts",
+      key: "belege", title: "Belege", href: "/receipts",
       value: formatCurrency(monthlyReceiptsGross),
       subtitle: `${receipts.length} Belege | Gesamt: ${formatCurrency(totalReceiptsGross)}`,
       borderColor: "border-violet-500", iconBg: "bg-violet-500/10", iconColor: "text-violet-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M14 8H8" /><path d="M16 12H8" /><path d="M13 16H8" /></svg>,
     },
     {
-      title: "Fixkosten", href: "/fixed-costs",
+      key: "fixkosten", title: "Fixkosten", href: "/fixed-costs",
       value: formatCurrency(monthlyFixedCosts),
       subtitle: `${fixedCosts.length} aktive / ${formatCurrency(monthlyFixedCosts * 12)} p.a.`,
       borderColor: "border-cyan-500", iconBg: "bg-cyan-500/10", iconColor: "text-cyan-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>,
     },
   ];
+
+  const visibleCards = cards.filter((card) => cardVisibility[card.key] !== false);
 
   if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
 
@@ -202,9 +223,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 6 cards in 2 rows of 3 */}
+      {/* KPI cards */}
+      {visibleCards.length > 0 && (
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-        {cards.map((card) => (
+        {visibleCards.map((card) => (
           <Link key={card.title} href={card.href} className={`bg-[var(--surface)] rounded-xl border-l-4 ${card.borderColor} border border-[var(--border)] p-5 hover:bg-[var(--surface-hover)] transition cursor-pointer`}>
             <div className="flex items-center gap-3 mb-3">
               <div className={`w-9 h-9 rounded-lg ${card.iconBg} flex items-center justify-center ${card.iconColor}`}>{card.icon}</div>
@@ -215,9 +237,10 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+      )}
 
       {/* Smart Insight Cards */}
-      {!insightsLoading && (
+      {!insightsLoading && cardVisibility.smart_insights !== false && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Smart Insights</h2>
           {insights.length === 0 ? (
@@ -260,8 +283,10 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      {(cardVisibility.letzte_rechnungen !== false || cardVisibility.letzte_angebote !== false) && (
+      <div className={`grid grid-cols-1 ${cardVisibility.letzte_rechnungen !== false && cardVisibility.letzte_angebote !== false ? "lg:grid-cols-2" : ""} gap-4 mb-6`}>
         {/* Recent Invoices */}
+        {cardVisibility.letzte_rechnungen !== false && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
           <div className="px-4 py-3 border-b border-[var(--border)] flex justify-between items-center">
             <h2 className="text-sm sm:text-lg font-semibold text-[var(--text-primary)]">Letzte Rechnungen</h2>
@@ -302,8 +327,10 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Recent Quotes */}
+        {cardVisibility.letzte_angebote !== false && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
           <div className="px-4 py-3 border-b border-[var(--border)] flex justify-between items-center">
             <h2 className="text-sm sm:text-lg font-semibold text-[var(--text-primary)]">Letzte Angebote</h2>
@@ -343,7 +370,9 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+        )}
       </div>
+      )}
 
       {/* Tip of the Day + Chuck Norris */}
       {(showTips || showChuckNorris) && (
@@ -362,6 +391,9 @@ export default function DashboardPage() {
           {showChuckNorris && (
             <div className="bg-[var(--surface)] rounded-xl border-l-4 border-orange-500 border border-[var(--border)] p-5">
               <div className="flex items-center gap-2 mb-2">
+                <span className="text-orange-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2"/><path d="M8 8h8"/><path d="M9 11c0 0 1 1 3 1s3-1 3-1"/></svg>
+                </span>
                 <span className="text-orange-400 text-sm font-semibold">Chuck Norris Fakt des Tages</span>
               </div>
               <p className="text-sm text-gray-400 leading-relaxed">{getChuckNorrisFact()}</p>

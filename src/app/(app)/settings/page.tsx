@@ -93,6 +93,17 @@ export default function SettingsPage() {
   // Dashboard card toggles (per-user, localStorage)
   const [showChuckNorris, setShowChuckNorris] = useState(false);
   const [showTips, setShowTips] = useState(true);
+  const [cardVisibility, setCardVisibility] = useState<Record<string, boolean>>({
+    monatsumsatz: true,
+    offene_rechnungen: true,
+    ueberfaellig: true,
+    umsatzsteuer: true,
+    belege: true,
+    fixkosten: true,
+    smart_insights: true,
+    letzte_rechnungen: true,
+    letzte_angebote: true,
+  });
 
   // Smart Insights config (admin only)
   const [insightsConfig, setInsightsConfig] = useState<SmartInsightsConfig | null>(null);
@@ -104,6 +115,14 @@ export default function SettingsPage() {
     const tp = localStorage.getItem("show_tips");
     setShowChuckNorris(cn === "true");
     setShowTips(tp === null ? true : tp === "true");
+
+    const cardKeys = ["monatsumsatz", "offene_rechnungen", "ueberfaellig", "umsatzsteuer", "belege", "fixkosten", "smart_insights", "letzte_rechnungen", "letzte_angebote"];
+    const vis: Record<string, boolean> = {};
+    for (const key of cardKeys) {
+      const stored = localStorage.getItem(`show_card_${key}`);
+      vis[key] = stored === null ? true : stored === "true";
+    }
+    setCardVisibility(vis);
   }, []);
 
   function toggleChuckNorris(val: boolean) {
@@ -114,6 +133,11 @@ export default function SettingsPage() {
   function toggleTips(val: boolean) {
     setShowTips(val);
     localStorage.setItem("show_tips", String(val));
+  }
+
+  function toggleCard(key: string, val: boolean) {
+    setCardVisibility((prev) => ({ ...prev, [key]: val }));
+    localStorage.setItem(`show_card_${key}`, String(val));
   }
 
   const loadData = useCallback(async () => {
@@ -344,8 +368,62 @@ export default function SettingsPage() {
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Dashboard-Karten</h2>
-          <p className="text-sm text-gray-500 mb-4">Zeige optionale Karten auf dem Dashboard an.</p>
+          <p className="text-sm text-gray-500 mb-4">Karten auf dem Dashboard ein- oder ausblenden.</p>
           <div className="space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Kennzahlen</p>
+            {([
+              { key: "monatsumsatz", label: "Monatsumsatz", desc: "Umsatz des aktuellen Monats und Jahresumsatz." },
+              { key: "offene_rechnungen", label: "Offene Rechnungen", desc: "Summe offener und teilbezahlter Rechnungen." },
+              { key: "ueberfaellig", label: "Überfällig", desc: "Überfällige Rechnungen und deren Gesamtbetrag." },
+              { key: "umsatzsteuer", label: "Umsatzsteuer", desc: "Gesamte USt aller aktiven Rechnungen." },
+              { key: "belege", label: "Belege", desc: "Monatsbelege und Gesamtbetrag." },
+              { key: "fixkosten", label: "Fixkosten", desc: "Monatliche Fixkosten und Jahreshochrechnung." },
+            ] as const).map((item) => (
+              <label key={item.key} className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">{item.label}</span>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={cardVisibility[item.key]}
+                  onClick={() => toggleCard(item.key, !cardVisibility[item.key])}
+                  className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${cardVisibility[item.key] ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${cardVisibility[item.key] ? "translate-x-5" : ""}`} />
+                </button>
+              </label>
+            ))}
+
+            <div className="border-t border-[var(--border)] pt-3 mt-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Bereiche</p>
+            </div>
+            {([
+              { key: "smart_insights", label: "Smart Insights", desc: "Automatische Auswertungen und Warnhinweise." },
+              { key: "letzte_rechnungen", label: "Letzte Rechnungen", desc: "Tabelle der 5 neuesten Rechnungen." },
+              { key: "letzte_angebote", label: "Letzte Angebote", desc: "Tabelle der 5 neuesten Angebote." },
+            ] as const).map((item) => (
+              <label key={item.key} className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">{item.label}</span>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={cardVisibility[item.key]}
+                  onClick={() => toggleCard(item.key, !cardVisibility[item.key])}
+                  className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${cardVisibility[item.key] ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${cardVisibility[item.key] ? "translate-x-5" : ""}`} />
+                </button>
+              </label>
+            ))}
+
+            <div className="border-t border-[var(--border)] pt-3 mt-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Extras</p>
+            </div>
             <label className="flex items-center justify-between cursor-pointer">
               <div>
                 <span className="text-sm font-medium text-[var(--text-primary)]">Tipp des Tages</span>
@@ -356,7 +434,7 @@ export default function SettingsPage() {
                 role="switch"
                 aria-checked={showTips}
                 onClick={() => toggleTips(!showTips)}
-                className={`relative w-11 h-6 rounded-full transition-colors ${showTips ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`}
+                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${showTips ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`}
               >
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${showTips ? "translate-x-5" : ""}`} />
               </button>
@@ -371,7 +449,7 @@ export default function SettingsPage() {
                 role="switch"
                 aria-checked={showChuckNorris}
                 onClick={() => toggleChuckNorris(!showChuckNorris)}
-                className={`relative w-11 h-6 rounded-full transition-colors ${showChuckNorris ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`}
+                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${showChuckNorris ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`}
               >
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${showChuckNorris ? "translate-x-5" : ""}`} />
               </button>
