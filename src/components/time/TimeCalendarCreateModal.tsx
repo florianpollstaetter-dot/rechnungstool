@@ -17,11 +17,21 @@ export interface ModalResult {
   description: string;
 }
 
+export interface EditData {
+  id: string;
+  start: Date;
+  end: Date;
+  project_label: string;
+  quote_id: string | null;
+  description: string;
+}
+
 interface Props {
   initialStart: Date;
   initialEnd: Date;
   quotes: Quote[];
   projectFreq: Map<string, number>;
+  editData?: EditData;
   onCancel: () => void;
   onSubmit: (result: ModalResult) => Promise<void>;
 }
@@ -46,12 +56,13 @@ function formatDuration(minutes: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, projectFreq, onCancel, onSubmit }: Props) {
-  const [start, setStart] = useState(initialStart);
-  const [end, setEnd] = useState(initialEnd);
-  const [selectedLabel, setSelectedLabel] = useState("");
-  const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
-  const [description, setDescription] = useState("");
+export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, projectFreq, editData, onCancel, onSubmit }: Props) {
+  const isEdit = !!editData;
+  const [start, setStart] = useState(editData?.start ?? initialStart);
+  const [end, setEnd] = useState(editData?.end ?? initialEnd);
+  const [selectedLabel, setSelectedLabel] = useState(editData?.project_label ?? "");
+  const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(editData?.quote_id ?? null);
+  const [description, setDescription] = useState(editData?.description ?? "");
   const [pickerTab, setPickerTab] = useState<PickerTab>("projekte");
   const [submitting, setSubmitting] = useState(false);
 
@@ -94,7 +105,7 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Zeit nachtragen</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">{isEdit ? "Eintrag bearbeiten" : "Zeit nachtragen"}</h2>
           <button onClick={onCancel} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-lg leading-none">×</button>
         </div>
 
@@ -185,7 +196,7 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
             onClick={handleSave}
             disabled={!canSave}
             className="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-orange)] text-white hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >Speichern</button>
+          >{isEdit ? "Ändern" : "Speichern"}</button>
         </div>
       </div>
     </div>

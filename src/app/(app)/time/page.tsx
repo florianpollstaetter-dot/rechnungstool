@@ -217,6 +217,25 @@ export default function TimePage() {
     await loadData();
   }
 
+  async function handleCalendarEdit(id: string, r: ModalResult) {
+    const duration = Math.max(0, Math.round((r.end.getTime() - r.start.getTime()) / 60000));
+    try {
+      await updateTimeEntry(id, {
+        start_time: r.start.toISOString(),
+        end_time: r.end.toISOString(),
+        duration_minutes: duration,
+        project_label: r.project_label,
+        quote_id: r.quote_id,
+        description: r.description,
+      });
+    } catch (err) {
+      console.error("[Zeiterfassung] handleCalendarEdit failed:", err);
+      alert(`Fehler beim Ändern: ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
+    await loadData();
+  }
+
   async function handleSaveEdit(id: string) {
     await updateTimeEntry(id, { project_label: editForm.project_label, description: editForm.description, duration_minutes: editForm.duration_minutes });
     setEditingEntry(null); await loadData();
@@ -438,6 +457,7 @@ export default function TimePage() {
           allProjectLabels={allProjectLabels}
           getProjectColor={getProjectColor}
           onCreate={handleCalendarCreate}
+          onEdit={handleCalendarEdit}
         />
       )}
 

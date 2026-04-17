@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { TimeEntry, Quote } from "@/lib/types";
-import { TimeCalendarCreateModal, ModalResult } from "./TimeCalendarCreateModal";
+import { TimeCalendarCreateModal, ModalResult, EditData } from "./TimeCalendarCreateModal";
 
 type ViewMode = "week" | "day";
 
@@ -14,6 +14,7 @@ interface Props {
   allProjectLabels: string[];
   getProjectColor: (label: string, all: string[]) => string;
   onCreate: (result: ModalResult) => Promise<void>;
+  onEdit: (id: string, result: ModalResult) => Promise<void>;
 }
 
 const DAY_START_HOUR = 6;
@@ -93,6 +94,7 @@ export function TimeCalendarView({
   allProjectLabels,
   getProjectColor,
   onCreate,
+  onEdit,
 }: Props) {
   const [mode, setMode] = useState<ViewMode>("week");
   const [anchor, setAnchor] = useState<Date>(() => startOfDay(new Date()));
@@ -105,6 +107,18 @@ export function TimeCalendarView({
   } | null>(null);
 
   const [modalInit, setModalInit] = useState<{ start: Date; end: Date } | null>(null);
+  const [editInit, setEditInit] = useState<EditData | null>(null);
+
+  // Check if a time range overlaps with any existing entry (optionally excluding one by id).
+  function hasOverlap(start: Date, end: Date, excludeId?: string): boolean {
+    return entries.some((e) => {
+      if (excludeId && e.id === excludeId) return false;
+      if (!e.end_time) return false; // running timer — don't block
+      const eStart = new Date(e.start_time);
+      const eEnd = new Date(e.end_time);
+      return start < eEnd && end > eStart;
+    });
+  }
 
   const days = useMemo<Date[]>(() => {
     if (mode === "day") return [startOfDay(anchor)];
@@ -161,6 +175,8 @@ export function TimeCalendarView({
       start.setMinutes(start.getMinutes() + lo);
       const end = new Date(start);
       end.setMinutes(end.getMinutes() + span);
+      // Overlap protection: don't open create modal if slot is occupied
+      if (hasOverlap(start, end)) return;
       setModalInit({ start, end });
     };
     window.addEventListener("mousemove", onMove);
@@ -168,8 +184,35 @@ export function TimeCalendarView({
   }
 
   async function handleModalSubmit(result: ModalResult) {
-    await onCreate(result);
+    if (editInit) {
+      // Overlap check for edits (exclude the entry being edited)
+      if (hasOverlap(result.start, result.end, editInit.id)) return;
+      await onEdit(editInit.id, result);
+      setEditInit(null);
+    } else {
+      // Overlap check for new entries
+      if (hasOverlap(result.start, result.end)) return;
+      await onCreate(result);
+      setModalInit(null);
+    }
+  }
+
+  function handleModalCancel() {
     setModalInit(null);
+    setEditInit(null);
+  }
+
+  function handleEntryClick(e: TimeEntry, ev: React.MouseEvent) {
+    ev.stopPropagation();
+    if (!e.end_time) return; // don't edit running entries
+    setEditInit({
+      id: e.id,
+      start: new Date(e.start_time),
+      end: new Date(e.end_time),
+      project_label: e.project_label,
+      quote_id: e.quote_id,
+      description: e.description,
+    });
   }
 
   function goPrev() {
@@ -279,7 +322,9 @@ export function TimeCalendarView({
                       return (
                         <div
                           key={e.id}
-                          className={`absolute left-1 right-1 rounded-md px-1.5 py-0.5 text-[10px] leading-tight overflow-hidden pointer-events-none ${isPause ? "italic opacity-70" : ""} ${isLive ? "ring-1 ring-emerald-400/60" : ""}`}
+                          onClick={(ev) => handleEntryClick(e, ev)}
+                          onMouseDown={(ev) => { if (e.end_time) ev.stopPropagation(); }}
+                          className={`absolute left-1 right-1 rounded-md px-1.5 py-0.5 text-[10px] leading-tight overflow-hidden ${e.end_time ? "cursor-pointer hover:brightness-125" : "pointer-events-none"} ${isPause ? "italic opacity-70" : ""} ${isLive ? "ring-1 ring-emerald-400/60" : ""}`}
                           style={{
                             top,
                             height,
@@ -347,13 +392,14 @@ export function TimeCalendarView({
         </div>
       </div>
 
-      {modalInit && (
+      {(modalInit || editInit) && (
         <TimeCalendarCreateModal
-          initialStart={modalInit.start}
-          initialEnd={modalInit.end}
+          initialStart={editInit?.start ?? modalInit!.start}
+          initialEnd={editInit?.end ?? modalInit!.end}
           quotes={quotes}
           projectFreq={projectFreq}
-          onCancel={() => setModalInit(null)}
+          editData={editInit ?? undefined}
+          onCancel={handleModalCancel}
           onSubmit={handleModalSubmit}
         />
       )}
