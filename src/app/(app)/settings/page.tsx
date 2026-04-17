@@ -32,9 +32,31 @@ export default function SettingsPage() {
   const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Smart Insights config (admin only)
+  // Dashboard card toggles (per-user, localStorage)
+  const [showChuckNorris, setShowChuckNorris] = useState(false);
+  const [showTips, setShowTips] = useState(true);
+
+  // Smart Insights config (admin only)
   const [insightsConfig, setInsightsConfig] = useState<SmartInsightsConfig | null>(null);
   const [insightsSaving, setInsightsSaving] = useState(false);
   const [insightsSaved, setInsightsSaved] = useState(false);
+
+  useEffect(() => {
+    const cn = localStorage.getItem("show_chuck_norris");
+    const tp = localStorage.getItem("show_tips");
+    setShowChuckNorris(cn === "true");
+    setShowTips(tp === null ? true : tp === "true");
+  }, []);
+
+  function toggleChuckNorris(val: boolean) {
+    setShowChuckNorris(val);
+    localStorage.setItem("show_chuck_norris", String(val));
+  }
+
+  function toggleTips(val: boolean) {
+    setShowTips(val);
+    localStorage.setItem("show_tips", String(val));
+  }
 
   const loadData = useCallback(async () => {
     const s = await getSettings();
@@ -182,6 +204,43 @@ export default function SettingsPage() {
                 Hell
               </button>
             </div>
+          </div>
+        </div>
+
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Dashboard-Karten</h2>
+          <p className="text-sm text-gray-500 mb-4">Zeige optionale Karten auf dem Dashboard an.</p>
+          <div className="space-y-3">
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <span className="text-sm font-medium text-[var(--text-primary)]">Tipp des Tages</span>
+                <p className="text-xs text-gray-500">Zeigt hilfreiche Tipps zu Features der Seite.</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showTips}
+                onClick={() => toggleTips(!showTips)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${showTips ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${showTips ? "translate-x-5" : ""}`} />
+              </button>
+            </label>
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <span className="text-sm font-medium text-[var(--text-primary)]">Chuck Norris Fakt des Tages</span>
+                <p className="text-xs text-gray-500">Zeigt einen zufälligen Chuck-Norris-Fakt pro Tag.</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showChuckNorris}
+                onClick={() => toggleChuckNorris(!showChuckNorris)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${showChuckNorris ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${showChuckNorris ? "translate-x-5" : ""}`} />
+              </button>
+            </label>
           </div>
         </div>
 

@@ -5,8 +5,8 @@ import Link from "next/link";
 import { Invoice, Customer, Quote, CompanySettings, FixedCost, Receipt, Project } from "@/lib/types";
 import { getInvoices, getCustomers, getQuotes, getSettings, getActiveFixedCosts, getReceipts, getSmartInsightsConfig, getProjects } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
-import { getFactOfTheDay } from "@/lib/i18n";
 import { SmartInsight, SmartInsightContext, buildSmartInsightRules, evaluateSmartInsights } from "@/lib/smart-insights";
+import { getTipOfTheDay } from "@/lib/tips";
 import { getTimeReportEntries, periodPreset } from "@/lib/reports";
 
 function getChuckNorrisFact(): string {
@@ -41,6 +41,8 @@ export default function DashboardPage() {
   const [insights, setInsights] = useState<SmartInsight[]>([]);
   const [insightsLoading, setInsightsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [showChuckNorris, setShowChuckNorris] = useState(false);
+  const [showTips, setShowTips] = useState(true);
 
   const loadData = useCallback(async () => {
     const [inv, cust, q, s, fc, rec] = await Promise.all([getInvoices(), getCustomers(), getQuotes(), getSettings(), getActiveFixedCosts(), getReceipts()]);
@@ -87,7 +89,14 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => { loadData(); loadInsights(); }, [loadData, loadInsights]);
+  useEffect(() => {
+    loadData();
+    loadInsights();
+    const cn = localStorage.getItem("show_chuck_norris");
+    const tp = localStorage.getItem("show_tips");
+    setShowChuckNorris(cn === "true");
+    setShowTips(tp === null ? true : tp === "true");
+  }, [loadData, loadInsights]);
 
   const activeInvoices = invoices.filter((i) => i.status !== "storniert");
   const openInvoices = activeInvoices.filter((i) => i.status === "offen");
@@ -336,13 +345,30 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Chuck Norris Fact des Tages */}
-      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-orange-400 text-sm font-semibold">Chuck Norris Fact des Tages</span>
+      {/* Tip of the Day + Chuck Norris */}
+      {(showTips || showChuckNorris) && (
+        <div className={`grid grid-cols-1 ${showTips && showChuckNorris ? "lg:grid-cols-2" : ""} gap-4`}>
+          {showTips && (
+            <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500 border border-[var(--border)] p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-cyan-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                </span>
+                <span className="text-cyan-400 text-sm font-semibold">Tipp des Tages</span>
+              </div>
+              <p className="text-sm text-gray-400 leading-relaxed">{getTipOfTheDay()}</p>
+            </div>
+          )}
+          {showChuckNorris && (
+            <div className="bg-[var(--surface)] rounded-xl border-l-4 border-orange-500 border border-[var(--border)] p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-orange-400 text-sm font-semibold">Chuck Norris Fakt des Tages</span>
+              </div>
+              <p className="text-sm text-gray-400 leading-relaxed">{getChuckNorrisFact()}</p>
+            </div>
+          )}
         </div>
-        <p className="text-sm text-gray-400 leading-relaxed">{getChuckNorrisFact()}</p>
-      </div>
+      )}
     </div>
   );
 }
