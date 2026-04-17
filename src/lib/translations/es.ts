@@ -219,6 +219,8 @@ const es: Record<string, string> = {
   "quoteStatus.markAccepted": "Aceptar",
   "quoteStatus.markRejected": "Rechazar",
   "quoteStatus.correctStatus": "Corregir estado",
+  "quoteStatus.currentStatus": "Estado actual",
+  "quoteStatus.changeTo": "Cambiar a {status}",
 
   // ── Quotes ──
   "quotes.title": "Presupuestos",

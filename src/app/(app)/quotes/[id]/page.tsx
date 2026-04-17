@@ -21,13 +21,15 @@ const statusColors: Record<string, string> = {
   expired: "bg-amber-500/15 text-amber-400",
 };
 
-const statusDotColors: Record<string, string> = {
-  draft: "bg-gray-400",
-  sent: "bg-blue-400",
-  accepted: "bg-emerald-400",
-  rejected: "bg-rose-400",
-  expired: "bg-amber-400",
+const statusActiveColors: Record<string, string> = {
+  draft: "bg-gray-500 text-white",
+  sent: "bg-blue-600 text-white",
+  accepted: "bg-emerald-600 text-white",
+  rejected: "bg-rose-600 text-white",
+  expired: "bg-amber-600 text-white",
 };
+
+const STATUS_ORDER: QuoteStatus[] = ["draft", "sent", "accepted", "rejected", "expired"];
 
 export default function QuoteDetailPage() {
   const { t } = useI18n();
@@ -44,7 +46,6 @@ export default function QuoteDetailPage() {
   const [invoiceEditMode, setInvoiceEditMode] = useState<"full" | "partial">("full");
   const [showApprovalPopup, setShowApprovalPopup] = useState(false);
   const [showDesignWindow, setShowDesignWindow] = useState(false);
-  const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [partialMode, setPartialMode] = useState<"percent" | "amount">("percent");
   const [partialValue, setPartialValue] = useState("30");
   const [linkedInvoices, setLinkedInvoices] = useState<Invoice[]>([]);
@@ -70,9 +71,8 @@ export default function QuoteDetailPage() {
   if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
   if (!quote || !customer || !settings) return <div className="text-center py-12 text-gray-500">{t("quoteDetail.notFound")}</div>;
 
-  const color = statusColors[quote.status] || statusColors.draft;
-
   async function handleStatusChange(status: QuoteStatus) {
+    if (status === quote!.status) return;
     await updateQuote(quote!.id, { status });
     const updated = await getQuote(quote!.id);
     if (updated) setQuote(updated);
@@ -150,44 +150,24 @@ export default function QuoteDetailPage() {
           <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">{t("quoteDetail.quoteNumber", { number: quote.quote_number })}</h1>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`text-sm font-medium px-3 py-1.5 rounded-full ${color}`}>
-            {t(`quoteStatus.${quote.status}`)}
-          </span>
-          {quote.status === "draft" && (
-            <button onClick={() => handleStatusChange("sent")} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-500 transition">
-              {t("quoteStatus.markSent")}
-            </button>
-          )}
-          {quote.status === "sent" && (
-            <>
-              <button onClick={() => handleStatusChange("accepted")} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">
-                {t("quoteStatus.markAccepted")}
-              </button>
-              <button onClick={() => handleStatusChange("rejected")} className="bg-rose-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-rose-500 transition">
-                {t("quoteStatus.markRejected")}
-              </button>
-            </>
-          )}
-          <div className="relative">
-            <button onClick={() => setShowStatusMenu(!showStatusMenu)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] p-1.5 rounded-lg hover:bg-[var(--surface-hover)] transition" title={t("quoteStatus.correctStatus")}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" />
-              </svg>
-            </button>
-            {showStatusMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowStatusMenu(false)} />
-                <div className="absolute right-0 top-full mt-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg z-50 py-1 min-w-[160px]">
-                  <p className="px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] uppercase">{t("quoteStatus.correctStatus")}</p>
-                  {(["draft", "sent", "accepted", "rejected", "expired"] as QuoteStatus[]).filter(s => s !== quote.status).map(s => (
-                    <button key={s} onClick={() => { handleStatusChange(s); setShowStatusMenu(false); }} className={`w-full text-left px-3 py-1.5 text-sm hover:bg-[var(--surface-hover)] transition flex items-center gap-2`}>
-                      <span className={`inline-block w-2 h-2 rounded-full ${statusDotColors[s]}`} />
-                      <span className="text-[var(--text-secondary)]">{t(`quoteStatus.${s}`)}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+          <div className="inline-flex items-center gap-1 bg-[var(--background)] border border-[var(--border)] rounded-lg p-1">
+            {STATUS_ORDER.map((s) => {
+              const isActive = quote.status === s;
+              const cls = isActive
+                ? statusActiveColors[s]
+                : `${statusColors[s]} hover:brightness-125`;
+              return (
+                <button
+                  key={s}
+                  onClick={() => handleStatusChange(s)}
+                  disabled={isActive}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-md transition ${cls} ${isActive ? "cursor-default" : "cursor-pointer"}`}
+                  title={isActive ? t("quoteStatus.currentStatus") : t("quoteStatus.changeTo", { status: t(`quoteStatus.${s}`) })}
+                >
+                  {t(`quoteStatus.${s}`)}
+                </button>
+              );
+            })}
           </div>
           <button
             onClick={handleLanguageToggle}

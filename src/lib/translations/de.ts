@@ -219,6 +219,8 @@ const de = {
   "quoteStatus.markAccepted": "Annehmen",
   "quoteStatus.markRejected": "Ablehnen",
   "quoteStatus.correctStatus": "Status korrigieren",
+  "quoteStatus.currentStatus": "Aktueller Status",
+  "quoteStatus.changeTo": "Status ändern auf {status}",
 
   // ── Quotes ──
   "quotes.title": "Angebote",

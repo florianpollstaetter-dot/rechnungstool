@@ -219,6 +219,8 @@ const ar: Record<string, string> = {
   "quoteStatus.markAccepted": "قبول",
   "quoteStatus.markRejected": "رفض",
   "quoteStatus.correctStatus": "تصحيح الحالة",
+  "quoteStatus.currentStatus": "الحالة الحالية",
+  "quoteStatus.changeTo": "تغيير إلى {status}",
 
   // ── Quotes ──
   "quotes.title": "عروض الأسعار",
