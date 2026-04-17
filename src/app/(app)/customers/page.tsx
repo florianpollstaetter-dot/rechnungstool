@@ -28,6 +28,13 @@ export default function CustomersPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyCustomer);
   const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<{
+    confidence?: string;
+    source?: string;
+    cost_eur?: number;
+  } | null>(null);
+  const [showAllFields, setShowAllFields] = useState(false);
 
   const loadCustomers = useCallback(async () => {
     const data = await getCustomers();
@@ -49,6 +56,8 @@ export default function CustomersPage() {
     setForm(emptyCustomer);
     setEditing(null);
     setShowForm(false);
+    setShowAllFields(false);
+    setAiResult(null);
   }
 
   function handleEdit(customer: Customer) {
@@ -66,12 +75,57 @@ export default function CustomersPage() {
     });
     setEditing(customer.id);
     setShowForm(true);
+    setShowAllFields(true);
+    setAiResult(null);
   }
 
   async function handleDelete(id: string) {
     if (confirm("Kunde wirklich löschen?")) {
       await deleteCustomer(id);
       await loadCustomers();
+    }
+  }
+
+  async function handleAiComplete() {
+    const searchName = form.company || form.name;
+    if (!searchName.trim()) return;
+
+    setAiLoading(true);
+    setAiResult(null);
+
+    try {
+      const res = await fetch("/api/customers/ai-complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: searchName.trim() }),
+      });
+      const data = await res.json();
+
+      if (data.success && data.customer) {
+        // Only fill fields that are currently empty
+        setForm((prev) => {
+          const updated = { ...prev };
+          const keys = Object.keys(data.customer) as (keyof typeof emptyCustomer)[];
+          for (const key of keys) {
+            if (!updated[key] && data.customer[key]) {
+              updated[key] = data.customer[key];
+            }
+          }
+          return updated;
+        });
+        setShowAllFields(true);
+        setAiResult({
+          confidence: data.confidence,
+          source: data.source,
+          cost_eur: data.cost?.cost_eur,
+        });
+      } else {
+        setAiResult({ confidence: "error", source: data.error || "Fehler bei der AI-Recherche" });
+      }
+    } catch {
+      setAiResult({ confidence: "error", source: "Netzwerkfehler bei der AI-Recherche" });
+    } finally {
+      setAiLoading(false);
     }
   }
 
@@ -87,6 +141,13 @@ export default function CustomersPage() {
     { key: "email", label: "E-Mail" },
     { key: "phone", label: "Telefon" },
   ];
+
+  // When creating new: show only name/company initially
+  const isNewCustomer = !editing;
+  const visibleFields =
+    isNewCustomer && !showAllFields
+      ? fields.filter((f) => f.key === "name" || f.key === "company")
+      : fields;
 
   if (loading) {
     return (
@@ -105,6 +166,8 @@ export default function CustomersPage() {
             setForm(emptyCustomer);
             setEditing(null);
             setShowForm(true);
+            setShowAllFields(false);
+            setAiResult(null);
           }}
           className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
         >
@@ -118,7 +181,7 @@ export default function CustomersPage() {
             {editing ? "Kunde bearbeiten" : "Neuer Kunde"}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {fields.map((f) => (
+            {visibleFields.map((f) => (
               <div key={f.key}>
                 <label className="block text-sm font-medium text-gray-400 mb-1">
                   {f.label}
@@ -132,6 +195,105 @@ export default function CustomersPage() {
               </div>
             ))}
           </div>
+
+          {/* AI completion + expand controls for new customers */}
+          {isNewCustomer && !showAllFields && (
+            <div className="flex items-center gap-3 mt-4">
+              <button
+                onClick={handleAiComplete}
+                disabled={aiLoading || (!form.name.trim() && !form.company.trim())}
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-500 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {aiLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    Recherchiere...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"
+                      />
+                    </svg>
+                    AI Vervollstaendigung
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowAllFields(true)}
+                className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition underline underline-offset-2"
+              >
+                Manuell ausfuellen
+              </button>
+            </div>
+          )}
+
+          {/* AI result feedback */}
+          {aiResult && (
+            <div
+              className={`mt-3 px-3 py-2 rounded-lg text-sm ${
+                aiResult.confidence === "error"
+                  ? "bg-rose-500/10 text-rose-400"
+                  : aiResult.confidence === "high"
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : aiResult.confidence === "medium"
+                  ? "bg-amber-500/10 text-amber-400"
+                  : "bg-gray-500/10 text-gray-400"
+              }`}
+            >
+              {aiResult.confidence === "error" ? (
+                aiResult.source
+              ) : (
+                <>
+                  AI-Recherche abgeschlossen
+                  {aiResult.confidence && (
+                    <span className="ml-2">
+                      (Konfidenz:{" "}
+                      {aiResult.confidence === "high"
+                        ? "hoch"
+                        : aiResult.confidence === "medium"
+                        ? "mittel"
+                        : "niedrig"}
+                      )
+                    </span>
+                  )}
+                  {aiResult.source && (
+                    <span className="ml-2 opacity-75">— Quelle: {aiResult.source}</span>
+                  )}
+                  {aiResult.cost_eur != null && (
+                    <span className="ml-2 opacity-50">
+                      ({aiResult.cost_eur.toFixed(4)} EUR)
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-3 mt-4">
             <button
               onClick={handleSave}
@@ -143,6 +305,8 @@ export default function CustomersPage() {
               onClick={() => {
                 setShowForm(false);
                 setEditing(null);
+                setShowAllFields(false);
+                setAiResult(null);
               }}
               className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
             >
