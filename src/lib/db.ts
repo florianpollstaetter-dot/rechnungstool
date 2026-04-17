@@ -152,6 +152,7 @@ export async function getCustomer(
     .from("customers")
     .select("*")
     .eq("id", id)
+    .eq("company_id", getActiveCompanyId())
     .single();
   return data ? mapCustomer(data) : undefined;
 }
@@ -256,6 +257,7 @@ export async function getInvoice(
     .from("invoices")
     .select("*")
     .eq("id", id)
+    .eq("company_id", getActiveCompanyId())
     .single();
   if (!inv) return undefined;
 
@@ -396,6 +398,7 @@ export async function getQuote(id: string): Promise<Quote | undefined> {
     .from("quotes")
     .select("*")
     .eq("id", id)
+    .eq("company_id", getActiveCompanyId())
     .single();
   if (!q) return undefined;
 
@@ -724,7 +727,7 @@ export async function getProjects(): Promise<Project[]> {
 }
 
 export async function getProject(id: string): Promise<Project | null> {
-  const { data } = await supabase().from("projects").select("*").eq("id", id).single();
+  const { data } = await supabase().from("projects").select("*").eq("id", id).eq("company_id", getActiveCompanyId()).single();
   return data ? mapProject(data) : null;
 }
 
@@ -779,7 +782,7 @@ export async function getTasks(projectId?: string): Promise<Task[]> {
 }
 
 export async function getTask(id: string): Promise<Task | null> {
-  const { data } = await supabase().from("tasks").select("*").eq("id", id).single();
+  const { data } = await supabase().from("tasks").select("*").eq("id", id).eq("company_id", getActiveCompanyId()).single();
   return data ? mapTask(data) : null;
 }
 
@@ -1107,7 +1110,7 @@ export async function getReceipts(): Promise<Receipt[]> {
 }
 
 export async function getReceipt(id: string): Promise<Receipt | undefined> {
-  const { data } = await supabase().from("receipts").select("*").eq("id", id).single();
+  const { data } = await supabase().from("receipts").select("*").eq("id", id).eq("company_id", getActiveCompanyId()).single();
   return data ? mapReceipt(data) : undefined;
 }
 
@@ -1151,7 +1154,7 @@ export async function getTemplates(type?: TemplateType): Promise<Template[]> {
 }
 
 export async function getTemplate(id: string): Promise<Template | undefined> {
-  const { data } = await supabase().from("templates").select("*").eq("id", id).single();
+  const { data } = await supabase().from("templates").select("*").eq("id", id).eq("company_id", getActiveCompanyId()).single();
   return data ? mapTemplate(data) : undefined;
 }
 
