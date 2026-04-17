@@ -69,6 +69,15 @@ export default function TimePage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // Resolve userId reliably — fallback to Supabase auth if state not yet set.
+  async function resolveUserId(): Promise<string> {
+    if (userId) return userId;
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) { setUserId(user.id); return user.id; }
+    return "";
+  }
+
   useEffect(() => {
     if (activeTimer) {
       const update = () => { setElapsed(Math.floor((Date.now() - new Date(activeTimer.start_time).getTime()) / 60000)); };
@@ -86,6 +95,8 @@ export default function TimePage() {
 
   async function handleStart(label: string) {
     if (!label) return;
+    const uid = await resolveUserId();
+    if (!uid) return;
     setSelectedProject(label);
     const q = quotes.find((qt) => (qt.project_description || qt.quote_number) === label);
     const now = new Date();
@@ -95,7 +106,7 @@ export default function TimePage() {
       await updateTimeEntry(activeTimer.id, { end_time: now.toISOString(), duration_minutes: duration });
     }
     await createTimeEntry({
-      company_id: "", user_id: userId, user_name: userName || getCurrentUserName(),
+      company_id: "", user_id: uid, user_name: userName || getCurrentUserName(),
       quote_id: q?.id || null, project_label: label, description: "",
       start_time: now.toISOString(), end_time: null, duration_minutes: 0, billable: true, hourly_rate: 0,
       entry_type: "work",
@@ -105,11 +116,13 @@ export default function TimePage() {
 
   async function handlePause() {
     if (!activeTimer || activeTimer.entry_type !== "work") return;
+    const uid = await resolveUserId();
+    if (!uid) return;
     const now = new Date();
     const duration = Math.round((now.getTime() - new Date(activeTimer.start_time).getTime()) / 60000);
     await updateTimeEntry(activeTimer.id, { end_time: now.toISOString(), duration_minutes: duration, description: description || savedDescription });
     await createTimeEntry({
-      company_id: "", user_id: userId, user_name: userName || getCurrentUserName(),
+      company_id: "", user_id: uid, user_name: userName || getCurrentUserName(),
       quote_id: null, project_label: "Pause", description: "",
       start_time: now.toISOString(), end_time: null, duration_minutes: 0, billable: false, hourly_rate: 0,
       entry_type: "pause",
@@ -168,9 +181,11 @@ export default function TimePage() {
   async function handleDelete(id: string) { if (confirm("Löschen?")) { await deleteTimeEntry(id); await loadData(); } }
 
   async function handleCalendarCreate(r: ModalResult) {
+    const uid = await resolveUserId();
+    if (!uid) return;
     const duration = Math.max(0, Math.round((r.end.getTime() - r.start.getTime()) / 60000));
     await createTimeEntry({
-      company_id: "", user_id: userId, user_name: userName || getCurrentUserName(),
+      company_id: "", user_id: uid, user_name: userName || getCurrentUserName(),
       quote_id: r.quote_id, project_label: r.project_label, description: r.description,
       start_time: r.start.toISOString(), end_time: r.end.toISOString(), duration_minutes: duration,
       billable: true, hourly_rate: 0, entry_type: "work",
