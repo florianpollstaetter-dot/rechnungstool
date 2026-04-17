@@ -6,6 +6,7 @@ import { getReceipts, createReceipt, updateReceipt, deleteReceipt, uploadReceipt
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/format";
 import ReceiptCaptureModal from "@/components/ReceiptCaptureModal";
+import DocumentScannerModal from "@/components/DocumentScannerModal";
 
 const ACCOUNT_OPTIONS = [
   { value: "", label: "—" },
@@ -38,12 +39,12 @@ export default function ReceiptsPage() {
   const [viewUrl, setViewUrl] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [captureFile, setCaptureFile] = useState<File | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function handleCameraCapture(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) setCaptureFile(file);
-    e.target.value = "";
+  function handleScanCapture(file: File) {
+    setScannerOpen(false);
+    setCaptureFile(file);
   }
 
   async function handleCaptureSubmit(croppedFile: File, meta: { purpose: string; account_debit: string; account_label: string; payment_method: PaymentMethod }) {
@@ -220,20 +221,21 @@ export default function ReceiptsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Belege</h1>
         <div className="flex gap-2 flex-wrap">
-          {/* Camera scan button (mobile) */}
-          <label className={`bg-cyan-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-500 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}>
+          {/* Scanner button */}
+          <button
+            onClick={() => setScannerOpen(true)}
+            disabled={uploading}
+            className={`bg-cyan-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-500 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}
+          >
             <span className="flex items-center gap-1.5">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-              Kamera
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                <path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                <line x1="7" y1="12" x2="17" y2="12" />
+              </svg>
+              Scannen
             </span>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleCameraCapture}
-              disabled={uploading}
-              className="hidden"
-            />
-          </label>
+          </button>
           <label className={`bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}>
             {uploading ? "Hochladen..." : "+ Datei hochladen"}
             <input
@@ -451,6 +453,14 @@ export default function ReceiptsPage() {
       </div>
 
       <p className="text-xs text-gray-600 mt-3">Doppelklick auf eine Zeile zum Bearbeiten der KI-analysierten Felder.</p>
+
+      {/* Document Scanner Modal */}
+      {scannerOpen && (
+        <DocumentScannerModal
+          onCapture={handleScanCapture}
+          onCancel={() => setScannerOpen(false)}
+        />
+      )}
 
       {/* Capture Edit Modal */}
       {captureFile && (

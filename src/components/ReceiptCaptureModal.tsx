@@ -89,59 +89,88 @@ function autoCropQuad(canvas: HTMLCanvasElement, imgW: number, imgH: number): Qu
   if (!ctx) return defaultQuad(imgW, imgH);
 
   try {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
     const w = canvas.width;
     const h = canvas.height;
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const data = imageData.data;
 
-    // Sample corners for background color
-    const sampleSize = Math.max(5, Math.round(Math.min(w, h) * 0.03));
-    let bgR = 0, bgG = 0, bgB = 0, cnt = 0;
-    for (let y = 0; y < sampleSize; y++) {
-      for (let x = 0; x < sampleSize; x++) {
-        for (const [ox, oy] of [[0, 0], [w - sampleSize, 0], [0, h - sampleSize], [w - sampleSize, h - sampleSize]]) {
-          const i = ((oy + y) * w + (ox + x)) * 4;
-          bgR += data[i]; bgG += data[i + 1]; bgB += data[i + 2]; cnt++;
-        }
-      }
+    // Grayscale
+    const gray = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+      const j = i * 4;
+      gray[i] = 0.299 * data[j] + 0.587 * data[j + 1] + 0.114 * data[j + 2];
     }
-    bgR /= cnt; bgG /= cnt; bgB /= cnt;
 
-    const threshold = 40;
-    let minX = w, minY = h, maxX = 0, maxY = 0;
-    const step = Math.max(1, Math.round(Math.min(w, h) / 400));
-
-    for (let y = 0; y < h; y += step) {
-      for (let x = 0; x < w; x += step) {
-        const i = (y * w + x) * 4;
-        const dist = Math.sqrt((data[i] - bgR) ** 2 + (data[i + 1] - bgG) ** 2 + (data[i + 2] - bgB) ** 2);
-        if (dist > threshold) {
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
+    // Gaussian blur 3x3
+    const blurred = new Float32Array(w * h);
+    const kernel = [1, 2, 1, 2, 4, 2, 1, 2, 1];
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        let sum = 0;
+        for (let ky = -1; ky <= 1; ky++) {
+          for (let kx = -1; kx <= 1; kx++) {
+            sum += gray[(y + ky) * w + (x + kx)] * kernel[(ky + 1) * 3 + (kx + 1)];
+          }
         }
+        blurred[y * w + x] = sum / 16;
       }
     }
 
-    const margin = Math.max(3, Math.round(Math.min(w, h) * 0.01));
-    minX = Math.max(0, minX - margin);
-    minY = Math.max(0, minY - margin);
-    maxX = Math.min(w, maxX + margin);
-    maxY = Math.min(h, maxY + margin);
-
-    if (maxX <= minX || maxY <= minY || (maxX - minX) * (maxY - minY) < w * h * 0.1) {
-      return defaultQuad(imgW, imgH);
+    // Sobel edge detection
+    const edges = new Float32Array(w * h);
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const gx =
+          -blurred[(y - 1) * w + (x - 1)] + blurred[(y - 1) * w + (x + 1)]
+          - 2 * blurred[y * w + (x - 1)] + 2 * blurred[y * w + (x + 1)]
+          - blurred[(y + 1) * w + (x - 1)] + blurred[(y + 1) * w + (x + 1)];
+        const gy =
+          -blurred[(y - 1) * w + (x - 1)] - 2 * blurred[(y - 1) * w + x] - blurred[(y - 1) * w + (x + 1)]
+          + blurred[(y + 1) * w + (x - 1)] + 2 * blurred[(y + 1) * w + x] + blurred[(y + 1) * w + (x + 1)];
+        edges[y * w + x] = Math.sqrt(gx * gx + gy * gy);
+      }
     }
+
+    // Adaptive threshold
+    const sorted = Float32Array.from(edges).sort();
+    const edgeThreshold = Math.max(25, sorted[Math.floor(sorted.length * 0.92)]);
+
+    // Collect edge points and find extremes per quadrant
+    const cx = w / 2, cy = h / 2;
+    let bestTL: Point | null = null, bestTR: Point | null = null;
+    let bestBL: Point | null = null, bestBR: Point | null = null;
+    let maxDistTL = 0, maxDistTR = 0, maxDistBL = 0, maxDistBR = 0;
+
+    const step = 2;
+    for (let y = step; y < h - step; y += step) {
+      for (let x = step; x < w - step; x += step) {
+        if (edges[y * w + x] <= edgeThreshold) continue;
+        const dx = x - cx, dy = y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dx <= 0 && dy <= 0 && dist > maxDistTL) { maxDistTL = dist; bestTL = { x, y }; }
+        if (dx >= 0 && dy <= 0 && dist > maxDistTR) { maxDistTR = dist; bestTR = { x, y }; }
+        if (dx <= 0 && dy >= 0 && dist > maxDistBL) { maxDistBL = dist; bestBL = { x, y }; }
+        if (dx >= 0 && dy >= 0 && dist > maxDistBR) { maxDistBR = dist; bestBR = { x, y }; }
+      }
+    }
+
+    if (!bestTL || !bestTR || !bestBR || !bestBL) return defaultQuad(imgW, imgH);
+
+    // Validate area
+    const quadArea = 0.5 * Math.abs(
+      (bestTR.x - bestTL.x) * (bestBL.y - bestTL.y) - (bestBL.x - bestTL.x) * (bestTR.y - bestTL.y) +
+      (bestBR.x - bestTR.x) * (bestBL.y - bestTR.y) - (bestBL.x - bestTR.x) * (bestBR.y - bestTR.y)
+    );
+    if (quadArea < w * h * 0.1) return defaultQuad(imgW, imgH);
 
     // Scale back to original image coordinates
     const sx = imgW / w;
     const sy = imgH / h;
     return [
-      { x: minX * sx, y: minY * sy },
-      { x: maxX * sx, y: minY * sy },
-      { x: maxX * sx, y: maxY * sy },
-      { x: minX * sx, y: maxY * sy },
+      { x: bestTL.x * sx, y: bestTL.y * sy },
+      { x: bestTR.x * sx, y: bestTR.y * sy },
+      { x: bestBR.x * sx, y: bestBR.y * sy },
+      { x: bestBL.x * sx, y: bestBL.y * sy },
     ];
   } catch {
     return defaultQuad(imgW, imgH);
