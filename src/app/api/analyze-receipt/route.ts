@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { callClaude, calculateCostEUR } from "@/lib/ai-client";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -16,12 +17,6 @@ export async function POST(request: Request) {
   // Update status to analyzing
   await supabase.from("receipts").update({ analysis_status: "analyzing" }).eq("id", receiptId);
 
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (!anthropicKey) {
-    await supabase.from("receipts").update({ analysis_status: "error", analysis_raw: { error: "No ANTHROPIC_API_KEY configured" } }).eq("id", receiptId);
-    return Response.json({ error: "AI analysis not configured. Set ANTHROPIC_API_KEY in environment." }, { status: 503 });
-  }
-
   try {
     // Download the file from storage
     const { data: fileData } = await supabase.storage.from("receipts").download(receipt.file_path);
@@ -33,7 +28,7 @@ export async function POST(request: Request) {
       ? (`image/${receipt.file_type === "jpg" ? "jpeg" : receipt.file_type}` as "image/jpeg" | "image/png" | "image/gif" | "image/webp")
       : "application/pdf";
 
-    // Call Claude API
+    // Build content blocks
     const content: Array<Record<string, unknown>> = [];
     if (isImage) {
       content.push({ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } });
@@ -59,37 +54,10 @@ export async function POST(request: Request) {
 Antworte NUR mit dem JSON, kein anderer Text.`,
     });
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1024,
-        messages: [{ role: "user", content }],
-      }),
-    });
+    // Call Claude via Bedrock (EU) or direct API fallback
+    const { text: rawText, inputTokens, outputTokens } = await callClaude(content);
 
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Claude API error: ${response.status} ${err}`);
-    }
-
-    const result = await response.json();
-    const textBlock = result.content?.find((b: Record<string, string>) => b.type === "text");
-    const rawText = textBlock?.text || "{}";
-
-    // Calculate API cost (approximate: input + output tokens)
-    const inputTokens = result.usage?.input_tokens || 0;
-    const outputTokens = result.usage?.output_tokens || 0;
-    // Sonnet pricing: $3/M input, $15/M output
-    const costUSD = (inputTokens * 3 + outputTokens * 15) / 1_000_000;
-    const costEUR = Math.round(costUSD * 0.92 * 10000) / 10000; // approximate USD to EUR
-
-    // Accumulate cost (add to existing, don't replace)
+    const costEUR = calculateCostEUR(inputTokens, outputTokens);
     const previousCost = Number(receipt.analysis_cost) || 0;
     const totalCost = Math.round((previousCost + costEUR) * 10000) / 10000;
 
@@ -100,11 +68,10 @@ Antworte NUR mit dem JSON, kein anderer Text.`,
     // Update the receipt — only fill empty fields, don't overwrite manual entries
     const updates: Record<string, unknown> = {
       analysis_status: "done",
-      analysis_raw: { ...parsed, usage: result.usage, cost_eur: costEUR, total_cost_eur: totalCost },
+      analysis_raw: { ...parsed, usage: { input_tokens: inputTokens, output_tokens: outputTokens }, cost_eur: costEUR, total_cost_eur: totalCost },
       analysis_cost: totalCost,
       updated_at: new Date().toISOString(),
     };
-    // Only set fields that are currently empty/null in the receipt
     if (!receipt.invoice_date && parsed.invoice_date) updates.invoice_date = parsed.invoice_date;
     if (!receipt.purpose && parsed.purpose) updates.purpose = parsed.purpose;
     if (!receipt.issuer && parsed.issuer) updates.issuer = parsed.issuer;

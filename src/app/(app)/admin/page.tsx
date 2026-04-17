@@ -9,7 +9,7 @@ import {
   getUserRoleAssignments, assignRoleToUser, removeRoleFromUser,
 } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
-import { COMPANIES } from "@/lib/company-context";
+import { useCompany } from "@/lib/company-context";
 
 type ScheduleDraftRow = {
   weekday: number;
@@ -59,6 +59,7 @@ const DEFAULT_ROLE_COLORS = [
 ];
 
 export default function AdminPage() {
+  const { accessibleCompanies: COMPANIES } = useCompany();
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);

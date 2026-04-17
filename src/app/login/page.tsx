@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -36,8 +37,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
       <div className="max-w-sm w-full">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">VR the Fans</h1>
-          <p className="text-sm text-gray-500 mt-1">Rechnungsverwaltung</p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Orange Octo</h1>
+          <p className="text-sm text-gray-500 mt-1">easy accounting</p>
         </div>
 
         <form
@@ -82,6 +83,13 @@ export default function LoginPage() {
             {loading ? "Anmelden..." : "Anmelden"}
           </button>
         </form>
+
+        <p className="text-center text-sm text-gray-500 mt-4">
+          Noch kein Konto?{" "}
+          <Link href="/register" className="text-[var(--accent)] hover:underline font-medium">
+            Jetzt registrieren
+          </Link>
+        </p>
       </div>
     </div>
   );

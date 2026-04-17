@@ -16,11 +16,8 @@ export const LEGAL_OPERATOR = {
   phone: "+43 664 389 91 38",
   email: "office@vrthefans.com",
   product: "Orange Octo — easy accounting",
-  // GF/Firmenbuch values are not public — placeholder until env vars are set.
-  registerNumber:
-    process.env.NEXT_PUBLIC_LEGAL_FIRMENBUCH ?? "[wird ergänzt]",
-  managingDirector:
-    process.env.NEXT_PUBLIC_LEGAL_GF_NAME ?? "[wird ergänzt]",
+  registerNumber: "FN 663868 b",
+  managingDirector: "Andreas Aigner, Florian Pollstätter",
   dsbEmail:
     process.env.NEXT_PUBLIC_LEGAL_DSB_EMAIL ?? "office@vrthefans.com",
   legalDocsRevision: "April 2026",

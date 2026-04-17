@@ -1,0 +1,27 @@
+{
+  "name": "Orange Octo — easy accounting",
+  "short_name": "Orange Octo",
+  "description": "Rechnungen, Angebote, Belege und Zeiterfassung — einfach und schnell.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#f97316",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/brand/octo-icon-orange.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/octo-icon-orange.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "finance", "productivity"],
+  "lang": "de",
+  "dir": "ltr"
+}

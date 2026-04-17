@@ -145,7 +145,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     className="flex items-center gap-1 px-1.5 py-1 rounded-md hover:bg-[var(--surface-hover)] transition-colors"
                     title="Unternehmen wechseln"
                   >
-                    <Image src={company.logo_path} alt={company.name} width={24} height={24} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+                    <Image src={company.logo_url} alt={company.name} width={24} height={24} className="rounded" style={{ filter: "var(--logo-filter)" }} />
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-muted)]"><polyline points="6 9 12 15 18 9" /></svg>
                   </button>
                   {showCompanySwitcher && (
@@ -155,7 +155,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         {accessibleCompanies.map((c) => (
                           <button key={c.id} onClick={() => { setCompanyId(c.id); setShowCompanySwitcher(false); window.location.reload(); }}
                             className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--surface-hover)] transition flex items-center gap-2 ${company.id === c.id ? "text-[var(--brand-orange)]" : "text-[var(--text-secondary)]"}`}>
-                            <Image src={c.logo_path} alt={c.name} width={20} height={20} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+                            <Image src={c.logo_url} alt={c.name} width={20} height={20} className="rounded" style={{ filter: "var(--logo-filter)" }} />
                             {c.name}
                           </button>
                         ))}
@@ -165,7 +165,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
               ) : (
                 <div className="flex items-center px-1.5">
-                  <Image src={company.logo_path} alt={company.name} width={24} height={24} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+                  <Image src={company.logo_url} alt={company.name} width={24} height={24} className="rounded" style={{ filter: "var(--logo-filter)" }} />
                 </div>
               )}
               {/* 5. Settings gear */}

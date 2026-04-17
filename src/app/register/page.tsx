@@ -1,0 +1,215 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+
+type Step = "credentials" | "company";
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const [step, setStep] = useState<Step>("credentials");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [companySlug, setCompanySlug] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  function generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[äö ü]/g, (c) => ({ "ä": "ae", "ö": "oe", "ü": "ue" }[c] || c))
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 30);
+  }
+
+  async function handleCredentials(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (password.length < 8) {
+      setError("Passwort muss mindestens 8 Zeichen lang sein.");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setError("Passwörter stimmen nicht überein.");
+      return;
+    }
+    setStep("company");
+  }
+
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    if (!companyName.trim()) {
+      setError("Bitte geben Sie einen Firmennamen ein.");
+      setLoading(false);
+      return;
+    }
+
+    const slug = companySlug || generateSlug(companyName);
+
+    const supabase = createClient();
+
+    // 1. Sign up the user
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: displayName || email.split("@")[0],
+          company_id: slug,
+        },
+      },
+    });
+
+    if (signUpError) {
+      setError(signUpError.message === "User already registered"
+        ? "Diese E-Mail ist bereits registriert."
+        : `Registrierung fehlgeschlagen: ${signUpError.message}`);
+      setLoading(false);
+      return;
+    }
+
+    if (!signUpData.user) {
+      setError("Registrierung fehlgeschlagen.");
+      setLoading(false);
+      return;
+    }
+
+    // 2. Call the onboarding API to create company + member + settings
+    try {
+      const res = await fetch("/api/register-company", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: companyName.trim(),
+          companySlug: slug,
+          displayName: displayName || email.split("@")[0],
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Firmen-Setup fehlgeschlagen");
+      }
+    } catch (err) {
+      // Company setup failed but user is created — they can still log in
+      // and set up their company later
+      console.error("Company setup error:", err);
+    }
+
+    // 3. Refresh session to pick up JWT claims
+    await supabase.auth.refreshSession();
+
+    router.push("/");
+    router.refresh();
+  }
+
+  const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+      <div className="max-w-sm w-full">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Orange Octo</h1>
+          <p className="text-sm text-gray-500 mt-1">Konto erstellen</p>
+        </div>
+
+        {step === "credentials" && (
+          <form
+            onSubmit={handleCredentials}
+            className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 space-y-4"
+          >
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Name</label>
+              <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
+                className={inputClass} placeholder="Max Mustermann" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">E-Mail</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+                className={inputClass} placeholder="max@firma.at" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Passwort</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
+                className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Passwort bestätigen</label>
+              <input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required
+                className={inputClass} />
+            </div>
+
+            {error && <p className="text-sm text-rose-400">{error}</p>}
+
+            <button type="submit"
+              className="w-full bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">
+              Weiter
+            </button>
+          </form>
+        )}
+
+        {step === "company" && (
+          <form
+            onSubmit={handleRegister}
+            className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 space-y-4"
+          >
+            <p className="text-sm text-[var(--text-secondary)] mb-2">
+              Erstellen Sie Ihre Firma. Sie können die Details später in den Einstellungen ergänzen.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Firmenname</label>
+              <input type="text" value={companyName} onChange={(e) => {
+                setCompanyName(e.target.value);
+                if (!companySlug || companySlug === generateSlug(companyName)) {
+                  setCompanySlug(generateSlug(e.target.value));
+                }
+              }} required className={inputClass} placeholder="Meine Firma GmbH" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
+                Firmen-Kürzel <span className="text-gray-500 font-normal">(URL-freundlich)</span>
+              </label>
+              <input type="text" value={companySlug} onChange={(e) => setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                className={inputClass} placeholder="meine-firma" maxLength={30} />
+            </div>
+
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+              <p className="text-xs text-emerald-400">
+                14 Tage kostenlos testen — keine Zahlungsdaten nötig.
+              </p>
+            </div>
+
+            {error && <p className="text-sm text-rose-400">{error}</p>}
+
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setStep("credentials")}
+                className="flex-1 border border-[var(--border)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--surface-hover)] transition">
+                Zurück
+              </button>
+              <button type="submit" disabled={loading}
+                className="flex-1 bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
+                {loading ? "Erstelle..." : "Firma erstellen"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        <p className="text-center text-sm text-gray-500 mt-4">
+          Bereits ein Konto?{" "}
+          <Link href="/login" className="text-[var(--accent)] hover:underline font-medium">
+            Anmelden
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}
