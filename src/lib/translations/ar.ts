@@ -919,6 +919,29 @@ const ar: Record<string, string> = {
   "lang.tr": "Türkçe",
   "lang.pl": "Polski",
   "lang.ar": "العربية",
+
+  // ── Design Window (SCH-440) ──
+  "design.title": "نافذة التصميم",
+  "design.tabDesigns": "التصاميم",
+  "design.tabPhotos": "الصور",
+  "design.tabAi": "صور الذكاء الاصطناعي",
+  "design.chooseDesign": "اختر التصميم",
+  "design.simple": "بسيط",
+  "design.detailed": "مفصّل",
+  "design.photoPool": "مكتبة الصور",
+  "design.uploadPhotos": "رفع صور",
+  "design.noPhotos": "لا توجد صور بعد",
+  "design.noPhotosHint": "ارفع صورًا أو أنشئها بالذكاء الاصطناعي",
+  "design.selectedDesign": "التصميم المحدد",
+  "design.photosSelected": "{count} صورة محددة",
+  "design.preview": "معاينة",
+  "design.aiTitle": "توليد الصور بالذكاء الاصطناعي",
+  "design.aiDescription": "صِف الصورة التي تريدها وسيقوم الذكاء الاصطناعي بإنشائها لعرض السعر الخاص بك.",
+  "design.aiPlaceholder": "مثال: نظارة واقع افتراضي احترافية، إضاءة استوديو...",
+  "design.aiGenerate": "توليد",
+  "design.aiGenerating": "جاري التوليد...",
+  "design.aiExamples": "أمثلة على الأوصاف:",
+  "design.openDesign": "التصميم",
 };
 
 export default ar;

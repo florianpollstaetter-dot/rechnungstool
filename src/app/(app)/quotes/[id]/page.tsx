@@ -9,6 +9,7 @@ import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
 import QuoteApprovalPopup from "@/components/QuoteApprovalPopup";
+import QuoteDesignWindow from "@/components/QuoteDesignWindow";
 import { useI18n } from "@/lib/i18n-context";
 
 const statusColors: Record<string, string> = {
@@ -39,6 +40,7 @@ export default function QuoteDetailPage() {
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [showPartialModal, setShowPartialModal] = useState(false);
   const [showApprovalPopup, setShowApprovalPopup] = useState(false);
+  const [showDesignWindow, setShowDesignWindow] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [partialMode, setPartialMode] = useState<"percent" | "amount">("percent");
   const [partialValue, setPartialValue] = useState("30");
@@ -237,6 +239,7 @@ export default function QuoteDetailPage() {
           >
             {quote.display_mode === "simple" ? t("quoteDetail.displaySimple") : t("quoteDetail.displayDetailed")}
           </button>
+          <button onClick={() => setShowDesignWindow(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-500 transition">{t("design.openDesign")}</button>
           {quote.status !== "rejected" && (
             <>
               <button onClick={() => setShowApprovalPopup(true)} className="bg-amber-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-500 transition">{t("quoteDetail.release")}</button>
@@ -342,6 +345,16 @@ export default function QuoteDetailPage() {
       </div>
 
       <PDFPreviewModal blob={previewBlob} onClose={() => setPreviewBlob(null)} />
+
+      {showDesignWindow && (
+        <QuoteDesignWindow
+          quote={quote}
+          customer={customer}
+          settings={settings}
+          onClose={() => setShowDesignWindow(false)}
+          onPreview={(blob) => { setShowDesignWindow(false); setPreviewBlob(blob); }}
+        />
+      )}
 
       {showApprovalPopup && (
         <QuoteApprovalPopup

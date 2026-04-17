@@ -1,0 +1,545 @@
+"use client";
+
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  Image,
+  Font,
+} from "@react-pdf/renderer";
+import { Quote, Customer, CompanySettings, Reference, UNIT_OPTIONS, Language, QuoteDesignKey } from "@/lib/types";
+import { t } from "@/lib/i18n";
+
+Font.register({
+  family: "Inter",
+  fonts: [
+    { src: "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf", fontWeight: 400 },
+    { src: "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf", fontWeight: 400, fontStyle: "italic" },
+    { src: "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYMZg.ttf", fontWeight: 600 },
+    { src: "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZg.ttf", fontWeight: 700 },
+  ],
+});
+
+function fmtEuro(n: number): string {
+  return n.toLocaleString("de-AT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " \u20AC";
+}
+
+function fmtDate(date: string): string {
+  const d = new Date(date);
+  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
+
+function unitLabel(unit: string, lang: Language) {
+  const opt = UNIT_OPTIONS.find((u) => u.value === unit);
+  if (!opt) return unit;
+  return lang === "en" ? opt.label_en : opt.label;
+}
+
+interface DesignProps {
+  quote: Quote;
+  customer: Customer;
+  settings: CompanySettings;
+  references?: Reference[];
+  photoUrls?: string[];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHARED: Pricing table used by all designs
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function PricingTable({ quote, lang, colors }: { quote: Quote; lang: Language; colors: { accent: string; black: string; white: string; gray: string; border: string; bg: string } }) {
+  const hasDiscounts = quote.items.some((i) => i.discount_percent > 0 || i.discount_amount > 0) ||
+    quote.overall_discount_percent > 0 || quote.overall_discount_amount > 0;
+
+  return (
+    <View>
+      <View style={{ flexDirection: "row", backgroundColor: colors.black, paddingVertical: 7, paddingHorizontal: 10 }}>
+        <Text style={{ color: colors.white, fontSize: 8, fontWeight: 600, width: 30, textAlign: "center" }}>{t("pos", lang)}</Text>
+        <Text style={{ color: colors.white, fontSize: 8, fontWeight: 600, width: 195 }}>{t("service", lang)}</Text>
+        <Text style={{ color: colors.white, fontSize: 8, fontWeight: 600, width: 55, textAlign: "center" }}>{t("unit", lang)}</Text>
+        <Text style={{ color: colors.white, fontSize: 8, fontWeight: 600, width: 50, textAlign: "right" }}>{t("quantity", lang)}</Text>
+        <Text style={{ color: colors.white, fontSize: 8, fontWeight: 600, width: 75, textAlign: "right" }}>{t("price", lang)}</Text>
+        <Text style={{ color: colors.white, fontSize: 8, fontWeight: 600, width: 90, textAlign: "right" }}>{t("amount", lang)}</Text>
+      </View>
+      {quote.items.map((item, idx) => (
+        <View key={idx}>
+          <View style={{ flexDirection: "row", paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: 0.5, borderBottomColor: colors.border, backgroundColor: idx % 2 === 1 ? colors.bg : "transparent" }}>
+            <Text style={{ fontSize: 9, color: colors.gray, width: 30, textAlign: "center" }}>{item.position}</Text>
+            <Text style={{ fontSize: 9, fontWeight: 600, color: colors.black, width: 195 }}>{item.description}</Text>
+            <Text style={{ fontSize: 9, color: colors.gray, width: 55, textAlign: "center" }}>{unitLabel(item.unit, lang)}</Text>
+            <Text style={{ fontSize: 9, color: colors.gray, width: 50, textAlign: "right" }}>{item.quantity}</Text>
+            <Text style={{ fontSize: 9, color: colors.gray, width: 75, textAlign: "right" }}>{fmtEuro(item.unit_price)}</Text>
+            <Text style={{ fontSize: 9, color: colors.gray, width: 90, textAlign: "right" }}>{fmtEuro(item.total)}</Text>
+          </View>
+          {(item.discount_percent > 0 || item.discount_amount > 0) && (
+            <View style={{ flexDirection: "row", paddingVertical: 8, paddingHorizontal: 10, backgroundColor: "#FFF8E8", borderLeftWidth: 3, borderLeftColor: colors.accent, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 9, width: 30 }}></Text>
+              <Text style={{ fontSize: 9, color: colors.accent, width: 195 }}>
+                {item.discount_percent > 0 ? `${t("discount", lang)} (${item.discount_percent}%)` : t("discount", lang)}
+              </Text>
+              <Text style={{ fontSize: 9, width: 55 }}></Text>
+              <Text style={{ fontSize: 9, width: 50 }}></Text>
+              <Text style={{ fontSize: 9, width: 75 }}></Text>
+              <Text style={{ fontSize: 9, color: colors.accent, width: 90, textAlign: "right" }}>
+                {item.discount_percent > 0
+                  ? fmtEuro(-(item.quantity * item.unit_price * item.discount_percent / 100))
+                  : fmtEuro(-item.discount_amount)}
+              </Text>
+            </View>
+          )}
+        </View>
+      ))}
+
+      <View style={{ alignSelf: "flex-end", width: 260, marginTop: 20 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+          <Text style={{ fontSize: 9, color: colors.gray }}>{t("net", lang)}</Text>
+          <Text style={{ fontSize: 9, color: colors.black, fontWeight: 600 }}>{fmtEuro(quote.items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0))}</Text>
+        </View>
+        {hasDiscounts && (
+          <>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 9, color: colors.accent }}>{t("discount", lang)}</Text>
+              <Text style={{ fontSize: 9, color: colors.accent, fontWeight: 600 }}>
+                {fmtEuro(-(quote.items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0) - quote.subtotal))}
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: colors.border, borderTopWidth: 1, borderTopColor: colors.border }}>
+              <Text style={{ fontSize: 9, color: colors.gray }}>{t("netAfterDiscount", lang)}</Text>
+              <Text style={{ fontSize: 9, color: colors.black, fontWeight: 600 }}>{fmtEuro(quote.subtotal)}</Text>
+            </View>
+          </>
+        )}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+          <Text style={{ fontSize: 9, color: colors.gray }}>{t("vat", lang)} {quote.tax_rate}%</Text>
+          <Text style={{ fontSize: 9, color: colors.black, fontWeight: 600 }}>{fmtEuro(quote.tax_amount)}</Text>
+        </View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 8, backgroundColor: colors.black, paddingHorizontal: 8 }}>
+          <Text style={{ fontSize: 11, fontWeight: 700, color: colors.white }}>{t("totalGross", lang)}</Text>
+          <Text style={{ fontSize: 11, fontWeight: 700, color: colors.white }}>{fmtEuro(quote.total)}</Text>
+        </View>
+      </View>
+
+      <View style={{ marginTop: 20, borderLeftWidth: 3, borderLeftColor: colors.accent, backgroundColor: colors.bg, padding: 12, fontSize: 8.5, color: colors.gray }}>
+        <Text>{t("validityNote", lang).replace("{date}", fmtDate(quote.valid_until))}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DESIGN 1: MODERN — Clean blue gradients, card-based layout
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const modernColors = {
+  primary: "#1A56DB",
+  primaryLight: "#E8EEFB",
+  dark: "#111827",
+  white: "#FFFFFF",
+  gray: "#6B7280",
+  grayLight: "#F3F4F6",
+  border: "#E5E7EB",
+};
+
+const modernStyles = StyleSheet.create({
+  coverPage: { backgroundColor: modernColors.white, padding: 60, fontFamily: "Inter", justifyContent: "center" },
+  topBar: { position: "absolute", top: 0, left: 0, right: 0, height: 8, backgroundColor: modernColors.primary },
+  contentPage: { paddingTop: 50, paddingBottom: 60, paddingHorizontal: 50, fontFamily: "Inter", fontSize: 9.5, color: modernColors.dark },
+  pageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 15, borderBottomWidth: 2, borderBottomColor: modernColors.primary, marginBottom: 25 },
+});
+
+function ModernDesign({ quote, customer, settings, references, photoUrls }: DesignProps) {
+  const lang = quote.language || "de";
+  const isSimple = quote.display_mode === "simple";
+  const refs = references || [];
+  const photos = photoUrls || [];
+
+  return (
+    <Document>
+      {/* Cover */}
+      <Page size="A4" style={modernStyles.coverPage}>
+        <View style={modernStyles.topBar} />
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 60 }}>
+          {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 120, height: 50, objectFit: "contain" }} /> : <View />}
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={{ fontSize: 8, color: modernColors.gray }}>{settings.company_name}</Text>
+            <Text style={{ fontSize: 8, color: modernColors.gray }}>{settings.address}, {settings.zip} {settings.city}</Text>
+          </View>
+        </View>
+        <View style={{ backgroundColor: modernColors.primaryLight, borderRadius: 8, padding: 40, marginBottom: 40 }}>
+          <Text style={{ fontSize: 10, color: modernColors.primary, textTransform: "uppercase", letterSpacing: 3, marginBottom: 10 }}>{t("quote", lang)}</Text>
+          <Text style={{ fontSize: 28, fontWeight: 700, color: modernColors.dark, lineHeight: 1.2, marginBottom: 15 }}>{quote.project_description || (lang === "de" ? "Projektangebot" : "Project Quote")}</Text>
+          <View style={{ height: 3, width: 60, backgroundColor: modernColors.primary, marginBottom: 15 }} />
+          <Text style={{ fontSize: 12, color: modernColors.gray }}>{t("forClient", lang)}: {customer.company || customer.name}</Text>
+        </View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View style={{ backgroundColor: modernColors.grayLight, borderRadius: 6, padding: 15, width: "30%" }}>
+            <Text style={{ fontSize: 8, color: modernColors.gray, textTransform: "uppercase", marginBottom: 4 }}>{t("quoteNumber", lang)}</Text>
+            <Text style={{ fontSize: 11, fontWeight: 600, color: modernColors.dark }}>{quote.quote_number}</Text>
+          </View>
+          <View style={{ backgroundColor: modernColors.grayLight, borderRadius: 6, padding: 15, width: "30%" }}>
+            <Text style={{ fontSize: 8, color: modernColors.gray, textTransform: "uppercase", marginBottom: 4 }}>{t("date", lang)}</Text>
+            <Text style={{ fontSize: 11, fontWeight: 600, color: modernColors.dark }}>{fmtDate(quote.quote_date)}</Text>
+          </View>
+          <View style={{ backgroundColor: modernColors.grayLight, borderRadius: 6, padding: 15, width: "30%" }}>
+            <Text style={{ fontSize: 8, color: modernColors.gray, textTransform: "uppercase", marginBottom: 4 }}>{t("validUntil", lang)}</Text>
+            <Text style={{ fontSize: 11, fontWeight: 600, color: modernColors.dark }}>{fmtDate(quote.valid_until)}</Text>
+          </View>
+        </View>
+      </Page>
+
+      {/* About / References (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={modernStyles.contentPage}>
+          <View style={modernStyles.topBar} />
+          <View style={modernStyles.pageHeader}>
+            {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 80, height: 35, objectFit: "contain" }} /> : <View />}
+            <Text style={{ fontSize: 8, color: modernColors.gray, textTransform: "uppercase", letterSpacing: 1 }}>{t("aboutUs", lang)}</Text>
+          </View>
+          <Text style={{ fontSize: 10, color: modernColors.primary, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>{t("aboutUs", lang)}</Text>
+          <Text style={{ fontSize: 20, fontWeight: 700, color: modernColors.dark, marginBottom: 15 }}>{t("aboutUsTitle", lang)}</Text>
+          <Text style={{ fontSize: 9.5, color: modernColors.gray, lineHeight: 1.7, marginBottom: 30 }}>{t("aboutUsBody", lang)}</Text>
+
+          {(photos.length > 0 || refs.length > 0) && (
+            <>
+              <Text style={{ fontSize: 10, color: modernColors.primary, textTransform: "uppercase", letterSpacing: 2, marginBottom: 12 }}>{t("references", lang)}</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+                {(photos.length > 0 ? photos.slice(0, 4) : [null, null, null, null]).map((photo, idx) => {
+                  const ref = refs[idx];
+                  return (
+                    <View key={idx} style={{ width: "47%", marginBottom: 15 }}>
+                      {photo ? (
+                        <Image src={photo} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 4 }} />
+                      ) : (
+                        <View style={{ width: "100%", height: 120, backgroundColor: modernColors.primaryLight, borderRadius: 4 }} />
+                      )}
+                      {ref && <Text style={{ fontSize: 10, fontWeight: 600, marginTop: 6, color: modernColors.dark }}>{ref.title}</Text>}
+                      {ref && <Text style={{ fontSize: 8.5, color: modernColors.gray, marginTop: 2 }}>{ref.description}</Text>}
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          )}
+        </Page>
+      )}
+
+      {/* Services (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={modernStyles.contentPage}>
+          <View style={modernStyles.topBar} />
+          <View style={modernStyles.pageHeader}>
+            {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 80, height: 35, objectFit: "contain" }} /> : <View />}
+            <Text style={{ fontSize: 8, color: modernColors.gray, textTransform: "uppercase", letterSpacing: 1 }}>{t("serviceScope", lang)}</Text>
+          </View>
+          <Text style={{ fontSize: 10, color: modernColors.primary, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>{t("serviceScope", lang)}</Text>
+          <Text style={{ fontSize: 18, fontWeight: 700, color: modernColors.dark, marginBottom: 15 }}>{quote.project_description || t("projectServices", lang)}</Text>
+          {quote.notes && <Text style={{ fontSize: 9.5, color: modernColors.gray, lineHeight: 1.7, marginBottom: 20 }}>{quote.notes}</Text>}
+          {quote.items.map((item, idx) => (
+            <View key={idx} style={{ borderLeftWidth: 3, borderLeftColor: modernColors.primary, paddingLeft: 12, marginBottom: 12, backgroundColor: modernColors.grayLight, paddingVertical: 8, paddingRight: 12, borderRadius: 4 }}>
+              <Text style={{ fontSize: 10, fontWeight: 600, color: modernColors.dark }}>{item.description}</Text>
+              <Text style={{ fontSize: 8.5, color: modernColors.gray, marginTop: 2 }}>{item.quantity} {unitLabel(item.unit, lang)} x {fmtEuro(item.unit_price)}</Text>
+            </View>
+          ))}
+        </Page>
+      )}
+
+      {/* Pricing */}
+      <Page size="A4" style={modernStyles.contentPage}>
+        <View style={modernStyles.topBar} />
+        <View style={modernStyles.pageHeader}>
+          {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 80, height: 35, objectFit: "contain" }} /> : <View />}
+          <Text style={{ fontSize: 8, color: modernColors.gray, textTransform: "uppercase", letterSpacing: 1 }}>{t("pricingOverview", lang)}</Text>
+        </View>
+        <Text style={{ fontSize: 10, color: modernColors.primary, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>{t("pricingOverview", lang)}</Text>
+        <Text style={{ fontSize: 18, fontWeight: 700, color: modernColors.dark, marginBottom: 15 }}>{t("investmentOverview", lang)}</Text>
+        <PricingTable quote={quote} lang={lang} colors={{ accent: modernColors.primary, black: modernColors.dark, white: modernColors.white, gray: modernColors.gray, border: modernColors.border, bg: modernColors.grayLight }} />
+      </Page>
+
+      {/* Closing (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={{ backgroundColor: modernColors.dark, justifyContent: "center", alignItems: "center", padding: 60, fontFamily: "Inter" }}>
+          <View style={{ backgroundColor: modernColors.white, width: 170, height: 75, borderRadius: 4, justifyContent: "center", alignItems: "center", marginBottom: 40 }}>
+            {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 150, height: 60, objectFit: "contain" }} /> : null}
+          </View>
+          <View style={{ height: 3, backgroundColor: modernColors.primary, width: 200, marginVertical: 20 }} />
+          <Text style={{ fontSize: 24, fontWeight: 700, color: modernColors.white, textAlign: "center", lineHeight: 1.4 }}>{t("closingText", lang)}</Text>
+          <Text style={{ fontSize: 12, color: modernColors.primary, marginTop: 10, textAlign: "center" }}>{settings.company_name}</Text>
+          <Text style={{ fontSize: 10, color: modernColors.white, lineHeight: 1.8, textAlign: "center", marginTop: 10 }}>{lang === "de" ? "Tel." : "Phone"}: {settings.phone}</Text>
+          <Text style={{ fontSize: 10, color: modernColors.white, textAlign: "center" }}>{t("emailLabel", lang)} {settings.email}</Text>
+        </Page>
+      )}
+    </Document>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DESIGN 2: MINIMAL — Ultra-clean, lots of whitespace, thin lines
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const minimalColors = {
+  black: "#1a1a1a",
+  gray: "#999999",
+  grayLight: "#f5f5f5",
+  border: "#e0e0e0",
+  accent: "#1a1a1a",
+  white: "#ffffff",
+};
+
+function MinimalDesign({ quote, customer, settings, references, photoUrls }: DesignProps) {
+  const lang = quote.language || "de";
+  const isSimple = quote.display_mode === "simple";
+  const refs = references || [];
+  const photos = photoUrls || [];
+
+  return (
+    <Document>
+      {/* Cover */}
+      <Page size="A4" style={{ padding: 70, fontFamily: "Inter", justifyContent: "space-between", minHeight: "100%" }}>
+        <View>
+          {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 100, height: 40, objectFit: "contain", marginBottom: 60 }} /> : <View style={{ marginBottom: 60 }} />}
+          <Text style={{ fontSize: 42, fontWeight: 700, color: minimalColors.black, lineHeight: 1.1, letterSpacing: -1 }}>{t("quote", lang)}</Text>
+          <View style={{ height: 1, backgroundColor: minimalColors.black, width: 40, marginVertical: 25 }} />
+          <Text style={{ fontSize: 14, color: minimalColors.gray, lineHeight: 1.6 }}>{quote.project_description || (lang === "de" ? "Projektangebot" : "Project Quote")}</Text>
+          <Text style={{ fontSize: 11, color: minimalColors.black, marginTop: 20, fontWeight: 600 }}>{customer.company || customer.name}</Text>
+        </View>
+        <View>
+          <View style={{ height: 0.5, backgroundColor: minimalColors.border, marginBottom: 15 }} />
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ fontSize: 8, color: minimalColors.gray }}>{t("quoteNumber", lang)}: {quote.quote_number}</Text>
+            <Text style={{ fontSize: 8, color: minimalColors.gray }}>{t("date", lang)}: {fmtDate(quote.quote_date)}</Text>
+            <Text style={{ fontSize: 8, color: minimalColors.gray }}>{t("validUntil", lang)}: {fmtDate(quote.valid_until)}</Text>
+          </View>
+          <Text style={{ fontSize: 7, color: minimalColors.gray, marginTop: 10 }}>{settings.company_name} | {settings.address}, {settings.zip} {settings.city}</Text>
+        </View>
+      </Page>
+
+      {/* References with photos (detailed only) */}
+      {!isSimple && (photos.length > 0 || refs.length > 0) && (
+        <Page size="A4" style={{ padding: 70, fontFamily: "Inter", fontSize: 9.5, color: minimalColors.black }}>
+          <Text style={{ fontSize: 8, color: minimalColors.gray, textTransform: "uppercase", letterSpacing: 3, marginBottom: 20 }}>{t("references", lang)}</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+            {(photos.length > 0 ? photos.slice(0, 4) : [null, null, null, null]).map((photo, idx) => {
+              const ref = refs[idx];
+              return (
+                <View key={idx} style={{ width: "47%", marginBottom: 20 }}>
+                  {photo ? (
+                    <Image src={photo} style={{ width: "100%", height: 140, objectFit: "cover" }} />
+                  ) : (
+                    <View style={{ width: "100%", height: 140, backgroundColor: minimalColors.grayLight }} />
+                  )}
+                  {ref && <Text style={{ fontSize: 9, fontWeight: 600, marginTop: 8 }}>{ref.title}</Text>}
+                  {ref && <Text style={{ fontSize: 8, color: minimalColors.gray, marginTop: 3, lineHeight: 1.5 }}>{ref.description}</Text>}
+                </View>
+              );
+            })}
+          </View>
+        </Page>
+      )}
+
+      {/* Services (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={{ padding: 70, fontFamily: "Inter", fontSize: 9.5, color: minimalColors.black }}>
+          <Text style={{ fontSize: 8, color: minimalColors.gray, textTransform: "uppercase", letterSpacing: 3, marginBottom: 20 }}>{t("serviceScope", lang)}</Text>
+          <Text style={{ fontSize: 16, fontWeight: 700, color: minimalColors.black, marginBottom: 25 }}>{quote.project_description || t("projectServices", lang)}</Text>
+          {quote.notes && <Text style={{ fontSize: 9.5, color: minimalColors.gray, lineHeight: 1.7, marginBottom: 25 }}>{quote.notes}</Text>}
+          {quote.items.map((item, idx) => (
+            <View key={idx} style={{ paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: minimalColors.border }}>
+              <Text style={{ fontSize: 10, fontWeight: 600, color: minimalColors.black }}>{item.description}</Text>
+              <Text style={{ fontSize: 8.5, color: minimalColors.gray, marginTop: 3 }}>{item.quantity} {unitLabel(item.unit, lang)} x {fmtEuro(item.unit_price)}</Text>
+            </View>
+          ))}
+        </Page>
+      )}
+
+      {/* Pricing */}
+      <Page size="A4" style={{ paddingTop: 70, paddingBottom: 60, paddingHorizontal: 70, fontFamily: "Inter", fontSize: 9.5, color: minimalColors.black }}>
+        <Text style={{ fontSize: 8, color: minimalColors.gray, textTransform: "uppercase", letterSpacing: 3, marginBottom: 20 }}>{t("pricingOverview", lang)}</Text>
+        <PricingTable quote={quote} lang={lang} colors={{ accent: minimalColors.accent, black: minimalColors.black, white: minimalColors.white, gray: minimalColors.gray, border: minimalColors.border, bg: minimalColors.grayLight }} />
+      </Page>
+
+      {/* Closing (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={{ padding: 70, fontFamily: "Inter", justifyContent: "center", alignItems: "center" }}>
+          {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 100, height: 40, objectFit: "contain", marginBottom: 30 }} /> : null}
+          <View style={{ height: 0.5, backgroundColor: minimalColors.border, width: 150, marginBottom: 30 }} />
+          <Text style={{ fontSize: 20, fontWeight: 700, color: minimalColors.black, textAlign: "center", lineHeight: 1.4 }}>{t("closingText", lang)}</Text>
+          <View style={{ height: 0.5, backgroundColor: minimalColors.border, width: 150, marginTop: 30, marginBottom: 20 }} />
+          <Text style={{ fontSize: 9, color: minimalColors.gray, textAlign: "center" }}>{settings.company_name}</Text>
+          <Text style={{ fontSize: 9, color: minimalColors.gray, textAlign: "center", marginTop: 4 }}>{settings.phone} | {settings.email}</Text>
+        </Page>
+      )}
+    </Document>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DESIGN 3: BOLD — Dark theme with vibrant orange accents
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const boldColors = {
+  bg: "#111111",
+  dark: "#0A0A0A",
+  white: "#FFFFFF",
+  accent: "#FF6B2B",
+  gray: "#888888",
+  grayDark: "#333333",
+  border: "#2A2A2A",
+};
+
+function BoldDesign({ quote, customer, settings, references, photoUrls }: DesignProps) {
+  const lang = quote.language || "de";
+  const isSimple = quote.display_mode === "simple";
+  const refs = references || [];
+  const photos = photoUrls || [];
+
+  return (
+    <Document>
+      {/* Cover */}
+      <Page size="A4" style={{ backgroundColor: boldColors.dark, padding: 50, fontFamily: "Inter", justifyContent: "center" }}>
+        <View style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, backgroundColor: boldColors.accent, opacity: 0.1 }} />
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", position: "absolute", top: 40, left: 50, right: 50 }}>
+          <View style={{ backgroundColor: boldColors.white, borderRadius: 4, padding: 8 }}>
+            {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 100, height: 40, objectFit: "contain" }} /> : null}
+          </View>
+          <Text style={{ fontSize: 8, color: boldColors.gray }}>{settings.company_name}</Text>
+        </View>
+        <View style={{ marginTop: 40 }}>
+          <View style={{ height: 4, backgroundColor: boldColors.accent, width: 60, marginBottom: 20 }} />
+          <Text style={{ fontSize: 36, fontWeight: 700, color: boldColors.white, lineHeight: 1.1 }}>{t("quote", lang)}</Text>
+          <Text style={{ fontSize: 16, color: boldColors.accent, fontWeight: 600, marginTop: 10 }}>{quote.project_description || (lang === "de" ? "Projektangebot" : "Project Quote")}</Text>
+          <Text style={{ fontSize: 11, color: boldColors.gray, marginTop: 15 }}>{t("forClient", lang)}: {customer.company || customer.name}</Text>
+          <View style={{ flexDirection: "row", gap: 30, marginTop: 30 }}>
+            <View>
+              <Text style={{ fontSize: 8, color: boldColors.gray, textTransform: "uppercase" }}>{t("quoteNumber", lang)}</Text>
+              <Text style={{ fontSize: 12, color: boldColors.white, fontWeight: 600, marginTop: 4 }}>{quote.quote_number}</Text>
+            </View>
+            <View>
+              <Text style={{ fontSize: 8, color: boldColors.gray, textTransform: "uppercase" }}>{t("date", lang)}</Text>
+              <Text style={{ fontSize: 12, color: boldColors.white, fontWeight: 600, marginTop: 4 }}>{fmtDate(quote.quote_date)}</Text>
+            </View>
+            <View>
+              <Text style={{ fontSize: 8, color: boldColors.gray, textTransform: "uppercase" }}>{t("validUntil", lang)}</Text>
+              <Text style={{ fontSize: 12, color: boldColors.white, fontWeight: 600, marginTop: 4 }}>{fmtDate(quote.valid_until)}</Text>
+            </View>
+          </View>
+        </View>
+      </Page>
+
+      {/* About + Photos (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={{ backgroundColor: boldColors.bg, padding: 50, fontFamily: "Inter", fontSize: 9.5, color: boldColors.white }}>
+          <View style={{ position: "absolute", top: 0, left: 0, width: 4, height: "100%", backgroundColor: boldColors.accent }} />
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: boldColors.accent, marginBottom: 25 }}>
+            <View style={{ backgroundColor: boldColors.white, borderRadius: 4, padding: 6 }}>
+              {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 70, height: 30, objectFit: "contain" }} /> : null}
+            </View>
+            <Text style={{ fontSize: 8, color: boldColors.gray, textTransform: "uppercase", letterSpacing: 1 }}>{t("aboutUs", lang)}</Text>
+          </View>
+          <Text style={{ fontSize: 8, color: boldColors.accent, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>{t("aboutUs", lang)}</Text>
+          <Text style={{ fontSize: 20, fontWeight: 700, color: boldColors.white, marginBottom: 15 }}>{t("aboutUsTitle", lang)}</Text>
+          <Text style={{ fontSize: 9.5, color: boldColors.gray, lineHeight: 1.7, marginBottom: 30 }}>{t("aboutUsBody", lang)}</Text>
+
+          {(photos.length > 0 || refs.length > 0) && (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+              {(photos.length > 0 ? photos.slice(0, 4) : [null, null, null, null]).map((photo, idx) => {
+                const ref = refs[idx];
+                return (
+                  <View key={idx} style={{ width: "47%", marginBottom: 15 }}>
+                    {photo ? (
+                      <Image src={photo} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 2 }} />
+                    ) : (
+                      <View style={{ width: "100%", height: 120, backgroundColor: boldColors.grayDark, borderLeftWidth: 3, borderLeftColor: boldColors.accent }} />
+                    )}
+                    {ref && <Text style={{ fontSize: 10, fontWeight: 600, marginTop: 6, color: boldColors.white }}>{ref.title}</Text>}
+                    {ref && <Text style={{ fontSize: 8.5, color: boldColors.gray, marginTop: 2 }}>{ref.description}</Text>}
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </Page>
+      )}
+
+      {/* Services (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={{ backgroundColor: boldColors.bg, padding: 50, fontFamily: "Inter", fontSize: 9.5, color: boldColors.white }}>
+          <View style={{ position: "absolute", top: 0, left: 0, width: 4, height: "100%", backgroundColor: boldColors.accent }} />
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: boldColors.accent, marginBottom: 25 }}>
+            <View style={{ backgroundColor: boldColors.white, borderRadius: 4, padding: 6 }}>
+              {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 70, height: 30, objectFit: "contain" }} /> : null}
+            </View>
+            <Text style={{ fontSize: 8, color: boldColors.gray, textTransform: "uppercase", letterSpacing: 1 }}>{t("serviceScope", lang)}</Text>
+          </View>
+          <Text style={{ fontSize: 8, color: boldColors.accent, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>{t("serviceScope", lang)}</Text>
+          <Text style={{ fontSize: 18, fontWeight: 700, color: boldColors.white, marginBottom: 15 }}>{quote.project_description || t("projectServices", lang)}</Text>
+          {quote.notes && <Text style={{ fontSize: 9.5, color: boldColors.gray, lineHeight: 1.7, marginBottom: 20 }}>{quote.notes}</Text>}
+          {quote.items.map((item, idx) => (
+            <View key={idx} style={{ borderLeftWidth: 3, borderLeftColor: boldColors.accent, paddingLeft: 12, marginBottom: 12, backgroundColor: boldColors.grayDark, paddingVertical: 8, paddingRight: 12 }}>
+              <Text style={{ fontSize: 10, fontWeight: 600, color: boldColors.white }}>{item.description}</Text>
+              <Text style={{ fontSize: 8.5, color: boldColors.gray, marginTop: 2 }}>{item.quantity} {unitLabel(item.unit, lang)} x {fmtEuro(item.unit_price)}</Text>
+            </View>
+          ))}
+        </Page>
+      )}
+
+      {/* Pricing */}
+      <Page size="A4" style={{ backgroundColor: boldColors.bg, paddingTop: 50, paddingBottom: 60, paddingHorizontal: 50, fontFamily: "Inter", fontSize: 9.5, color: boldColors.white }}>
+        <View style={{ position: "absolute", top: 0, left: 0, width: 4, height: "100%", backgroundColor: boldColors.accent }} />
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: boldColors.accent, marginBottom: 25 }}>
+          <View style={{ backgroundColor: boldColors.white, borderRadius: 4, padding: 6 }}>
+            {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 70, height: 30, objectFit: "contain" }} /> : null}
+          </View>
+          <Text style={{ fontSize: 8, color: boldColors.gray, textTransform: "uppercase", letterSpacing: 1 }}>{t("pricingOverview", lang)}</Text>
+        </View>
+        <Text style={{ fontSize: 8, color: boldColors.accent, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>{t("pricingOverview", lang)}</Text>
+        <Text style={{ fontSize: 18, fontWeight: 700, color: boldColors.white, marginBottom: 15 }}>{t("investmentOverview", lang)}</Text>
+        <PricingTable quote={quote} lang={lang} colors={{ accent: boldColors.accent, black: boldColors.dark, white: boldColors.white, gray: boldColors.gray, border: boldColors.border, bg: boldColors.grayDark }} />
+      </Page>
+
+      {/* Closing (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={{ backgroundColor: boldColors.dark, justifyContent: "center", alignItems: "center", padding: 60, fontFamily: "Inter" }}>
+          <View style={{ height: 4, backgroundColor: boldColors.accent, width: 200, marginBottom: 30 }} />
+          <Text style={{ fontSize: 28, fontWeight: 700, color: boldColors.white, textAlign: "center", lineHeight: 1.4 }}>{t("closingText", lang)}</Text>
+          <Text style={{ fontSize: 14, color: boldColors.accent, marginTop: 15, textAlign: "center", fontWeight: 600 }}>{settings.company_name}</Text>
+          <View style={{ height: 4, backgroundColor: boldColors.accent, width: 200, marginTop: 30, marginBottom: 20 }} />
+          <Text style={{ fontSize: 10, color: boldColors.gray, textAlign: "center" }}>{settings.phone} | {settings.email}</Text>
+          <Text style={{ fontSize: 8, color: boldColors.gray, textAlign: "center", marginTop: 8 }}>{settings.address}, {settings.zip} {settings.city}</Text>
+        </Page>
+      )}
+    </Document>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROUTER: Picks the right design based on designKey
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface QuotePDFDesignProps {
+  designKey: QuoteDesignKey;
+  quote: Quote;
+  customer: Customer;
+  settings: CompanySettings;
+  references?: Reference[];
+  photoUrls?: string[];
+}
+
+export default function QuotePDFDesign({ designKey, ...props }: QuotePDFDesignProps) {
+  switch (designKey) {
+    case "modern":
+      return <ModernDesign {...props} />;
+    case "minimal":
+      return <MinimalDesign {...props} />;
+    case "bold":
+      return <BoldDesign {...props} />;
+    case "classic":
+    default: {
+      // Classic uses the original QuotePDF — import dynamically where needed
+      // For inline rendering, we re-export a wrapper that defers to the original
+      const { default: QuotePDF } = require("@/components/QuotePDF");
+      return <QuotePDF {...props} />;
+    }
+  }
+}

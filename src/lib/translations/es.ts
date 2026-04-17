@@ -919,5 +919,28 @@ const es: Record<string, string> = {
   "lang.tr": "T\u00fcrk\u00e7e",
   "lang.pl": "Polski",
   "lang.ar": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629",
+
+  // ── Design Window (SCH-440) ──
+  "design.title": "Ventana de diseño",
+  "design.tabDesigns": "Diseños",
+  "design.tabPhotos": "Fotos",
+  "design.tabAi": "Imágenes IA",
+  "design.chooseDesign": "Elegir diseño",
+  "design.simple": "Simple",
+  "design.detailed": "Detallado",
+  "design.photoPool": "Banco de fotos",
+  "design.uploadPhotos": "Subir fotos",
+  "design.noPhotos": "Aún no hay fotos",
+  "design.noPhotosHint": "Sube fotos o genéralas con IA",
+  "design.selectedDesign": "Diseño seleccionado",
+  "design.photosSelected": "{count} foto(s) seleccionada(s)",
+  "design.preview": "Vista previa",
+  "design.aiTitle": "Generación de imágenes con IA",
+  "design.aiDescription": "Describe la imagen que deseas y la IA la generará para tu presupuesto.",
+  "design.aiPlaceholder": "p. ej. Casco VR profesional, iluminación de estudio...",
+  "design.aiGenerate": "Generar",
+  "design.aiGenerating": "Generando...",
+  "design.aiExamples": "Ejemplos de prompts:",
+  "design.openDesign": "Diseño",
 };
 export default es;

@@ -919,5 +919,28 @@ const it: Record<string, string> = {
   "lang.tr": "Türkçe",
   "lang.pl": "Polski",
   "lang.ar": "العربية",
+
+  // ── Design Window (SCH-440) ──
+  "design.title": "Finestra di design",
+  "design.tabDesigns": "Design",
+  "design.tabPhotos": "Foto",
+  "design.tabAi": "Immagini IA",
+  "design.chooseDesign": "Scegli design",
+  "design.simple": "Semplice",
+  "design.detailed": "Dettagliato",
+  "design.photoPool": "Archivio foto",
+  "design.uploadPhotos": "Carica foto",
+  "design.noPhotos": "Nessuna foto ancora",
+  "design.noPhotosHint": "Carica foto o generale con l'IA",
+  "design.selectedDesign": "Design selezionato",
+  "design.photosSelected": "{count} foto selezionate",
+  "design.preview": "Anteprima",
+  "design.aiTitle": "Generazione immagini con IA",
+  "design.aiDescription": "Descrivi l'immagine desiderata e l'IA la genererà per il tuo preventivo.",
+  "design.aiPlaceholder": "es. Visore VR professionale, illuminazione da studio...",
+  "design.aiGenerate": "Genera",
+  "design.aiGenerating": "Generazione in corso...",
+  "design.aiExamples": "Esempi di prompt:",
+  "design.openDesign": "Design",
 };
 export default it;

@@ -6,6 +6,7 @@ import { Quote, Customer, CompanySettings, Language, Template } from "@/lib/type
 import { getQuotes, getCustomers, getSettings, updateQuote, deleteQuote, convertQuoteToInvoice, getTemplates } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
+import QuoteDesignWindow from "@/components/QuoteDesignWindow";
 import { useI18n } from "@/lib/i18n-context";
 
 const statusColors: Record<string, string> = {
@@ -27,6 +28,7 @@ export default function QuotesPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [designQuoteId, setDesignQuoteId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     const [q, cust, s, tpl] = await Promise.all([getQuotes(), getCustomers(), getSettings(), getTemplates("quote")]);
@@ -205,6 +207,15 @@ export default function QuotesPage() {
                   <td className="px-6 py-4 text-right">
                     <div className="flex flex-col items-center gap-0.5">
                       <button
+                        onClick={() => setDesignQuoteId(q.id)}
+                        className="text-purple-400 hover:text-purple-300 p-1"
+                        title={t("design.openDesign")}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" />
+                        </svg>
+                      </button>
+                      <button
                         onClick={() => handleDirectPreview(q)}
                         disabled={isLoadingPdf}
                         className="text-[var(--accent)] hover:brightness-110 p-1 disabled:opacity-50"
@@ -242,6 +253,22 @@ export default function QuotesPage() {
       </div>
 
       <PDFPreviewModal blob={previewBlob} onClose={() => setPreviewBlob(null)} />
+
+      {/* Design Window */}
+      {designQuoteId && (() => {
+        const dq = quotes.find((q) => q.id === designQuoteId);
+        const dc = dq ? getCustomer(dq.customer_id) : undefined;
+        if (!dq || !dc || !settings) return null;
+        return (
+          <QuoteDesignWindow
+            quote={dq}
+            customer={dc}
+            settings={settings}
+            onClose={() => setDesignQuoteId(null)}
+            onPreview={(blob) => { setDesignQuoteId(null); setPreviewBlob(blob); }}
+          />
+        );
+      })()}
 
       {/* Template Selection Modal */}
       {showTemplateModal && (

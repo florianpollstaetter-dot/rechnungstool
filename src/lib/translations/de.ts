@@ -919,6 +919,29 @@ const de = {
   "lang.tr": "Türkçe",
   "lang.pl": "Polski",
   "lang.ar": "العربية",
+
+  // ── Design Window (SCH-440) ──
+  "design.title": "Design-Fenster",
+  "design.tabDesigns": "Designs",
+  "design.tabPhotos": "Fotos",
+  "design.tabAi": "KI-Bilder",
+  "design.chooseDesign": "Design wählen",
+  "design.simple": "Einfach",
+  "design.detailed": "Ausführlich",
+  "design.photoPool": "Foto-Pool",
+  "design.uploadPhotos": "Fotos hochladen",
+  "design.noPhotos": "Noch keine Fotos vorhanden",
+  "design.noPhotosHint": "Laden Sie Fotos hoch oder generieren Sie welche mit KI",
+  "design.selectedDesign": "Gewähltes Design",
+  "design.photosSelected": "{count} Foto(s) ausgewählt",
+  "design.preview": "Vorschau",
+  "design.aiTitle": "KI-Bildgenerierung",
+  "design.aiDescription": "Beschreiben Sie das gewünschte Bild und die KI generiert es für Ihr Angebot.",
+  "design.aiPlaceholder": "z.B. Professionelles VR-Headset, Studiobeleuchtung...",
+  "design.aiGenerate": "Generieren",
+  "design.aiGenerating": "Generiere...",
+  "design.aiExamples": "Beispiel-Prompts:",
+  "design.openDesign": "Design",
 } as const;
 
 export type TranslationKey = keyof typeof de;

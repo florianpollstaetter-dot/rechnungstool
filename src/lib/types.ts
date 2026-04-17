@@ -508,6 +508,40 @@ export interface Template {
   created_at: string;
 }
 
+// SCH-440 — Quote Design System
+
+export type QuoteDesignKey = "classic" | "modern" | "minimal" | "bold";
+
+export const QUOTE_DESIGN_OPTIONS: { value: QuoteDesignKey; label: string; label_en: string }[] = [
+  { value: "classic", label: "Klassisch", label_en: "Classic" },
+  { value: "modern", label: "Modern", label_en: "Modern" },
+  { value: "minimal", label: "Minimalistisch", label_en: "Minimal" },
+  { value: "bold", label: "Markant", label_en: "Bold" },
+];
+
+export interface QuoteDesignPhoto {
+  id: string;
+  company_id: string;
+  file_path: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  alt_text: string | null;
+  ai_generated: boolean;
+  ai_prompt: string | null;
+  created_at: string;
+}
+
+export interface QuoteDesignSelection {
+  id: string;
+  company_id: string;
+  quote_id: string;
+  design_key: QuoteDesignKey;
+  photo_ids: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 export interface FixedCost {
   id: string;
   name: string;

@@ -919,5 +919,28 @@ const en: Record<string, string> = {
   "lang.tr": "Türkçe",
   "lang.pl": "Polski",
   "lang.ar": "العربية",
+
+  // ── Design Window (SCH-440) ──
+  "design.title": "Design Window",
+  "design.tabDesigns": "Designs",
+  "design.tabPhotos": "Photos",
+  "design.tabAi": "AI Images",
+  "design.chooseDesign": "Choose Design",
+  "design.simple": "Simple",
+  "design.detailed": "Detailed",
+  "design.photoPool": "Photo Pool",
+  "design.uploadPhotos": "Upload Photos",
+  "design.noPhotos": "No photos yet",
+  "design.noPhotosHint": "Upload photos or generate them with AI",
+  "design.selectedDesign": "Selected design",
+  "design.photosSelected": "{count} photo(s) selected",
+  "design.preview": "Preview",
+  "design.aiTitle": "AI Image Generation",
+  "design.aiDescription": "Describe the image you want and AI will generate it for your quote.",
+  "design.aiPlaceholder": "e.g. Professional VR headset, studio lighting...",
+  "design.aiGenerate": "Generate",
+  "design.aiGenerating": "Generating...",
+  "design.aiExamples": "Example prompts:",
+  "design.openDesign": "Design",
 };
 export default en;

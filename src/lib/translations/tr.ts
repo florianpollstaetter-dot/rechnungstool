@@ -919,5 +919,28 @@ const tr: Record<string, string> = {
   "lang.tr": "Türkçe",
   "lang.pl": "Polski",
   "lang.ar": "العربية",
+
+  // ── Design Window (SCH-440) ──
+  "design.title": "Tasarım Penceresi",
+  "design.tabDesigns": "Tasarımlar",
+  "design.tabPhotos": "Fotoğraflar",
+  "design.tabAi": "Yapay Zeka Görselleri",
+  "design.chooseDesign": "Tasarım Seç",
+  "design.simple": "Basit",
+  "design.detailed": "Detaylı",
+  "design.photoPool": "Fotoğraf Havuzu",
+  "design.uploadPhotos": "Fotoğraf Yükle",
+  "design.noPhotos": "Henüz fotoğraf yok",
+  "design.noPhotosHint": "Fotoğraf yükleyin veya yapay zeka ile oluşturun",
+  "design.selectedDesign": "Seçili tasarım",
+  "design.photosSelected": "{count} fotoğraf seçildi",
+  "design.preview": "Önizleme",
+  "design.aiTitle": "Yapay Zeka ile Görsel Oluşturma",
+  "design.aiDescription": "İstediğiniz görseli tanımlayın, yapay zeka teklifiniz için oluşturacaktır.",
+  "design.aiPlaceholder": "ör. Profesyonel VR başlığı, stüdyo aydınlatması...",
+  "design.aiGenerate": "Oluştur",
+  "design.aiGenerating": "Oluşturuluyor...",
+  "design.aiExamples": "Örnek açıklamalar:",
+  "design.openDesign": "Tasarım",
 };
 export default tr;

@@ -30,6 +30,9 @@ import {
   UserRoleAssignment,
   SmartInsightsConfig,
   DEFAULT_SMART_INSIGHTS_CONFIG,
+  QuoteDesignPhoto,
+  QuoteDesignSelection,
+  QuoteDesignKey,
 } from "./types";
 
 const DEFAULT_SETTINGS: CompanySettings = {
@@ -1569,4 +1572,148 @@ function mapUserProfile(row: Record<string, unknown>): UserProfile {
     accompanying_text_en: (row.accompanying_text_en as string) || "",
     created_at: row.created_at as string,
   };
+}
+
+// ── SCH-440: Quote Design Photos & Selections ──
+
+function mapDesignPhoto(row: Record<string, unknown>): QuoteDesignPhoto {
+  return {
+    id: row.id as string,
+    company_id: row.company_id as string,
+    file_path: row.file_path as string,
+    file_name: row.file_name as string,
+    file_type: (row.file_type as string) || "image/jpeg",
+    file_size: (row.file_size as number) || 0,
+    alt_text: (row.alt_text as string) || null,
+    ai_generated: (row.ai_generated as boolean) || false,
+    ai_prompt: (row.ai_prompt as string) || null,
+    created_at: row.created_at as string,
+  };
+}
+
+function mapDesignSelection(row: Record<string, unknown>): QuoteDesignSelection {
+  let photoIds: string[] = [];
+  try {
+    const raw = row.photo_ids;
+    if (typeof raw === "string") photoIds = JSON.parse(raw);
+    else if (Array.isArray(raw)) photoIds = raw as string[];
+  } catch { /* empty */ }
+  return {
+    id: row.id as string,
+    company_id: row.company_id as string,
+    quote_id: row.quote_id as string,
+    design_key: (row.design_key as QuoteDesignKey) || "classic",
+    photo_ids: photoIds,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+export async function getDesignPhotos(): Promise<QuoteDesignPhoto[]> {
+  const { data } = await supabase()
+    .from("quote_design_photos")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .order("created_at", { ascending: false });
+  return (data ?? []).map(mapDesignPhoto);
+}
+
+export async function uploadDesignPhoto(file: File): Promise<QuoteDesignPhoto> {
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${getActiveCompanyId()}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase().storage.from("design-photos").upload(path, file);
+  if (error) throw new Error(error.message);
+
+  const { data } = await supabase()
+    .from("quote_design_photos")
+    .insert({
+      company_id: getActiveCompanyId(),
+      file_path: path,
+      file_name: file.name,
+      file_type: file.type,
+      file_size: file.size,
+    })
+    .select()
+    .single();
+  return mapDesignPhoto(data!);
+}
+
+export async function saveAiGeneratedPhoto(
+  imageUrl: string,
+  prompt: string,
+  fileName: string
+): Promise<QuoteDesignPhoto> {
+  const response = await fetch(imageUrl);
+  const blob = await response.blob();
+  const ext = fileName.split(".").pop() || "png";
+  const path = `${getActiveCompanyId()}/ai-${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase().storage.from("design-photos").upload(path, blob, {
+    contentType: blob.type || "image/png",
+  });
+  if (error) throw new Error(error.message);
+
+  const { data } = await supabase()
+    .from("quote_design_photos")
+    .insert({
+      company_id: getActiveCompanyId(),
+      file_path: path,
+      file_name: fileName,
+      file_type: blob.type || "image/png",
+      file_size: blob.size,
+      ai_generated: true,
+      ai_prompt: prompt,
+    })
+    .select()
+    .single();
+  return mapDesignPhoto(data!);
+}
+
+export async function deleteDesignPhoto(id: string): Promise<void> {
+  const { data } = await supabase()
+    .from("quote_design_photos")
+    .select("file_path")
+    .eq("id", id)
+    .single();
+  if (data) {
+    await supabase().storage.from("design-photos").remove([data.file_path as string]);
+  }
+  await supabase().from("quote_design_photos").delete().eq("id", id);
+}
+
+export function getDesignPhotoUrl(path: string): string {
+  const { data } = supabase().storage.from("design-photos").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function getDesignSelection(quoteId: string): Promise<QuoteDesignSelection | null> {
+  const { data } = await supabase()
+    .from("quote_design_selections")
+    .select("*")
+    .eq("quote_id", quoteId)
+    .eq("company_id", getActiveCompanyId())
+    .single();
+  return data ? mapDesignSelection(data) : null;
+}
+
+export async function upsertDesignSelection(
+  quoteId: string,
+  designKey: QuoteDesignKey,
+  photoIds: string[]
+): Promise<QuoteDesignSelection> {
+  const { data } = await supabase()
+    .from("quote_design_selections")
+    .upsert(
+      {
+        company_id: getActiveCompanyId(),
+        quote_id: quoteId,
+        design_key: designKey,
+        photo_ids: JSON.stringify(photoIds),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "quote_id" }
+    )
+    .select()
+    .single();
+  return mapDesignSelection(data!);
 }
