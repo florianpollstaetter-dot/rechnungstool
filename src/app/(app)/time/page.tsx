@@ -146,6 +146,18 @@ export default function TimePage() {
     await loadData();
   }
 
+  async function handleResumePause() {
+    if (!activeTimer || activeTimer.entry_type !== "pause") return;
+    // Find the most recent completed work entry to resume its project
+    const lastWorkEntry = entries
+      .filter((e) => e.entry_type === "work" && e.end_time)
+      .sort((a, b) => b.start_time.localeCompare(a.start_time))[0];
+    const resumeLabel = lastWorkEntry?.project_label;
+    if (!resumeLabel) return;
+    // handleStart already closes an active pause and starts a new work entry
+    await handleStart(resumeLabel);
+  }
+
   // Debounced auto-save for description
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   function handleDescriptionChange(val: string) {
@@ -316,7 +328,8 @@ export default function TimePage() {
             </div>
             <div className="flex gap-2 items-center">
               <p className="flex-1 text-xs text-[var(--text-muted)]">Wähle unten ein Projekt um die Pause zu beenden und weiter zu tracken.</p>
-              <button onClick={handleEndPause} className="bg-amber-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-amber-500 transition">Pause beenden</button>
+              <button onClick={handleEndPause} className="bg-rose-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-rose-500 transition">Aufgabe beenden</button>
+              <button onClick={handleResumePause} className="bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition">Pause beenden</button>
             </div>
             {/* Project picker stays visible so user can resume directly into a project */}
             <div className="mt-4 pt-4 border-t border-[var(--border)]">
