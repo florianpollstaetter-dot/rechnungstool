@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { TimeEntry, Quote } from "@/lib/types";
-import { getTimeEntries, getActiveTimer, createTimeEntry, updateTimeEntry, deleteTimeEntry, getQuotes, getCurrentUserName } from "@/lib/db";
+import { TimeEntry, Quote, UserWorkSchedule } from "@/lib/types";
+import { getTimeEntries, getActiveTimer, createTimeEntry, updateTimeEntry, deleteTimeEntry, getQuotes, getCurrentUserName, getCurrentUserWorkSchedules } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { useCompany } from "@/lib/company-context";
 import { createClient } from "@/lib/supabase/client";
 import { TabButton } from "@/components/TabButton";
 import { TimeCalendarView } from "@/components/time/TimeCalendarView";
+import { TimeAnalyticsView } from "@/components/time/TimeAnalyticsView";
 import type { ModalResult } from "@/components/time/TimeCalendarCreateModal";
 
 function formatDuration(minutes: number): string {
@@ -51,7 +52,8 @@ export default function TimePage() {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set([new Date().toISOString().split("T")[0]]));
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ project_label: "", description: "", duration_minutes: 0 });
-  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "auswertung">("list");
+  const [workSchedule, setWorkSchedule] = useState<UserWorkSchedule[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadData = useCallback(async () => {
@@ -59,10 +61,11 @@ export default function TimePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setUserId(user.id);
-    const [e, q, timer] = await Promise.all([getTimeEntries(user.id), getQuotes(), getActiveTimer(user.id)]);
+    const [e, q, timer, sch] = await Promise.all([getTimeEntries(user.id), getQuotes(), getActiveTimer(user.id), getCurrentUserWorkSchedules()]);
     setEntries(e);
     setQuotes(q.filter((qt) => qt.status === "accepted" || qt.status === "sent"));
     setActiveTimerState(timer);
+    setWorkSchedule(sch);
     if (timer) { setSelectedProject(timer.project_label); setSavedDescription(timer.description || ""); }
     setLoading(false);
   }, []);
@@ -304,12 +307,25 @@ export default function TimePage() {
               </svg>
               Kalender
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "auswertung"}
+              onClick={() => setViewMode("auswertung")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "auswertung" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+              title="Auswertung"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+              </svg>
+              Auswertung
+            </button>
           </div>
         </div>
         <div className="flex items-center gap-4">
           {/* Mini pie chart — clickable to analytics */}
           {todayByProject.size > 0 && todayMinutes > 0 && (
-            <a href="/time/analytics" className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer" title="Auswertungen öffnen">
+            <button onClick={() => setViewMode("auswertung")} className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer" title="Auswertungen öffnen">
               <svg width="40" height="40" viewBox="0 0 40 40">
                 {(() => {
                   let offset = 0;
@@ -327,7 +343,7 @@ export default function TimePage() {
                 <p className="text-xs text-[var(--text-muted)]">Heute</p>
                 <p className="font-bold text-[var(--text-primary)] text-sm">{formatDuration(todayMinutes)}</p>
               </div>
-            </a>
+            </button>
           )}
           <div className="text-center">
             <p className="text-[var(--text-muted)] text-xs">Woche</p>
@@ -459,6 +475,11 @@ export default function TimePage() {
           onCreate={handleCalendarCreate}
           onEdit={handleCalendarEdit}
         />
+      )}
+
+      {/* Analytics view */}
+      {viewMode === "auswertung" && (
+        <TimeAnalyticsView entries={entries} schedule={workSchedule} />
       )}
 
       {/* Day-grouped entries */}
