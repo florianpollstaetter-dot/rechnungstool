@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Quote, Customer, CompanySettings, Language, Template } from "@/lib/types";
 import { getQuotes, getCustomers, getSettings, updateQuote, deleteQuote, convertQuoteToInvoice, getTemplates } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
@@ -19,6 +20,7 @@ const statusColors: Record<string, string> = {
 
 export default function QuotesPage() {
   const { t } = useI18n();
+  const router = useRouter();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
@@ -122,8 +124,8 @@ export default function QuotesPage() {
 
   async function handleConvert(id: string) {
     if (confirm(t("quotes.convertToInvoice"))) {
-      await convertQuoteToInvoice(id);
-      await loadData();
+      const invoice = await convertQuoteToInvoice(id);
+      router.push(`/invoices/${invoice.id}`);
     }
   }
 
@@ -235,7 +237,7 @@ export default function QuotesPage() {
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                         </svg>
                       </button>
-                      {q.status !== "accepted" && !q.converted_invoice_id && (
+                      {q.status !== "rejected" && !q.converted_invoice_id && (
                         <button onClick={() => handleConvert(q.id)} className="text-sm text-emerald-400 hover:text-emerald-300 px-1">→ RE</button>
                       )}
                       <button onClick={() => handleDelete(q.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title={t("common.delete")}>
