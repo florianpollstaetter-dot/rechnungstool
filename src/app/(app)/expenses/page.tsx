@@ -9,26 +9,28 @@ import { formatCurrency, formatDateLong } from "@/lib/format";
 import { useCompany } from "@/lib/company-context";
 import { createClient } from "@/lib/supabase/client";
 import ReceiptCaptureModal from "@/components/ReceiptCaptureModal";
+import { useI18n } from "@/lib/i18n-context";
 
-const EXPENSE_CATEGORIES = [
-  { value: "travel", label: "Reisekosten" },
-  { value: "meals", label: "Bewirtung" },
-  { value: "office", label: "Büromaterial" },
-  { value: "transport", label: "Transport/Fahrt" },
-  { value: "telecom", label: "Telefon/Internet" },
-  { value: "software", label: "Software/Lizenzen" },
-  { value: "other", label: "Sonstiges" },
+const EXPENSE_CATEGORY_KEYS: { value: string; key: "expenses.categoryTravel" | "expenses.categoryMeals" | "expenses.categoryOffice" | "expenses.categoryTransport" | "expenses.categoryTelecom" | "expenses.categorySoftware" | "expenses.categoryOther" }[] = [
+  { value: "travel", key: "expenses.categoryTravel" },
+  { value: "meals", key: "expenses.categoryMeals" },
+  { value: "office", key: "expenses.categoryOffice" },
+  { value: "transport", key: "expenses.categoryTransport" },
+  { value: "telecom", key: "expenses.categoryTelecom" },
+  { value: "software", key: "expenses.categorySoftware" },
+  { value: "other", key: "expenses.categoryOther" },
 ];
 
-const statusConfig: Record<ExpenseStatus, { label: string; color: string }> = {
-  draft: { label: "Entwurf", color: "bg-gray-500/15 text-gray-400" },
-  submitted: { label: "Eingereicht", color: "bg-blue-500/15 text-blue-400" },
-  approved: { label: "Genehmigt", color: "bg-emerald-500/15 text-emerald-400" },
-  rejected: { label: "Abgelehnt", color: "bg-rose-500/15 text-rose-400" },
-  booked: { label: "Gebucht", color: "bg-purple-500/15 text-purple-400" },
+const STATUS_KEYS: Record<ExpenseStatus, { key: "expenses.statusDraft" | "expenses.statusSubmitted" | "expenses.statusApproved" | "expenses.statusRejected" | "expenses.statusBooked"; color: string }> = {
+  draft: { key: "expenses.statusDraft", color: "bg-gray-500/15 text-gray-400" },
+  submitted: { key: "expenses.statusSubmitted", color: "bg-blue-500/15 text-blue-400" },
+  approved: { key: "expenses.statusApproved", color: "bg-emerald-500/15 text-emerald-400" },
+  rejected: { key: "expenses.statusRejected", color: "bg-rose-500/15 text-rose-400" },
+  booked: { key: "expenses.statusBooked", color: "bg-purple-500/15 text-purple-400" },
 };
 
 export default function ExpensesPage() {
+  const { t } = useI18n();
   const { company, userRole, userName } = useCompany();
   const [reports, setReports] = useState<ExpenseReport[]>([]);
   const [items, setItems] = useState<ExpenseItem[]>([]);
@@ -177,7 +179,7 @@ export default function ExpensesPage() {
       analyzeExpenseItem(newItem.id);
       await loadData();
     } catch (err) {
-      alert("Upload fehlgeschlagen: " + (err instanceof Error ? err.message : String(err)));
+      alert(t("expenses.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setUploading(false);
     }
@@ -217,7 +219,7 @@ export default function ExpensesPage() {
       }
       await loadData();
     } catch (err) {
-      alert("Upload fehlgeschlagen: " + (err instanceof Error ? err.message : String(err)));
+      alert(t("expenses.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setUploading(false);
       if (fileUploadRef.current) fileUploadRef.current.value = "";
@@ -233,7 +235,7 @@ export default function ExpensesPage() {
         body: JSON.stringify({ expenseItemId: id }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Analyse fehlgeschlagen" }));
+        const err = await res.json().catch(() => ({ error: t("expenses.analysisFailed") }));
         console.error("Analysis error:", err);
       }
       await loadData();
@@ -298,7 +300,7 @@ export default function ExpensesPage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("PDF generation failed:", err);
-      alert("PDF-Erstellung fehlgeschlagen: " + (err instanceof Error ? err.message : String(err)));
+      alert(t("expenses.pdfFailed") + " " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setPdfLoading(false);
     }
@@ -330,7 +332,7 @@ export default function ExpensesPage() {
   }
 
   async function handleDeleteReceiptFile(itemId: string) {
-    if (!confirm("Beleg-Datei entfernen?")) return;
+    if (!confirm(t("expenses.deleteReceipt"))) return;
     const item = items.find((i) => i.id === itemId);
     if (item?.receipt_file_path) {
       const supabase = createClient();
@@ -341,7 +343,7 @@ export default function ExpensesPage() {
   }
 
   async function handleSubmitReport(id: string) {
-    if (confirm("Spesenabrechnung einreichen? Sie kann danach nicht mehr bearbeitet werden.")) {
+    if (confirm(t("expenses.submitConfirm"))) {
       await updateExpenseReport(id, { status: "submitted", submitted_at: new Date().toISOString() });
       await loadData();
     }
@@ -353,7 +355,7 @@ export default function ExpensesPage() {
   }
 
   async function handleReject(id: string) {
-    const reason = prompt("Ablehnungsgrund:");
+    const reason = prompt(t("expenses.rejectReason"));
     if (reason !== null) {
       await updateExpenseReport(id, { status: "rejected", notes: reason });
       await loadData();
@@ -361,7 +363,7 @@ export default function ExpensesPage() {
   }
 
   async function handleDeleteItem(id: string) {
-    if (confirm("Position löschen?")) {
+    if (confirm(t("expenses.deletePosition"))) {
       await deleteExpenseItem(id);
       await loadData();
     }
@@ -371,22 +373,27 @@ export default function ExpensesPage() {
   const activeItems = activeReport ? items.filter((i) => i.expense_report_id === activeReport) : [];
   const activeTotal = activeItems.reduce((s, i) => s + i.amount_gross, 0);
 
-  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
+
+  const EXPENSE_CATEGORIES = EXPENSE_CATEGORY_KEYS.map((c) => ({ value: c.value, label: t(c.key) }));
+  const statusConfig = Object.fromEntries(
+    Object.entries(STATUS_KEYS).map(([k, v]) => [k, { label: t(v.key), color: v.color }])
+  ) as Record<ExpenseStatus, { label: string; color: string }>;
 
   const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]";
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Spesen</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("expenses.title")}</h1>
         <button onClick={handleCreateReport} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">
-          + Neue Abrechnung
+          {t("expenses.newReport")}
         </button>
       </div>
 
       {/* Reports list */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {reports.length === 0 && <p className="text-gray-500 text-sm col-span-3">Noch keine Spesenabrechnungen. Erstelle eine neue.</p>}
+        {reports.length === 0 && <p className="text-gray-500 text-sm col-span-3">{t("expenses.noReports")}</p>}
         {reports.sort((a, b) => b.created_at.localeCompare(a.created_at)).map((r) => {
           const st = statusConfig[r.status];
           const reportItems = items.filter((i) => i.expense_report_id === r.id);
@@ -404,7 +411,7 @@ export default function ExpensesPage() {
                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
               </div>
               <p className="text-lg font-bold text-[var(--text-primary)]">{formatCurrency(total)}</p>
-              <p className="text-xs text-[var(--text-muted)]">{reportItems.length} Position{reportItems.length !== 1 ? "en" : ""}</p>
+              <p className="text-xs text-[var(--text-muted)]">{reportItems.length} {t("expenses.positions")}</p>
             </div>
           );
         })}
@@ -416,10 +423,10 @@ export default function ExpensesPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
             <div>
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                Spesenabrechnung — {activeReportData.user_name} ({activeReportData.period_month})
+                {t("expenses.reportTitle")} — {activeReportData.user_name} ({activeReportData.period_month})
               </h2>
               <p className="text-sm text-[var(--text-muted)]">
-                Gesamt: <span className="font-bold text-[var(--text-primary)]">{formatCurrency(activeTotal)}</span> · {activeItems.length} Positionen
+                {t("common.total")}: <span className="font-bold text-[var(--text-primary)]">{formatCurrency(activeTotal)}</span> · {activeItems.length} {t("expenses.positions")}
               </p>
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -431,7 +438,7 @@ export default function ExpensesPage() {
                   className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[var(--border)] transition disabled:opacity-50 flex items-center gap-1.5"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  {pdfLoading ? "PDF wird erstellt..." : "PDF Export"}
+                  {pdfLoading ? t("expenses.pdfGenerating") : t("expenses.pdfExport")}
                 </button>
               )}
               {activeReportData.status === "draft" && (
@@ -439,7 +446,7 @@ export default function ExpensesPage() {
                   {/* Camera button */}
                   <label className={`bg-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-cyan-500 transition cursor-pointer flex items-center gap-1.5 ${uploading ? "opacity-50" : ""}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-                    Kamera
+                    {t("expenses.camera")}
                     <input
                       ref={cameraInputRef}
                       type="file"
@@ -452,7 +459,7 @@ export default function ExpensesPage() {
                   </label>
                   {/* File upload button */}
                   <label className={`bg-[var(--accent)] text-black px-3 py-1.5 rounded-lg text-xs font-semibold hover:brightness-110 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}>
-                    {uploading ? "Hochladen..." : "+ Beleg hochladen"}
+                    {uploading ? t("common.uploading") : t("expenses.uploadReceipt")}
                     <input
                       ref={fileUploadRef}
                       type="file"
@@ -463,14 +470,14 @@ export default function ExpensesPage() {
                       className="hidden"
                     />
                   </label>
-                  <button onClick={() => setShowNewItem(true)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[var(--border)] transition">+ Manuell</button>
-                  <button onClick={() => handleSubmitReport(activeReportData.id)} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-500 transition">Einreichen</button>
+                  <button onClick={() => setShowNewItem(true)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[var(--border)] transition">{t("expenses.manual")}</button>
+                  <button onClick={() => handleSubmitReport(activeReportData.id)} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-500 transition">{t("expenses.submit")}</button>
                 </>
               )}
               {activeReportData.status === "submitted" && isManager && (
                 <>
-                  <button onClick={() => handleApprove(activeReportData.id)} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-500 transition">Genehmigen</button>
-                  <button onClick={() => handleReject(activeReportData.id)} className="bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-rose-500 transition">Ablehnen</button>
+                  <button onClick={() => handleApprove(activeReportData.id)} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-500 transition">{t("expenses.approve")}</button>
+                  <button onClick={() => handleReject(activeReportData.id)} className="bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-rose-500 transition">{t("expenses.reject")}</button>
                 </>
               )}
             </div>
@@ -481,45 +488,45 @@ export default function ExpensesPage() {
             <form onSubmit={handleAddItem} className="bg-[var(--background)] rounded-lg p-4 mb-4 border border-[var(--border)]">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Datum *</label>
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("expenses.dateLabel")}</label>
                   <input type="date" value={itemForm.date} onChange={(e) => setItemForm({ ...itemForm, date: e.target.value })} required className={inputClass} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Lieferant/Geschäft *</label>
-                  <input type="text" value={itemForm.issuer} onChange={(e) => setItemForm({ ...itemForm, issuer: e.target.value })} required placeholder="z.B. Restaurant XY" className={inputClass} />
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("expenses.supplier")}</label>
+                  <input type="text" value={itemForm.issuer} onChange={(e) => setItemForm({ ...itemForm, issuer: e.target.value })} required placeholder={t("expenses.supplierPlaceholder")} className={inputClass} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Projekt/Zweck *</label>
-                  <input type="text" value={itemForm.purpose} onChange={(e) => setItemForm({ ...itemForm, purpose: e.target.value })} required placeholder="z.B. Kundentermin" className={inputClass} />
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("expenses.purpose")}</label>
+                  <input type="text" value={itemForm.purpose} onChange={(e) => setItemForm({ ...itemForm, purpose: e.target.value })} required placeholder={t("expenses.purposePlaceholder")} className={inputClass} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Kategorie</label>
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("expenses.category")}</label>
                   <select value={itemForm.category} onChange={(e) => setItemForm({ ...itemForm, category: e.target.value })} className={inputClass}>
                     {EXPENSE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Betrag brutto (€) *</label>
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("expenses.amountGross")}</label>
                   <input type="number" step="0.01" value={itemForm.amount_gross} onChange={(e) => setItemForm({ ...itemForm, amount_gross: e.target.value })} required placeholder="0.00" className={`${inputClass} no-spinners`} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Zahlungsart</label>
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("expenses.paymentMethod")}</label>
                   <select value={itemForm.payment_method} onChange={(e) => setItemForm({ ...itemForm, payment_method: e.target.value })} className={inputClass}>
-                    <option value="bar">Bar</option>
-                    <option value="karte">Karte (privat)</option>
-                    <option value="firmenkarte">Firmenkarte</option>
+                    <option value="bar">{t("expenses.paymentCash")}</option>
+                    <option value="karte">{t("expenses.paymentCardPrivate")}</option>
+                    <option value="firmenkarte">{t("expenses.paymentCompanyCard")}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Beleg</label>
+                  <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">{t("expenses.receipt")}</label>
                   <input ref={fileRef} type="file" accept="image/*,.pdf" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} className="text-xs text-[var(--text-muted)] file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-[var(--accent)] file:text-black" />
                 </div>
               </div>
               <div className="flex gap-2 mt-3">
                 <button type="submit" disabled={saving} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-xs font-semibold hover:brightness-110 transition disabled:opacity-50">
-                  {saving ? "Speichern..." : "Position hinzufügen"}
+                  {saving ? t("common.saving") : t("expenses.addPosition")}
                 </button>
-                <button type="button" onClick={() => setShowNewItem(false)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-xs font-medium hover:bg-[var(--border)] transition">Abbrechen</button>
+                <button type="button" onClick={() => setShowNewItem(false)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-xs font-medium hover:bg-[var(--border)] transition">{t("common.cancel")}</button>
               </div>
             </form>
           )}
@@ -529,20 +536,20 @@ export default function ExpensesPage() {
             <table className="min-w-full divide-y divide-[var(--border)]">
               <thead className="bg-[var(--background)]">
                 <tr>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Status</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Datum</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Lieferant</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Zweck</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Kategorie</th>
-                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)] uppercase">Brutto</th>
-                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)] uppercase">USt</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Konto</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">Zahlung</th>
-                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)] uppercase">Aktionen</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">{t("expenses.colStatus")}</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">{t("expenses.colDate")}</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">{t("expenses.colSupplier")}</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">{t("expenses.colPurpose")}</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">{t("expenses.colCategory")}</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)] uppercase">{t("expenses.colGross")}</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)] uppercase">{t("expenses.colVat")}</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">{t("expenses.colAccount")}</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)] uppercase">{t("expenses.colPayment")}</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)] uppercase">{t("expenses.colActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {activeItems.length === 0 && <tr><td colSpan={10} className="px-3 py-6 text-center text-[var(--text-muted)] text-sm">Noch keine Positionen. Lade einen Beleg hoch oder erstelle manuell.</td></tr>}
+                {activeItems.length === 0 && <tr><td colSpan={10} className="px-3 py-6 text-center text-[var(--text-muted)] text-sm">{t("expenses.noPositions")}</td></tr>}
                 {activeItems.sort((a, b) => a.date.localeCompare(b.date)).map((item) => {
                   const isItemAnalyzing = analyzing === item.id || item.analysis_status === "analyzing";
                   return (
@@ -551,23 +558,23 @@ export default function ExpensesPage() {
                       <td className="px-3 py-2.5 text-xs">
                         {item.receipt_file_path ? (
                           item.analysis_status === "done" ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-400" title="AI-Analyse abgeschlossen">
+                            <span className="inline-flex items-center gap-1 text-emerald-400" title={t("expenses.analysisDone")}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
                               {item.analysis_cost != null && <span className="text-[10px] text-[var(--text-muted)]">{item.analysis_cost.toFixed(4)}€</span>}
                             </span>
                           ) : item.analysis_status === "analyzing" || isItemAnalyzing ? (
-                            <span className="inline-flex items-center gap-1 text-amber-400 animate-pulse" title="Wird analysiert...">
+                            <span className="inline-flex items-center gap-1 text-amber-400 animate-pulse" title={t("expenses.analyzing")}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                             </span>
                           ) : item.analysis_status === "error" ? (
-                            <span className="inline-flex items-center gap-1 text-rose-400 cursor-pointer" title={typeof item.analysis_raw?.error === "string" ? item.analysis_raw.error : "Fehler"} onClick={() => alert(typeof item.analysis_raw?.error === "string" ? item.analysis_raw.error : "Analyse fehlgeschlagen")}>
+                            <span className="inline-flex items-center gap-1 text-rose-400 cursor-pointer" title={typeof item.analysis_raw?.error === "string" ? item.analysis_raw.error : t("expenses.analysisError")} onClick={() => alert(typeof item.analysis_raw?.error === "string" ? item.analysis_raw.error : t("expenses.analysisFailed"))}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                             </span>
                           ) : (
-                            <span className="text-gray-500" title="Ausstehend">—</span>
+                            <span className="text-gray-500" title={t("expenses.analysisPending")}>—</span>
                           )
                         ) : (
-                          <span className="text-gray-600" title="Kein Beleg">—</span>
+                          <span className="text-gray-600" title={t("expenses.noReceipt")}>—</span>
                         )}
                       </td>
                       <td className="px-3 py-2.5 text-xs text-[var(--text-secondary)]">{formatDateLong(item.date)}</td>
@@ -582,25 +589,25 @@ export default function ExpensesPage() {
                         <div className="flex items-center justify-end gap-1">
                           {/* View receipt */}
                           {item.receipt_file_path && (
-                            <button onClick={() => handleViewReceipt(item)} className="text-blue-400 hover:text-blue-300 p-1" title="Beleg anzeigen">
+                            <button onClick={() => handleViewReceipt(item)} className="text-blue-400 hover:text-blue-300 p-1" title={t("expenses.viewReceipt")}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             </button>
                           )}
                           {/* Re-analyze */}
                           {item.receipt_file_path && activeReportData.status === "draft" && (
-                            <button onClick={() => analyzeExpenseItem(item.id)} disabled={isItemAnalyzing} className="text-[var(--accent)] hover:brightness-110 p-1 disabled:opacity-50" title="KI-Analyse starten">
+                            <button onClick={() => analyzeExpenseItem(item.id)} disabled={isItemAnalyzing} className="text-[var(--accent)] hover:brightness-110 p-1 disabled:opacity-50" title={t("expenses.reAnalyze")}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
                             </button>
                           )}
                           {/* Delete receipt file */}
                           {item.receipt_file_path && activeReportData.status === "draft" && (
-                            <button onClick={() => handleDeleteReceiptFile(item.id)} className="text-orange-400 hover:text-orange-300 p-1" title="Beleg entfernen">
+                            <button onClick={() => handleDeleteReceiptFile(item.id)} className="text-orange-400 hover:text-orange-300 p-1" title={t("expenses.removeReceipt")}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
                             </button>
                           )}
                           {/* Delete item */}
                           {activeReportData.status === "draft" && (
-                            <button onClick={() => handleDeleteItem(item.id)} className="text-rose-400 hover:text-rose-300 p-1" title="Position löschen">
+                            <button onClick={() => handleDeleteItem(item.id)} className="text-rose-400 hover:text-rose-300 p-1" title={t("expenses.deleteItem")}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                             </button>
                           )}
@@ -612,7 +619,7 @@ export default function ExpensesPage() {
                 {activeItems.length > 0 && (
                   <tr className="bg-[var(--background)]">
                     <td className="px-3 py-2.5"></td>
-                    <td colSpan={4} className="px-3 py-2.5 text-xs font-bold text-[var(--text-primary)]">Gesamt</td>
+                    <td colSpan={4} className="px-3 py-2.5 text-xs font-bold text-[var(--text-primary)]">{t("common.total")}</td>
                     <td className="px-3 py-2.5 text-xs text-right font-bold text-[var(--text-primary)]">{formatCurrency(activeTotal)}</td>
                     <td className="px-3 py-2.5 text-xs text-right text-orange-400">{formatCurrency(activeItems.reduce((s, i) => s + i.amount_vat, 0))}</td>
                     <td colSpan={3}></td>

@@ -9,16 +9,18 @@ import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
 import QuoteApprovalPopup from "@/components/QuoteApprovalPopup";
+import { useI18n } from "@/lib/i18n-context";
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  draft: { label: "Entwurf", color: "bg-gray-500/15 text-gray-400" },
-  sent: { label: "Gesendet", color: "bg-blue-500/15 text-blue-400" },
-  accepted: { label: "Angenommen", color: "bg-emerald-500/15 text-emerald-400" },
-  rejected: { label: "Abgelehnt", color: "bg-rose-500/15 text-rose-400" },
-  expired: { label: "Abgelaufen", color: "bg-amber-500/15 text-amber-400" },
+const statusColors: Record<string, string> = {
+  draft: "bg-gray-500/15 text-gray-400",
+  sent: "bg-blue-500/15 text-blue-400",
+  accepted: "bg-emerald-500/15 text-emerald-400",
+  rejected: "bg-rose-500/15 text-rose-400",
+  expired: "bg-amber-500/15 text-amber-400",
 };
 
 export default function QuoteDetailPage() {
+  const { t } = useI18n();
   const params = useParams();
   const router = useRouter();
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -46,10 +48,10 @@ export default function QuoteDetailPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
-  if (!quote || !customer || !settings) return <div className="text-center py-12 text-gray-500">Angebot nicht gefunden.</div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
+  if (!quote || !customer || !settings) return <div className="text-center py-12 text-gray-500">{t("quoteDetail.notFound")}</div>;
 
-  const st = statusLabels[quote.status] || statusLabels.draft;
+  const color = statusColors[quote.status] || statusColors.draft;
 
   async function handleStatusChange(status: QuoteStatus) {
     await updateQuote(quote!.id, { status });
@@ -64,7 +66,7 @@ export default function QuoteDetailPage() {
       const updated = await getQuote(quote!.id);
       if (updated) setQuote(updated);
     } catch {
-      alert("Sprachumschaltung fehlgeschlagen.");
+      alert(t("quoteDetail.languageToggleFailed"));
     }
   }
 
@@ -76,7 +78,7 @@ export default function QuoteDetailPage() {
   }
 
   async function handleSaveAsTemplate() {
-    const name = prompt("Vorlagenname:", quote!.project_description || quote!.quote_number);
+    const name = prompt(t("quoteDetail.templateName"), quote!.project_description || quote!.quote_number);
     if (!name) return;
     const items: TemplateItem[] = quote!.items.map((i) => ({
       position: i.position, description: i.description, unit: i.unit,
@@ -90,11 +92,11 @@ export default function QuoteDetailPage() {
       overall_discount_amount: quote!.overall_discount_amount,
       notes: quote!.notes, language: quote!.language || "de",
     });
-    alert("Vorlage gespeichert: " + name);
+    alert(t("quoteDetail.templateSaved", { name }));
   }
 
   async function handleConvert() {
-    if (confirm("Angebot vollstaendig zu Rechnung konvertieren?")) {
+    if (confirm(t("quoteDetail.convertFull"))) {
       const invoice = await convertQuoteToInvoice(quote!.id);
       router.push(`/invoices/${invoice.id}`);
     }
@@ -164,16 +166,16 @@ export default function QuoteDetailPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <Link href="/quotes" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; Zurück zu Angeboten</Link>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">Angebot {quote.quote_number}</h1>
+          <Link href="/quotes" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; {t("quoteDetail.backToQuotes")}</Link>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">{t("quoteDetail.quoteNumber", { number: quote.quote_number })}</h1>
         </div>
         <div className="flex items-center gap-3">
-          <select value={quote.status} onChange={(e) => handleStatusChange(e.target.value as QuoteStatus)} className={`text-sm font-medium px-3 py-1.5 rounded-full border-0 bg-transparent ${st.color}`}>
-            <option value="draft">Entwurf</option>
-            <option value="sent">Gesendet</option>
-            <option value="accepted">Angenommen</option>
-            <option value="rejected">Abgelehnt</option>
-            <option value="expired">Abgelaufen</option>
+          <select value={quote.status} onChange={(e) => handleStatusChange(e.target.value as QuoteStatus)} className={`text-sm font-medium px-3 py-1.5 rounded-full border-0 bg-transparent ${color}`}>
+            <option value="draft">{t("quoteStatus.draft")}</option>
+            <option value="sent">{t("quoteStatus.sent")}</option>
+            <option value="accepted">{t("quoteStatus.accepted")}</option>
+            <option value="rejected">{t("quoteStatus.rejected")}</option>
+            <option value="expired">{t("quoteStatus.expired")}</option>
           </select>
           <button
             onClick={handleLanguageToggle}
@@ -190,21 +192,21 @@ export default function QuoteDetailPage() {
             className={`relative inline-flex h-7 items-center rounded-full px-3 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
               quote.display_mode === "simple" ? "bg-[var(--accent)] text-black" : "bg-gray-600 text-[var(--text-primary)]"
             }`}
-            title={quote.display_mode === "simple" ? "Einfach — click for Detail" : "Detail — click for Einfach"}
+            title={quote.display_mode === "simple" ? `${t("quoteDetail.displaySimple")} — click for ${t("quoteDetail.displayDetailed")}` : `${t("quoteDetail.displayDetailed")} — click for ${t("quoteDetail.displaySimple")}`}
           >
-            {quote.display_mode === "simple" ? "Einfach" : "Detail"}
+            {quote.display_mode === "simple" ? t("quoteDetail.displaySimple") : t("quoteDetail.displayDetailed")}
           </button>
           {quote.status !== "rejected" && (
             <>
-              <button onClick={() => setShowApprovalPopup(true)} className="bg-amber-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-500 transition">Freigeben</button>
-              <button onClick={() => setShowPartialModal(true)} className="bg-cyan-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-cyan-500 transition">Teilrechnung</button>
+              <button onClick={() => setShowApprovalPopup(true)} className="bg-amber-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-500 transition">{t("quoteDetail.release")}</button>
+              <button onClick={() => setShowPartialModal(true)} className="bg-cyan-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-cyan-500 transition">{t("quoteDetail.partialInvoice")}</button>
               {!quote.converted_invoice_id && (
-                <button onClick={handleConvert} className="bg-emerald-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">Vollrechnung</button>
+                <button onClick={handleConvert} className="bg-emerald-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">{t("quoteDetail.fullInvoice")}</button>
               )}
             </>
           )}
-          <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title="Als Vorlage speichern">
-            Vorlage
+          <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title={t("quoteDetail.template")}>
+            {t("quoteDetail.template")}
           </button>
           <PDFDownloadButton quote={quote} customer={customer} settings={settings} onPreview={setPreviewBlob} />
         </div>
@@ -213,7 +215,7 @@ export default function QuoteDetailPage() {
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-8">
           <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Kunde</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">{t("quoteDetail.customer")}</h3>
             <p className="font-medium text-[var(--text-primary)]">{customer.company || customer.name}</p>
             {customer.company && <p className="text-sm text-gray-400">{customer.name}</p>}
             <p className="text-sm text-gray-400">{customer.address}</p>
@@ -221,12 +223,12 @@ export default function QuoteDetailPage() {
             {customer.uid_number && <p className="text-sm text-gray-400">{customer.uid_number}</p>}
           </div>
           <div className="sm:text-right">
-            <div className="mb-2"><span className="text-sm text-gray-500">Angebotsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(quote.quote_date)}</span></div>
-            <div className="mb-2"><span className="text-sm text-gray-500">Gültig bis: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(quote.valid_until)}</span></div>
-            {quote.project_description && <div className="mt-4"><span className="text-sm text-gray-500">Projekt: </span><span className="font-medium text-[var(--text-primary)]">{quote.project_description}</span></div>}
+            <div className="mb-2"><span className="text-sm text-gray-500">{t("quoteDetail.quoteDate")} </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(quote.quote_date)}</span></div>
+            <div className="mb-2"><span className="text-sm text-gray-500">{t("quoteDetail.validUntil")} </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(quote.valid_until)}</span></div>
+            {quote.project_description && <div className="mt-4"><span className="text-sm text-gray-500">{t("quoteDetail.project")} </span><span className="font-medium text-[var(--text-primary)]">{quote.project_description}</span></div>}
             {quote.converted_invoice_id && (
               <div className="mt-2">
-                <Link href={`/invoices/${quote.converted_invoice_id}`} className="text-sm text-[var(--accent)] hover:brightness-110">→ Zur Rechnung</Link>
+                <Link href={`/invoices/${quote.converted_invoice_id}`} className="text-sm text-[var(--accent)] hover:brightness-110">→ {t("quoteDetail.toInvoice")}</Link>
               </div>
             )}
           </div>
@@ -236,14 +238,14 @@ export default function QuoteDetailPage() {
         <table className="min-w-full">
           <thead>
             <tr className="border-b-2 border-[var(--border)]">
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-12">Pos</th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-2">Leistung</th>
-              <th className="text-center text-xs font-medium text-gray-500 uppercase py-2 w-24">Einheit</th>
-              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">Menge</th>
-              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">Einzelpreis</th>
-              {hasDiscounts && <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">Rabatt</th>}
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-32">Rolle</th>
-              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">Betrag</th>
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-12">{t("quoteDetail.pos")}</th>
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-2">{t("quoteDetail.service")}</th>
+              <th className="text-center text-xs font-medium text-gray-500 uppercase py-2 w-24">{t("quoteDetail.unit")}</th>
+              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">{t("quoteDetail.quantity")}</th>
+              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">{t("quoteDetail.unitPrice")}</th>
+              {hasDiscounts && <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">{t("quoteDetail.discount")}</th>}
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-32">{t("quoteDetail.role")}</th>
+              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">{t("common.amount")}</th>
             </tr>
           </thead>
           <tbody>
@@ -271,28 +273,28 @@ export default function QuoteDetailPage() {
 
         <div className="flex flex-col items-end space-y-1 text-sm">
           <div className="flex justify-between w-full max-w-72">
-            <span className="text-gray-400">Summe netto</span>
+            <span className="text-gray-400">{t("quoteDetail.netTotal")}</span>
             <span className="font-medium text-[var(--text-primary)]">{formatCurrency(quote.subtotal)}</span>
           </div>
           {(quote.overall_discount_percent > 0 || quote.overall_discount_amount > 0) && (
             <div className="flex justify-between w-full max-w-72 text-amber-400">
-              <span>Gesamtrabatt</span>
+              <span>{t("quoteDetail.overallDiscount")}</span>
               <span>{quote.overall_discount_percent > 0 && `${quote.overall_discount_percent}%`}{quote.overall_discount_amount > 0 && ` ${formatCurrency(-quote.overall_discount_amount)}`}</span>
             </div>
           )}
           <div className="flex justify-between w-full max-w-72">
-            <span className="text-gray-400">Umsatzsteuer {quote.tax_rate}%</span>
+            <span className="text-gray-400">{t("quoteDetail.vatAmount", { rate: quote.tax_rate })}</span>
             <span className="font-medium text-[var(--text-primary)]">{formatCurrency(quote.tax_amount)}</span>
           </div>
           <div className="flex justify-between w-full max-w-72 text-base font-bold border-t border-[var(--border)] pt-2 mt-1">
-            <span className="text-[var(--text-primary)]">BRUTTO</span>
+            <span className="text-[var(--text-primary)]">{t("quoteDetail.grossTotal")}</span>
             <span className="text-[var(--accent)]">{formatCurrency(quote.total)}</span>
           </div>
         </div>
 
         {quote.notes && (
           <div className="mt-6 pt-4 border-t border-[var(--border)]">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Anmerkungen</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">{t("quoteDetail.notes")}</h3>
             <p className="text-sm text-gray-400">{quote.notes}</p>
           </div>
         )}
@@ -316,27 +318,27 @@ export default function QuoteDetailPage() {
       {showPartialModal && quote && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowPartialModal(false)}>
           <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Teilrechnung erstellen</h2>
-            <p className="text-sm text-gray-400 mb-1">Angebot: <span className="text-[var(--text-primary)] font-medium">{quote.quote_number}</span></p>
-            <p className="text-sm text-gray-400 mb-4">Gesamtbetrag brutto: <span className="text-[var(--text-primary)] font-medium">{formatCurrency(quote.total)}</span></p>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">{t("quoteDetail.createPartialInvoice")}</h2>
+            <p className="text-sm text-gray-400 mb-1">{t("quoteDetail.quoteLabel")} <span className="text-[var(--text-primary)] font-medium">{quote.quote_number}</span></p>
+            <p className="text-sm text-gray-400 mb-4">{t("quoteDetail.totalGross")} <span className="text-[var(--text-primary)] font-medium">{formatCurrency(quote.total)}</span></p>
 
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => { setPartialMode("percent"); setPartialValue("30"); }}
                 className={`px-3 py-1.5 text-sm rounded-lg font-medium transition ${partialMode === "percent" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"}`}
               >
-                Prozent
+                {t("quoteDetail.percent")}
               </button>
               <button
                 onClick={() => { setPartialMode("amount"); setPartialValue(String(Math.round(quote.total / 3 * 100) / 100)); }}
                 className={`px-3 py-1.5 text-sm rounded-lg font-medium transition ${partialMode === "amount" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"}`}
               >
-                Betrag
+                {t("quoteDetail.amount")}
               </button>
             </div>
 
             <label className="block text-sm font-medium text-gray-400 mb-1">
-              {partialMode === "percent" ? "Prozentsatz (%)" : "Betrag (brutto)"}
+              {partialMode === "percent" ? t("quoteDetail.percentLabel") : t("quoteDetail.amountLabel")}
             </label>
             <input
               type="number"
@@ -351,7 +353,7 @@ export default function QuoteDetailPage() {
 
             {Number(partialValue) > 0 && (
               <p className="text-xs text-cyan-400 mb-2">
-                Rechnungsbetrag: {formatCurrency(
+                {t("quoteDetail.invoiceAmount")} {formatCurrency(
                   partialMode === "percent"
                     ? quote.total * Math.min(Number(partialValue), 100) / 100
                     : Math.min(Number(partialValue), quote.total)
@@ -365,13 +367,13 @@ export default function QuoteDetailPage() {
                 disabled={!partialValue || Number(partialValue) <= 0}
                 className="bg-cyan-600 text-[var(--text-primary)] px-6 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-500 transition disabled:opacity-50"
               >
-                Teilrechnung erstellen
+                {t("quoteDetail.createPartialInvoice")}
               </button>
               <button
                 onClick={() => setShowPartialModal(false)}
                 className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
               >
-                Abbrechen
+                {t("common.cancel")}
               </button>
             </div>
           </div>

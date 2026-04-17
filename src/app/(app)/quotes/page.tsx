@@ -6,16 +6,18 @@ import { Quote, Customer, CompanySettings, QuoteStatus, Language, Template } fro
 import { getQuotes, getCustomers, getSettings, updateQuote, deleteQuote, convertQuoteToInvoice, getTemplates } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
+import { useI18n } from "@/lib/i18n-context";
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  draft: { label: "Entwurf", color: "bg-gray-500/15 text-gray-400" },
-  sent: { label: "Gesendet", color: "bg-blue-500/15 text-blue-400" },
-  accepted: { label: "Angenommen", color: "bg-emerald-500/15 text-emerald-400" },
-  rejected: { label: "Abgelehnt", color: "bg-rose-500/15 text-rose-400" },
-  expired: { label: "Abgelaufen", color: "bg-amber-500/15 text-amber-400" },
+const statusColors: Record<string, string> = {
+  draft: "bg-gray-500/15 text-gray-400",
+  sent: "bg-blue-500/15 text-blue-400",
+  accepted: "bg-emerald-500/15 text-emerald-400",
+  rejected: "bg-rose-500/15 text-rose-400",
+  expired: "bg-amber-500/15 text-amber-400",
 };
 
 export default function QuotesPage() {
+  const { t } = useI18n();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
@@ -43,7 +45,7 @@ export default function QuotesPage() {
 
   function getCustomerName(id: string): string {
     const c = getCustomer(id);
-    return c ? c.company || c.name : "Unbekannt";
+    return c ? c.company || c.name : t("quotes.unknown");
   }
 
   async function generatePdfBlob(q: Quote): Promise<{ blob: Blob; filename: string } | null> {
@@ -105,7 +107,7 @@ export default function QuotesPage() {
       await updateQuote(id, { language: newLang });
       await loadData();
     } catch {
-      alert("Sprachumschaltung fehlgeschlagen. Bitte Datenbank-Migration ausfuehren.");
+      alert(t("quotes.languageToggleFailed"));
     }
   }
 
@@ -115,30 +117,30 @@ export default function QuotesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Angebot wirklich löschen?")) {
+    if (confirm(t("quotes.confirmDelete"))) {
       await deleteQuote(id);
       await loadData();
     }
   }
 
   async function handleConvert(id: string) {
-    if (confirm("Angebot zu Rechnung konvertieren?")) {
+    if (confirm(t("quotes.convertToInvoice"))) {
       await convertQuoteToInvoice(id);
       await loadData();
     }
   }
 
-  if (loading) return <div className="flex justify-center py-12"><div className="text-[var(--text-muted)]">Laden...</div></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="text-[var(--text-muted)]">{t("common.loading")}</div></div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Angebote</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("quotes.title")}</h1>
         <div className="flex gap-2">
           {templates.length > 0 && (
-            <button onClick={() => setShowTemplateModal(true)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">Aus Vorlage</button>
+            <button onClick={() => setShowTemplateModal(true)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">{t("quotes.fromTemplateBtn")}</button>
           )}
-          <Link href="/quotes/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ Neues Angebot</Link>
+          <Link href="/quotes/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ {t("quotes.new")}</Link>
         </div>
       </div>
 
@@ -147,7 +149,7 @@ export default function QuotesPage() {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Suche nach Nr., Kunde, Projekt, Betrag..."
+          placeholder={t("quotes.search")}
           className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full sm:w-64"
         />
       </div>
@@ -156,19 +158,19 @@ export default function QuotesPage() {
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Nr.</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Kunde</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Projekt</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Gültig bis</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">Brutto</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-[var(--text-muted)] uppercase">Sprache</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">Aktionen</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">{t("quotes.numberShort")}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">{t("quotes.customer")}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">{t("quotes.project")}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">{t("quotes.validUntil")}</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">{t("quotes.gross")}</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-[var(--text-muted)] uppercase">{t("quotes.language")}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase">{t("common.status")}</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-[var(--text-muted)] uppercase">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {quotes.length === 0 && (
-              <tr><td colSpan={8} className="px-6 py-8 text-center text-[var(--text-muted)]">Noch keine Angebote erstellt.</td></tr>
+              <tr><td colSpan={8} className="px-6 py-8 text-center text-[var(--text-muted)]">{t("quotes.noQuotes")}</td></tr>
             )}
             {quotes.filter((q) => {
               if (!searchQuery) return true;
@@ -178,7 +180,7 @@ export default function QuotesPage() {
                 || (q.project_description || "").toLowerCase().includes(sq)
                 || String(q.total).includes(sq);
             }).sort((a, b) => b.created_at.localeCompare(a.created_at)).map((q) => {
-              const st = statusLabels[q.status] || statusLabels.draft;
+              const color = statusColors[q.status] || statusColors.draft;
               const isEN = q.language === "en";
               const isLoadingPdf = pdfLoading === q.id;
               return (
@@ -201,12 +203,12 @@ export default function QuotesPage() {
                     </button>
                   </td>
                   <td className="px-6 py-4">
-                    <select value={q.status} onChange={(e) => handleStatusChange(q.id, e.target.value as QuoteStatus)} className={`text-xs font-medium px-2 py-1 rounded-full border-0 bg-transparent ${st.color}`}>
-                      <option value="draft">Entwurf</option>
-                      <option value="sent">Gesendet</option>
-                      <option value="accepted">Angenommen</option>
-                      <option value="rejected">Abgelehnt</option>
-                      <option value="expired">Abgelaufen</option>
+                    <select value={q.status} onChange={(e) => handleStatusChange(q.id, e.target.value as QuoteStatus)} className={`text-xs font-medium px-2 py-1 rounded-full border-0 bg-transparent ${color}`}>
+                      <option value="draft">{t("quoteStatus.draft")}</option>
+                      <option value="sent">{t("quoteStatus.sent")}</option>
+                      <option value="accepted">{t("quoteStatus.accepted")}</option>
+                      <option value="rejected">{t("quoteStatus.rejected")}</option>
+                      <option value="expired">{t("quoteStatus.expired")}</option>
                     </select>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -215,7 +217,7 @@ export default function QuotesPage() {
                         onClick={() => handleDirectPreview(q)}
                         disabled={isLoadingPdf}
                         className="text-[var(--accent)] hover:brightness-110 p-1 disabled:opacity-50"
-                        title="Vorschau"
+                        title={t("quotes.preview")}
                       >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />
@@ -225,7 +227,7 @@ export default function QuotesPage() {
                         onClick={() => handleDirectDownload(q)}
                         disabled={isLoadingPdf}
                         className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] p-1 disabled:opacity-50"
-                        title="PDF Download"
+                        title={t("quotes.pdfDownload")}
                       >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
@@ -234,7 +236,7 @@ export default function QuotesPage() {
                       {q.status !== "accepted" && !q.converted_invoice_id && (
                         <button onClick={() => handleConvert(q.id)} className="text-sm text-emerald-400 hover:text-emerald-300 px-1">→ RE</button>
                       )}
-                      <button onClick={() => handleDelete(q.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title="Löschen">
+                      <button onClick={() => handleDelete(q.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title={t("common.delete")}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                         </svg>
@@ -254,7 +256,7 @@ export default function QuotesPage() {
       {showTemplateModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowTemplateModal(false)}>
           <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Angebot aus Vorlage</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">{t("quotes.fromTemplate")}</h2>
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {templates.map((tpl) => (
                 <Link
@@ -263,12 +265,12 @@ export default function QuotesPage() {
                   className="block bg-[var(--background)] border border-[var(--border)] rounded-lg p-3 hover:bg-[var(--surface-hover)] transition"
                 >
                   <p className="font-medium text-[var(--text-primary)] text-sm">{tpl.name}</p>
-                  <p className="text-xs text-[var(--text-muted)]">{tpl.items.length} Positionen — {tpl.project_description || "Keine Projektbeschreibung"}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{t("quotes.positions", { count: tpl.items.length })} — {tpl.project_description || t("quotes.noProjectDescription")}</p>
                 </Link>
               ))}
             </div>
             <button onClick={() => setShowTemplateModal(false)} className="mt-4 bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition w-full">
-              Abbrechen
+              {t("common.cancel")}
             </button>
           </div>
         </div>

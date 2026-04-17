@@ -8,23 +8,25 @@ import { getInvoice, getCustomer, getSettings, updateInvoice, createTemplate } f
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
-
-const statusLabels: Record<string, { label: string; color: string }> = {
-  entwurf: { label: "Entwurf", color: "bg-gray-500/15 text-gray-400" },
-  offen: { label: "Offen", color: "bg-amber-500/15 text-amber-400" },
-  teilbezahlt: { label: "Teilbezahlt", color: "bg-cyan-500/15 text-cyan-400" },
-  bezahlt: { label: "Bezahlt", color: "bg-emerald-500/15 text-emerald-400" },
-  überfällig: { label: "Überfällig", color: "bg-rose-500/15 text-rose-400" },
-  storniert: { label: "Storniert", color: "bg-purple-500/15 text-purple-400" },
-};
+import { useI18n } from "@/lib/i18n-context";
 
 export default function InvoiceDetailPage() {
+  const { t } = useI18n();
   const params = useParams();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+
+  const statusLabels: Record<string, { label: string; color: string }> = {
+    entwurf: { label: t("invoiceStatus.entwurf"), color: "bg-gray-500/15 text-gray-400" },
+    offen: { label: t("invoiceStatus.offen"), color: "bg-amber-500/15 text-amber-400" },
+    teilbezahlt: { label: t("invoiceStatus.teilbezahlt"), color: "bg-cyan-500/15 text-cyan-400" },
+    bezahlt: { label: t("invoiceStatus.bezahlt"), color: "bg-emerald-500/15 text-emerald-400" },
+    überfällig: { label: t("invoiceStatus.ueberfaellig"), color: "bg-rose-500/15 text-rose-400" },
+    storniert: { label: t("invoiceStatus.storniert"), color: "bg-purple-500/15 text-purple-400" },
+  };
 
   const loadData = useCallback(async () => {
     const inv = await getInvoice(params.id as string);
@@ -39,7 +41,7 @@ export default function InvoiceDetailPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
   if (!invoice || !customer || !settings) return <div className="text-center py-12 text-gray-500">Rechnung nicht gefunden.</div>;
 
   const st = statusLabels[invoice.status] || statusLabels.offen;
@@ -56,7 +58,7 @@ export default function InvoiceDetailPage() {
   }
 
   async function handleSaveAsTemplate() {
-    const name = prompt("Vorlagenname:", invoice!.project_description || invoice!.invoice_number);
+    const name = prompt(`${t("invoiceDetail.templateName")}`, invoice!.project_description || invoice!.invoice_number);
     if (!name) return;
     const items: TemplateItem[] = invoice!.items.map((i) => ({
       position: i.position, description: i.description, unit: i.unit,
@@ -80,8 +82,8 @@ export default function InvoiceDetailPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <Link href="/invoices" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; Zurück zu Rechnungen</Link>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">Rechnung {invoice.invoice_number}</h1>
+          <Link href="/invoices" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; {t("invoiceDetail.backToInvoices")}</Link>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-1">{t("invoiceDetail.invoiceNumber", { number: invoice.invoice_number })}</h1>
         </div>
         <div className="flex items-center gap-3">
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
@@ -98,14 +100,14 @@ export default function InvoiceDetailPage() {
             <span className={`text-sm font-medium px-3 py-1.5 rounded-full ${st.color}`}>{st.label}</span>
           ) : (
             <select value={invoice.status} onChange={(e) => handleStatusChange(e.target.value as InvoiceStatus)} className={`text-sm font-medium px-3 py-1.5 rounded-full border-0 bg-transparent ${st.color}`}>
-              <option value="entwurf">Entwurf</option>
-              <option value="offen">Offen</option>
-              <option value="bezahlt">Bezahlt</option>
-              <option value="ueberfaellig">Überfällig</option>
+              <option value="entwurf">{t("invoiceStatus.entwurf")}</option>
+              <option value="offen">{t("invoiceStatus.offen")}</option>
+              <option value="bezahlt">{t("invoiceStatus.bezahlt")}</option>
+              <option value="ueberfaellig">{t("invoiceStatus.ueberfaellig")}</option>
             </select>
           )}
           <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title="Als Vorlage speichern">
-            Vorlage
+            {t("invoiceDetail.template")}
           </button>
           <PDFDownloadButton invoice={invoice} customer={customer} settings={settings} onPreview={setPreviewBlob} />
         </div>
@@ -114,7 +116,7 @@ export default function InvoiceDetailPage() {
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-8">
           <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Kunde</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">{t("invoiceDetail.customer")}</h3>
             <p className="font-medium text-[var(--text-primary)]">{customer.company || customer.name}</p>
             {customer.company && <p className="text-sm text-gray-400">{customer.name}</p>}
             <p className="text-sm text-gray-400">{customer.address}</p>
@@ -122,10 +124,10 @@ export default function InvoiceDetailPage() {
             {customer.uid_number && <p className="text-sm text-gray-400">{customer.uid_number}</p>}
           </div>
           <div className="sm:text-right">
-            <div className="mb-2"><span className="text-sm text-gray-500">Rechnungsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.invoice_date)}</span></div>
-            <div className="mb-2"><span className="text-sm text-gray-500">Leistungsdatum: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.delivery_date)}</span></div>
-            <div><span className="text-sm text-gray-500">Fällig: </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.due_date)}</span></div>
-            {invoice.project_description && <div className="mt-4"><span className="text-sm text-gray-500">Projekt: </span><span className="font-medium text-[var(--text-primary)]">{invoice.project_description}</span></div>}
+            <div className="mb-2"><span className="text-sm text-gray-500">{t("invoiceDetail.invoiceDate")} </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.invoice_date)}</span></div>
+            <div className="mb-2"><span className="text-sm text-gray-500">{t("invoiceDetail.serviceDate")} </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.delivery_date)}</span></div>
+            <div><span className="text-sm text-gray-500">{t("invoiceDetail.dueDate")} </span><span className="font-medium text-[var(--text-primary)]">{formatDateLong(invoice.due_date)}</span></div>
+            {invoice.project_description && <div className="mt-4"><span className="text-sm text-gray-500">{t("invoiceDetail.project")} </span><span className="font-medium text-[var(--text-primary)]">{invoice.project_description}</span></div>}
           </div>
         </div>
 
@@ -133,13 +135,13 @@ export default function InvoiceDetailPage() {
         <table className="min-w-full">
           <thead>
             <tr className="border-b-2 border-[var(--border)]">
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-12">Pos</th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase py-2">Leistung</th>
-              <th className="text-center text-xs font-medium text-gray-500 uppercase py-2 w-24">Einheit</th>
-              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">Menge</th>
-              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">Einzelpreis</th>
-              {hasDiscounts && <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">Rabatt</th>}
-              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">Betrag</th>
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-12">{t("invoiceNew.pos")}</th>
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-2">{t("invoiceDetail.service")}</th>
+              <th className="text-center text-xs font-medium text-gray-500 uppercase py-2 w-24">{t("invoiceDetail.unit")}</th>
+              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">{t("invoiceDetail.quantity")}</th>
+              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">{t("invoiceDetail.unitPrice")}</th>
+              {hasDiscounts && <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">{t("invoiceDetail.discount")}</th>}
+              <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">{t("invoiceNew.amount")}</th>
             </tr>
           </thead>
           <tbody>
@@ -164,12 +166,12 @@ export default function InvoiceDetailPage() {
 
         <div className="flex flex-col items-end space-y-1 text-sm">
           <div className="flex justify-between w-full max-w-72">
-            <span className="text-gray-400">Summe netto</span>
+            <span className="text-gray-400">{t("invoiceDetail.netTotal")}</span>
             <span className="font-medium text-[var(--text-primary)]">{formatCurrency(invoice.subtotal)}</span>
           </div>
           {(invoice.overall_discount_percent > 0 || invoice.overall_discount_amount > 0) && (
             <div className="flex justify-between w-full max-w-72 text-amber-400">
-              <span>Gesamtrabatt</span>
+              <span>{t("invoiceDetail.overallDiscount")}</span>
               <span>
                 {invoice.overall_discount_percent > 0 && `${invoice.overall_discount_percent}%`}
                 {invoice.overall_discount_amount > 0 && ` ${formatCurrency(-invoice.overall_discount_amount)}`}
@@ -177,18 +179,18 @@ export default function InvoiceDetailPage() {
             </div>
           )}
           <div className="flex justify-between w-full max-w-72">
-            <span className="text-gray-400">Umsatzsteuer {invoice.tax_rate}%</span>
+            <span className="text-gray-400">{t("invoiceDetail.vatAmount", { rate: String(invoice.tax_rate) })}</span>
             <span className="font-medium text-[var(--text-primary)]">{formatCurrency(invoice.tax_amount)}</span>
           </div>
           <div className="flex justify-between w-full max-w-72 text-base font-bold border-t border-[var(--border)] pt-2 mt-1">
-            <span className="text-[var(--text-primary)]">BRUTTO</span>
+            <span className="text-[var(--text-primary)]">{t("invoiceDetail.grossTotal")}</span>
             <span className="text-[var(--accent)]">{formatCurrency(invoice.total)}</span>
           </div>
         </div>
 
         {invoice.notes && (
           <div className="mt-6 pt-4 border-t border-[var(--border)]">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Anmerkungen</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">{t("invoiceDetail.notes")}</h3>
             <p className="text-sm text-gray-400">{invoice.notes}</p>
           </div>
         )}

@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
 import { CompanyProvider } from "@/lib/company-context";
+import { I18nProvider } from "@/lib/i18n-context";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 
 const geist = Geist({
@@ -36,7 +37,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/brand/octo-icon-orange.png" />
       </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-geist-sans)]">
-        <ThemeProvider><CompanyProvider><ServiceWorkerRegistrar />{children}</CompanyProvider></ThemeProvider>
+        <ThemeProvider><I18nProvider><CompanyProvider><ServiceWorkerRegistrar />{children}</CompanyProvider></I18nProvider></ThemeProvider>
       </body>
     </html>
   );

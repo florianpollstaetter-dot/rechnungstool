@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { UserProfile, USER_ROLE_OPTIONS, UserRole, WEEKDAY_LABELS_LONG, CompanyRole, UserRoleAssignment } from "@/lib/types";
+import { UserProfile, USER_ROLE_OPTIONS, UserRole, CompanyRole, UserRoleAssignment } from "@/lib/types";
 import {
   getUserProfiles, createUserProfile, updateUserProfile, deleteUserProfile,
   getUserWorkSchedules, replaceUserWorkSchedules,
@@ -10,6 +10,9 @@ import {
 } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { useCompany } from "@/lib/company-context";
+import { useI18n } from "@/lib/i18n-context";
+import { SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n-context";
+import type { TranslationKey } from "@/lib/translations/de";
 
 type ScheduleDraftRow = {
   weekday: number;
@@ -60,12 +63,13 @@ const DEFAULT_ROLE_COLORS = [
 
 export default function AdminPage() {
   const { accessibleCompanies: COMPANIES } = useCompany();
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string>("user");
-  const [form, setForm] = useState({ email: "", password: "", display_name: "", role: "employee" as UserRole, company_access: ["vrthefans"] as string[] });
+  const [form, setForm] = useState({ email: "", password: "", display_name: "", role: "employee" as UserRole, company_access: ["vrthefans"] as string[], default_language: "de" as AppLocale });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [editingUser, setEditingUser] = useState<string | null>(null);
@@ -164,7 +168,7 @@ export default function AdminPage() {
         accompanying_text_en: "",
       });
 
-      setForm({ email: "", password: "", display_name: "", role: "employee", company_access: ["vrthefans"] });
+      setForm({ email: "", password: "", display_name: "", role: "employee", company_access: ["vrthefans"], default_language: "de" });
       setShowForm(false);
       await loadData();
     } catch (err) {
@@ -196,7 +200,7 @@ export default function AdminPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Benutzer wirklich löschen?")) {
+    if (confirm(t("admin.confirmDeleteUser"))) {
       await deleteUserProfile(id);
       await loadData();
     }
@@ -325,7 +329,7 @@ export default function AdminPage() {
   }
 
   async function handleDeleteRole(id: string) {
-    if (confirm("Rolle wirklich löschen? Alle Zuordnungen werden entfernt.")) {
+    if (confirm(t("admin.confirmDeleteRole"))) {
       await deleteCompanyRole(id);
       await loadRoles();
       await loadUserRoles(users);
@@ -355,8 +359,8 @@ export default function AdminPage() {
     }
   }
 
-  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
-  if (currentUserRole !== "admin") return <div className="text-center py-12 text-gray-500">Nur Administratoren haben Zugriff auf diese Seite.</div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
+  if (currentUserRole !== "admin") return <div className="text-center py-12 text-gray-500">{t("admin.adminOnly")}</div>;
 
   const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]";
 
@@ -372,7 +376,7 @@ export default function AdminPage() {
               : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
           }`}
         >
-          Benutzer
+          {t("admin.tabUsers")}
         </button>
         <button
           onClick={() => setActiveTab("roles")}
@@ -382,7 +386,7 @@ export default function AdminPage() {
               : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
           }`}
         >
-          Rollen
+          {t("admin.tabRoles")}
         </button>
       </div>
 
@@ -390,36 +394,44 @@ export default function AdminPage() {
       {activeTab === "users" && (
         <>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Benutzerverwaltung</h1>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("admin.userManagement")}</h1>
             <button onClick={() => setShowForm(!showForm)} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">
-              + Neuer Benutzer
+              {t("admin.newUser")}
             </button>
           </div>
 
           {showForm && (
             <form onSubmit={handleCreateUser} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Neuen Benutzer erstellen</h2>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">{t("admin.createUser")}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Anzeigename *</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">{t("admin.displayName")}</label>
                   <input type="text" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} required className={inputClass} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">E-Mail *</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">{t("common.email")} *</label>
                   <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required className={inputClass} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Passwort *</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">{t("admin.password")}</label>
                   <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} className={inputClass} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Rolle</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">{t("admin.systemRole")}</label>
                   <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className={inputClass}>
                     {USER_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">{t("admin.defaultLanguage")}</label>
+                  <select value={form.default_language} onChange={(e) => setForm({ ...form, default_language: e.target.value as AppLocale })} className={inputClass}>
+                    {SUPPORTED_LOCALES.map((loc) => (
+                      <option key={loc.code} value={loc.code}>{loc.flag} {loc.label}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Firmenzugriff</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">{t("admin.companyAccess")}</label>
                   <div className="flex flex-wrap gap-3">
                     {COMPANIES.map((c) => (
                       <label key={c.id} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
@@ -441,10 +453,10 @@ export default function AdminPage() {
               {error && <p className="text-sm text-rose-400 mt-3">{error}</p>}
               <div className="flex gap-3 mt-4">
                 <button type="submit" disabled={saving} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
-                  {saving ? "Erstelle..." : "Benutzer erstellen"}
+                  {saving ? t("admin.creatingUser") : t("admin.createUserSubmit")}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
-                  Abbrechen
+                  {t("common.cancel")}
                 </button>
               </div>
             </form>
@@ -454,17 +466,17 @@ export default function AdminPage() {
             <table className="min-w-full divide-y divide-[var(--border)]">
               <thead className="bg-[var(--background)]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">E-Mail</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Systemrolle</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Firmenrollen</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Firmenzugriff</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.name")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.email")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("admin.systemRole")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("admin.companyRoles")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("admin.companyAccess")}</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {users.length === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Noch keine Benutzerprofile. Der erste Benutzer wird automatisch Admin.</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">{t("admin.noUsersYet")}</td></tr>
                 )}
                 {users.map((u) => {
                   const isEditing = editingUser === u.id;
@@ -511,7 +523,7 @@ export default function AdminPage() {
                         <button
                           onClick={() => openRoleAssign(u)}
                           className="text-[10px] text-[var(--accent)] hover:brightness-110 ml-1"
-                          title="Rollen zuordnen"
+                          title={t("admin.assignRoles")}
                         >
                           +
                         </button>
@@ -532,14 +544,14 @@ export default function AdminPage() {
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       {isEditing ? (
                         <>
-                          <button onClick={() => saveEditUser(u.id)} className="text-sm text-emerald-400 hover:text-emerald-300 mr-2">Speichern</button>
-                          <button onClick={() => setEditingUser(null)} className="text-sm text-gray-400 hover:text-gray-300">Abbrechen</button>
+                          <button onClick={() => saveEditUser(u.id)} className="text-sm text-emerald-400 hover:text-emerald-300 mr-2">{t("common.save")}</button>
+                          <button onClick={() => setEditingUser(null)} className="text-sm text-gray-400 hover:text-gray-300">{t("common.cancel")}</button>
                         </>
                       ) : (
                         <>
-                          <button onClick={() => openSchedule(u)} className="text-sm text-[var(--brand-orange)] hover:brightness-110 mr-2" title="Arbeitszeitmodell bearbeiten">Zeitmodell</button>
-                          <button onClick={() => startEditUser(u)} className="text-sm text-[var(--accent)] hover:brightness-110 mr-2">Bearbeiten</button>
-                          <button onClick={() => handleDelete(u.id)} className="text-sm text-rose-400 hover:text-rose-300">Löschen</button>
+                          <button onClick={() => openSchedule(u)} className="text-sm text-[var(--brand-orange)] hover:brightness-110 mr-2" title={t("admin.scheduleTitle")}>{t("admin.schedule")}</button>
+                          <button onClick={() => startEditUser(u)} className="text-sm text-[var(--accent)] hover:brightness-110 mr-2">{t("common.edit")}</button>
+                          <button onClick={() => handleDelete(u.id)} className="text-sm text-rose-400 hover:text-rose-300">{t("common.delete")}</button>
                         </>
                       )}
                     </td>
@@ -556,26 +568,26 @@ export default function AdminPage() {
       {activeTab === "roles" && (
         <>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Rollenverwaltung</h1>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("admin.roleManagement")}</h1>
             <button onClick={() => { setShowRoleForm(!showRoleForm); setRoleError(""); }} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">
-              + Neue Rolle
+              {t("admin.newRole")}
             </button>
           </div>
 
           {showRoleForm && (
             <form onSubmit={handleCreateRole} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Neue Rolle erstellen</h2>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">{t("admin.createRole")}</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Name *</label>
-                  <input type="text" value={roleForm.name} onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })} required className={inputClass} placeholder="z.B. Entwickler, Designer" />
+                  <label className="block text-sm font-medium text-gray-400 mb-1">{t("admin.roleName")}</label>
+                  <input type="text" value={roleForm.name} onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })} required className={inputClass} placeholder={t("admin.roleNamePlaceholder")} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Beschreibung</label>
-                  <input type="text" value={roleForm.description} onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })} className={inputClass} placeholder="Kurze Beschreibung" />
+                  <label className="block text-sm font-medium text-gray-400 mb-1">{t("admin.roleDescription")}</label>
+                  <input type="text" value={roleForm.description} onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })} className={inputClass} placeholder={t("admin.roleDescriptionPlaceholder")} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Farbe</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">{t("admin.roleColor")}</label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={roleForm.color} onChange={(e) => setRoleForm({ ...roleForm, color: e.target.value })}
                       className="w-10 h-10 rounded-lg border border-[var(--border)] cursor-pointer bg-transparent p-0.5" />
@@ -592,32 +604,32 @@ export default function AdminPage() {
               {roleError && <p className="text-sm text-rose-400 mt-3">{roleError}</p>}
               <div className="flex gap-3 mt-4">
                 <button type="submit" disabled={roleSaving} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
-                  {roleSaving ? "Erstelle..." : "Rolle erstellen"}
+                  {roleSaving ? t("admin.creatingRole") : t("admin.createRoleSubmit")}
                 </button>
                 <button type="button" onClick={() => setShowRoleForm(false)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
-                  Abbrechen
+                  {t("common.cancel")}
                 </button>
               </div>
             </form>
           )}
 
           {rolesLoading ? (
-            <div className="text-center py-8 text-gray-500">Laden...</div>
+            <div className="text-center py-8 text-gray-500">{t("common.loading")}</div>
           ) : (
             <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
               <table className="min-w-full divide-y divide-[var(--border)]">
                 <thead className="bg-[var(--background)]">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Farbe</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Beschreibung</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zugeordnete User</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("admin.roleColor")}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.name")}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.description")}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("admin.assignedUsers")}</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border)]">
                   {roles.length === 0 && (
-                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Noch keine Rollen definiert. Erstelle die erste Rolle mit dem Button oben.</td></tr>
+                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">{t("admin.noRolesYet")}</td></tr>
                   )}
                   {roles.map((role) => {
                     const isEditing = editingRole === role.id;
@@ -663,20 +675,20 @@ export default function AdminPage() {
                                 {u.display_name}
                               </span>
                             )) : (
-                              <span className="text-[10px] text-gray-500">Keine</span>
+                              <span className="text-[10px] text-gray-500">{t("common.none")}</span>
                             )}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
                           {isEditing ? (
                             <>
-                              <button onClick={() => saveEditRole(role.id)} className="text-sm text-emerald-400 hover:text-emerald-300 mr-2">Speichern</button>
-                              <button onClick={() => setEditingRole(null)} className="text-sm text-gray-400 hover:text-gray-300">Abbrechen</button>
+                              <button onClick={() => saveEditRole(role.id)} className="text-sm text-emerald-400 hover:text-emerald-300 mr-2">{t("common.save")}</button>
+                              <button onClick={() => setEditingRole(null)} className="text-sm text-gray-400 hover:text-gray-300">{t("common.cancel")}</button>
                             </>
                           ) : (
                             <>
-                              <button onClick={() => startEditRole(role)} className="text-sm text-[var(--accent)] hover:brightness-110 mr-2">Bearbeiten</button>
-                              <button onClick={() => handleDeleteRole(role.id)} className="text-sm text-rose-400 hover:text-rose-300">Löschen</button>
+                              <button onClick={() => startEditRole(role)} className="text-sm text-[var(--accent)] hover:brightness-110 mr-2">{t("common.edit")}</button>
+                              <button onClick={() => handleDeleteRole(role.id)} className="text-sm text-rose-400 hover:text-rose-300">{t("common.delete")}</button>
                             </>
                           )}
                         </td>
@@ -697,16 +709,16 @@ export default function AdminPage() {
           <div className="bg-[var(--surface)] rounded-xl shadow-2xl border border-[var(--border)] max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-[var(--text-primary)]">Rollen zuordnen</h3>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t("admin.assignRoles")}</h3>
                 <p className="text-sm text-[var(--text-muted)]">{roleAssignUser.display_name}</p>
               </div>
-              <button onClick={() => setRoleAssignUser(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]" title="Schließen">
+              <button onClick={() => setRoleAssignUser(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]" title={t("common.close")}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
 
             {roles.length === 0 ? (
-              <p className="text-sm text-gray-500 py-4">Noch keine Rollen definiert. Erstelle zuerst Rollen im Tab &quot;Rollen&quot;.</p>
+              <p className="text-sm text-gray-500 py-4">{t("admin.noRolesHint")}</p>
             ) : (
               <div className="space-y-2">
                 {roles.map((role) => {
@@ -744,7 +756,7 @@ export default function AdminPage() {
 
             <div className="flex justify-end mt-4">
               <button onClick={() => setRoleAssignUser(null)} className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-lg transition">
-                Fertig
+                {t("common.done")}
               </button>
             </div>
           </div>
@@ -757,27 +769,27 @@ export default function AdminPage() {
           <div className="bg-[var(--surface)] rounded-xl shadow-2xl border border-[var(--border)] max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-[var(--text-primary)]">Arbeitszeitmodell</h3>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t("admin.scheduleTitle")}</h3>
                 <p className="text-sm text-[var(--text-muted)]">{scheduleUser.display_name} — {scheduleUser.email}</p>
               </div>
-              <button onClick={() => setScheduleUser(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]" title="Schließen">
+              <button onClick={() => setScheduleUser(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]" title={t("common.close")}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
 
             {scheduleLoading ? (
-              <div className="py-10 text-center text-[var(--text-muted)] text-sm">Laden...</div>
+              <div className="py-10 text-center text-[var(--text-muted)] text-sm">{t("common.loading")}</div>
             ) : (
               <>
                 <div className="bg-[var(--background)] rounded-lg border border-[var(--border)] overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-[var(--surface-hover)] text-[10px] uppercase text-[var(--text-muted)]">
-                        <th className="px-3 py-2 text-left font-medium">Tag</th>
-                        <th className="px-3 py-2 text-left font-medium">Aktiv</th>
-                        <th className="px-3 py-2 text-left font-medium">Von</th>
-                        <th className="px-3 py-2 text-left font-medium">Bis</th>
-                        <th className="px-3 py-2 text-right font-medium">Tagespensum</th>
+                        <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleDay")}</th>
+                        <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleActive")}</th>
+                        <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleFrom")}</th>
+                        <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleTo")}</th>
+                        <th className="px-3 py-2 text-right font-medium">{t("admin.scheduleDailyTarget")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--border)]">
@@ -786,7 +798,7 @@ export default function AdminPage() {
                         const mismatchHint = row.enabled && row.target_override && derived > 0 && derived !== row.daily_target_minutes;
                         return (
                           <tr key={row.weekday} className={row.enabled ? "" : "opacity-40"}>
-                            <td className="px-3 py-2 font-medium text-[var(--text-primary)] w-28">{WEEKDAY_LABELS_LONG[row.weekday]}</td>
+                            <td className="px-3 py-2 font-medium text-[var(--text-primary)] w-28">{t(`weekday.long.${row.weekday}` as TranslationKey)}</td>
                             <td className="px-3 py-2 w-16">
                               <input
                                 type="checkbox"
@@ -830,7 +842,7 @@ export default function AdminPage() {
                                   {row.target_override ? (
                                     <button type="button" onClick={() => updateDraftRow(row.weekday, { target_override: false, daily_target_minutes: derived })}
                                       className="text-[var(--brand-orange)] hover:underline">
-                                      {mismatchHint ? `Auf Zeitspanne (${formatMinutesAsHours(derived)}) zurücksetzen` : "Auto"}
+                                      {mismatchHint ? t("admin.scheduleResetToSpan", { hours: formatMinutesAsHours(derived) }) : t("admin.scheduleAuto")}
                                     </button>
                                   ) : (
                                     <span>= {formatMinutesAsHours(row.daily_target_minutes)}</span>
@@ -844,7 +856,7 @@ export default function AdminPage() {
                     </tbody>
                     <tfoot>
                       <tr className="bg-[var(--surface-hover)] text-xs">
-                        <td className="px-3 py-2 font-semibold text-[var(--text-secondary)]" colSpan={4}>Wochenpensum</td>
+                        <td className="px-3 py-2 font-semibold text-[var(--text-secondary)]" colSpan={4}>{t("admin.scheduleWeeklyTotal")}</td>
                         <td className="px-3 py-2 text-right font-bold text-[var(--text-primary)]">
                           {formatMinutesAsHours(weekTotalMinutes)}
                         </td>
@@ -855,16 +867,16 @@ export default function AdminPage() {
 
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-xs text-[var(--text-muted)]">
-                    Tagespensum wird aus Von–Bis abgeleitet und kann überschrieben werden.
+                    {t("admin.scheduleAutoHint")}
                   </p>
                   <div className="flex items-center gap-3">
-                    {scheduleSaved && <span className="text-xs text-emerald-400 font-medium">Gespeichert!</span>}
+                    {scheduleSaved && <span className="text-xs text-emerald-400 font-medium">{t("common.saved")}</span>}
                     <button onClick={() => setScheduleUser(null)} className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-lg transition">
-                      Schließen
+                      {t("common.close")}
                     </button>
                     <button onClick={saveSchedule} disabled={scheduleSaving}
                       className="bg-[var(--brand-orange)] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
-                      {scheduleSaving ? "Speichert..." : "Speichern"}
+                      {scheduleSaving ? t("common.saving") : t("common.save")}
                     </button>
                   </div>
                 </div>

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/format";
 import ReceiptCaptureModal from "@/components/ReceiptCaptureModal";
 import DocumentScannerModal from "@/components/DocumentScannerModal";
+import { useI18n } from "@/lib/i18n-context";
 
 const ACCOUNT_OPTIONS = [
   { value: "", label: "—" },
@@ -31,6 +32,7 @@ const ACCOUNT_OPTIONS = [
 ];
 
 export default function ReceiptsPage() {
+  const { t } = useI18n();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -78,7 +80,7 @@ export default function ReceiptsPage() {
       analyzeReceipt(receipt.id);
       await loadData();
     } catch (err) {
-      alert("Upload fehlgeschlagen: " + (err instanceof Error ? err.message : String(err)));
+      alert(t("receipts.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setUploading(false);
     }
@@ -158,7 +160,7 @@ export default function ReceiptsPage() {
       }
       await loadData();
     } catch (err) {
-      alert("Upload fehlgeschlagen: " + (err instanceof Error ? err.message : String(err)));
+      alert(t("receipts.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -174,7 +176,7 @@ export default function ReceiptsPage() {
         body: JSON.stringify({ receiptId: id }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Analyse fehlgeschlagen" }));
+        const err = await res.json().catch(() => ({ error: t("receipts.analysisFailed") }));
         console.error("Analysis error:", err);
       }
       await loadData();
@@ -186,7 +188,7 @@ export default function ReceiptsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Beleg wirklich löschen?")) {
+    if (confirm(t("receipts.confirmDelete"))) {
       await deleteReceipt(id);
       await loadData();
     }
@@ -212,14 +214,14 @@ export default function ReceiptsPage() {
     })
     .reduce((sum, r) => sum + (r.analysis_cost || 0), 0);
 
-  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
 
   const inputClass = "bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full";
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Belege</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("receipts.title")}</h1>
         <div className="flex gap-2 flex-wrap">
           {/* Scanner button */}
           <button
@@ -233,11 +235,11 @@ export default function ReceiptsPage() {
                 <path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" />
                 <line x1="7" y1="12" x2="17" y2="12" />
               </svg>
-              Scannen
+              {t("receipts.scan")}
             </span>
           </button>
           <label className={`bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}>
-            {uploading ? "Hochladen..." : "+ Datei hochladen"}
+            {uploading ? t("common.uploading") : t("receipts.uploadFile")}
             <input
               ref={fileInputRef}
               type="file"
@@ -254,21 +256,21 @@ export default function ReceiptsPage() {
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-emerald-500 border border-[var(--border)] p-4">
-          <p className="text-sm text-gray-400">Gesamt Brutto</p>
+          <p className="text-sm text-gray-400">{t("receipts.totalGross")}</p>
           <p className="text-xl font-bold text-[var(--text-primary)]">{formatCurrency(totalGross)}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500 border border-[var(--border)] p-4">
-          <p className="text-sm text-gray-400">Gesamt Netto</p>
+          <p className="text-sm text-gray-400">{t("receipts.totalNet")}</p>
           <p className="text-xl font-bold text-[var(--text-primary)]">{formatCurrency(totalNet)}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-orange-500 border border-[var(--border)] p-4">
-          <p className="text-sm text-gray-400">Gesamt USt</p>
+          <p className="text-sm text-gray-400">{t("receipts.totalVat")}</p>
           <p className="text-xl font-bold text-[var(--text-primary)]">{formatCurrency(totalVat)}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-purple-500 border border-[var(--border)] p-4">
-          <p className="text-sm text-gray-400">Anthropic API Kosten</p>
+          <p className="text-sm text-gray-400">{t("receipts.apiCosts")}</p>
           <p className="text-xl font-bold text-purple-400">{totalAnalysisCost.toFixed(4)} &euro;</p>
-          <p className="text-xs text-gray-500">Monat: {monthlyAnalysisCost.toFixed(4)} &euro;</p>
+          <p className="text-xs text-gray-500">{t("receipts.monthLabel")} {monthlyAnalysisCost.toFixed(4)} &euro;</p>
         </div>
       </div>
 
@@ -277,7 +279,7 @@ export default function ReceiptsPage() {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Suche nach Datei, Aussteller, Betrag..."
+          placeholder={t("receipts.searchPlaceholder")}
           className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full sm:w-64"
         />
       </div>
@@ -287,21 +289,21 @@ export default function ReceiptsPage() {
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Projekt</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aussteller</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Netto</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">USt</th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Konto</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zahlung</th>
-              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipts.project")}</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.date")}</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipts.issuer")}</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("common.net")}</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("common.vat")}</th>
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("common.gross")}</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipts.account")}</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipts.payment")}</th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t("common.status")}</th>
               <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {receipts.length === 0 && (
-              <tr><td colSpan={10} className="px-3 py-8 text-center text-gray-500">Noch keine Belege hochgeladen.</td></tr>
+              <tr><td colSpan={10} className="px-3 py-8 text-center text-gray-500">{t("receipts.noReceipts")}</td></tr>
             )}
             {receipts.filter((r) => {
               if (!searchQuery) return true;
@@ -316,16 +318,16 @@ export default function ReceiptsPage() {
                 : r.analysis_status === "analyzing" ? "text-amber-400 bg-amber-500/15"
                 : r.analysis_status === "error" ? "text-rose-400 bg-rose-500/15"
                 : "text-gray-400 bg-gray-500/15";
-              const statusLabel = r.analysis_status === "done" ? "Analysiert"
-                : r.analysis_status === "analyzing" ? "Analysiert..."
-                : r.analysis_status === "error" ? "Fehler"
-                : "Ausstehend";
+              const statusLabel = r.analysis_status === "done" ? t("receipts.analyzed")
+                : r.analysis_status === "analyzing" ? t("receipts.analyzing")
+                : r.analysis_status === "error" ? t("receipts.error")
+                : t("receipts.pending");
 
               return (
                 <tr key={r.id} className="hover:bg-[var(--surface-hover)] transition" onDoubleClick={() => setEditingId(r.id)}>
                   <td className="px-3 py-3 text-sm">
                     {isEditing ? (
-                      <input defaultValue={r.purpose || ""} onBlur={(e) => handleFieldUpdate(r.id, "purpose", e.target.value || null)} className={inputClass} placeholder="Projekt/Zweck" />
+                      <input defaultValue={r.purpose || ""} onBlur={(e) => handleFieldUpdate(r.id, "purpose", e.target.value || null)} className={inputClass} placeholder={t("receipts.purposePlaceholder")} />
                     ) : (
                       <>
                         <span className="font-medium text-[var(--text-primary)] block">{r.purpose || r.file_name}</span>
@@ -336,17 +338,17 @@ export default function ReceiptsPage() {
                   <td className="px-3 py-3 text-sm text-gray-400">
                     {isEditing ? (
                       <input type="date" defaultValue={r.invoice_date || ""} onBlur={(e) => handleFieldUpdate(r.id, "invoice_date", e.target.value || null)} className={inputClass} />
-                    ) : (r.invoice_date || "—")}
+                    ) : (r.invoice_date || "\u2014")}
                   </td>
                   <td className="px-3 py-3 text-sm text-gray-400">
                     {isEditing ? (
                       <input defaultValue={r.issuer || ""} onBlur={(e) => handleFieldUpdate(r.id, "issuer", e.target.value || null)} className={inputClass} />
-                    ) : (r.issuer || "—")}
+                    ) : (r.issuer || "\u2014")}
                   </td>
                   <td className="px-3 py-3 text-sm text-right text-gray-400">
                     {isEditing ? (
                       <input type="number" step="0.01" defaultValue={r.amount_net ?? ""} onBlur={(e) => handleFieldUpdate(r.id, "amount_net", e.target.value ? Number(e.target.value) : null)} className={inputClass + " w-20 text-right"} />
-                    ) : (r.amount_net != null ? formatCurrency(r.amount_net) : "—")}
+                    ) : (r.amount_net != null ? formatCurrency(r.amount_net) : "\u2014")}
                   </td>
                   <td className="px-3 py-3 text-sm text-right">
                     {(() => {
@@ -365,14 +367,14 @@ export default function ReceiptsPage() {
                       }
                       return (
                         <>
-                          <span className="text-orange-400">{r.amount_vat != null ? formatCurrency(r.amount_vat) : "—"}</span>
+                          <span className="text-orange-400">{r.amount_vat != null ? formatCurrency(r.amount_vat) : "\u2014"}</span>
                           {r.vat_rate != null && <span className="text-xs text-gray-500 ml-1">({r.vat_rate}%)</span>}
                         </>
                       );
                     })()}
                   </td>
                   <td className="px-3 py-3 text-sm text-right font-medium text-[var(--text-primary)]">
-                    {r.amount_gross != null ? formatCurrency(r.amount_gross) : "—"}
+                    {r.amount_gross != null ? formatCurrency(r.amount_gross) : "\u2014"}
                   </td>
                   <td className="px-3 py-3 text-sm" onClick={(e) => e.stopPropagation()}>
                     {isEditing ? (
@@ -385,7 +387,7 @@ export default function ReceiptsPage() {
                       </select>
                     ) : (
                       <span className="text-gray-400" title={r.account_label || ""}>
-                        {r.account_debit ? `${r.account_debit}` : "—"}
+                        {r.account_debit ? `${r.account_debit}` : "\u2014"}
                         {r.account_label && <span className="text-[10px] text-gray-500 block">{r.account_label}</span>}
                       </span>
                     )}
@@ -396,17 +398,17 @@ export default function ReceiptsPage() {
                         {PAYMENT_METHOD_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     ) : (
-                      <span className="text-gray-400">{PAYMENT_METHOD_OPTIONS.find((o) => o.value === r.payment_method)?.label || "—"}</span>
+                      <span className="text-gray-400">{PAYMENT_METHOD_OPTIONS.find((o) => o.value === r.payment_method)?.label || "\u2014"}</span>
                     )}
                   </td>
                   <td className="px-3 py-3 text-center">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor} ${r.analysis_status === "error" ? "cursor-pointer" : ""}`}
                       onClick={() => {
                         if (r.analysis_status === "error" && r.analysis_raw) {
-                          alert(`Analysefehler:\n${(r.analysis_raw as Record<string, string>).error || JSON.stringify(r.analysis_raw)}`);
+                          alert(`${t("receipts.analysisError")}\n${(r.analysis_raw as Record<string, string>).error || JSON.stringify(r.analysis_raw)}`);
                         }
                       }}
-                      title={r.analysis_status === "error" ? "Klicke für Details" : ""}
+                      title={r.analysis_status === "error" ? t("receipts.clickForDetails") : ""}
                     >{statusLabel}</span>
                     {r.analysis_status === "error" && r.analysis_raw && (
                       <div className="text-[9px] text-rose-400/70 mt-0.5 max-w-[80px] truncate" title={String((r.analysis_raw as Record<string, string>).error || "")}>
@@ -414,31 +416,31 @@ export default function ReceiptsPage() {
                       </div>
                     )}
                     {r.analysis_cost != null && r.analysis_cost > 0 && (
-                      <div className="text-[9px] text-gray-500 mt-0.5">Analysekosten: {r.analysis_cost.toFixed(4)}&euro;</div>
+                      <div className="text-[9px] text-gray-500 mt-0.5">{t("receipts.analysisCost")} {r.analysis_cost.toFixed(4)}&euro;</div>
                     )}
                   </td>
                   <td className="px-3 py-3 text-right whitespace-nowrap">
                     <div className="flex flex-col items-center gap-0.5">
                       {/* View receipt */}
-                      <button onClick={() => handleViewReceipt(r)} className="text-[var(--accent)] hover:brightness-110 p-1" title="Beleg ansehen">
+                      <button onClick={() => handleViewReceipt(r)} className="text-[var(--accent)] hover:brightness-110 p-1" title={t("receipts.viewReceipt")}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />
                         </svg>
                       </button>
                       {r.analysis_status !== "analyzing" && analyzing !== r.id && (
-                        <button onClick={() => analyzeReceipt(r.id)} className="text-[var(--accent)] hover:brightness-110 p-1" title="KI-Analyse starten">
+                        <button onClick={() => analyzeReceipt(r.id)} className="text-[var(--accent)] hover:brightness-110 p-1" title={t("receipts.startAnalysis")}>
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 12l4-4" /><path d="M16 4h4v4" />
                           </svg>
                         </button>
                       )}
-                      {analyzing === r.id && <span className="text-xs text-amber-400 animate-pulse">Analysiert...</span>}
-                      <button onClick={() => setEditingId(isEditing ? null : r.id)} className="text-gray-500 hover:text-[var(--text-secondary)] p-1" title="Bearbeiten">
+                      {analyzing === r.id && <span className="text-xs text-amber-400 animate-pulse">{t("receipts.analyzing")}</span>}
+                      <button onClick={() => setEditingId(isEditing ? null : r.id)} className="text-gray-500 hover:text-[var(--text-secondary)] p-1" title={t("common.edit")}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
                         </svg>
                       </button>
-                      <button onClick={() => handleDelete(r.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title="Löschen">
+                      <button onClick={() => handleDelete(r.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title={t("common.delete")}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                         </svg>
@@ -452,7 +454,7 @@ export default function ReceiptsPage() {
         </table>
       </div>
 
-      <p className="text-xs text-gray-600 mt-3">Doppelklick auf eine Zeile zum Bearbeiten der KI-analysierten Felder.</p>
+      <p className="text-xs text-gray-600 mt-3">{t("receipts.doubleClickHint")}</p>
 
       {/* Document Scanner Modal */}
       {scannerOpen && (

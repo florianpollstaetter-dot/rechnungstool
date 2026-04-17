@@ -7,6 +7,7 @@ import { getCustomers, getSettings, getActiveProducts, createInvoice, getTemplat
 import { useAutosave } from "@/lib/use-autosave";
 import { addDays, formatCurrency } from "@/lib/format";
 import { calcItemTotal, calcTotals } from "@/lib/calc";
+import { useI18n } from "@/lib/i18n-context";
 
 type ItemRow = Omit<InvoiceItem, "id">;
 
@@ -15,10 +16,12 @@ function emptyItem(pos: number): ItemRow {
 }
 
 export default function NewInvoicePageWrapper() {
-  return <Suspense fallback={<div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>}><NewInvoicePage /></Suspense>;
+  const { t } = useI18n();
+  return <Suspense fallback={<div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>}><NewInvoicePage /></Suspense>;
 }
 
 function NewInvoicePage() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -161,47 +164,47 @@ function NewInvoicePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-6">Neue Rechnung</h1>
+      <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-6">{t("invoiceNew.title")}</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-          <h2 className="text-lg font-semibold mb-4">Rechnungsdetails</h2>
+          <h2 className="text-lg font-semibold mb-4">{t("invoiceNew.details")}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Kunde *</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("invoiceNew.customer")}</label>
               <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} required className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
-                <option value="">Kunde waehlen...</option>
+                <option value="">{t("invoiceNew.selectCustomer")}</option>
                 {customers.map((c) => (<option key={c.id} value={c.id}>{c.company || c.name}</option>))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Leistungsbeschreibung / Projekt</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("invoiceNew.projectDescription")}</label>
               <input type="text" value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" placeholder="z.B. Apple Vision Pro App Leihstellungen inkl Personal" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Rechnungsdatum</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("invoiceNew.invoiceDate")}</label>
               <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Leistungsdatum</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("invoiceNew.serviceDate")}</label>
               <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">MwSt-Satz (%)</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("invoiceNew.vatRate")}</label>
               <input type="number" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Sprache</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("invoiceNew.language")}</label>
               <select value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
-                <option value="de">Deutsch</option>
-                <option value="en">English</option>
+                <option value="de">{t("lang.de")}</option>
+                <option value="en">{t("lang.en")}</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Fällig am</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("invoiceNew.dueDate")}</label>
               <input type="text" value={dueDate} readOnly className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm bg-[var(--background)] text-gray-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">E-Rechnung</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("invoiceNew.eInvoice")}</label>
               <select value={eInvoiceFormat} onChange={(e) => setEInvoiceFormat(e.target.value as EInvoiceFormat)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
                 {E_INVOICE_FORMAT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -214,21 +217,21 @@ function NewInvoicePage() {
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Positionen</h2>
-            <button type="button" onClick={addItem} className="text-sm text-[var(--accent)] hover:brightness-110 font-medium">+ Position hinzufuegen</button>
+            <h2 className="text-lg font-semibold">{t("invoiceNew.items")}</h2>
+            <button type="button" onClick={addItem} className="text-sm text-[var(--accent)] hover:brightness-110 font-medium">{t("invoiceNew.addItem")}</button>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
                 <tr className="border-b border-[var(--border)]">
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-12">Pos</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-36">Produkt</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-2">Leistung</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-28">Einheit</th>
-                  <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">Menge</th>
-                  <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">Einzelpreis</th>
-                  <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">Rabatt %</th>
-                  <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">Betrag</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-12">{t("invoiceNew.pos")}</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-36">{t("invoiceNew.product")}</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-2">{t("invoiceNew.service")}</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-28">{t("invoiceNew.unit")}</th>
+                  <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">{t("invoiceNew.quantity")}</th>
+                  <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">{t("invoiceNew.unitPrice")}</th>
+                  <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">{t("invoiceNew.discountPercent")}</th>
+                  <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">{t("invoiceNew.amount")}</th>
                   <th className="w-10"></th>
                 </tr>
               </thead>
@@ -238,12 +241,12 @@ function NewInvoicePage() {
                     <td className="py-2 text-sm text-gray-500">{item.position}</td>
                     <td className="py-2">
                       <select value={item.product_id || ""} onChange={(e) => e.target.value ? selectProduct(idx, e.target.value) : updateItem(idx, "product_id", null)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
-                        <option value="">hier auswaehlen</option>
+                        <option value="">{t("invoiceNew.selectProduct")}</option>
                         {products.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
                       </select>
                     </td>
                     <td className="py-2">
-                      <input type="text" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" required placeholder="**Fett** für Hervorhebung" />
+                      <input type="text" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" required placeholder={t("invoiceNew.boldHint")} />
                     </td>
                     <td className="py-2">
                       <select value={item.unit} onChange={(e) => updateItem(idx, "unit", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
@@ -274,11 +277,11 @@ function NewInvoicePage() {
           <div className="mt-4 border-t border-[var(--border)] pt-4">
             <div className="grid grid-cols-2 gap-4 max-w-md ml-auto">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Gesamtrabatt %</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{t("invoiceNew.overallDiscountPercent")}</label>
                 <input type="number" value={overallDiscountPercent} onChange={(e) => setOverallDiscountPercent(Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) setOverallDiscountPercent(v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} max={100} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Gesamtrabatt absolut</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{t("invoiceNew.overallDiscountAmount")}</label>
                 <input type="number" value={overallDiscountAmount} onChange={(e) => setOverallDiscountAmount(Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) setOverallDiscountAmount(v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} />
               </div>
             </div>
@@ -286,31 +289,31 @@ function NewInvoicePage() {
 
           <div className="mt-4 flex flex-col items-end space-y-1 text-sm">
             <div className="flex justify-between w-full sm:w-64">
-              <span className="text-gray-400">Summe netto</span>
+              <span className="text-gray-400">{t("invoiceNew.netTotal")}</span>
               <span className="font-medium">{formatCurrency(subtotal)}</span>
             </div>
             <div className="flex justify-between w-full sm:w-64">
-              <span className="text-gray-400">Umsatzsteuer {taxRate}%</span>
+              <span className="text-gray-400">{t("invoiceNew.vatAmount", { rate: String(taxRate) })}</span>
               <span className="font-medium">{formatCurrency(taxAmount)}</span>
             </div>
             <div className="flex justify-between w-full sm:w-64 text-base font-bold border-t border-[var(--border)] pt-1">
-              <span>BRUTTO</span>
+              <span>{t("invoiceNew.grossTotal")}</span>
               <span>{formatCurrency(total)}</span>
             </div>
           </div>
         </div>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-          <label className="block text-sm font-medium text-gray-400 mb-1">Anmerkungen</label>
+          <label className="block text-sm font-medium text-gray-400 mb-1">{t("invoiceNew.notes")}</label>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
         </div>
 
         <div className="flex gap-3">
           <button type="submit" disabled={submitting} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
-            {submitting ? "Wird erstellt..." : "Rechnung erstellen"}
+            {submitting ? t("invoiceNew.submitting") : t("invoiceNew.submit")}
           </button>
           <button type="button" onClick={() => router.push("/invoices")} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
-            Abbrechen
+            {t("common.cancel")}
           </button>
         </div>
       </form>

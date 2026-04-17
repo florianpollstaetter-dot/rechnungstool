@@ -10,6 +10,7 @@ import { TabButton } from "@/components/TabButton";
 import { TimeCalendarView } from "@/components/time/TimeCalendarView";
 import { TimeAnalyticsView } from "@/components/time/TimeAnalyticsView";
 import type { ModalResult } from "@/components/time/TimeCalendarCreateModal";
+import { useI18n } from "@/lib/i18n-context";
 
 function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -20,8 +21,23 @@ function formatTime(iso: string): string { return new Date(iso).toLocaleTimeStri
 function formatDate(iso: string): string { return new Date(iso).toLocaleDateString("de-AT", { weekday: "short", day: "2-digit", month: "2-digit" }); }
 function dateKey(iso: string): string { return iso.split("T")[0]; }
 
-const GENERAL_ITEMS = ["Daily", "Weekly", "Meeting Team", "Meeting Agentur", "Neues Projekt", "Briefing", "Administration", "E-Mails"];
-const OTHER_ITEMS = ["Weiterbildung", "Reise", "Krankheit", "Urlaub", "Sonstiges"];
+const GENERAL_ITEM_KEYS = [
+  { value: "Daily", key: "time.quickDaily" as const },
+  { value: "Weekly", key: "time.quickWeekly" as const },
+  { value: "Meeting Team", key: "time.quickMeetingTeam" as const },
+  { value: "Meeting Agentur", key: "time.quickMeetingAgency" as const },
+  { value: "Neues Projekt", key: "time.quickNewProject" as const },
+  { value: "Briefing", key: "time.quickBriefing" as const },
+  { value: "Administration", key: "time.quickAdmin" as const },
+  { value: "E-Mails", key: "time.quickEmails" as const },
+];
+const OTHER_ITEM_KEYS = [
+  { value: "Weiterbildung", key: "time.quickTraining" as const },
+  { value: "Reise", key: "time.quickTravel" as const },
+  { value: "Krankheit", key: "time.quickSick" as const },
+  { value: "Urlaub", key: "time.quickVacation" as const },
+  { value: "Sonstiges", key: "time.quickOther" as const },
+];
 
 const COLOR_PALETTE = [
   "#10b981", "#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444", "#06b6d4", "#ec4899",
@@ -37,6 +53,7 @@ function getProjectColor(project: string, allProjects: string[]): string {
 type PickerTab = "allgemein" | "projekte" | "other";
 
 export default function TimePage() {
+  const { t } = useI18n();
   const { userName } = useCompany();
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [activeTimer, setActiveTimerState] = useState<TimeEntry | null>(null);
@@ -199,7 +216,7 @@ export default function TimePage() {
     await loadData();
   }
 
-  async function handleDelete(id: string) { if (confirm("Löschen?")) { await deleteTimeEntry(id); await loadData(); } }
+  async function handleDelete(id: string) { if (confirm(t("time.confirmDelete"))) { await deleteTimeEntry(id); await loadData(); } }
 
   async function handleCalendarCreate(r: ModalResult) {
     const uid = await resolveUserId();
@@ -271,13 +288,13 @@ export default function TimePage() {
 
   // chartColors replaced by getProjectColor()
 
-  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Zeiterfassung</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("time.title")}</h1>
           <div className="flex gap-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5" role="tablist" aria-label="Ansicht">
             <button
               type="button"
@@ -285,13 +302,13 @@ export default function TimePage() {
               aria-selected={viewMode === "list"}
               onClick={() => setViewMode("list")}
               className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "list" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
-              title="Listenansicht"
+              title={t("time.list")}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
                 <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
               </svg>
-              Liste
+              {t("time.list")}
             </button>
             <button
               type="button"
@@ -299,13 +316,13 @@ export default function TimePage() {
               aria-selected={viewMode === "calendar"}
               onClick={() => setViewMode("calendar")}
               className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "calendar" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
-              title="Kalenderansicht"
+              title={t("time.calendar")}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                 <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
               </svg>
-              Kalender
+              {t("time.calendar")}
             </button>
             <button
               type="button"
@@ -313,12 +330,12 @@ export default function TimePage() {
               aria-selected={viewMode === "auswertung"}
               onClick={() => setViewMode("auswertung")}
               className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "auswertung" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
-              title="Auswertung"
+              title={t("time.analytics")}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
               </svg>
-              Auswertung
+              {t("time.analytics")}
             </button>
           </div>
         </div>
@@ -340,13 +357,13 @@ export default function TimePage() {
                 })()}
               </svg>
               <div className="text-right">
-                <p className="text-xs text-[var(--text-muted)]">Heute</p>
+                <p className="text-xs text-[var(--text-muted)]">{t("time.today")}</p>
                 <p className="font-bold text-[var(--text-primary)] text-sm">{formatDuration(todayMinutes)}</p>
               </div>
             </button>
           )}
           <div className="text-center">
-            <p className="text-[var(--text-muted)] text-xs">Woche</p>
+            <p className="text-[var(--text-muted)] text-xs">{t("common.week")}</p>
             <p className="font-bold text-[var(--text-primary)]">{formatDuration(weekMinutes)}</p>
           </div>
         </div>
@@ -358,28 +375,28 @@ export default function TimePage() {
           <div>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-amber-400">Pausiert — seit {formatTime(activeTimer.start_time)}</span>
+              <span className="text-sm font-medium text-amber-400">{t("time.pausedSince", { time: formatTime(activeTimer.start_time) })}</span>
               <span className="text-2xl font-bold text-[var(--text-primary)] ml-auto">{formatDuration(elapsed)}</span>
             </div>
             <div className="flex gap-2 items-center">
-              <p className="flex-1 text-xs text-[var(--text-muted)]">Wähle unten ein Projekt um die Pause zu beenden und weiter zu tracken.</p>
-              <button onClick={handleEndPause} className="bg-rose-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-rose-500 transition">Aufgabe beenden</button>
-              <button onClick={handleResumePause} className="bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition">Pause beenden</button>
+              <p className="flex-1 text-xs text-[var(--text-muted)]">{t("time.resumeHint")}</p>
+              <button onClick={handleEndPause} className="bg-rose-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-rose-500 transition">{t("time.endTask")}</button>
+              <button onClick={handleResumePause} className="bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition">{t("time.endPause")}</button>
             </div>
             {/* Project picker stays visible so user can resume directly into a project */}
             <div className="mt-4 pt-4 border-t border-[var(--border)]">
               <div className="flex gap-0.5 mb-0 px-0.5 pb-1 border-b border-[var(--border)]">
-                {([["allgemein", "Allgemein"], ["projekte", "Projekte"], ["other", "Other"]] as [PickerTab, string][]).map(([key, label]) => (
+                {([["allgemein", t("time.tabGeneral")], ["projekte", t("time.tabProjects")], ["other", t("time.tabOther")]] as [PickerTab, string][]).map(([key, label]) => (
                   <TabButton key={key} active={pickerTab === key} onClick={() => setPickerTab(key)}>
                     {label}
                   </TabButton>
                 ))}
               </div>
               <div key={pickerTab} className="tab-content-enter flex flex-wrap gap-2 pt-3 pb-1">
-                {pickerTab === "allgemein" && GENERAL_ITEMS.map((item) => (
-                  <button key={item} onClick={() => handleStart(item)}
+                {pickerTab === "allgemein" && GENERAL_ITEM_KEYS.map((item) => (
+                  <button key={item.value} onClick={() => handleStart(item.value)}
                     className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
-                  >{item}</button>
+                  >{t(item.key)}</button>
                 ))}
                 {pickerTab === "projekte" && (
                   quotes.length > 0 ? quotes
@@ -392,12 +409,12 @@ export default function TimePage() {
                         >{label}</button>
                       );
                     })
-                  : <p className="text-xs text-[var(--text-muted)]">Keine freigegebenen Angebote. Erstelle zuerst ein Angebot.</p>
+                  : <p className="text-xs text-[var(--text-muted)]">{t("time.noQuotes")}</p>
                 )}
-                {pickerTab === "other" && OTHER_ITEMS.map((item) => (
-                  <button key={item} onClick={() => handleStart(item)}
+                {pickerTab === "other" && OTHER_ITEM_KEYS.map((item) => (
+                  <button key={item.value} onClick={() => handleStart(item.value)}
                     className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
-                  >{item}</button>
+                  >{t(item.key)}</button>
                 ))}
               </div>
             </div>
@@ -406,7 +423,7 @@ export default function TimePage() {
           <div>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-emerald-400">Läuft — {activeTimer.project_label}</span>
+              <span className="text-sm font-medium text-emerald-400">{t("time.runningSince", { project: activeTimer.project_label })}</span>
               {savedDescription && (
                 <span className={`text-xs text-[var(--text-muted)] italic transition-all duration-300 ${descAnimation ? "opacity-0 translate-x-4" : "opacity-100"}`}>
                   {savedDescription}
@@ -417,28 +434,28 @@ export default function TimePage() {
             <div className="flex gap-2">
               <input type="text" value={description} onChange={(e) => handleDescriptionChange(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleDescriptionSubmit(); }}
-                placeholder={savedDescription ? "Weitere Notiz..." : "Was machst du gerade?"}
+                placeholder={savedDescription ? t("time.descriptionMore") : t("time.descriptionPlaceholder")}
                 className="flex-1 bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
-              <button onClick={handlePause} className="bg-amber-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-amber-500 transition">Pause</button>
-              <button onClick={handleStop} className="bg-rose-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-rose-500 transition">Stop</button>
+              <button onClick={handlePause} className="bg-amber-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-amber-500 transition">{t("time.pause")}</button>
+              <button onClick={handleStop} className="bg-rose-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-rose-500 transition">{t("time.stop")}</button>
             </div>
           </div>
         ) : (
           <div>
             {/* Unified tab picker */}
             <div className="flex gap-0.5 mb-0 px-0.5 pb-1 border-b border-[var(--border)]">
-              {([["allgemein", "Allgemein"], ["projekte", "Projekte"], ["other", "Other"]] as [PickerTab, string][]).map(([key, label]) => (
+              {([["allgemein", t("time.tabGeneral")], ["projekte", t("time.tabProjects")], ["other", t("time.tabOther")]] as [PickerTab, string][]).map(([key, label]) => (
                 <TabButton key={key} active={pickerTab === key} onClick={() => setPickerTab(key)}>
                   {label}
                 </TabButton>
               ))}
             </div>
             <div key={pickerTab} className="tab-content-enter flex flex-wrap gap-2 pt-3 pb-1">
-              {pickerTab === "allgemein" && GENERAL_ITEMS.map((item) => (
-                <button key={item} onClick={() => handleStart(item)}
+              {pickerTab === "allgemein" && GENERAL_ITEM_KEYS.map((item) => (
+                <button key={item.value} onClick={() => handleStart(item.value)}
                   className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
-                >{item}</button>
+                >{t(item.key)}</button>
               ))}
               {pickerTab === "projekte" && (
                 quotes.length > 0 ? quotes
@@ -451,12 +468,12 @@ export default function TimePage() {
                       >{label}</button>
                     );
                   })
-                : <p className="text-xs text-[var(--text-muted)]">Keine freigegebenen Angebote. Erstelle zuerst ein Angebot.</p>
+                : <p className="text-xs text-[var(--text-muted)]">{t("time.noQuotes")}</p>
               )}
-              {pickerTab === "other" && OTHER_ITEMS.map((item) => (
-                <button key={item} onClick={() => handleStart(item)}
+              {pickerTab === "other" && OTHER_ITEM_KEYS.map((item) => (
+                <button key={item.value} onClick={() => handleStart(item.value)}
                   className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
-                >{item}</button>
+                >{t(item.key)}</button>
               ))}
             </div>
           </div>
@@ -505,9 +522,9 @@ export default function TimePage() {
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                   <span className={`text-sm font-semibold ${isToday ? "text-[var(--accent)]" : "text-[var(--text-primary)]"}`}>
-                    {isToday ? "Heute" : formatDate(day + "T00:00:00")}
+                    {isToday ? t("time.today") : formatDate(day + "T00:00:00")}
                   </span>
-                  <span className="text-xs text-[var(--text-muted)]">{dayEntries.length} Einträge</span>
+                  <span className="text-xs text-[var(--text-muted)]">{dayEntries.length} {t("time.entries")}</span>
                   {!isExpanded && (
                     <span className="text-xs text-[var(--text-muted)] hidden sm:inline">
                       {Array.from(dayByProject.entries()).map(([p, m]) => `${p} ${formatDuration(m)}`).join(" · ")}
@@ -532,7 +549,7 @@ export default function TimePage() {
                   )}
                   <span className="text-sm font-bold text-[var(--text-primary)]">{formatDuration(dayTotal)}</span>
                   {pauseTotal > 0 && (
-                    <span className="text-[10px] text-amber-400/80" title="Pause, nicht in Arbeitszeit gezählt">+ {formatDuration(pauseTotal)} Pause</span>
+                    <span className="text-[10px] text-amber-400/80" title={t("time.pause")}>+ {formatDuration(pauseTotal)} {t("time.pause")}</span>
                   )}
                 </div>
               </button>
@@ -552,7 +569,7 @@ export default function TimePage() {
                               ) : (
                                 <span className="flex items-center gap-1.5">
                                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: isPause ? "#f59e0b" : getProjectColor(e.project_label, allProjectLabels) }} />
-                                  <span className={`font-medium ${isPause ? "text-amber-400 italic" : "text-[var(--text-primary)]"}`}>{isPause ? "Pause" : e.project_label}</span>
+                                  <span className={`font-medium ${isPause ? "text-amber-400 italic" : "text-[var(--text-primary)]"}`}>{isPause ? t("time.pause") : e.project_label}</span>
                                 </span>
                               )}
                             </td>
@@ -564,7 +581,7 @@ export default function TimePage() {
                               )}
                             </td>
                             <td className="px-4 py-2.5 text-xs text-[var(--text-secondary)] w-28">
-                              {formatTime(e.start_time)} — {e.end_time ? formatTime(e.end_time) : "läuft"}
+                              {formatTime(e.start_time)} — {e.end_time ? formatTime(e.end_time) : t("time.running2")}
                             </td>
                             <td className="px-4 py-2.5 text-xs text-right font-medium text-[var(--text-primary)] w-16">
                               {isEditing ? (
@@ -600,7 +617,7 @@ export default function TimePage() {
           );
         })}
         {sortedDays.length === 0 && !activeTimer && (
-          <div className="text-center text-[var(--text-muted)] py-8 text-sm">Noch keine Zeiteinträge. Wähle ein Projekt oben und starte.</div>
+          <div className="text-center text-[var(--text-muted)] py-8 text-sm">{t("time.noEntries")}</div>
         )}
       </div>}
     </div>

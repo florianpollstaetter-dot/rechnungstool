@@ -8,6 +8,7 @@ import { formatCurrency, formatDateLong } from "@/lib/format";
 import { SmartInsight, SmartInsightContext, buildSmartInsightRules, evaluateSmartInsights } from "@/lib/smart-insights";
 import { getTipOfTheDay } from "@/lib/tips";
 import { getTimeReportEntries, periodPreset } from "@/lib/reports";
+import { useI18n } from "@/lib/i18n-context";
 
 function getChuckNorrisFact(): string {
   const facts = [
@@ -32,6 +33,7 @@ function getChuckNorrisFact(): string {
 }
 
 export default function DashboardPage() {
+  const { t } = useI18n();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -166,44 +168,44 @@ export default function DashboardPage() {
 
   const cards = [
     {
-      key: "monatsumsatz", title: "Monatsumsatz", href: "/invoices?filter=bezahlt",
+      key: "monatsumsatz", title: t("dashboard.monthlyRevenue"), href: "/invoices?filter=bezahlt",
       value: formatCurrency(monthlyRevenueGross),
-      subtitle: `Jahresumsatz: ${formatCurrency(totalRevenueGross)}`,
+      subtitle: `${t("dashboard.annualRevenue")}: ${formatCurrency(totalRevenueGross)}`,
       borderColor: "border-emerald-500", iconBg: "bg-emerald-500/10", iconColor: "text-emerald-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
     },
     {
-      key: "offene_rechnungen", title: "Offene Rechnungen", href: "/invoices?filter=offen",
+      key: "offene_rechnungen", title: t("dashboard.openInvoices"), href: "/invoices?filter=offen",
       value: formatCurrency(totalOpenGross),
-      subtitle: `${openInvoices.length + partialInvoices.length} offen/teil`,
+      subtitle: `${openInvoices.length + partialInvoices.length} ${t("dashboard.openPartial")}`,
       borderColor: "border-amber-500", iconBg: "bg-amber-500/10", iconColor: "text-amber-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
     },
     {
-      key: "ueberfaellig", title: "Überfällig", href: "/invoices?filter=ueberfaellig",
+      key: "ueberfaellig", title: t("dashboard.overdue"), href: "/invoices?filter=ueberfaellig",
       value: formatCurrency(totalOverdueGross),
-      subtitle: `${overdueInvoices.length} überfällig`,
+      subtitle: `${overdueInvoices.length} ${t("dashboard.overdue").toLowerCase()}`,
       borderColor: "border-rose-500", iconBg: "bg-rose-500/10", iconColor: "text-rose-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>,
     },
     {
-      key: "umsatzsteuer", title: "Umsatzsteuer", href: "/invoices",
+      key: "umsatzsteuer", title: t("dashboard.vatLabel"), href: "/invoices",
       value: formatCurrency(totalVAT),
-      subtitle: `${settings?.company_type === "gmbh" ? "Soll-Besteuerung" : "Ist-Besteuerung"}`,
+      subtitle: `${settings?.company_type === "gmbh" ? t("dashboard.accrualBasis") : t("dashboard.cashBasis")}`,
       borderColor: "border-orange-500", iconBg: "bg-orange-500/10", iconColor: "text-orange-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="m9 12 2 2 4-4" /></svg>,
     },
     {
-      key: "belege", title: "Belege", href: "/receipts",
+      key: "belege", title: t("dashboard.receiptsLabel"), href: "/receipts",
       value: formatCurrency(monthlyReceiptsGross),
-      subtitle: `${receipts.length} Belege | Gesamt: ${formatCurrency(totalReceiptsGross)}`,
+      subtitle: `${receipts.length} ${t("dashboard.receiptsLabel")} | ${t("common.total")}: ${formatCurrency(totalReceiptsGross)}`,
       borderColor: "border-violet-500", iconBg: "bg-violet-500/10", iconColor: "text-violet-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M14 8H8" /><path d="M16 12H8" /><path d="M13 16H8" /></svg>,
     },
     {
-      key: "fixkosten", title: "Fixkosten", href: "/fixed-costs",
+      key: "fixkosten", title: t("dashboard.fixedCostsLabel"), href: "/fixed-costs",
       value: formatCurrency(monthlyFixedCosts),
-      subtitle: `${fixedCosts.length} aktive / ${formatCurrency(monthlyFixedCosts * 12)} p.a.`,
+      subtitle: `${fixedCosts.length} ${t("common.active").toLowerCase()} / ${formatCurrency(monthlyFixedCosts * 12)} p.a.`,
       borderColor: "border-cyan-500", iconBg: "bg-cyan-500/10", iconColor: "text-cyan-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>,
     },
@@ -211,15 +213,15 @@ export default function DashboardPage() {
 
   const visibleCards = cards.filter((card) => cardVisibility[card.key] !== false);
 
-  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("nav.dashboard")}</h1>
         <div className="flex gap-2">
-          <Link href="/quotes/new" className="bg-[var(--border)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-[var(--surface-hover)] transition">+ Angebot</Link>
-          <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold hover:brightness-110 transition">+ Rechnung</Link>
+          <Link href="/quotes/new" className="bg-[var(--border)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-[var(--surface-hover)] transition">{t("dashboard.newQuote")}</Link>
+          <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold hover:brightness-110 transition">{t("dashboard.newInvoice")}</Link>
         </div>
       </div>
 
@@ -242,10 +244,10 @@ export default function DashboardPage() {
       {/* Smart Insight Cards */}
       {!insightsLoading && cardVisibility.smart_insights !== false && (
         <div className="mb-6">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Smart Insights</h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">{t("dashboard.smartInsights")}</h2>
           {insights.length === 0 ? (
             <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5 text-center">
-              <p className="text-sm text-gray-500">Keine Auffälligkeiten</p>
+              <p className="text-sm text-gray-500">{t("dashboard.noAnomalies")}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -289,20 +291,20 @@ export default function DashboardPage() {
         {cardVisibility.letzte_rechnungen !== false && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
           <div className="px-4 py-3 border-b border-[var(--border)] flex justify-between items-center">
-            <h2 className="text-sm sm:text-lg font-semibold text-[var(--text-primary)]">Letzte Rechnungen</h2>
-            <Link href="/invoices" className="text-[10px] text-[var(--accent)] hover:brightness-110">Alle</Link>
+            <h2 className="text-sm sm:text-lg font-semibold text-[var(--text-primary)]">{t("dashboard.recentInvoices")}</h2>
+            <Link href="/invoices" className="text-[10px] text-[var(--accent)] hover:brightness-110">{t("common.all")}</Link>
           </div>
           {recentInvoices.length === 0 ? (
-            <div className="px-4 py-6 text-center text-gray-500 text-sm">Noch keine Rechnungen.</div>
+            <div className="px-4 py-6 text-center text-gray-500 text-sm">{t("dashboard.noInvoicesYet")}</div>
           ) : (
             <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-[var(--border)]">
               <thead className="bg-[var(--background)]">
                 <tr>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Nr.</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Kunde</th>
-                  <th className="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase">Brutto</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">{t("invoices.numberShort")}</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">{t("invoices.customer")}</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase">{t("common.gross")}</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">{t("common.status")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -312,7 +314,7 @@ export default function DashboardPage() {
                     : inv.status === "ueberfaellig" ? "bg-rose-500/15 text-rose-400"
                     : inv.status === "storniert" ? "bg-purple-500/15 text-purple-400"
                     : "bg-amber-500/15 text-amber-400";
-                  const statusText = inv.status === "bezahlt" ? "Bezahlt" : inv.status === "teilbezahlt" ? "Teil" : inv.status === "ueberfaellig" ? "Fällig" : inv.status === "storniert" ? "Storno" : "Offen";
+                  const statusText = inv.status === "bezahlt" ? t("invoiceStatus.bezahlt") : inv.status === "teilbezahlt" ? t("invoiceStatus.teilbezahlt") : inv.status === "ueberfaellig" ? t("invoiceStatus.ueberfaellig") : inv.status === "storniert" ? t("invoiceStatus.storniert") : t("invoiceStatus.offen");
                   return (
                     <tr key={inv.id} className="hover:bg-[var(--surface-hover)] transition">
                       <td className="px-3 py-2.5 text-xs"><Link href={`/invoices/${inv.id}`} className="font-medium text-[var(--accent)] hover:brightness-110">{inv.invoice_number}</Link></td>
@@ -333,20 +335,20 @@ export default function DashboardPage() {
         {cardVisibility.letzte_angebote !== false && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
           <div className="px-4 py-3 border-b border-[var(--border)] flex justify-between items-center">
-            <h2 className="text-sm sm:text-lg font-semibold text-[var(--text-primary)]">Letzte Angebote</h2>
-            <Link href="/quotes" className="text-[10px] text-[var(--accent)] hover:brightness-110">Alle</Link>
+            <h2 className="text-sm sm:text-lg font-semibold text-[var(--text-primary)]">{t("dashboard.recentQuotes")}</h2>
+            <Link href="/quotes" className="text-[10px] text-[var(--accent)] hover:brightness-110">{t("common.all")}</Link>
           </div>
           {recentQuotes.length === 0 ? (
-            <div className="px-4 py-6 text-center text-gray-500 text-sm">Noch keine Angebote.</div>
+            <div className="px-4 py-6 text-center text-gray-500 text-sm">{t("dashboard.noQuotesYet")}</div>
           ) : (
             <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-[var(--border)]">
               <thead className="bg-[var(--background)]">
                 <tr>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Nr.</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Kunde</th>
-                  <th className="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase">Brutto</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">{t("invoices.numberShort")}</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">{t("invoices.customer")}</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-gray-500 uppercase">{t("common.gross")}</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase">{t("common.status")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -355,7 +357,7 @@ export default function DashboardPage() {
                     : q.status === "rejected" ? "bg-rose-500/15 text-rose-400"
                     : q.status === "sent" ? "bg-blue-500/15 text-blue-400"
                     : "bg-gray-500/15 text-gray-400";
-                  const statusText = q.status === "accepted" ? "OK" : q.status === "rejected" ? "Abgel." : q.status === "sent" ? "Gesend." : "Entw.";
+                  const statusText = q.status === "accepted" ? t("quoteStatus.accepted") : q.status === "rejected" ? t("quoteStatus.rejected") : q.status === "sent" ? t("quoteStatus.sent") : t("quoteStatus.draft");
                   return (
                     <tr key={q.id} className="hover:bg-[var(--surface-hover)] transition">
                       <td className="px-3 py-2.5 text-xs"><Link href={`/quotes/${q.id}`} className="font-medium text-[var(--accent)] hover:brightness-110">{q.quote_number}</Link></td>
@@ -383,7 +385,7 @@ export default function DashboardPage() {
                 <span className="text-cyan-400">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
                 </span>
-                <span className="text-cyan-400 text-sm font-semibold">Tipp des Tages</span>
+                <span className="text-cyan-400 text-sm font-semibold">{t("dashboard.tipOfTheDay")}</span>
               </div>
               <p className="text-sm text-gray-400 leading-relaxed">{getTipOfTheDay()}</p>
             </div>
@@ -394,7 +396,7 @@ export default function DashboardPage() {
                 <span className="text-orange-400">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2"/><path d="M8 8h8"/><path d="M9 11c0 0 1 1 3 1s3-1 3-1"/></svg>
                 </span>
-                <span className="text-orange-400 text-sm font-semibold">Chuck Norris Fakt des Tages</span>
+                <span className="text-orange-400 text-sm font-semibold">{t("dashboard.chuckNorrisFact")}</span>
               </div>
               <p className="text-sm text-gray-400 leading-relaxed">{getChuckNorrisFact()}</p>
             </div>

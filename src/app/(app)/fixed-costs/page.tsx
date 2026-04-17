@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { FixedCost, FixedCostInterval, FIXED_COST_INTERVAL_OPTIONS, FIXED_COST_CATEGORIES } from "@/lib/types";
 import { getFixedCosts, createFixedCost, updateFixedCost, deleteFixedCost } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
+import { useI18n } from "@/lib/i18n-context";
 
 function getMonthlyAmount(cost: FixedCost): number {
   if (cost.interval === "monthly") return cost.amount;
@@ -12,6 +13,7 @@ function getMonthlyAmount(cost: FixedCost): number {
 }
 
 export default function FixedCostsPage() {
+  const { t } = useI18n();
   const [costs, setCosts] = useState<FixedCost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -91,7 +93,7 @@ export default function FixedCostsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Fixkosten wirklich löschen?")) {
+    if (confirm(t("fixedCosts.confirmDelete"))) {
       await deleteFixedCost(id);
       await loadData();
     }
@@ -102,6 +104,22 @@ export default function FixedCostsPage() {
     await loadData();
   }
 
+  const intervalLabelMap: Record<string, string> = {
+    monthly: t("fixedCostInterval.monthly"),
+    quarterly: t("fixedCostInterval.quarterly"),
+    yearly: t("fixedCostInterval.yearly"),
+  };
+
+  const categoryLabelMap: Record<string, string> = {
+    rent: t("fixedCostCategory.rent"),
+    insurance: t("fixedCostCategory.insurance"),
+    subscription: t("fixedCostCategory.subscription"),
+    salary: t("fixedCostCategory.salary"),
+    telecom: t("fixedCostCategory.telecom"),
+    software: t("fixedCostCategory.software"),
+    other: t("fixedCostCategory.other"),
+  };
+
   const activeCosts = costs.filter((c) => c.is_active);
   const totalMonthly = activeCosts.reduce((sum, c) => sum + getMonthlyAmount(c), 0);
   const totalYearly = totalMonthly * 12;
@@ -109,7 +127,7 @@ export default function FixedCostsPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="text-gray-500">Laden...</div>
+        <div className="text-gray-500">{t("common.loading")}</div>
       </div>
     );
   }
@@ -119,58 +137,58 @@ export default function FixedCostsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Fixkosten</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("fixedCosts.title")}</h1>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
           className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
         >
-          + Neue Fixkosten
+          {t("fixedCosts.new")}
         </button>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500 border border-[var(--border)] p-5">
-          <p className="text-sm font-medium text-gray-400">Monatliche Fixkosten</p>
+          <p className="text-sm font-medium text-gray-400">{t("fixedCosts.monthlyTotal")}</p>
           <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{formatCurrency(totalMonthly)}</p>
-          <p className="text-xs text-gray-500 mt-1">{activeCosts.length} aktive Positionen</p>
+          <p className="text-xs text-gray-500 mt-1">{t("fixedCosts.activePositions", { count: String(activeCosts.length) })}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500/50 border border-[var(--border)] p-5">
-          <p className="text-sm font-medium text-gray-400">Jährliche Fixkosten</p>
+          <p className="text-sm font-medium text-gray-400">{t("fixedCosts.annualTotal")}</p>
           <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{formatCurrency(totalYearly)}</p>
-          <p className="text-xs text-gray-500 mt-1">Hochrechnung auf 12 Monate</p>
+          <p className="text-xs text-gray-500 mt-1">{t("fixedCosts.projectedAnnual")}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-gray-500 border border-[var(--border)] p-5">
-          <p className="text-sm font-medium text-gray-400">Gesamt Positionen</p>
+          <p className="text-sm font-medium text-gray-400">{t("fixedCosts.totalItems")}</p>
           <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{costs.length}</p>
-          <p className="text-xs text-gray-500 mt-1">{costs.length - activeCosts.length} inaktiv</p>
+          <p className="text-xs text-gray-500 mt-1">{t("fixedCosts.inactiveCount", { count: String(costs.length - activeCosts.length) })}</p>
         </div>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-            {editingId ? "Fixkosten bearbeiten" : "Neue Fixkosten"}
+            {editingId ? t("fixedCosts.editFixedCost") : t("fixedCosts.newFixedCost")}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Name *</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("fixedCosts.nameRequired")}</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Lieferant/Anbieter</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("fixedCosts.supplier")}</label>
               <input type="text" value={form.supplier} onChange={(e) => setForm({ ...form, supplier: e.target.value })} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Kategorie</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("fixedCosts.category")}</label>
               <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputClass}>
                 {FIXED_COST_CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
+                  <option key={c.value} value={c.value}>{categoryLabelMap[c.value] || c.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Betrag (netto) *</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("fixedCosts.amountNet")}</label>
               <input
                 type="number" value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value === "" ? "" : Number(e.target.value) })}
@@ -179,46 +197,46 @@ export default function FixedCostsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">USt-Satz (%)</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("common.vatRate")}</label>
               <input type="number" value={form.vat_rate} onChange={(e) => setForm({ ...form, vat_rate: Number(e.target.value) })} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Intervall</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("fixedCosts.interval")}</label>
               <select value={form.interval} onChange={(e) => setForm({ ...form, interval: e.target.value as FixedCostInterval })} className={inputClass}>
                 {FIXED_COST_INTERVAL_OPTIONS.map((i) => (
-                  <option key={i.value} value={i.value}>{i.label}</option>
+                  <option key={i.value} value={i.value}>{intervalLabelMap[i.value] || i.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Startdatum</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("fixedCosts.startDate")}</label>
               <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Enddatum (optional)</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("fixedCosts.endDate")}</label>
               <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Kontonummer</label>
-              <input type="text" value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} placeholder="z.B. 7200" className={inputClass} />
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("fixedCosts.accountNumber")}</label>
+              <input type="text" value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} placeholder={t("fixedCosts.accountPlaceholder")} className={inputClass} />
             </div>
             <div className="md:col-span-2 lg:col-span-3">
-              <label className="block text-sm font-medium text-gray-400 mb-1">Beschreibung / Notizen</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("fixedCosts.notesDescription")}</label>
               <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputClass} />
             </div>
             <div className="flex items-center">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-400">
                 <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} className="rounded accent-[var(--accent)]" />
-                Aktiv
+                {t("common.active")}
               </label>
             </div>
           </div>
           <div className="flex gap-3 mt-4">
             <button type="submit" className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">
-              {editingId ? "Speichern" : "Erstellen"}
+              {editingId ? t("common.save") : t("common.create")}
             </button>
             <button type="button" onClick={resetForm} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
-              Abbrechen
+              {t("common.cancel")}
             </button>
           </div>
         </form>
@@ -228,27 +246,27 @@ export default function FixedCostsPage() {
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategorie</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lieferant</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Betrag</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Intervall</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Mtl.</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aktionen</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.name")}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("fixedCosts.category")}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("fixedCosts.supplier")}</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("common.amount")}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("fixedCosts.interval")}</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("fixedCosts.monthlyShort")}</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t("common.status")}</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {costs.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
-                  Noch keine Fixkosten angelegt.
+                  {t("fixedCosts.noFixedCosts")}
                 </td>
               </tr>
             )}
             {costs.map((c) => {
-              const catLabel = FIXED_COST_CATEGORIES.find((cat) => cat.value === c.category)?.label || c.category;
-              const intLabel = FIXED_COST_INTERVAL_OPTIONS.find((i) => i.value === c.interval)?.label || c.interval;
+              const catLabel = categoryLabelMap[c.category] || c.category;
+              const intLabel = intervalLabelMap[c.interval] || c.interval;
               return (
                 <tr key={c.id} className={`hover:bg-[var(--surface-hover)] transition ${!c.is_active ? "opacity-50" : ""}`}>
                   <td className="px-6 py-4">
@@ -256,7 +274,7 @@ export default function FixedCostsPage() {
                     {c.description && <div className="text-xs text-gray-500">{c.description}</div>}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-400">{catLabel}</td>
-                  <td className="px-6 py-4 text-sm text-gray-400">{c.supplier || "—"}</td>
+                  <td className="px-6 py-4 text-sm text-gray-400">{c.supplier || "\u2014"}</td>
                   <td className="px-6 py-4 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(c.amount)}</td>
                   <td className="px-6 py-4 text-sm text-gray-400">{intLabel}</td>
                   <td className="px-6 py-4 text-sm text-right text-cyan-400">{formatCurrency(getMonthlyAmount(c))}</td>
@@ -267,15 +285,15 @@ export default function FixedCostsPage() {
                         c.is_active ? "bg-emerald-500/15 text-emerald-400" : "bg-gray-500/15 text-gray-500"
                       }`}
                     >
-                      {c.is_active ? "Aktiv" : "Inaktiv"}
+                      {c.is_active ? t("common.active") : t("common.inactive")}
                     </button>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button onClick={() => startEdit(c)} className="text-sm text-[var(--accent)] hover:brightness-110 mr-3">
-                      Bearbeiten
+                      {t("common.edit")}
                     </button>
                     <button onClick={() => handleDelete(c.id)} className="text-sm text-rose-400 hover:text-rose-300">
-                      Löschen
+                      {t("common.delete")}
                     </button>
                   </td>
                 </tr>

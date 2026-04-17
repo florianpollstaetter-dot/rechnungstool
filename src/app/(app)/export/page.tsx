@@ -6,8 +6,10 @@ import { getInvoices, getCustomers, getReceipts, getSettings } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import type { ReceiptImageData } from "@/components/SteuerblattPDF";
+import { useI18n } from "@/lib/i18n-context";
 
 export default function ExportPage() {
+  const { t } = useI18n();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -232,24 +234,24 @@ export default function ExportPage() {
     months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   }
 
-  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Steuerberater-Export</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("export.title")}</h1>
         <div className="flex gap-2">
           <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)]">
             {months.map((m) => <option key={m} value={m}>{m.split("-")[1]}/{m.split("-")[0]}</option>)}
           </select>
           <button onClick={handleExportPDF} disabled={exportingPdf} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
-            {exportingPdf ? "Exportiere PDF..." : "PDF Export"}
+            {exportingPdf ? t("export.exportingPdf") : t("export.pdfExport")}
           </button>
           <button onClick={handleExportCSV} disabled={exporting} className="bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
-            {exporting ? "Exportiere..." : "CSV Export"}
+            {exporting ? t("export.exporting") : t("export.csvExport")}
           </button>
           <button onClick={handleExportDatev} disabled={exportingDatev} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition disabled:opacity-50">
-            {exportingDatev ? "Exportiere..." : "DATEV Export"}
+            {exportingDatev ? t("export.exporting") : t("export.datevExport")}
           </button>
         </div>
       </div>
@@ -257,44 +259,44 @@ export default function ExportPage() {
       {/* Monthly summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-emerald-500 border border-[var(--border)] p-4">
-          <p className="text-sm text-gray-400">Einnahmen brutto</p>
+          <p className="text-sm text-gray-400">{t("export.revenueGross")}</p>
           <p className="text-xl font-bold text-emerald-400">{formatCurrency(totalRevenue)}</p>
-          <p className="text-xs text-gray-500">{monthInvoices.length} Rechnungen</p>
+          <p className="text-xs text-gray-500">{t("export.invoicesCount", { count: monthInvoices.length })}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-orange-500 border border-[var(--border)] p-4">
-          <p className="text-sm text-gray-400">USt Einnahmen</p>
+          <p className="text-sm text-gray-400">{t("export.vatRevenue")}</p>
           <p className="text-xl font-bold text-orange-400">{formatCurrency(totalVAT)}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-rose-500 border border-[var(--border)] p-4">
-          <p className="text-sm text-gray-400">Ausgaben brutto</p>
+          <p className="text-sm text-gray-400">{t("export.expensesGross")}</p>
           <p className="text-xl font-bold text-rose-400">{formatCurrency(totalExpenses)}</p>
-          <p className="text-xs text-gray-500">{monthReceipts.length} Belege</p>
+          <p className="text-xs text-gray-500">{t("export.receiptsCount", { count: monthReceipts.length })}</p>
         </div>
         <div className="bg-[var(--surface)] rounded-xl border-l-4 border-cyan-500 border border-[var(--border)] p-4">
-          <p className="text-sm text-gray-400">Vorsteuer</p>
+          <p className="text-sm text-gray-400">{t("export.inputVat")}</p>
           <p className="text-xl font-bold text-cyan-400">{formatCurrency(totalExpenseVAT)}</p>
-          <p className="text-xs text-gray-500">USt-Zahllast: {formatCurrency(totalVAT - totalExpenseVAT)}</p>
+          <p className="text-xs text-gray-500">{t("export.vatLiability")} {formatCurrency(totalVAT - totalExpenseVAT)}</p>
         </div>
       </div>
 
       {/* Invoices for month */}
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] mb-6 overflow-x-auto">
         <div className="px-6 py-4 border-b border-[var(--border)]">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Ausgangsrechnungen ({selectedMonth.split("-")[1]}/{selectedMonth.split("-")[0]})</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t("export.outgoingInvoices")} ({selectedMonth.split("-")[1]}/{selectedMonth.split("-")[0]})</h2>
         </div>
         {monthInvoices.length === 0 ? (
-          <div className="px-6 py-6 text-center text-gray-500">Keine Rechnungen in diesem Monat.</div>
+          <div className="px-6 py-6 text-center text-gray-500">{t("export.noInvoicesInMonth")}</div>
         ) : (
           <table className="min-w-full divide-y divide-[var(--border)]">
             <thead className="bg-[var(--background)]">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nr.</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Kunde</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Netto</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">USt</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t("export.colNumber")}</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t("export.colCustomer")}</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t("export.colDate")}</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t("export.colNet")}</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t("export.colVat")}</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t("export.colGross")}</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t("export.colStatus")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
@@ -317,21 +319,21 @@ export default function ExportPage() {
       {/* Receipts for month */}
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
         <div className="px-6 py-4 border-b border-[var(--border)]">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Eingangsbelege ({selectedMonth.split("-")[1]}/{selectedMonth.split("-")[0]})</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t("export.incomingReceipts")} ({selectedMonth.split("-")[1]}/{selectedMonth.split("-")[0]})</h2>
         </div>
         {monthReceipts.length === 0 ? (
-          <div className="px-6 py-6 text-center text-gray-500">Keine Belege in diesem Monat.</div>
+          <div className="px-6 py-6 text-center text-gray-500">{t("export.noReceiptsInMonth")}</div>
         ) : (
           <table className="min-w-full divide-y divide-[var(--border)]">
             <thead className="bg-[var(--background)]">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Datei</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Aussteller</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Netto</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">USt</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Konto</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t("export.colFile")}</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t("export.colIssuer")}</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t("export.colDate")}</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t("export.colNet")}</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t("export.colVat")}</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{t("export.colGross")}</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t("export.colAccount")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">

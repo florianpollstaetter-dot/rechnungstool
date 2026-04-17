@@ -8,6 +8,7 @@ import {
   updateCustomer,
   deleteCustomer,
 } from "@/lib/db";
+import { useI18n } from "@/lib/i18n-context";
 
 const emptyCustomer = {
   name: "",
@@ -23,6 +24,7 @@ const emptyCustomer = {
 };
 
 export default function CustomersPage() {
+  const { t } = useI18n();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -80,7 +82,7 @@ export default function CustomersPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Kunde wirklich löschen?")) {
+    if (confirm(t("customers.confirmDelete"))) {
       await deleteCustomer(id);
       await loadCustomers();
     }
@@ -120,26 +122,26 @@ export default function CustomersPage() {
           cost_eur: data.cost?.cost_eur,
         });
       } else {
-        setAiResult({ confidence: "error", source: data.error || "Fehler bei der AI-Recherche" });
+        setAiResult({ confidence: "error", source: data.error || t("customers.aiError") });
       }
     } catch {
-      setAiResult({ confidence: "error", source: "Netzwerkfehler bei der AI-Recherche" });
+      setAiResult({ confidence: "error", source: t("customers.aiNetworkError") });
     } finally {
       setAiLoading(false);
     }
   }
 
   const fields: { key: keyof typeof emptyCustomer; label: string }[] = [
-    { key: "name", label: "Name" },
-    { key: "company", label: "Firma" },
-    { key: "address", label: "Adresse" },
-    { key: "zip", label: "PLZ" },
-    { key: "city", label: "Ort" },
-    { key: "country", label: "Land" },
-    { key: "uid_number", label: "UID-Nummer" },
-    { key: "leitweg_id", label: "Leitweg-ID (XRechnung)" },
-    { key: "email", label: "E-Mail" },
-    { key: "phone", label: "Telefon" },
+    { key: "name", label: t("common.name") },
+    { key: "company", label: t("customers.company") },
+    { key: "address", label: t("common.address") },
+    { key: "zip", label: t("common.zip") },
+    { key: "city", label: t("common.city") },
+    { key: "country", label: t("common.country") },
+    { key: "uid_number", label: t("customers.uidNumber") },
+    { key: "leitweg_id", label: t("customers.leitwegId") },
+    { key: "email", label: t("common.email") },
+    { key: "phone", label: t("common.phone") },
   ];
 
   // When creating new: show only name/company initially
@@ -152,7 +154,7 @@ export default function CustomersPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="text-gray-500">Laden...</div>
+        <div className="text-gray-500">{t("common.loading")}</div>
       </div>
     );
   }
@@ -160,7 +162,7 @@ export default function CustomersPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Kunden</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("customers.title")}</h1>
         <button
           onClick={() => {
             setForm(emptyCustomer);
@@ -171,14 +173,14 @@ export default function CustomersPage() {
           }}
           className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
         >
-          + Neuer Kunde
+          {t("customers.new")}
         </button>
       </div>
 
       {showForm && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-            {editing ? "Kunde bearbeiten" : "Neuer Kunde"}
+            {editing ? t("customers.editCustomer") : t("customers.newCustomer")}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {visibleFields.map((f) => (
@@ -222,7 +224,7 @@ export default function CustomersPage() {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                       />
                     </svg>
-                    Recherchiere...
+                    {t("customers.researching")}
                   </>
                 ) : (
                   <>
@@ -239,7 +241,7 @@ export default function CustomersPage() {
                         d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"
                       />
                     </svg>
-                    AI Vervollstaendigung
+                    {t("customers.aiCompletion")}
                   </>
                 )}
               </button>
@@ -247,7 +249,7 @@ export default function CustomersPage() {
                 onClick={() => setShowAllFields(true)}
                 className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition underline underline-offset-2"
               >
-                Manuell ausfuellen
+                {t("customers.fillManually")}
               </button>
             </div>
           )}
@@ -269,20 +271,20 @@ export default function CustomersPage() {
                 aiResult.source
               ) : (
                 <>
-                  AI-Recherche abgeschlossen
+                  {t("customers.aiCompleted")}
                   {aiResult.confidence && (
                     <span className="ml-2">
-                      (Konfidenz:{" "}
+                      ({t("customers.aiConfidence")}:{" "}
                       {aiResult.confidence === "high"
-                        ? "hoch"
+                        ? t("customers.aiConfidenceHigh")
                         : aiResult.confidence === "medium"
-                        ? "mittel"
-                        : "niedrig"}
+                        ? t("customers.aiConfidenceMedium")
+                        : t("customers.aiConfidenceLow")}
                       )
                     </span>
                   )}
                   {aiResult.source && (
-                    <span className="ml-2 opacity-75">— Quelle: {aiResult.source}</span>
+                    <span className="ml-2 opacity-75">— {t("customers.aiSource")}: {aiResult.source}</span>
                   )}
                   {aiResult.cost_eur != null && (
                     <span className="ml-2 opacity-50">
@@ -299,7 +301,7 @@ export default function CustomersPage() {
               onClick={handleSave}
               className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
             >
-              Speichern
+              {t("common.save")}
             </button>
             <button
               onClick={() => {
@@ -310,7 +312,7 @@ export default function CustomersPage() {
               }}
               className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
             >
-              Abbrechen
+              {t("common.cancel")}
             </button>
           </div>
         </div>
@@ -321,19 +323,19 @@ export default function CustomersPage() {
           <thead className="bg-[var(--background)]">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Firma / Name
+                {t("customers.company")} / {t("common.name")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Adresse
+                {t("common.address")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                UID
+                {t("customers.uidNumber")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Kontakt
+                {t("common.email")}
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Aktionen
+                {t("common.actions")}
               </th>
             </tr>
           </thead>
@@ -341,7 +343,7 @@ export default function CustomersPage() {
             {customers.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                  Noch keine Kunden angelegt.
+                  {t("customers.noCustomers")}
                 </td>
               </tr>
             )}
@@ -370,13 +372,13 @@ export default function CustomersPage() {
                     onClick={() => handleEdit(c)}
                     className="text-sm text-[var(--accent)] hover:brightness-110 mr-3"
                   >
-                    Bearbeiten
+                    {t("common.edit")}
                   </button>
                   <button
                     onClick={() => handleDelete(c.id)}
                     className="text-sm text-rose-400 hover:text-rose-300"
                   >
-                    Löschen
+                    {t("common.delete")}
                   </button>
                 </td>
               </tr>

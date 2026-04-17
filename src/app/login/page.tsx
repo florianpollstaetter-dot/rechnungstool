@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n-context";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -24,7 +26,7 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setError("Anmeldung fehlgeschlagen. Bitte pruefen Sie Ihre Zugangsdaten.");
+      setError(t("login.failed"));
       setLoading(false);
       return;
     }
@@ -47,7 +49,7 @@ export default function LoginPage() {
         >
           <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-              E-Mail
+              {t("login.email")}
             </label>
             <input
               type="email"
@@ -60,7 +62,7 @@ export default function LoginPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-              Passwort
+              {t("login.password")}
             </label>
             <input
               type="password"
@@ -80,14 +82,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition"
           >
-            {loading ? "Anmelden..." : "Anmelden"}
+            {loading ? t("login.submitting") : t("login.submit")}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-4">
-          Noch kein Konto?{" "}
+          {t("login.noAccount")}{" "}
           <Link href="/register" className="text-[var(--accent)] hover:underline font-medium">
-            Jetzt registrieren
+            {t("login.register")}
           </Link>
         </p>
       </div>

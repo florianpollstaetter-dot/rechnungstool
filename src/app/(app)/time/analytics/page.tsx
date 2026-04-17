@@ -6,6 +6,7 @@ import { TimeEntry, UserWorkSchedule, WEEKDAY_LABELS } from "@/lib/types";
 import { getTimeEntries, getCurrentUserWorkSchedules } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { TabButton } from "@/components/TabButton";
+import { useI18n } from "@/lib/i18n-context";
 
 const COLOR_PALETTE = [
   "#10b981", "#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444", "#06b6d4", "#ec4899",
@@ -69,6 +70,7 @@ function formatDayRange(start: Date, end: Date): string {
 }
 
 export default function AnalyticsPage() {
+  const { t } = useI18n();
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [schedule, setSchedule] = useState<UserWorkSchedule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -333,7 +335,7 @@ export default function AnalyticsPage() {
   const nonBillableMinutes = periodWorkTotal - billableMinutes;
 
   if (loading) {
-    return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
+    return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
   }
 
   // Chart scaling: bar heights anchored to target-or-max so the target line always sits at a sensible location.
@@ -375,13 +377,13 @@ export default function AnalyticsPage() {
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div>
-          <Link href="/time" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; Zurück</Link>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Auswertungen</h1>
+          <Link href="/time" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; {t("time.backToTime")}</Link>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("time.analyticsTitle")}</h1>
         </div>
         <div className="flex gap-0.5 px-0.5 pb-1 border-b border-[var(--border)]">
           {(["week", "month", "year"] as const).map((p) => (
             <TabButton key={p} active={period === p} onClick={() => setPeriod(p)}>
-              {p === "week" ? "Woche" : p === "month" ? "Monat" : "Jahr"}
+              {p === "week" ? t("common.week") : p === "month" ? t("common.month") : t("common.year")}
             </TabButton>
           ))}
         </div>
@@ -393,13 +395,13 @@ export default function AnalyticsPage() {
         <div className="text-center">
           <p className="text-sm font-semibold text-[var(--text-primary)]">{periodHeaderLabel}</p>
           {period === "week" && !isCurrentWeek && (
-            <button onClick={gotoNow} className="text-[10px] text-[var(--brand-orange)] hover:underline">Zurück zu heute</button>
+            <button onClick={gotoNow} className="text-[10px] text-[var(--brand-orange)] hover:underline">{t("time.backToToday")}</button>
           )}
           {period === "month" && monthOffset !== 0 && (
-            <button onClick={gotoNow} className="text-[10px] text-[var(--brand-orange)] hover:underline">Zurück zu heute</button>
+            <button onClick={gotoNow} className="text-[10px] text-[var(--brand-orange)] hover:underline">{t("time.backToToday")}</button>
           )}
           {period === "year" && yearOffset !== 0 && (
-            <button onClick={gotoNow} className="text-[10px] text-[var(--brand-orange)] hover:underline">Zurück zu heute</button>
+            <button onClick={gotoNow} className="text-[10px] text-[var(--brand-orange)] hover:underline">{t("time.backToToday")}</button>
           )}
         </div>
         <button onClick={gotoNext} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm px-2 py-1 rounded hover:bg-[var(--surface-hover)] transition" title="Weiter">&rarr;</button>
@@ -408,38 +410,38 @@ export default function AnalyticsPage() {
       {/* Top summary cards: Stunden gesamt + Saldo + (period-specific extras) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4">
-          <p className="text-xs text-[var(--text-muted)]">Stunden gesamt</p>
+          <p className="text-xs text-[var(--text-muted)]">{t("time.hoursTotal")}</p>
           <p className="text-2xl font-bold text-[var(--text-primary)]">{formatDuration(workForPeriod)}</p>
           {hasSchedule && (
-            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">Soll bisher: {formatDuration(targetToDateForPeriod)}</p>
+            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{t("time.targetSoFar")} {formatDuration(targetToDateForPeriod)}</p>
           )}
         </div>
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4">
-          <p className="text-xs text-[var(--text-muted)]">Saldo</p>
+          <p className="text-xs text-[var(--text-muted)]">{t("time.saldo")}</p>
           {hasSchedule ? (
             <p className={`text-2xl font-bold ${saldoForPeriod >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
               {formatSaldo(saldoForPeriod)}
             </p>
           ) : (
-            <p className="text-sm text-[var(--text-muted)] italic">Kein Arbeitszeitmodell gesetzt</p>
+            <p className="text-sm text-[var(--text-muted)] italic">{t("time.noSchedule")}</p>
           )}
           {hasSchedule && (
-            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">vs. Soll bis heute</p>
+            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{t("time.vsTargetToday")}</p>
           )}
         </div>
         {period === "week" && hasSchedule && (
           <>
             <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4">
-              <p className="text-xs text-[var(--text-muted)]">Noch aufzuholen</p>
+              <p className="text-xs text-[var(--text-muted)]">{t("time.catchUp")}</p>
               <p className={`text-2xl font-bold ${weekCatchUp > 0 ? "text-[var(--brand-orange)]" : "text-emerald-400"}`}>
                 {weekCatchUp > 0 ? formatDuration(weekCatchUp) : "0h"}
               </p>
               <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                {weekCatchUp > 0 ? `bis KW-Soll (${formatDuration(weekTargetMinutes)})` : "Wochen-Soll erreicht"}
+                {weekCatchUp > 0 ? t("time.untilWeekTarget", { target: formatDuration(weekTargetMinutes) }) : t("time.weekTargetReached")}
               </p>
             </div>
             <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4">
-              <p className="text-xs text-[var(--text-muted)]">Prognose KW-Saldo</p>
+              <p className="text-xs text-[var(--text-muted)]">{t("time.forecastWeekSaldo")}</p>
               {weekForecast ? (
                 <p className={`text-2xl font-bold ${weekForecast.balance >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                   {formatSaldo(weekForecast.balance)}
@@ -447,24 +449,24 @@ export default function AnalyticsPage() {
               ) : (
                 <p className="text-sm text-[var(--text-muted)] italic">—</p>
               )}
-              <p className="text-[10px] text-[var(--text-muted)] mt-0.5">bei Pensum für Resttage</p>
+              <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{t("time.atPensumForRemaining")}</p>
             </div>
           </>
         )}
         {period !== "week" && (
           <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4">
-            <p className="text-xs text-[var(--text-muted)]">Abrechenbar</p>
+            <p className="text-xs text-[var(--text-muted)]">{t("time.billable")}</p>
             <p className="text-2xl font-bold text-emerald-400">{formatDuration(billableMinutes)}</p>
             <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
-              {periodWorkTotal > 0 ? Math.round(billableMinutes / periodWorkTotal * 100) : 0}% der Stunden
+              {periodWorkTotal > 0 ? Math.round(billableMinutes / periodWorkTotal * 100) : 0}% {t("time.ofHours")}
             </p>
           </div>
         )}
         {period !== "week" && (
           <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4">
-            <p className="text-xs text-[var(--text-muted)]">Projekte</p>
+            <p className="text-xs text-[var(--text-muted)]">{t("time.projects")}</p>
             <p className="text-2xl font-bold text-[var(--text-primary)]">{projectTotals.length}</p>
-            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">im Zeitraum</p>
+            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{t("time.inPeriod")}</p>
           </div>
         )}
       </div>
@@ -474,9 +476,9 @@ export default function AnalyticsPage() {
           {/* Week chart with target indicator */}
           <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5 mb-4">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-sm font-semibold text-[var(--text-primary)]">Wochenchart</h2>
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t("time.weekChart")}</h2>
               {weekPauseTotal > 0 && (
-                <span className="text-[10px] text-amber-400/80">+ {formatDuration(weekPauseTotal)} Pause</span>
+                <span className="text-[10px] text-amber-400/80">+ {formatDuration(weekPauseTotal)} {t("time.pause")}</span>
               )}
             </div>
             <div className="flex items-end gap-2 h-52 relative pt-6">
@@ -525,7 +527,7 @@ export default function AnalyticsPage() {
                         <div
                           className="w-full"
                           style={{ height: `${overPart}px`, backgroundColor: "#f59e0b", borderRadius: "0.375rem 0.375rem 0 0" }}
-                          title="Über Soll"
+                          title={t("time.overTarget")}
                         />
                       )}
                     </div>
@@ -538,11 +540,11 @@ export default function AnalyticsPage() {
             </div>
             {hasSchedule && (
               <div className="flex flex-wrap gap-3 mt-3 text-[10px] text-[var(--text-muted)]">
-                <span className="inline-flex items-center gap-1"><span className="w-3 h-2 rounded-sm" style={{ backgroundColor: "#3b82f6" }} />unter Soll</span>
-                <span className="inline-flex items-center gap-1"><span className="w-3 h-2 rounded-sm" style={{ backgroundColor: "#10b981" }} />Soll erreicht</span>
-                <span className="inline-flex items-center gap-1"><span className="w-3 h-2 rounded-sm" style={{ backgroundColor: "#f59e0b" }} />über Soll</span>
-                <span className="inline-flex items-center gap-1"><span className="w-3 h-2 rounded-sm" style={{ backgroundColor: "var(--brand-orange)" }} />heute</span>
-                <span className="inline-flex items-center gap-1"><span className="w-3 h-[2px] bg-[var(--text-muted)]/60" style={{ borderTop: "2px dashed" }} />Tagessoll</span>
+                <span className="inline-flex items-center gap-1"><span className="w-3 h-2 rounded-sm" style={{ backgroundColor: "#3b82f6" }} />{t("time.belowTarget")}</span>
+                <span className="inline-flex items-center gap-1"><span className="w-3 h-2 rounded-sm" style={{ backgroundColor: "#10b981" }} />{t("time.targetReached")}</span>
+                <span className="inline-flex items-center gap-1"><span className="w-3 h-2 rounded-sm" style={{ backgroundColor: "#f59e0b" }} />{t("time.aboveTarget")}</span>
+                <span className="inline-flex items-center gap-1"><span className="w-3 h-2 rounded-sm" style={{ backgroundColor: "var(--brand-orange)" }} />{t("time.todayLabel")}</span>
+                <span className="inline-flex items-center gap-1"><span className="w-3 h-[2px] bg-[var(--text-muted)]/60" style={{ borderTop: "2px dashed" }} />{t("time.dailyTarget")}</span>
               </div>
             )}
           </div>
@@ -552,40 +554,40 @@ export default function AnalyticsPage() {
             <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5 mb-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-[10px] uppercase text-[var(--text-muted)] tracking-wide">Tagesdetail</p>
+                  <p className="text-[10px] uppercase text-[var(--text-muted)] tracking-wide">{t("time.dayDetail")}</p>
                   <h2 className="text-sm font-semibold text-[var(--text-primary)]">
                     {selectedDay.date.toLocaleDateString("de-AT", { weekday: "long", day: "2-digit", month: "long" })}
-                    {selectedDay.isToday && <span className="text-[var(--brand-orange)] ml-2">· heute</span>}
+                    {selectedDay.isToday && <span className="text-[var(--brand-orange)] ml-2">· {t("time.todayLabel")}</span>}
                   </h2>
                 </div>
                 {!isCurrentWeek || !selectedDay.isToday ? null : (
-                  <Link href="/time" className="text-[10px] text-[var(--brand-orange)] hover:underline">Zur Zeiterfassung &rarr;</Link>
+                  <Link href="/time" className="text-[10px] text-[var(--brand-orange)] hover:underline">{t("time.toTimeTracking")} &rarr;</Link>
                 )}
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
-                  <p className="text-[10px] text-[var(--text-muted)]">Gesamt</p>
+                  <p className="text-[10px] text-[var(--text-muted)]">{t("time.dayTotal")}</p>
                   <p className="text-lg font-bold text-[var(--text-primary)]">{formatDuration(selectedDay.work + selectedDay.pause)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-[var(--text-muted)]">Arbeitszeit</p>
+                  <p className="text-[10px] text-[var(--text-muted)]">{t("time.dayWork")}</p>
                   <p className="text-lg font-bold text-[var(--text-primary)]">{formatDuration(selectedDay.work)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-[var(--text-muted)]">Saldo</p>
+                  <p className="text-[10px] text-[var(--text-muted)]">{t("time.saldo")}</p>
                   {selectedDay.target > 0 ? (
                     <p className={`text-lg font-bold ${selectedDay.saldo >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                       {formatSaldo(selectedDay.saldo)}
                     </p>
                   ) : (
-                    <p className="text-sm text-[var(--text-muted)] italic">kein Soll</p>
+                    <p className="text-sm text-[var(--text-muted)] italic">{t("time.noTarget")}</p>
                   )}
                   {selectedDay.target > 0 && (
-                    <p className="text-[10px] text-[var(--text-muted)]">Soll {formatDuration(selectedDay.target)}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">{t("time.targetLabel")} {formatDuration(selectedDay.target)}</p>
                   )}
                 </div>
                 <div>
-                  <p className="text-[10px] text-[var(--text-muted)]">Pause</p>
+                  <p className="text-[10px] text-[var(--text-muted)]">{t("time.dayPause")}</p>
                   <p className="text-lg font-bold text-amber-400">{selectedDay.pause > 0 ? formatDuration(selectedDay.pause) : "—"}</p>
                 </div>
               </div>
@@ -596,7 +598,7 @@ export default function AnalyticsPage() {
 
       {period === "month" && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5 mb-4">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Monatsübersicht</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-4">{t("time.monthOverview")}</h2>
           <div className="flex items-end gap-[3px] h-40">
             {monthDayStats.map((d) => {
               const max = Math.max(...monthDayStats.map((x) => Math.max(x.work, x.target)), 60);
@@ -622,7 +624,7 @@ export default function AnalyticsPage() {
 
       {period === "year" && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5 mb-4">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Jahresübersicht</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-4">{t("time.yearOverview")}</h2>
           <div className="flex items-end gap-2 h-40">
             {yearMonthStats.map((m) => {
               const max = Math.max(...yearMonthStats.map((x) => Math.max(x.work, x.target)), 60);
@@ -651,9 +653,9 @@ export default function AnalyticsPage() {
       {/* Project pie + billable breakdown — always shown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Projekte</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-4">{t("time.projects")}</h2>
           {projectTotals.length === 0 ? (
-            <p className="text-sm text-[var(--text-muted)] italic">Keine Einträge im Zeitraum.</p>
+            <p className="text-sm text-[var(--text-muted)] italic">{t("time.noEntriesInPeriod")}</p>
           ) : (
             <div className="flex items-center gap-6">
               <svg width="120" height="120" viewBox="0 0 120 120" className="shrink-0">
@@ -668,7 +670,7 @@ export default function AnalyticsPage() {
                   });
                 })()}
                 <text x="60" y="56" textAnchor="middle" className="text-xs font-bold" fill="var(--text-primary)">{formatDuration(periodWorkTotal)}</text>
-                <text x="60" y="70" textAnchor="middle" className="text-[9px]" fill="var(--text-muted)">Gesamt</text>
+                <text x="60" y="70" textAnchor="middle" className="text-[9px]" fill="var(--text-muted)">{t("common.total")}</text>
               </svg>
               <div className="space-y-1.5 flex-1 max-h-[120px] overflow-y-auto">
                 {projectTotals.map(([project, mins], i) => (
@@ -684,9 +686,9 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Abrechenbar vs. Intern</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-4">{t("time.billableVsInternal")}</h2>
           {periodWorkTotal === 0 ? (
-            <p className="text-sm text-[var(--text-muted)] italic">Keine Einträge im Zeitraum.</p>
+            <p className="text-sm text-[var(--text-muted)] italic">{t("time.noEntriesInPeriod")}</p>
           ) : (
             <div className="flex items-center gap-4">
               <div className="flex-1 h-6 bg-[var(--border)] rounded-full overflow-hidden flex">
@@ -696,11 +698,11 @@ export default function AnalyticsPage() {
               <div className="flex flex-col gap-1 text-xs shrink-0">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span className="text-[var(--text-secondary)]">Abrechenbar {Math.round(billableMinutes / periodWorkTotal * 100)}%</span>
+                  <span className="text-[var(--text-secondary)]">{t("time.billableLabel")} {Math.round(billableMinutes / periodWorkTotal * 100)}%</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-gray-500" />
-                  <span className="text-[var(--text-secondary)]">Intern {Math.round(nonBillableMinutes / periodWorkTotal * 100)}%</span>
+                  <span className="text-[var(--text-secondary)]">{t("time.internalLabel")} {Math.round(nonBillableMinutes / periodWorkTotal * 100)}%</span>
                 </div>
               </div>
             </div>
@@ -710,7 +712,7 @@ export default function AnalyticsPage() {
 
       {!hasSchedule && (
         <div className="bg-[var(--brand-orange-dim)] border border-[var(--brand-orange)]/40 rounded-xl p-4 text-sm text-[var(--text-secondary)]">
-          <strong className="text-[var(--brand-orange)]">Hinweis:</strong> Für Saldo, Soll und Prognose muss ein Arbeitszeitmodell hinterlegt werden. Admins können das im Bereich <Link href="/admin" className="underline hover:text-[var(--text-primary)]">Benutzerverwaltung</Link> pro Mitarbeiter konfigurieren.
+          <strong className="text-[var(--brand-orange)]">{t("common.hint")}</strong> {t("time.scheduleHintBefore")}<Link href="/admin" className="underline hover:text-[var(--text-primary)]">{t("time.scheduleHintLink")}</Link>{t("time.scheduleHintAfter")}
         </div>
       )}
     </div>

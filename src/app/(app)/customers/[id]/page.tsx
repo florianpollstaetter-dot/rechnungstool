@@ -6,8 +6,10 @@ import Link from "next/link";
 import { Customer, Invoice, Quote, Receipt } from "@/lib/types";
 import { getCustomer, getInvoices, getQuotes, getReceipts } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
+import { useI18n } from "@/lib/i18n-context";
 
 export default function CustomerDetailPage() {
+  const { t } = useI18n();
   const params = useParams();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -31,8 +33,8 @@ export default function CustomerDetailPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
-  if (!customer) return <div className="text-center py-12 text-gray-500">Kunde nicht gefunden.</div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
+  if (!customer) return <div className="text-center py-12 text-gray-500">{t("customers.notFound")}</div>;
 
   const totalRevenue = invoices.filter((i) => i.status === "bezahlt").reduce((s, i) => s + i.total, 0);
   const totalOpen = invoices.filter((i) => ["offen", "teilbezahlt", "ueberfaellig"].includes(i.status)).reduce((s, i) => s + i.total, 0);
@@ -50,14 +52,14 @@ export default function CustomerDetailPage() {
   });
 
   const tabs = [
-    { key: "invoices" as const, label: `Rechnungen (${invoices.length})` },
-    { key: "quotes" as const, label: `Angebote (${quotes.length})` },
-    { key: "receipts" as const, label: `Belege (${receipts.length})` },
+    { key: "invoices" as const, label: `${t("customerDetail.invoices")} (${invoices.length})` },
+    { key: "quotes" as const, label: `${t("customerDetail.quotes")} (${quotes.length})` },
+    { key: "receipts" as const, label: `${t("customerDetail.receipts")} (${receipts.length})` },
   ];
 
   return (
     <div>
-      <Link href="/customers" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; Zurück zu Kunden</Link>
+      <Link href="/customers" className="text-sm text-gray-500 hover:text-[var(--text-secondary)] transition">&larr; {t("customerDetail.backToCustomers")}</Link>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-2 mb-6">
         <div>
@@ -68,11 +70,11 @@ export default function CustomerDetailPage() {
         </div>
         <div className="flex gap-3">
           <div className="text-right">
-            <p className="text-xs text-[var(--text-muted)]">Umsatz (bezahlt)</p>
+            <p className="text-xs text-[var(--text-muted)]">{t("customerDetail.revenuePaid")}</p>
             <p className="text-lg font-bold text-emerald-400">{formatCurrency(totalRevenue)}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-[var(--text-muted)]">Offen</p>
+            <p className="text-xs text-[var(--text-muted)]">{t("customerDetail.open")}</p>
             <p className="text-lg font-bold text-amber-400">{formatCurrency(totalOpen)}</p>
           </div>
         </div>
@@ -88,7 +90,7 @@ export default function CustomerDetailPage() {
           ))}
         </div>
         <div className="sm:ml-auto">
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Suche..." className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full sm:w-56" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t("common.search")} className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full sm:w-56" />
         </div>
       </div>
 
@@ -98,16 +100,16 @@ export default function CustomerDetailPage() {
           <table className="min-w-full divide-y divide-[var(--border)]">
             <thead className="bg-[var(--background)]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nr.</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Projekt</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">USt</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("invoices.numberShort")}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.date")}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("invoiceNew.projectDescription")}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("common.gross")}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("common.vat")}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.status")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
-              {filteredInvoices.length === 0 && <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-500">Keine Rechnungen.</td></tr>}
+              {filteredInvoices.length === 0 && <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-500">{t("customerDetail.noInvoices")}</td></tr>}
               {filteredInvoices.sort((a, b) => b.invoice_date.localeCompare(a.invoice_date)).map((inv) => {
                 const statusStyle = inv.status === "bezahlt" ? "bg-emerald-500/15 text-emerald-400"
                   : inv.status === "teilbezahlt" ? "bg-cyan-500/15 text-cyan-400"
@@ -135,15 +137,15 @@ export default function CustomerDetailPage() {
           <table className="min-w-full divide-y divide-[var(--border)]">
             <thead className="bg-[var(--background)]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nr.</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Projekt</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("invoices.numberShort")}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.date")}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("invoiceNew.projectDescription")}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("common.gross")}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.status")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
-              {filteredQuotes.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-500">Keine Angebote.</td></tr>}
+              {filteredQuotes.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-500">{t("customerDetail.noQuotes")}</td></tr>}
               {filteredQuotes.sort((a, b) => b.quote_date.localeCompare(a.quote_date)).map((q) => (
                 <tr key={q.id} className="hover:bg-[var(--surface-hover)] transition cursor-pointer" onClick={() => window.location.href = `/quotes/${q.id}`}>
                   <td className="px-4 py-3 text-sm font-medium text-[var(--accent)]">{q.quote_number}</td>
@@ -164,13 +166,13 @@ export default function CustomerDetailPage() {
           <table className="min-w-full divide-y divide-[var(--border)]">
             <thead className="bg-[var(--background)]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Beleg</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Brutto</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("customerDetail.receipts")}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.date")}</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("common.gross")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
-              {receipts.length === 0 && <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-500">Keine zugeordneten Belege.</td></tr>}
+              {receipts.length === 0 && <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-500">{t("customerDetail.noReceipts")}</td></tr>}
               {receipts.map((r) => (
                 <tr key={r.id} className="hover:bg-[var(--surface-hover)] transition">
                   <td className="px-4 py-3 text-sm text-[var(--text-primary)]">{r.purpose || r.file_name}</td>

@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { Product, UNIT_OPTIONS, UnitType, CompanyRole } from "@/lib/types";
 import { getProducts, createProduct, updateProduct, deleteProduct, getCompanyRoles } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
+import { useI18n } from "@/lib/i18n-context";
 
 export default function ProductsPage() {
+  const { t } = useI18n();
   const [products, setProducts] = useState<Product[]>([]);
   const [roles, setRoles] = useState<CompanyRole[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +71,7 @@ export default function ProductsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Produkt wirklich löschen?")) {
+    if (confirm(t("products.confirmDelete"))) {
       await deleteProduct(id);
       await loadData();
     }
@@ -83,7 +85,7 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="text-gray-500">Laden...</div>
+        <div className="text-gray-500">{t("common.loading")}</div>
       </div>
     );
   }
@@ -93,23 +95,23 @@ export default function ProductsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Produkte</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("products.title")}</h1>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
           className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
         >
-          + Neues Produkt
+          {t("products.new")}
         </button>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-            {editingId ? "Produkt bearbeiten" : "Neues Produkt"}
+            {editingId ? t("products.editProduct") : t("products.newProduct")}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Name (DE) *</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("products.nameDe")}</label>
               <input
                 type="text"
                 value={form.name}
@@ -119,7 +121,7 @@ export default function ProductsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Name (EN)</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("products.nameEn")}</label>
               <input
                 type="text"
                 value={form.name_en}
@@ -129,7 +131,7 @@ export default function ProductsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Beschreibung (DE)</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("products.descriptionDe")}</label>
               <input
                 type="text"
                 value={form.description}
@@ -138,7 +140,7 @@ export default function ProductsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Beschreibung (EN)</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("products.descriptionEn")}</label>
               <input
                 type="text"
                 value={form.description_en}
@@ -148,7 +150,7 @@ export default function ProductsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Einheit</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("products.unit")}</label>
               <select
                 value={form.unit}
                 onChange={(e) => setForm({ ...form, unit: e.target.value as UnitType })}
@@ -160,7 +162,7 @@ export default function ProductsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Preis pro Einheit</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("products.pricePerUnit")}</label>
               <input
                 type="number"
                 value={form.unit_price}
@@ -173,7 +175,7 @@ export default function ProductsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">USt-Satz (%)</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("common.vatRate")}</label>
               <input
                 type="number"
                 value={form.tax_rate}
@@ -182,13 +184,13 @@ export default function ProductsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Rolle</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("products.role")}</label>
               <select
                 value={form.role_id}
                 onChange={(e) => setForm({ ...form, role_id: e.target.value })}
                 className={inputClass}
               >
-                <option value="">Keine Rolle</option>
+                <option value="">{t("products.noRole")}</option>
                 {roles.map((r) => (
                   <option key={r.id} value={r.id}>{r.name}</option>
                 ))}
@@ -202,7 +204,7 @@ export default function ProductsPage() {
                   onChange={(e) => setForm({ ...form, active: e.target.checked })}
                   className="rounded accent-[var(--accent)]"
                 />
-                Aktiv
+                {t("common.active")}
               </label>
             </div>
           </div>
@@ -211,14 +213,14 @@ export default function ProductsPage() {
               type="submit"
               className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
             >
-              {editingId ? "Speichern" : "Erstellen"}
+              {editingId ? t("common.save") : t("common.create")}
             </button>
             <button
               type="button"
               onClick={resetForm}
               className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
             >
-              Abbrechen
+              {t("common.cancel")}
             </button>
           </div>
         </form>
@@ -228,21 +230,21 @@ export default function ProductsPage() {
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name (EN)</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Einheit</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Preis</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">USt</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rolle</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aktionen</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("common.name")}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("products.nameEn")}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("products.unit")}</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("products.pricePerUnit")}</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("common.vat")}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("products.role")}</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t("common.status")}</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {products.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
-                  Noch keine Produkte angelegt.
+                  {t("products.noProducts")}
                 </td>
               </tr>
             )}
@@ -259,7 +261,7 @@ export default function ProductsPage() {
                       {p.description_en && <div className="text-xs text-gray-500">{p.description_en}</div>}
                     </>
                   ) : (
-                    <span className="text-xs text-gray-600 italic">nicht gesetzt</span>
+                    <span className="text-xs text-gray-600 italic">{t("products.notSet")}</span>
                   )}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-400">
@@ -277,7 +279,7 @@ export default function ProductsPage() {
                       p.active ? "bg-emerald-500/15 text-emerald-400" : "bg-gray-500/15 text-gray-500"
                     }`}
                   >
-                    {p.active ? "Aktiv" : "Inaktiv"}
+                    {p.active ? t("common.active") : t("common.inactive")}
                   </button>
                 </td>
                 <td className="px-6 py-4 text-right">
@@ -285,13 +287,13 @@ export default function ProductsPage() {
                     onClick={() => startEdit(p)}
                     className="text-sm text-[var(--accent)] hover:brightness-110 mr-3"
                   >
-                    Bearbeiten
+                    {t("common.edit")}
                   </button>
                   <button
                     onClick={() => handleDelete(p.id)}
                     className="text-sm text-rose-400 hover:text-rose-300"
                   >
-                    Löschen
+                    {t("common.delete")}
                   </button>
                 </td>
               </tr>

@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n-context";
 
 const VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
 const BUILD_DATE =
@@ -9,6 +12,7 @@ const linkClass =
   "text-[var(--text-secondary)] hover:text-[var(--brand-orange)] transition-colors text-sm";
 
 export function AppFooter() {
+  const { t } = useI18n();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -37,18 +41,18 @@ export function AppFooter() {
 
           {/* Links distributed across remaining width */}
           <nav className="flex flex-wrap items-center justify-center sm:justify-around gap-x-6 gap-y-2 flex-1 text-sm">
-            <Link href="/impressum" className={linkClass}>Impressum</Link>
-            <Link href="/agb" className={linkClass}>AGB</Link>
-            <Link href="/datenschutz" className={linkClass}>Datenschutz</Link>
-            <Link href="/settings" className={linkClass}>Einstellungen</Link>
-            <a href="mailto:office@vrthefans.com" className={linkClass}>Kontakt</a>
+            <Link href="/impressum" className={linkClass}>{t("footer.imprint")}</Link>
+            <Link href="/agb" className={linkClass}>{t("footer.terms")}</Link>
+            <Link href="/datenschutz" className={linkClass}>{t("footer.privacy")}</Link>
+            <Link href="/settings" className={linkClass}>{t("footer.settings")}</Link>
+            <a href="mailto:office@vrthefans.com" className={linkClass}>{t("footer.contact")}</a>
           </nav>
         </div>
 
         {/* Bottom bar */}
         <div className="border-t border-[var(--border)] mt-3 pt-2">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-1 text-xs text-[var(--text-muted)]">
-            <p>&copy; {currentYear} VR the Fans GmbH. Alle Rechte vorbehalten.</p>
+            <p>&copy; {currentYear} VR the Fans GmbH. {t("footer.allRightsReserved")}</p>
             <p className="font-mono">
               v{VERSION} &middot; Build {BUILD_DATE}
             </p>

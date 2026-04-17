@@ -4,11 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n-context";
 
 type Step = "credentials" | "company";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [step, setStep] = useState<Step>("credentials");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,11 +34,11 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     if (password.length < 8) {
-      setError("Passwort muss mindestens 8 Zeichen lang sein.");
+      setError(t("register.passwordTooShort"));
       return;
     }
     if (password !== passwordConfirm) {
-      setError("Passwörter stimmen nicht überein.");
+      setError(t("register.passwordMismatch"));
       return;
     }
     setStep("company");
@@ -48,7 +50,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     if (!companyName.trim()) {
-      setError("Bitte geben Sie einen Firmennamen ein.");
+      setError(t("register.enterCompanyName"));
       setLoading(false);
       return;
     }
@@ -71,14 +73,14 @@ export default function RegisterPage() {
 
     if (signUpError) {
       setError(signUpError.message === "User already registered"
-        ? "Diese E-Mail ist bereits registriert."
-        : `Registrierung fehlgeschlagen: ${signUpError.message}`);
+        ? t("register.emailExists")
+        : `${t("register.registrationFailed")} ${signUpError.message}`);
       setLoading(false);
       return;
     }
 
     if (!signUpData.user) {
-      setError("Registrierung fehlgeschlagen.");
+      setError(t("register.registrationFailedGeneric"));
       setLoading(false);
       return;
     }
@@ -97,7 +99,7 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "Firmen-Setup fehlgeschlagen");
+        throw new Error(body.error || t("register.companySetupFailed"));
       }
     } catch (err) {
       // Company setup failed but user is created — they can still log in
@@ -119,7 +121,7 @@ export default function RegisterPage() {
       <div className="max-w-sm w-full">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">Orange Octo</h1>
-          <p className="text-sm text-gray-500 mt-1">Konto erstellen</p>
+          <p className="text-sm text-gray-500 mt-1">{t("register.title")}</p>
         </div>
 
         {step === "credentials" && (
@@ -128,22 +130,22 @@ export default function RegisterPage() {
             className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Name</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.name")}</label>
               <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
                 className={inputClass} placeholder="Max Mustermann" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">E-Mail</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.email")}</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                 className={inputClass} placeholder="max@firma.at" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Passwort</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.password")}</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
                 className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Passwort bestätigen</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.confirmPassword")}</label>
               <input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required
                 className={inputClass} />
             </div>
@@ -152,7 +154,7 @@ export default function RegisterPage() {
 
             <button type="submit"
               className="w-full bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">
-              Weiter
+              {t("register.next")}
             </button>
           </form>
         )}
@@ -163,10 +165,10 @@ export default function RegisterPage() {
             className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 space-y-4"
           >
             <p className="text-sm text-[var(--text-secondary)] mb-2">
-              Erstellen Sie Ihre Firma. Sie können die Details später in den Einstellungen ergänzen.
+              {t("register.companySetupHint")}
             </p>
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Firmenname</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.companyName")}</label>
               <input type="text" value={companyName} onChange={(e) => {
                 setCompanyName(e.target.value);
                 if (!companySlug || companySlug === generateSlug(companyName)) {
@@ -176,7 +178,7 @@ export default function RegisterPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                Firmen-Kürzel <span className="text-gray-500 font-normal">(URL-freundlich)</span>
+                {t("register.companySlug")} <span className="text-gray-500 font-normal">{t("register.slugHint")}</span>
               </label>
               <input type="text" value={companySlug} onChange={(e) => setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                 className={inputClass} placeholder="meine-firma" maxLength={30} />
@@ -184,7 +186,7 @@ export default function RegisterPage() {
 
             <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
               <p className="text-xs text-emerald-400">
-                14 Tage kostenlos testen — keine Zahlungsdaten nötig.
+                {t("register.trialHint")}
               </p>
             </div>
 
@@ -193,20 +195,20 @@ export default function RegisterPage() {
             <div className="flex gap-3">
               <button type="button" onClick={() => setStep("credentials")}
                 className="flex-1 border border-[var(--border)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--surface-hover)] transition">
-                Zurück
+                {t("register.back")}
               </button>
               <button type="submit" disabled={loading}
                 className="flex-1 bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
-                {loading ? "Erstelle..." : "Firma erstellen"}
+                {loading ? t("register.submitting") : t("register.submit")}
               </button>
             </div>
           </form>
         )}
 
         <p className="text-center text-sm text-gray-500 mt-4">
-          Bereits ein Konto?{" "}
+          {t("register.hasAccount")}{" "}
           <Link href="/login" className="text-[var(--accent)] hover:underline font-medium">
-            Anmelden
+            {t("register.login")}
           </Link>
         </p>
       </div>
