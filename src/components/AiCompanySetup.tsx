@@ -34,10 +34,23 @@ interface SuggestedProduct {
   role_name: string | null;
 }
 
+export interface SuggestedCompanyData {
+  address: string | null;
+  zip: string | null;
+  city: string | null;
+  phone: string | null;
+  email: string | null;
+  uid: string | null;
+  website: string | null;
+  industry: string | null;
+  description: string | null;
+}
+
 interface Suggestions {
   detected_industry: string;
   confidence: "high" | "medium" | "low";
   reasoning: string;
+  suggested_company_data?: SuggestedCompanyData;
   suggested_roles: SuggestedRole[];
   suggested_departments: SuggestedDepartment[];
   suggested_products: SuggestedProduct[];
@@ -72,9 +85,10 @@ interface AiCompanySetupProps {
   industry?: string;
   website?: string;
   description?: string;
+  onCompanyDataFilled?: (data: Partial<SuggestedCompanyData>) => void;
 }
 
-export default function AiCompanySetup({ companyName, industry: initialIndustry, website: initialWebsite, description: initialDescription }: AiCompanySetupProps) {
+export default function AiCompanySetup({ companyName, industry: initialIndustry, website: initialWebsite, description: initialDescription, onCompanyDataFilled }: AiCompanySetupProps) {
   const { company } = useCompany();
 
   // Form fields — pre-filled from company settings
@@ -106,6 +120,9 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
   // Editable roles state: index → edited fields
   const [editingRoleIdx, setEditingRoleIdx] = useState<number | null>(null);
   const [editedRole, setEditedRole] = useState<SuggestedRole | null>(null);
+
+  // Company data field selections
+  const [selectedCompanyFields, setSelectedCompanyFields] = useState<Set<string>>(new Set());
 
   // Manual role addition
   const [showAddRole, setShowAddRole] = useState(false);
@@ -154,6 +171,16 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
       // Select all by default
       setSelectedRoles(new Set(data.suggestions.suggested_roles.map((_, i) => i)));
       setSelectedProducts(new Set(data.suggestions.suggested_products.map((_, i) => i)));
+
+      // Auto-select company data fields that have non-null values
+      if (data.suggestions.suggested_company_data) {
+        const cd = data.suggestions.suggested_company_data;
+        const fields = new Set<string>();
+        for (const [key, val] of Object.entries(cd)) {
+          if (val) fields.add(key);
+        }
+        setSelectedCompanyFields(fields);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unbekannter Fehler");
     } finally {
@@ -273,6 +300,17 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
         });
       }
 
+      // 3. Apply selected company data fields
+      if (onCompanyDataFilled && suggestions.suggested_company_data && selectedCompanyFields.size > 0) {
+        const cd = suggestions.suggested_company_data;
+        const data: Partial<SuggestedCompanyData> = {};
+        for (const key of selectedCompanyFields) {
+          const val = cd[key as keyof SuggestedCompanyData];
+          if (val) (data as Record<string, string>)[key] = val;
+        }
+        onCompanyDataFilled(data);
+      }
+
       setApplied(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Fehler beim Anwenden");
@@ -281,7 +319,27 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
     }
   }
 
-  const totalSelected = selectedRoles.size + selectedProducts.size;
+  const totalSelected = selectedRoles.size + selectedProducts.size + selectedCompanyFields.size;
+
+  const COMPANY_DATA_LABELS: Record<string, string> = {
+    address: "Adresse",
+    zip: "PLZ",
+    city: "Stadt",
+    phone: "Telefon",
+    email: "E-Mail",
+    uid: "UID-Nummer",
+    website: "Website",
+    industry: "Branche",
+    description: "Beschreibung",
+  };
+
+  function toggleCompanyField(key: string) {
+    setSelectedCompanyFields((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
 
   return (
     <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
@@ -414,6 +472,59 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
           {suggestions.reasoning && (
             <p className="text-xs text-[var(--text-muted)] -mt-3">{suggestions.reasoning}</p>
           )}
+
+          {/* Suggested company data */}
+          {suggestions.suggested_company_data && (() => {
+            const cd = suggestions.suggested_company_data!;
+            const availableFields = Object.entries(cd).filter(([, val]) => val);
+            if (availableFields.length === 0) return null;
+            return (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                    Firmendaten ({selectedCompanyFields.size}/{availableFields.length})
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedCompanyFields.size === availableFields.length) {
+                        setSelectedCompanyFields(new Set());
+                      } else {
+                        setSelectedCompanyFields(new Set(availableFields.map(([k]) => k)));
+                      }
+                    }}
+                    className="text-xs text-[var(--accent)] hover:underline"
+                  >
+                    {selectedCompanyFields.size === availableFields.length ? "Keine auswählen" : "Alle auswählen"}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {availableFields.map(([key, val]) => (
+                    <label
+                      key={key}
+                      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedCompanyFields.has(key)
+                          ? "border-[var(--accent)] bg-[var(--accent-dim)]"
+                          : "border-[var(--border)] hover:border-gray-500"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedCompanyFields.has(key)}
+                        onChange={() => toggleCompanyField(key)}
+                        className="mt-0.5 accent-[var(--accent)]"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs text-[var(--text-muted)]">{COMPANY_DATA_LABELS[key] || key}</span>
+                        <p className="text-sm font-medium text-[var(--text-primary)] truncate">{val}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-[var(--text-muted)] mt-1">Ausgewählte Felder werden in die Firmendaten übernommen</p>
+              </div>
+            );
+          })()}
 
           {/* Roles — editable */}
           {suggestions.suggested_roles.length > 0 && (
@@ -750,8 +861,9 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
             Vorschläge erfolgreich übernommen!
           </p>
           <p className="text-xs text-emerald-400/70 mt-1">
-            {selectedRoles.size} Rollen und {selectedProducts.size} Produkte wurden angelegt. Sie
-            finden diese jetzt unter Admin bzw. Produkte.
+            {selectedRoles.size} Rollen und {selectedProducts.size} Produkte wurden angelegt.
+            {selectedCompanyFields.size > 0 && ` ${selectedCompanyFields.size} Firmendaten-Felder wurden übernommen.`}
+            {" "}Sie finden diese jetzt unter Admin bzw. Produkte.
           </p>
           <button
             type="button"

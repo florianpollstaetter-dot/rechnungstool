@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/ThemeProvider";
 import { useCompany } from "@/lib/company-context";
 import AiCompanySetup from "@/components/AiCompanySetup";
+import type { SuggestedCompanyData } from "@/components/AiCompanySetup";
 
 const COMPANY_TYPE_WARNINGS: Record<CompanyType, string> = {
   gmbh: "GmbH: Soll-Besteuerung — die Umsatzsteuer wird fällig bei Rechnungsstellung, unabhaengig davon ob die Zahlung bereits eingegangen ist.",
@@ -261,6 +262,21 @@ export default function SettingsPage() {
     }
   }
 
+  function handleAiCompanyDataFilled(data: Partial<SuggestedCompanyData>) {
+    if (!settings) return;
+    const updated = { ...settings };
+    if (data.address) updated.address = data.address;
+    if (data.zip) updated.zip = data.zip;
+    if (data.city) updated.city = data.city;
+    if (data.phone) updated.phone = data.phone;
+    if (data.email) updated.email = data.email;
+    if (data.uid) updated.uid = data.uid;
+    if (data.website) updated.website = data.website;
+    if (data.industry) updated.industry = data.industry;
+    if (data.description) updated.description = data.description;
+    setSettings(updated);
+  }
+
   if (loading || !settings) {
     return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
   }
@@ -459,6 +475,17 @@ export default function SettingsPage() {
         </div>
         )}
 
+        {/* AI Company Setup — admin only, positioned right after Firmendaten */}
+        {isAdmin && (
+          <AiCompanySetup
+            companyName={settings.company_name}
+            industry={settings.industry}
+            website={settings.website}
+            description={settings.description}
+            onCompanyDataFilled={handleAiCompanyDataFilled}
+          />
+        )}
+
         {canManageCompany && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Gesellschaftsform</h2>
@@ -562,9 +589,6 @@ export default function SettingsPage() {
         </div>
       </form>
       )}
-
-      {/* AI Company Setup — admin only */}
-      {isAdmin && <div className="mt-6"><AiCompanySetup companyName={settings.company_name} industry={settings.industry} website={settings.website} description={settings.description} /></div>}
 
       {/* Smart Insights Thresholds — admin only */}
       {isAdmin && insightsConfig && (

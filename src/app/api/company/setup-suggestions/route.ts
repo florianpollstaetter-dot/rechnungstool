@@ -61,6 +61,7 @@ WICHTIG: Recherchiere zuerst im Internet nach der Firma "${companyName}"${body?.
 - Was die Firma macht, welche Dienstleistungen/Produkte sie anbietet
 - In welcher Branche sie tätig ist
 - Welche Rollen typisch für diese Art von Unternehmen sind
+- Die Firmendaten: Adresse, PLZ, Stadt, Telefon, E-Mail, UID-Nummer (falls öffentlich auffindbar)
 
 Nutze die gefundenen Informationen um eine möglichst präzise und passende Konfiguration vorzuschlagen.
 
@@ -72,6 +73,17 @@ Antworte mit folgendem JSON-Schema. Passe alle Vorschläge an die erkannte Branc
   "detected_industry": "Erkannte Branche (z.B. Filmproduktion, Softwareentwicklung, Gastronomie, ...)",
   "confidence": "high" | "medium" | "low",
   "reasoning": "Kurze Begründung, warum du diese Branche vermutest (1-2 Sätze). Erwähne dabei auch, welche Informationen du aus der Web-Recherche gewonnen hast.",
+  "suggested_company_data": {
+    "address": "Straße und Hausnummer oder null wenn nicht gefunden",
+    "zip": "PLZ oder null",
+    "city": "Stadt oder null",
+    "phone": "Telefonnummer oder null",
+    "email": "E-Mail-Adresse oder null",
+    "uid": "UID-Nummer (z.B. ATU12345678) oder null",
+    "website": "Website-URL oder null",
+    "industry": "Erkannte Branche oder null",
+    "description": "Kurze Firmenbeschreibung basierend auf Recherche oder null"
+  },
   "suggested_roles": [
     {
       "name": "Rollenname (z.B. Kameramann, Projektleiter, Koch)",
@@ -110,6 +122,8 @@ Antworte mit folgendem JSON-Schema. Passe alle Vorschläge an die erkannte Branc
 }
 
 Wichtig:
+- Recherchiere und fülle "suggested_company_data" so vollständig wie möglich aus — nutze Impressum, Firmenbuch, WKO und andere öffentliche Quellen
+- Setze Felder auf null wenn du sie nicht sicher ermitteln kannst
 - Schlage 3-8 Rollen vor, die für die erkannte Branche typisch sind
 - Schlage 2-5 Abteilungen vor
 - Schlage 5-10 typische Produkte/Leistungen vor mit realistischen Preisen
