@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ExpenseReport, ExpenseItem, ExpenseStatus, PaymentMethod } from "@/lib/types";
-import { getExpenseReports, getExpenseItems, createExpenseReport, createExpenseItem, updateExpenseReport, deleteExpenseReport, deleteExpenseItem, updateExpenseItem, uploadReceiptFile, getReceiptFileUrl, getCurrentUserName } from "@/lib/db";
+import { getExpenseReports, getExpenseItems, createExpenseReport, createExpenseItem, updateExpenseReport, deleteExpenseReport, deleteExpenseItem, updateExpenseItem, uploadReceiptFile, getReceiptFileUrl, getCurrentUserName, getSettings } from "@/lib/db";
+import { CompanySettings } from "@/lib/types";
+import type { ReceiptImageData } from "@/components/ExpenseReportPDF";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import { useCompany } from "@/lib/company-context";
 import { createClient } from "@/lib/supabase/client";
@@ -44,6 +46,7 @@ export default function ExpensesPage() {
   const [uploading, setUploading] = useState(false);
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const [editItemUrl, setEditItemUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const isManager = userRole === "admin" || userRole === "manager" || userRole === "accountant";
 
@@ -241,6 +244,66 @@ export default function ExpensesPage() {
     }
   }
 
+  async function handleDownloadPdf() {
+    if (!activeReportData) return;
+    setPdfLoading(true);
+    try {
+      const settings: CompanySettings = await getSettings();
+      let logoUrl = settings.logo_url;
+      if (logoUrl && !logoUrl.startsWith("http")) {
+        logoUrl = `${window.location.origin}${logoUrl}`;
+      }
+      const absSettings = { ...settings, logo_url: logoUrl || "" };
+
+      // Fetch receipt images as data URLs (only image types, skip PDFs)
+      const receiptImages: ReceiptImageData[] = [];
+      const supabase = createClient();
+      for (const item of activeItems) {
+        if (!item.receipt_file_path) continue;
+        const ext = (item.receipt_file_type || "").toLowerCase();
+        if (ext === "pdf") continue; // can't embed PDF in PDF via react-pdf
+        const { data } = await supabase.storage.from("receipts").createSignedUrl(item.receipt_file_path, 300);
+        if (!data?.signedUrl) continue;
+        try {
+          const resp = await fetch(data.signedUrl);
+          const blob = await resp.blob();
+          const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+          receiptImages.push({
+            itemId: item.id,
+            dataUrl,
+            label: [item.issuer, item.purpose, item.date].filter(Boolean).join(" — "),
+          });
+        } catch {
+          // skip receipts that fail to load
+        }
+      }
+
+      const { pdf } = await import("@react-pdf/renderer");
+      const { default: ExpenseReportPDF } = await import("@/components/ExpenseReportPDF");
+      const blob = await pdf(
+        <ExpenseReportPDF report={activeReportData} items={activeItems} settings={absSettings} receiptImages={receiptImages} />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Spesen_${activeReportData.user_name.replace(/\s/g, "_")}_${activeReportData.period_month}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("PDF-Erstellung fehlgeschlagen: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setPdfLoading(false);
+    }
+  }
+
   async function handleViewReceipt(item: ExpenseItem) {
     if (!item.receipt_file_path) return;
     const supabase = createClient();
@@ -360,6 +423,17 @@ export default function ExpensesPage() {
               </p>
             </div>
             <div className="flex gap-2 flex-wrap">
+              {/* PDF download — always available when there are items */}
+              {activeItems.length > 0 && (
+                <button
+                  onClick={handleDownloadPdf}
+                  disabled={pdfLoading}
+                  className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[var(--border)] transition disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  {pdfLoading ? "PDF wird erstellt..." : "PDF Export"}
+                </button>
+              )}
               {activeReportData.status === "draft" && (
                 <>
                   {/* Camera button */}
