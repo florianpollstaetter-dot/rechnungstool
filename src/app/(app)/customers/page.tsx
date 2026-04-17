@@ -17,6 +17,7 @@ const emptyCustomer = {
   zip: "",
   country: "Oesterreich",
   uid_number: "",
+  leitweg_id: "",
   email: "",
   phone: "",
 };
@@ -59,6 +60,7 @@ export default function CustomersPage() {
       zip: customer.zip,
       country: customer.country,
       uid_number: customer.uid_number,
+      leitweg_id: customer.leitweg_id || "",
       email: customer.email,
       phone: customer.phone,
     });
@@ -81,6 +83,7 @@ export default function CustomersPage() {
     { key: "city", label: "Ort" },
     { key: "country", label: "Land" },
     { key: "uid_number", label: "UID-Nummer" },
+    { key: "leitweg_id", label: "Leitweg-ID (XRechnung)" },
     { key: "email", label: "E-Mail" },
     { key: "phone", label: "Telefon" },
   ];

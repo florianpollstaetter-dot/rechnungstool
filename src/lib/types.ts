@@ -9,6 +9,7 @@ export interface Customer {
   uid_number: string;
   email: string;
   phone: string;
+  leitweg_id: string;
   created_at: string;
 }
 
@@ -54,6 +55,14 @@ export interface InvoiceItem {
 
 export type InvoiceStatus = "entwurf" | "offen" | "bezahlt" | "teilbezahlt" | "ueberfaellig" | "storniert";
 
+export type EInvoiceFormat = "none" | "zugferd" | "xrechnung";
+
+export const E_INVOICE_FORMAT_OPTIONS: { value: EInvoiceFormat; label: string; description: string }[] = [
+  { value: "none", label: "Standard PDF", description: "Klassische PDF-Rechnung ohne E-Rechnung" },
+  { value: "zugferd", label: "ZUGFeRD", description: "PDF mit eingebettetem XML (Hybrid) — empfohlen für B2B" },
+  { value: "xrechnung", label: "XRechnung", description: "Reines XML-Format — für öffentliche Auftraggeber (B2G)" },
+];
+
 export interface Invoice {
   id: string;
   invoice_number: string;
@@ -75,6 +84,7 @@ export interface Invoice {
   notes: string;
   language: Language;
   accompanying_text: string | null;
+  e_invoice_format: EInvoiceFormat;
   created_by: string | null;
   created_at: string;
 }

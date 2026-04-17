@@ -89,6 +89,11 @@ export default function InvoiceDetailPage() {
           }`}>
             {invoice.language === "en" ? "EN" : "DE"}
           </span>
+          {invoice.e_invoice_format && invoice.e_invoice_format !== "none" && (
+            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400">
+              {invoice.e_invoice_format === "zugferd" ? "ZUGFeRD" : "XRechnung"}
+            </span>
+          )}
           {isStorniert ? (
             <span className={`text-sm font-medium px-3 py-1.5 rounded-full ${st.color}`}>{st.label}</span>
           ) : (

@@ -145,6 +145,7 @@ export default function QuoteDetailPage() {
       notes: `Teilrechnung zu Angebot ${quote.quote_number} (${label})`,
       language: quote.language || "de",
       accompanying_text: await getUserAccompanyingText(quote.language || "de"),
+      e_invoice_format: "none",
         created_by: null,
     });
 

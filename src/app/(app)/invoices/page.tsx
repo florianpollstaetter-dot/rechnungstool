@@ -201,6 +201,7 @@ function InvoicesPage() {
       notes: `Stornorechnung zu Rechnung ${inv.invoice_number}`,
       language: inv.language,
       accompanying_text: null,
+      e_invoice_format: inv.e_invoice_format || "none",
         created_by: null,
     });
     await loadData();
@@ -312,7 +313,7 @@ function InvoicesPage() {
               return (
                 <tr key={inv.id} className={`hover:bg-[var(--surface-hover)] transition cursor-pointer ${isStorniert ? "opacity-50" : ""}`} onClick={() => router.push(`/invoices/${inv.id}`)}>
                   <td className="px-3 py-3">
-                    <div className="font-medium text-[var(--text-primary)] text-sm">{inv.invoice_number}</div>
+                    <div className="font-medium text-[var(--text-primary)] text-sm flex items-center gap-1.5">{inv.invoice_number}{inv.e_invoice_format && inv.e_invoice_format !== "none" && <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">{inv.e_invoice_format === "zugferd" ? "ZUGFeRD" : "XR"}</span>}</div>
                     {inv.project_description && <div className="text-[10px] text-[var(--text-muted)] truncate max-w-[140px]">{inv.project_description}</div>}
                   </td>
                   <td className="px-3 py-3 text-sm text-[var(--text-secondary)] max-w-[120px] truncate">{getCustomerName(inv.customer_id)}</td>

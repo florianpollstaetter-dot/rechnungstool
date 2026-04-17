@@ -19,6 +19,7 @@ export default function ExportPage() {
   });
   const [exporting, setExporting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingDatev, setExportingDatev] = useState(false);
 
   const loadData = useCallback(async () => {
     const [inv, cust, rec, s] = await Promise.all([getInvoices(), getCustomers(), getReceipts(), getSettings()]);
@@ -202,6 +203,28 @@ export default function ExportPage() {
     }
   }
 
+  async function handleExportDatev() {
+    setExportingDatev(true);
+    try {
+      const { invoicesToDatevRows, receiptsToDatevRows, datevRowsToCsv } = await import("@/lib/einvoice/datev-export");
+      const customerMap = new Map(customers.map((c) => [c.id, c]));
+      const invoiceRows = invoicesToDatevRows(monthInvoices, customerMap);
+      const receiptRows = receiptsToDatevRows(monthReceipts);
+      const csv = datevRowsToCsv([...invoiceRows, ...receiptRows]);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `DATEV_Export_${selectedMonth}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportingDatev(false);
+    }
+  }
+
   const months: string[] = [];
   for (let i = 0; i < 12; i++) {
     const d = new Date();
@@ -224,6 +247,9 @@ export default function ExportPage() {
           </button>
           <button onClick={handleExportCSV} disabled={exporting} className="bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
             {exporting ? "Exportiere..." : "CSV Export"}
+          </button>
+          <button onClick={handleExportDatev} disabled={exportingDatev} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition disabled:opacity-50">
+            {exportingDatev ? "Exportiere..." : "DATEV Export"}
           </button>
         </div>
       </div>

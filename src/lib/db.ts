@@ -543,6 +543,7 @@ export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
     notes: quote.notes,
     language: quote.language || "de",
     accompanying_text: null,
+    e_invoice_format: "none",
         created_by: null,
   });
 
@@ -1228,6 +1229,7 @@ function mapCustomer(row: Record<string, unknown>): Customer {
     uid_number: row.uid_number as string,
     email: row.email as string,
     phone: row.phone as string,
+    leitweg_id: (row.leitweg_id as string) || "",
     created_at: row.created_at as string,
   };
 }
@@ -1288,6 +1290,7 @@ function mapInvoice(
     notes: row.notes as string,
     language: (row.language as Invoice["language"]) || "de",
     accompanying_text: (row.accompanying_text as string) ?? null,
+    e_invoice_format: (row.e_invoice_format as Invoice["e_invoice_format"]) || "none",
     created_by: (row.created_by as string) || null,
     created_at: row.created_at as string,
   };

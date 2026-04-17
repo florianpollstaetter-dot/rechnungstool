@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Customer, InvoiceItem, Product, UNIT_OPTIONS, Language } from "@/lib/types";
+import { Customer, InvoiceItem, Product, UNIT_OPTIONS, Language, EInvoiceFormat, E_INVOICE_FORMAT_OPTIONS } from "@/lib/types";
 import { getCustomers, getSettings, getActiveProducts, createInvoice, getTemplate, getCurrentUserName, getUserAccompanyingText } from "@/lib/db";
 import { useAutosave } from "@/lib/use-autosave";
 import { addDays, formatCurrency } from "@/lib/format";
@@ -34,6 +34,7 @@ function NewInvoicePage() {
   const [items, setItems] = useState<ItemRow[]>([emptyItem(1)]);
   const [overallDiscountPercent, setOverallDiscountPercent] = useState(0);
   const [overallDiscountAmount, setOverallDiscountAmount] = useState(0);
+  const [eInvoiceFormat, setEInvoiceFormat] = useState<EInvoiceFormat>("none");
   const [submitting, setSubmitting] = useState(false);
 
   // Auto-save form data
@@ -148,6 +149,7 @@ function NewInvoicePage() {
         notes,
         language,
         accompanying_text: await getUserAccompanyingText(language),
+        e_invoice_format: eInvoiceFormat,
         created_by: getCurrentUserName() || null,
       });
       clearDraft();
@@ -197,6 +199,15 @@ function NewInvoicePage() {
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">Fällig am</label>
               <input type="text" value={dueDate} readOnly className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm bg-[var(--background)] text-gray-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">E-Rechnung</label>
+              <select value={eInvoiceFormat} onChange={(e) => setEInvoiceFormat(e.target.value as EInvoiceFormat)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
+                {E_INVOICE_FORMAT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">{E_INVOICE_FORMAT_OPTIONS.find((o) => o.value === eInvoiceFormat)?.description}</p>
             </div>
           </div>
         </div>
