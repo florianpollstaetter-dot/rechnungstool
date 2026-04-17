@@ -362,6 +362,17 @@ export default function SettingsPage() {
               >
                 Hell
               </button>
+              <button
+                type="button"
+                onClick={() => setTheme("sand")}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  theme === "sand"
+                    ? "bg-[var(--accent)] text-white"
+                    : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                Sand
+              </button>
             </div>
           </div>
         </div>
