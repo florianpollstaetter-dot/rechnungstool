@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS, SmartInsightsConfig } from "@/lib/types";
-import { getSettings, updateSettings, getSmartInsightsConfig, upsertSmartInsightsConfig } from "@/lib/db";
+import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS, SmartInsightsConfig, UserProfile } from "@/lib/types";
+import { getSettings, updateSettings, getSmartInsightsConfig, upsertSmartInsightsConfig, getUserProfile, updateUserProfile } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/ThemeProvider";
 import { useCompany } from "@/lib/company-context";
@@ -20,7 +20,14 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { userRole } = useCompany();
   const isAdmin = userRole === "admin";
+  const isManager = userRole === "manager";
+  const canManageCompany = isAdmin || isManager;
+  const canWriteInvoices = isAdmin || isManager || userRole === "accountant";
   const [settings, setSettings] = useState<CompanySettings | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [rufname, setRufname] = useState("");
+  const [rufnameSaving, setRufnameSaving] = useState(false);
+  const [rufnameSaved, setRufnameSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -65,6 +72,16 @@ export default function SettingsPage() {
       const ic = await getSmartInsightsConfig();
       setInsightsConfig(ic);
     }
+    // Load current user profile for Rufname
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const profile = await getUserProfile(user.id);
+      if (profile) {
+        setUserProfile(profile);
+        setRufname(profile.display_name || "");
+      }
+    }
     setLoading(false);
   }, [isAdmin]);
 
@@ -99,6 +116,20 @@ export default function SettingsPage() {
     if (!pendingTypeChange) return;
     update("company_type", pendingTypeChange);
     setPendingTypeChange(null);
+  }
+
+  async function handleRufnameSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!userProfile) return;
+    setRufnameSaving(true);
+    try {
+      await updateUserProfile(userProfile.id, { display_name: rufname });
+      localStorage.setItem("currentUserName", rufname);
+      setRufnameSaved(true);
+      setTimeout(() => setRufnameSaved(false), 2000);
+    } finally {
+      setRufnameSaving(false);
+    }
   }
 
   async function handlePasswordChange(e: React.FormEvent) {
@@ -172,10 +203,30 @@ export default function SettingsPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Einstellungen</h1>
-        {saved && <span className="text-sm text-emerald-400 font-medium">Gespeichert!</span>}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Per-user settings: Rufname */}
+      <form onSubmit={handleRufnameSave} className="space-y-6 mb-6">
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Rufname</h2>
+              <p className="text-sm text-gray-500 mt-1">Dein persönlicher Anzeigename — wird individuell gespeichert.</p>
+            </div>
+            {rufnameSaved && <span className="text-sm text-emerald-400 font-medium">Gespeichert!</span>}
+          </div>
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <input type="text" value={rufname} onChange={(e) => setRufname(e.target.value)} className={inputClass} placeholder="Dein Rufname" />
+            </div>
+            <button type="submit" disabled={rufnameSaving} className="bg-[var(--accent)] text-black px-5 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition whitespace-nowrap">
+              {rufnameSaving ? "Speichern..." : "Speichern"}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div className="space-y-6 mb-6">
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Erscheinungsbild</h2>
           <div className="flex items-center gap-4">
@@ -243,39 +294,12 @@ export default function SettingsPage() {
             </label>
           </div>
         </div>
+      </div>
 
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Gesellschaftsform</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {COMPANY_TYPE_OPTIONS.map((opt) => (
-              <label
-                key={opt.value}
-                className={`flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                  settings.company_type === opt.value
-                    ? "border-[var(--accent)] bg-[var(--accent-dim)]"
-                    : "border-[var(--border)] hover:border-gray-500"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="company_type"
-                  value={opt.value}
-                  checked={settings.company_type === opt.value}
-                  onChange={(e) => handleCompanyTypeChange(e.target.value)}
-                  className="sr-only"
-                />
-                <span className="font-semibold text-[var(--text-primary)]">{opt.label}</span>
-                <span className="text-xs text-gray-500 mt-1">{opt.description}</span>
-              </label>
-            ))}
-          </div>
-          {selectedType && (
-            <p className="text-sm text-[var(--text-secondary)] mt-3">
-              Aktiv: <strong className="text-[var(--text-primary)]">{selectedType.label}</strong> — {selectedType.description}
-            </p>
-          )}
-        </div>
-
+      {/* Company settings form — only for roles that can manage company or write invoices */}
+      {(canManageCompany || canWriteInvoices) && (
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {canManageCompany && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Firmendaten</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -311,7 +335,43 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        )}
 
+        {canManageCompany && (
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Gesellschaftsform</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {COMPANY_TYPE_OPTIONS.map((opt) => (
+              <label
+                key={opt.value}
+                className={`flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  settings.company_type === opt.value
+                    ? "border-[var(--accent)] bg-[var(--accent-dim)]"
+                    : "border-[var(--border)] hover:border-gray-500"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="company_type"
+                  value={opt.value}
+                  checked={settings.company_type === opt.value}
+                  onChange={(e) => handleCompanyTypeChange(e.target.value)}
+                  className="sr-only"
+                />
+                <span className="font-semibold text-[var(--text-primary)]">{opt.label}</span>
+                <span className="text-xs text-gray-500 mt-1">{opt.description}</span>
+              </label>
+            ))}
+          </div>
+          {selectedType && (
+            <p className="text-sm text-[var(--text-secondary)] mt-3">
+              Aktiv: <strong className="text-[var(--text-primary)]">{selectedType.label}</strong> — {selectedType.description}
+            </p>
+          )}
+        </div>
+        )}
+
+        {canManageCompany && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Bankverbindung</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -325,9 +385,11 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        )}
 
+        {canWriteInvoices && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Standards</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Zahlungsziel</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Standard-Zahlungsziel (Tage)</label>
@@ -339,7 +401,9 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        )}
 
+        {canWriteInvoices && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Begleittext (Rechnungen)</h2>
           <p className="text-sm text-gray-500 mb-4">Dieser Text wird auf jeder Rechnung und im PDF angezeigt. Pflegen Sie eine deutsche und eine englische Version.</p>
@@ -366,16 +430,19 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        )}
 
         <div className="flex gap-3">
           <button type="submit" disabled={saving} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
             {saving ? "Wird gespeichert..." : "Einstellungen speichern"}
           </button>
+          {saved && <span className="text-sm text-emerald-400 font-medium self-center">Gespeichert!</span>}
         </div>
       </form>
+      )}
 
       {/* AI Company Setup — admin only */}
-      {isAdmin && <AiCompanySetup companyName={settings.company_name} />}
+      {isAdmin && <div className="mt-6"><AiCompanySetup companyName={settings.company_name} /></div>}
 
       {/* Smart Insights Thresholds — admin only */}
       {isAdmin && insightsConfig && (

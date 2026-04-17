@@ -21,21 +21,24 @@ interface CompanyContextType {
   accessibleCompanies: Company[];
   userRole: string;
   userName: string;
+  roleLoaded: boolean;
   setCompanyId: (id: string) => void;
 }
 
 const CompanyContext = createContext<CompanyContextType>({
   company: COMPANIES[0],
   accessibleCompanies: COMPANIES,
-  userRole: "admin",
+  userRole: "",
   userName: "",
+  roleLoaded: false,
   setCompanyId: () => {},
 });
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
   const [companyId, setCompanyIdState] = useState<string>("vrthefans");
   const [accessibleCompanies, setAccessibleCompanies] = useState<Company[]>(COMPANIES);
-  const [userRole, setUserRole] = useState("admin");
+  const [userRole, setUserRole] = useState("");
+  const [roleLoaded, setRoleLoaded] = useState(false);
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
@@ -78,12 +81,14 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
             localStorage.setItem("activeCompanyId", access[0]);
           }
         }
-        setUserRole(profile.role || "user");
+        setUserRole(profile.role || "employee");
       } else {
         // No profile = admin (first user / legacy) — use email as name
+        setUserRole("admin");
         localStorage.setItem("currentUserName", fallbackName);
         setUserName(fallbackName);
       }
+      setRoleLoaded(true);
     }
     loadUserAccess();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -96,7 +101,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const company = COMPANIES.find((c) => c.id === companyId) || COMPANIES[0];
 
   return (
-    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, setCompanyId }}>
+    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, roleLoaded, setCompanyId }}>
       {children}
     </CompanyContext.Provider>
   );

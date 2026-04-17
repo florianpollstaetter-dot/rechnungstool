@@ -55,8 +55,10 @@ const allNavItems: { href: string; label: string; exact?: boolean; section: AppS
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { company, accessibleCompanies, userName, userRole, setCompanyId } = useCompany();
-  const permissions = ROLE_PERMISSIONS[(userRole as UserRole) || "admin"] || ROLE_PERMISSIONS.admin;
+  const { company, accessibleCompanies, userName, userRole, roleLoaded, setCompanyId } = useCompany();
+  const permissions = roleLoaded
+    ? (ROLE_PERMISSIONS[userRole as UserRole] || ROLE_PERMISSIONS.employee)
+    : [];
   const navItems = allNavItems.filter((item) => permissions.includes(item.section));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
