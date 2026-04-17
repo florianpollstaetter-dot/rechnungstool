@@ -25,6 +25,7 @@ interface CompanyContextType {
   userRole: string;
   userName: string;
   roleLoaded: boolean;
+  isSuperadmin: boolean;
   setCompanyId: (id: string) => void;
 }
 
@@ -34,6 +35,7 @@ const CompanyContext = createContext<CompanyContextType>({
   userRole: "",
   userName: "",
   roleLoaded: false,
+  isSuperadmin: false,
   setCompanyId: () => {},
 });
 
@@ -47,6 +49,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const [accessibleCompanies, setAccessibleCompanies] = useState<Company[]>(FALLBACK_COMPANIES);
   const [userRole, setUserRole] = useState("");
   const [roleLoaded, setRoleLoaded] = useState(false);
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
   const [userName, setUserName] = useState("");
 
   const setCompanyId = useCallback(async (id: string) => {
@@ -72,6 +75,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       if (!user) {
         setUserRole("");
         setRoleLoaded(false);
+        setIsSuperadmin(false);
         setUserName("");
         setAccessibleCompanies(FALLBACK_COMPANIES);
         return;
@@ -107,6 +111,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         const name = profile.display_name || profile.email || fallbackName;
         localStorage.setItem("currentUserName", name);
         setUserName(name);
+        setIsSuperadmin(!!profile.is_superadmin);
 
         if (dbCompanies.length > 0) {
           // DB-driven company access
@@ -166,7 +171,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     || FALLBACK_COMPANIES[0];
 
   return (
-    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, roleLoaded, setCompanyId }}>
+    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, roleLoaded, isSuperadmin, setCompanyId }}>
       {children}
     </CompanyContext.Provider>
   );
