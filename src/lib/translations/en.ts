@@ -733,7 +733,7 @@ const en: Record<string, string> = {
   "settings.cardTipOfTheDay": "Tip of the day",
   "settings.cardTipOfTheDayDesc": "Shows helpful tips about site features.",
   "settings.cardChuckNorris": "Chuck Norris fact of the day",
-  "settings.cardChuckNorrisDesc": "Shows a random Chuck Norris fact each day.",
+  "settings.cardChuckNorrisDesc": "A daily tip on how Chuck Norris would have done it",
   "settings.accompanyingText": "Accompanying text (invoices)",
   "settings.accompanyingTextHintUser": "Your personal accompanying text — displayed on your invoices.",
   "settings.accompanyingTextHintCompany": "Company-wide default accompanying text — displayed on invoices unless a personal text is set.",

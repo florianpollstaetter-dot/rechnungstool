@@ -733,7 +733,7 @@ const pl: Record<string, string> = {
   "settings.cardTipOfTheDay": "Porada dnia",
   "settings.cardTipOfTheDayDesc": "Wyświetla przydatne wskazówki dotyczące funkcji strony.",
   "settings.cardChuckNorris": "Fakt o Chucku Norrisie dnia",
-  "settings.cardChuckNorrisDesc": "Wyświetla losowy fakt o Chucku Norrisie każdego dnia.",
+  "settings.cardChuckNorrisDesc": "Codzienna wskazówka, jak zrobiłby to Chuck Norris",
   "settings.accompanyingText": "Tekst towarzyszący (faktury)",
   "settings.accompanyingTextHintUser": "Twój osobisty tekst towarzyszący — wyświetlany na Twoich fakturach.",
   "settings.accompanyingTextHintCompany": "Firmowy domyślny tekst towarzyszący — wyświetlany na fakturach, jeśli nie ustawiono tekstu osobistego.",

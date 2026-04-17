@@ -733,7 +733,7 @@ const es: Record<string, string> = {
   "settings.cardTipOfTheDay": "Consejo del dia",
   "settings.cardTipOfTheDayDesc": "Muestra consejos utiles sobre las funciones de la pagina.",
   "settings.cardChuckNorris": "Dato de Chuck Norris del dia",
-  "settings.cardChuckNorrisDesc": "Muestra un dato aleatorio de Chuck Norris al dia.",
+  "settings.cardChuckNorrisDesc": "Un consejo diario sobre cómo lo habría hecho Chuck Norris",
   "settings.accompanyingText": "Texto complementario (Facturas)",
   "settings.accompanyingTextHintUser": "Tu texto complementario personal — se muestra en tus facturas.",
   "settings.accompanyingTextHintCompany": "Texto complementario estandar de la empresa — se muestra en las facturas si no hay texto personal configurado.",

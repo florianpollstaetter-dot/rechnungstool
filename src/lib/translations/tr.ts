@@ -733,7 +733,7 @@ const tr: Record<string, string> = {
   "settings.cardTipOfTheDay": "Günün İpucu",
   "settings.cardTipOfTheDayDesc": "Sayfa özellikleri hakkında faydalı ipuçları gösterir.",
   "settings.cardChuckNorris": "Günün Chuck Norris Gerçeği",
-  "settings.cardChuckNorrisDesc": "Her gün rastgele bir Chuck Norris gerçeği gösterir.",
+  "settings.cardChuckNorrisDesc": "Chuck Norris olsa nasıl yapardı, günlük bir ipucu",
   "settings.accompanyingText": "Eşlik Eden Metin (Faturalar)",
   "settings.accompanyingTextHintUser": "Kişisel eşlik eden metniniz — faturalarınızda görüntülenir.",
   "settings.accompanyingTextHintCompany": "Şirket genelinde varsayılan eşlik eden metin — kişisel metin belirtilmediğinde faturalarda görüntülenir.",

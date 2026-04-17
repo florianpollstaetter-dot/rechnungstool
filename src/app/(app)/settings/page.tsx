@@ -396,17 +396,20 @@ export default function SettingsPage() {
           <div className="space-y-3">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("settings.cardGroupKpi")}</p>
             {([
-              { key: "monatsumsatz", labelKey: "settings.cardMonthlyRevenue" as TranslationKey, descKey: "settings.cardMonthlyRevenueDesc" as TranslationKey },
-              { key: "offene_rechnungen", labelKey: "settings.cardOpenInvoices" as TranslationKey, descKey: "settings.cardOpenInvoicesDesc" as TranslationKey },
-              { key: "ueberfaellig", labelKey: "settings.cardOverdue" as TranslationKey, descKey: "settings.cardOverdueDesc" as TranslationKey },
-              { key: "umsatzsteuer", labelKey: "settings.cardVat" as TranslationKey, descKey: "settings.cardVatDesc" as TranslationKey },
-              { key: "belege", labelKey: "settings.cardReceipts" as TranslationKey, descKey: "settings.cardReceiptsDesc" as TranslationKey },
-              { key: "fixkosten", labelKey: "settings.cardFixedCosts" as TranslationKey, descKey: "settings.cardFixedCostsDesc" as TranslationKey },
+              { key: "monatsumsatz", labelKey: "settings.cardMonthlyRevenue" as TranslationKey, descKey: "settings.cardMonthlyRevenueDesc" as TranslationKey, color: "text-emerald-400", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg> },
+              { key: "offene_rechnungen", labelKey: "settings.cardOpenInvoices" as TranslationKey, descKey: "settings.cardOpenInvoicesDesc" as TranslationKey, color: "text-amber-400", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg> },
+              { key: "ueberfaellig", labelKey: "settings.cardOverdue" as TranslationKey, descKey: "settings.cardOverdueDesc" as TranslationKey, color: "text-rose-400", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg> },
+              { key: "umsatzsteuer", labelKey: "settings.cardVat" as TranslationKey, descKey: "settings.cardVatDesc" as TranslationKey, color: "text-orange-400", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="m9 12 2 2 4-4" /></svg> },
+              { key: "belege", labelKey: "settings.cardReceipts" as TranslationKey, descKey: "settings.cardReceiptsDesc" as TranslationKey, color: "text-violet-400", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M14 8H8" /><path d="M16 12H8" /><path d="M13 16H8" /></svg> },
+              { key: "fixkosten", labelKey: "settings.cardFixedCosts" as TranslationKey, descKey: "settings.cardFixedCostsDesc" as TranslationKey, color: "text-cyan-400", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg> },
             ] as const).map((item) => (
               <label key={item.key} className="flex items-center justify-between cursor-pointer">
-                <div>
-                  <span className="text-sm font-medium text-[var(--text-primary)]">{t(item.labelKey)}</span>
-                  <p className="text-xs text-gray-500">{t(item.descKey)}</p>
+                <div className="flex items-center gap-3">
+                  <span className={`${item.color} flex-shrink-0`}>{item.icon}</span>
+                  <div>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">{t(item.labelKey)}</span>
+                    <p className="text-xs text-gray-500">{t(item.descKey)}</p>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -424,14 +427,17 @@ export default function SettingsPage() {
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{t("settings.cardGroupAreas")}</p>
             </div>
             {([
-              { key: "smart_insights", labelKey: "settings.cardSmartInsights" as TranslationKey, descKey: "settings.cardSmartInsightsDesc" as TranslationKey },
-              { key: "letzte_rechnungen", labelKey: "settings.cardRecentInvoices" as TranslationKey, descKey: "settings.cardRecentInvoicesDesc" as TranslationKey },
-              { key: "letzte_angebote", labelKey: "settings.cardRecentQuotes" as TranslationKey, descKey: "settings.cardRecentQuotesDesc" as TranslationKey },
+              { key: "smart_insights", labelKey: "settings.cardSmartInsights" as TranslationKey, descKey: "settings.cardSmartInsightsDesc" as TranslationKey, color: "text-blue-400", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /><path d="M20 3v4" /><path d="M22 5h-4" /></svg> },
+              { key: "letzte_rechnungen", labelKey: "settings.cardRecentInvoices" as TranslationKey, descKey: "settings.cardRecentInvoicesDesc" as TranslationKey, color: "text-gray-400", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 13H8" /><path d="M16 17H8" /><path d="M16 13h-2" /></svg> },
+              { key: "letzte_angebote", labelKey: "settings.cardRecentQuotes" as TranslationKey, descKey: "settings.cardRecentQuotesDesc" as TranslationKey, color: "text-gray-400", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M8 13h2" /><path d="M14 13h2" /><path d="M8 17h8" /></svg> },
             ] as const).map((item) => (
               <label key={item.key} className="flex items-center justify-between cursor-pointer">
-                <div>
-                  <span className="text-sm font-medium text-[var(--text-primary)]">{t(item.labelKey)}</span>
-                  <p className="text-xs text-gray-500">{t(item.descKey)}</p>
+                <div className="flex items-center gap-3">
+                  <span className={`${item.color} flex-shrink-0`}>{item.icon}</span>
+                  <div>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">{t(item.labelKey)}</span>
+                    <p className="text-xs text-gray-500">{t(item.descKey)}</p>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -449,9 +455,14 @@ export default function SettingsPage() {
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{t("settings.cardGroupExtras")}</p>
             </div>
             <label className="flex items-center justify-between cursor-pointer">
-              <div>
-                <span className="text-sm font-medium text-[var(--text-primary)]">{t("settings.cardTipOfTheDay")}</span>
-                <p className="text-xs text-gray-500">{t("settings.cardTipOfTheDayDesc")}</p>
+              <div className="flex items-center gap-3">
+                <span className="text-cyan-400 flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                </span>
+                <div>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">{t("settings.cardTipOfTheDay")}</span>
+                  <p className="text-xs text-gray-500">{t("settings.cardTipOfTheDayDesc")}</p>
+                </div>
               </div>
               <button
                 type="button"
@@ -464,9 +475,14 @@ export default function SettingsPage() {
               </button>
             </label>
             <label className="flex items-center justify-between cursor-pointer">
-              <div>
-                <span className="text-sm font-medium text-[var(--text-primary)]">{t("settings.cardChuckNorris")}</span>
-                <p className="text-xs text-gray-500">{t("settings.cardChuckNorrisDesc")}</p>
+              <div className="flex items-center gap-3">
+                <span className="text-orange-400 flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2"/><path d="M8 8h8"/><path d="M9 11c0 0 1 1 3 1s3-1 3-1"/></svg>
+                </span>
+                <div>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">{t("settings.cardChuckNorris")}</span>
+                  <p className="text-xs text-gray-500">{t("settings.cardChuckNorrisDesc")}</p>
+                </div>
               </div>
               <button
                 type="button"

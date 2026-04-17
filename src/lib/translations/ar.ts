@@ -733,7 +733,7 @@ const ar: Record<string, string> = {
   "settings.cardTipOfTheDay": "نصيحة اليوم",
   "settings.cardTipOfTheDayDesc": "تعرض نصائح مفيدة حول ميزات الموقع.",
   "settings.cardChuckNorris": "حقيقة تشاك نوريس لليوم",
-  "settings.cardChuckNorrisDesc": "تعرض حقيقة عشوائية عن تشاك نوريس كل يوم.",
+  "settings.cardChuckNorrisDesc": "نصيحة يومية عن كيف كان سيفعلها تشاك نوريس",
   "settings.accompanyingText": "النص المرافق (الفواتير)",
   "settings.accompanyingTextHintUser": "النص المرافق الشخصي — يُعرض على فواتيرك.",
   "settings.accompanyingTextHintCompany": "النص المرافق الافتراضي للشركة — يُعرض على الفواتير ما لم يتم تعيين نص شخصي.",

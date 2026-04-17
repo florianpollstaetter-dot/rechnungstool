@@ -733,7 +733,7 @@ const it: Record<string, string> = {
   "settings.cardTipOfTheDay": "Consiglio del giorno",
   "settings.cardTipOfTheDayDesc": "Mostra consigli utili sulle funzionalità del sito.",
   "settings.cardChuckNorris": "Fatto Chuck Norris del giorno",
-  "settings.cardChuckNorrisDesc": "Mostra un fatto casuale su Chuck Norris al giorno.",
+  "settings.cardChuckNorrisDesc": "Un consiglio quotidiano su come l'avrebbe fatto Chuck Norris",
   "settings.accompanyingText": "Testo di accompagnamento (fatture)",
   "settings.accompanyingTextHintUser": "Il tuo testo di accompagnamento personale — viene mostrato sulle tue fatture.",
   "settings.accompanyingTextHintCompany": "Testo di accompagnamento aziendale predefinito — viene mostrato sulle fatture se non è impostato un testo personale.",

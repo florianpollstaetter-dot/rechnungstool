@@ -733,7 +733,7 @@ const de = {
   "settings.cardTipOfTheDay": "Tipp des Tages",
   "settings.cardTipOfTheDayDesc": "Zeigt hilfreiche Tipps zu Features der Seite.",
   "settings.cardChuckNorris": "Chuck Norris Fakt des Tages",
-  "settings.cardChuckNorrisDesc": "Zeigt einen zufälligen Chuck-Norris-Fakt pro Tag.",
+  "settings.cardChuckNorrisDesc": "Ein täglicher Tipp wie es Chuck Norris gemacht hätte",
   "settings.accompanyingText": "Begleittext (Rechnungen)",
   "settings.accompanyingTextHintUser": "Dein persönlicher Begleittext — wird auf deinen Rechnungen angezeigt.",
   "settings.accompanyingTextHintCompany": "Firmenweiter Standard-Begleittext — wird auf Rechnungen angezeigt, sofern kein persönlicher Text hinterlegt ist.",
