@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { UserProfile, USER_ROLE_OPTIONS, UserRole, WEEKDAY_LABELS_LONG } from "@/lib/types";
+import { UserProfile, USER_ROLE_OPTIONS, UserRole, WEEKDAY_LABELS_LONG, CompanyRole, UserRoleAssignment } from "@/lib/types";
 import {
   getUserProfiles, createUserProfile, updateUserProfile, deleteUserProfile,
   getUserWorkSchedules, replaceUserWorkSchedules,
+  getCompanyRoles, createCompanyRole, updateCompanyRole, deleteCompanyRole,
+  getUserRoleAssignments, assignRoleToUser, removeRoleFromUser,
 } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { COMPANIES } from "@/lib/company-context";
@@ -17,6 +19,8 @@ type ScheduleDraftRow = {
   target_override: boolean; // user manually edited the pensum — stop auto-deriving
   enabled: boolean;
 };
+
+type AdminTab = "users" | "roles";
 
 function minutesFromTimes(start: string, end: string): number {
   if (!start || !end) return 0;
@@ -49,7 +53,13 @@ function formatMinutesAsHours(mins: number): string {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
+const DEFAULT_ROLE_COLORS = [
+  "#f97316", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444",
+  "#ec4899", "#14b8a6", "#f59e0b", "#6366f1", "#84cc16",
+];
+
 export default function AdminPage() {
+  const [activeTab, setActiveTab] = useState<AdminTab>("users");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -65,6 +75,21 @@ export default function AdminPage() {
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
 
+  // Roles state
+  const [roles, setRoles] = useState<CompanyRole[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [showRoleForm, setShowRoleForm] = useState(false);
+  const [roleForm, setRoleForm] = useState({ name: "", description: "", color: DEFAULT_ROLE_COLORS[0] });
+  const [roleSaving, setRoleSaving] = useState(false);
+  const [roleError, setRoleError] = useState("");
+  const [editingRole, setEditingRole] = useState<string | null>(null);
+  const [editRoleForm, setEditRoleForm] = useState({ name: "", description: "", color: "" });
+
+  // User-role assignments state
+  const [userRoleMap, setUserRoleMap] = useState<Record<string, string[]>>({}); // userId → roleId[]
+  const [roleAssignUser, setRoleAssignUser] = useState<UserProfile | null>(null);
+  const [assignSaving, setAssignSaving] = useState(false);
+
   const loadData = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -77,14 +102,46 @@ export default function AdminPage() {
     setLoading(false);
   }, []);
 
+  const loadRoles = useCallback(async () => {
+    setRolesLoading(true);
+    try {
+      const r = await getCompanyRoles();
+      setRoles(r);
+    } finally {
+      setRolesLoading(false);
+    }
+  }, []);
+
+  const loadUserRoles = useCallback(async (userList: UserProfile[]) => {
+    const map: Record<string, string[]> = {};
+    await Promise.all(
+      userList.map(async (u) => {
+        const assignments = await getUserRoleAssignments(u.id);
+        map[u.id] = assignments.map((a) => a.role_id);
+      })
+    );
+    setUserRoleMap(map);
+  }, []);
+
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    if (activeTab === "roles" || activeTab === "users") {
+      loadRoles();
+    }
+  }, [activeTab, loadRoles]);
+  useEffect(() => {
+    if (users.length > 0 && roles.length > 0) {
+      loadUserRoles(users);
+    }
+  }, [users, roles, loadUserRoles]);
+
+  // --- User management handlers (unchanged) ---
 
   async function handleCreateUser(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSaving(true);
     try {
-      // Create auth user via Supabase Admin API (server-side)
       const res = await fetch("/api/create-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,7 +150,6 @@ export default function AdminPage() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Benutzer konnte nicht erstellt werden");
 
-      // Create user profile
       await createUserProfile({
         auth_user_id: result.userId,
         display_name: form.display_name,
@@ -158,7 +214,6 @@ export default function AdminPage() {
           start_time: row.start_time || "",
           end_time: row.end_time || "",
           daily_target_minutes: row.daily_target_minutes,
-          // If target doesn't match Von–Bis, assume it was explicitly overridden.
           target_override: row.start_time && row.end_time
             ? minutesFromTimes(row.start_time, row.end_time) !== row.daily_target_minutes
             : row.daily_target_minutes > 0,
@@ -176,7 +231,6 @@ export default function AdminPage() {
       rows.map((r) => {
         if (r.weekday !== weekday) return r;
         const next: ScheduleDraftRow = { ...r, ...patch };
-        // Auto-derive pensum from Von–Bis unless the admin explicitly set it.
         if (("start_time" in patch || "end_time" in patch) && !next.target_override) {
           next.daily_target_minutes = minutesFromTimes(next.start_time, next.end_time);
         }
@@ -196,7 +250,6 @@ export default function AdminPage() {
         return {
           ...r,
           enabled,
-          // Disabling clears pensum but keeps the times so re-enabling restores them.
           daily_target_minutes: enabled ? (r.daily_target_minutes || minutesFromTimes(r.start_time, r.end_time)) : 0,
           target_override: enabled ? r.target_override : false,
         };
@@ -226,6 +279,79 @@ export default function AdminPage() {
     .filter((r) => r.enabled)
     .reduce((s, r) => s + r.daily_target_minutes, 0);
 
+  // --- Role CRUD handlers ---
+
+  async function handleCreateRole(e: React.FormEvent) {
+    e.preventDefault();
+    setRoleError("");
+    setRoleSaving(true);
+    try {
+      await createCompanyRole({
+        name: roleForm.name,
+        description: roleForm.description || null,
+        color: roleForm.color || null,
+      });
+      setRoleForm({ name: "", description: "", color: DEFAULT_ROLE_COLORS[roles.length % DEFAULT_ROLE_COLORS.length] });
+      setShowRoleForm(false);
+      await loadRoles();
+    } catch (err) {
+      setRoleError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRoleSaving(false);
+    }
+  }
+
+  function startEditRole(role: CompanyRole) {
+    setEditingRole(role.id);
+    setEditRoleForm({ name: role.name, description: role.description || "", color: role.color || "#6b7280" });
+  }
+
+  async function saveEditRole(id: string) {
+    setRoleError("");
+    try {
+      await updateCompanyRole(id, {
+        name: editRoleForm.name,
+        description: editRoleForm.description || null,
+        color: editRoleForm.color || null,
+      });
+      setEditingRole(null);
+      await loadRoles();
+    } catch (err) {
+      setRoleError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleDeleteRole(id: string) {
+    if (confirm("Rolle wirklich löschen? Alle Zuordnungen werden entfernt.")) {
+      await deleteCompanyRole(id);
+      await loadRoles();
+      await loadUserRoles(users);
+    }
+  }
+
+  // --- User-role assignment handlers ---
+
+  async function openRoleAssign(user: UserProfile) {
+    setRoleAssignUser(user);
+  }
+
+  async function toggleUserRole(userId: string, roleId: string) {
+    setAssignSaving(true);
+    try {
+      const current = userRoleMap[userId] || [];
+      if (current.includes(roleId)) {
+        await removeRoleFromUser(userId, roleId);
+      } else {
+        await assignRoleToUser(userId, roleId);
+      }
+      // Refresh this user's assignments
+      const assignments = await getUserRoleAssignments(userId);
+      setUserRoleMap((prev) => ({ ...prev, [userId]: assignments.map((a) => a.role_id) }));
+    } finally {
+      setAssignSaving(false);
+    }
+  }
+
   if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">Laden...</div></div>;
   if (currentUserRole !== "admin") return <div className="text-center py-12 text-gray-500">Nur Administratoren haben Zugriff auf diese Seite.</div>;
 
@@ -233,140 +359,396 @@ export default function AdminPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Benutzerverwaltung</h1>
-        <button onClick={() => setShowForm(!showForm)} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">
-          + Neuer Benutzer
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-1 mb-6 border-b border-[var(--border)]">
+        <button
+          onClick={() => setActiveTab("users")}
+          className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
+            activeTab === "users"
+              ? "border-[var(--accent)] text-[var(--accent)]"
+              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          }`}
+        >
+          Benutzer
+        </button>
+        <button
+          onClick={() => setActiveTab("roles")}
+          className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
+            activeTab === "roles"
+              ? "border-[var(--accent)] text-[var(--accent)]"
+              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          }`}
+        >
+          Rollen
         </button>
       </div>
 
-      {showForm && (
-        <form onSubmit={handleCreateUser} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Neuen Benutzer erstellen</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Anzeigename *</label>
-              <input type="text" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} required className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">E-Mail *</label>
-              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Passwort *</label>
-              <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Rolle</label>
-              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className={inputClass}>
-                {USER_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-400 mb-2">Firmenzugriff</label>
-              <div className="flex flex-wrap gap-3">
-                {COMPANIES.map((c) => (
-                  <label key={c.id} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                    <input type="checkbox" checked={form.company_access.includes(c.id)}
-                      onChange={(e) => {
-                        const access = e.target.checked
-                          ? [...form.company_access, c.id]
-                          : form.company_access.filter((id) => id !== c.id);
-                        setForm({ ...form, company_access: access });
-                      }}
-                      className="rounded accent-[var(--accent)]"
-                    />
-                    {c.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-          {error && <p className="text-sm text-rose-400 mt-3">{error}</p>}
-          <div className="flex gap-3 mt-4">
-            <button type="submit" disabled={saving} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
-              {saving ? "Erstelle..." : "Benutzer erstellen"}
-            </button>
-            <button type="button" onClick={() => setShowForm(false)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
-              Abbrechen
+      {/* ==================== USERS TAB ==================== */}
+      {activeTab === "users" && (
+        <>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Benutzerverwaltung</h1>
+            <button onClick={() => setShowForm(!showForm)} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">
+              + Neuer Benutzer
             </button>
           </div>
-        </form>
-      )}
 
-      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
-        <table className="min-w-full divide-y divide-[var(--border)]">
-          <thead className="bg-[var(--background)]">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">E-Mail</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rolle</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Firmenzugriff</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border)]">
-            {users.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Noch keine Benutzerprofile. Der erste Benutzer wird automatisch Admin.</td></tr>
-            )}
-            {users.map((u) => {
-              const isEditing = editingUser === u.id;
-              return (
-              <tr key={u.id} className="hover:bg-[var(--surface-hover)] transition">
-                <td className="px-4 py-3 text-sm">
-                  {isEditing ? (
-                    <input type="text" value={editForm.display_name} onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })}
-                      className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] w-full" />
-                  ) : (
-                    <span className="font-medium text-[var(--text-primary)]">{u.display_name}</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-400">{u.email}</td>
-                <td className="px-4 py-3">
-                  {isEditing ? (
-                    <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
-                      className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)]">
-                      {USER_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  ) : (
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${u.role === "admin" ? "bg-[var(--accent)]/15 text-[var(--accent)]" : u.role === "manager" ? "bg-emerald-500/15 text-emerald-400" : u.role === "accountant" ? "bg-orange-500/15 text-orange-400" : "bg-gray-500/15 text-gray-400"}`}>
-                      {USER_ROLE_OPTIONS.find((o) => o.value === u.role)?.label || u.role}
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-1">
+          {showForm && (
+            <form onSubmit={handleCreateUser} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Neuen Benutzer erstellen</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Anzeigename *</label>
+                  <input type="text" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} required className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">E-Mail *</label>
+                  <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Passwort *</label>
+                  <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Rolle</label>
+                  <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className={inputClass}>
+                    {USER_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Firmenzugriff</label>
+                  <div className="flex flex-wrap gap-3">
                     {COMPANIES.map((c) => (
-                      <button key={c.id} onClick={() => handleToggleCompany(u.id, c.id)}
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition ${
-                          u.company_access.includes(c.id) ? "bg-emerald-500/15 text-emerald-400" : "bg-gray-500/15 text-gray-500 hover:bg-gray-500/25"
-                        }`}>
-                        {c.name.split(" ")[0]}
-                      </button>
+                      <label key={c.id} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                        <input type="checkbox" checked={form.company_access.includes(c.id)}
+                          onChange={(e) => {
+                            const access = e.target.checked
+                              ? [...form.company_access, c.id]
+                              : form.company_access.filter((id) => id !== c.id);
+                            setForm({ ...form, company_access: access });
+                          }}
+                          className="rounded accent-[var(--accent)]"
+                        />
+                        {c.name}
+                      </label>
                     ))}
                   </div>
-                </td>
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  {isEditing ? (
-                    <>
-                      <button onClick={() => saveEditUser(u.id)} className="text-sm text-emerald-400 hover:text-emerald-300 mr-2">Speichern</button>
-                      <button onClick={() => setEditingUser(null)} className="text-sm text-gray-400 hover:text-gray-300">Abbrechen</button>
-                    </>
-                  ) : (
-                    <>
-                      <button onClick={() => openSchedule(u)} className="text-sm text-[var(--brand-orange)] hover:brightness-110 mr-2" title="Arbeitszeitmodell bearbeiten">Zeitmodell</button>
-                      <button onClick={() => startEditUser(u)} className="text-sm text-[var(--accent)] hover:brightness-110 mr-2">Bearbeiten</button>
-                      <button onClick={() => handleDelete(u.id)} className="text-sm text-rose-400 hover:text-rose-300">Löschen</button>
-                    </>
-                  )}
-                </td>
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </div>
+              {error && <p className="text-sm text-rose-400 mt-3">{error}</p>}
+              <div className="flex gap-3 mt-4">
+                <button type="submit" disabled={saving} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
+                  {saving ? "Erstelle..." : "Benutzer erstellen"}
+                </button>
+                <button type="button" onClick={() => setShowForm(false)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
+                  Abbrechen
+                </button>
+              </div>
+            </form>
+          )}
 
+          <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
+            <table className="min-w-full divide-y divide-[var(--border)]">
+              <thead className="bg-[var(--background)]">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">E-Mail</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Systemrolle</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Firmenrollen</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Firmenzugriff</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {users.length === 0 && (
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Noch keine Benutzerprofile. Der erste Benutzer wird automatisch Admin.</td></tr>
+                )}
+                {users.map((u) => {
+                  const isEditing = editingUser === u.id;
+                  const userRoles = (userRoleMap[u.id] || []).map((rid) => roles.find((r) => r.id === rid)).filter(Boolean) as CompanyRole[];
+                  return (
+                  <tr key={u.id} className="hover:bg-[var(--surface-hover)] transition">
+                    <td className="px-4 py-3 text-sm">
+                      {isEditing ? (
+                        <input type="text" value={editForm.display_name} onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })}
+                          className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] w-full" />
+                      ) : (
+                        <span className="font-medium text-[var(--text-primary)]">{u.display_name}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-400">{u.email}</td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
+                          className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)]">
+                          {USER_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      ) : (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${u.role === "admin" ? "bg-[var(--accent)]/15 text-[var(--accent)]" : u.role === "manager" ? "bg-emerald-500/15 text-emerald-400" : u.role === "accountant" ? "bg-orange-500/15 text-orange-400" : "bg-gray-500/15 text-gray-400"}`}>
+                          {USER_ROLE_OPTIONS.find((o) => o.value === u.role)?.label || u.role}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1 items-center">
+                        {userRoles.length > 0 ? userRoles.map((role) => (
+                          <span
+                            key={role.id}
+                            className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                            style={{
+                              backgroundColor: `${role.color || "#6b7280"}20`,
+                              color: role.color || "#6b7280",
+                            }}
+                          >
+                            {role.name}
+                          </span>
+                        )) : (
+                          <span className="text-[10px] text-gray-500">—</span>
+                        )}
+                        <button
+                          onClick={() => openRoleAssign(u)}
+                          className="text-[10px] text-[var(--accent)] hover:brightness-110 ml-1"
+                          title="Rollen zuordnen"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {COMPANIES.map((c) => (
+                          <button key={c.id} onClick={() => handleToggleCompany(u.id, c.id)}
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition ${
+                              u.company_access.includes(c.id) ? "bg-emerald-500/15 text-emerald-400" : "bg-gray-500/15 text-gray-500 hover:bg-gray-500/25"
+                            }`}>
+                            {c.name.split(" ")[0]}
+                          </button>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      {isEditing ? (
+                        <>
+                          <button onClick={() => saveEditUser(u.id)} className="text-sm text-emerald-400 hover:text-emerald-300 mr-2">Speichern</button>
+                          <button onClick={() => setEditingUser(null)} className="text-sm text-gray-400 hover:text-gray-300">Abbrechen</button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => openSchedule(u)} className="text-sm text-[var(--brand-orange)] hover:brightness-110 mr-2" title="Arbeitszeitmodell bearbeiten">Zeitmodell</button>
+                          <button onClick={() => startEditUser(u)} className="text-sm text-[var(--accent)] hover:brightness-110 mr-2">Bearbeiten</button>
+                          <button onClick={() => handleDelete(u.id)} className="text-sm text-rose-400 hover:text-rose-300">Löschen</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* ==================== ROLES TAB ==================== */}
+      {activeTab === "roles" && (
+        <>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Rollenverwaltung</h1>
+            <button onClick={() => { setShowRoleForm(!showRoleForm); setRoleError(""); }} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">
+              + Neue Rolle
+            </button>
+          </div>
+
+          {showRoleForm && (
+            <form onSubmit={handleCreateRole} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Neue Rolle erstellen</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Name *</label>
+                  <input type="text" value={roleForm.name} onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })} required className={inputClass} placeholder="z.B. Entwickler, Designer" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Beschreibung</label>
+                  <input type="text" value={roleForm.description} onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })} className={inputClass} placeholder="Kurze Beschreibung" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Farbe</label>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={roleForm.color} onChange={(e) => setRoleForm({ ...roleForm, color: e.target.value })}
+                      className="w-10 h-10 rounded-lg border border-[var(--border)] cursor-pointer bg-transparent p-0.5" />
+                    <div className="flex gap-1 flex-wrap">
+                      {DEFAULT_ROLE_COLORS.map((c) => (
+                        <button key={c} type="button" onClick={() => setRoleForm({ ...roleForm, color: c })}
+                          className={`w-6 h-6 rounded-full border-2 transition ${roleForm.color === c ? "border-white scale-110" : "border-transparent hover:border-white/50"}`}
+                          style={{ backgroundColor: c }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {roleError && <p className="text-sm text-rose-400 mt-3">{roleError}</p>}
+              <div className="flex gap-3 mt-4">
+                <button type="submit" disabled={roleSaving} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
+                  {roleSaving ? "Erstelle..." : "Rolle erstellen"}
+                </button>
+                <button type="button" onClick={() => setShowRoleForm(false)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">
+                  Abbrechen
+                </button>
+              </div>
+            </form>
+          )}
+
+          {rolesLoading ? (
+            <div className="text-center py-8 text-gray-500">Laden...</div>
+          ) : (
+            <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
+              <table className="min-w-full divide-y divide-[var(--border)]">
+                <thead className="bg-[var(--background)]">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Farbe</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Beschreibung</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zugeordnete User</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {roles.length === 0 && (
+                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Noch keine Rollen definiert. Erstelle die erste Rolle mit dem Button oben.</td></tr>
+                  )}
+                  {roles.map((role) => {
+                    const isEditing = editingRole === role.id;
+                    const assignedUsers = users.filter((u) => (userRoleMap[u.id] || []).includes(role.id));
+                    return (
+                      <tr key={role.id} className="hover:bg-[var(--surface-hover)] transition">
+                        <td className="px-4 py-3">
+                          {isEditing ? (
+                            <input type="color" value={editRoleForm.color} onChange={(e) => setEditRoleForm({ ...editRoleForm, color: e.target.value })}
+                              className="w-8 h-8 rounded border border-[var(--border)] cursor-pointer bg-transparent p-0.5" />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full" style={{ backgroundColor: role.color || "#6b7280" }} />
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {isEditing ? (
+                            <input type="text" value={editRoleForm.name} onChange={(e) => setEditRoleForm({ ...editRoleForm, name: e.target.value })}
+                              className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] w-full" />
+                          ) : (
+                            <span
+                              className="font-medium text-xs px-2 py-0.5 rounded-full"
+                              style={{
+                                backgroundColor: `${role.color || "#6b7280"}20`,
+                                color: role.color || "#6b7280",
+                              }}
+                            >
+                              {role.name}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+                          {isEditing ? (
+                            <input type="text" value={editRoleForm.description} onChange={(e) => setEditRoleForm({ ...editRoleForm, description: e.target.value })}
+                              className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] w-full" />
+                          ) : (
+                            role.description || <span className="text-gray-500">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {assignedUsers.length > 0 ? assignedUsers.map((u) => (
+                              <span key={u.id} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--surface-hover)] text-[var(--text-secondary)]">
+                                {u.display_name}
+                              </span>
+                            )) : (
+                              <span className="text-[10px] text-gray-500">Keine</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          {isEditing ? (
+                            <>
+                              <button onClick={() => saveEditRole(role.id)} className="text-sm text-emerald-400 hover:text-emerald-300 mr-2">Speichern</button>
+                              <button onClick={() => setEditingRole(null)} className="text-sm text-gray-400 hover:text-gray-300">Abbrechen</button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => startEditRole(role)} className="text-sm text-[var(--accent)] hover:brightness-110 mr-2">Bearbeiten</button>
+                              <button onClick={() => handleDeleteRole(role.id)} className="text-sm text-rose-400 hover:text-rose-300">Löschen</button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {roleError && !showRoleForm && <p className="text-sm text-rose-400 mt-3">{roleError}</p>}
+        </>
+      )}
+
+      {/* ==================== ROLE ASSIGNMENT MODAL ==================== */}
+      {roleAssignUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setRoleAssignUser(null)}>
+          <div className="bg-[var(--surface)] rounded-xl shadow-2xl border border-[var(--border)] max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">Rollen zuordnen</h3>
+                <p className="text-sm text-[var(--text-muted)]">{roleAssignUser.display_name}</p>
+              </div>
+              <button onClick={() => setRoleAssignUser(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]" title="Schließen">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+
+            {roles.length === 0 ? (
+              <p className="text-sm text-gray-500 py-4">Noch keine Rollen definiert. Erstelle zuerst Rollen im Tab &quot;Rollen&quot;.</p>
+            ) : (
+              <div className="space-y-2">
+                {roles.map((role) => {
+                  const isAssigned = (userRoleMap[roleAssignUser.id] || []).includes(role.id);
+                  return (
+                    <label
+                      key={role.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition cursor-pointer ${
+                        isAssigned
+                          ? "border-[var(--accent)]/30 bg-[var(--accent)]/5"
+                          : "border-[var(--border)] hover:bg-[var(--surface-hover)]"
+                      } ${assignSaving ? "opacity-50 pointer-events-none" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isAssigned}
+                        onChange={() => toggleUserRole(roleAssignUser.id, role.id)}
+                        className="accent-[var(--accent)] w-4 h-4"
+                      />
+                      <div
+                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: role.color || "#6b7280" }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-[var(--text-primary)]">{role.name}</div>
+                        {role.description && (
+                          <div className="text-xs text-[var(--text-muted)] truncate">{role.description}</div>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex justify-end mt-4">
+              <button onClick={() => setRoleAssignUser(null)} className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-lg transition">
+                Fertig
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== SCHEDULE MODAL (unchanged) ==================== */}
       {scheduleUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setScheduleUser(null)}>
           <div className="bg-[var(--surface)] rounded-xl shadow-2xl border border-[var(--border)] max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
