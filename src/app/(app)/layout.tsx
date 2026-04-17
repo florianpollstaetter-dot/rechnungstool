@@ -126,7 +126,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {showCompanyDropdown ? (
                 <div className="relative">
                   <button
-                    onClick={() => setShowCompanySwitcher(!showCompanySwitcher)}
+                    onClick={() => { setShowCompanySwitcher(!showCompanySwitcher); setMobileOpen(false); }}
                     className="flex items-center gap-1 px-1.5 py-1 rounded-md hover:bg-[var(--surface-hover)] transition-colors"
                     title={t("nav.switchCompany")}
                   >
@@ -173,7 +173,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 {t("nav.logout")}
               </button>
               {/* Hamburger menu toggle — visible below lg breakpoint */}
-              <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden text-gray-400 hover:text-[var(--text-primary)] p-1">
+              <button onClick={() => { setMobileOpen(!mobileOpen); setShowCompanySwitcher(false); }} className="lg:hidden text-gray-400 hover:text-[var(--text-primary)] p-1">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   {mobileOpen ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></> : <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>}
                 </svg>
@@ -183,7 +183,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         {/* Hamburger menu — visible below lg breakpoint */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-[var(--border)] bg-[var(--surface)]">
+          <div className="lg:hidden border-t border-[var(--border)] bg-[var(--surface)] relative z-30">
             <div className="px-4 py-3 space-y-1">
               {userName && <p className="px-3 py-1 text-xs text-[var(--text-muted)] italic">{greeting.replace("{name}", userName)}</p>}
               {/* Dashboard always first */}
