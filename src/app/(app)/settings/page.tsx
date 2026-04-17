@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS } from "@/lib/types";
-import { getSettings, updateSettings } from "@/lib/db";
+import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS, SmartInsightsConfig } from "@/lib/types";
+import { getSettings, updateSettings, getSmartInsightsConfig, upsertSmartInsightsConfig } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/ThemeProvider";
+import { useCompany } from "@/lib/company-context";
 
 const COMPANY_TYPE_WARNINGS: Record<CompanyType, string> = {
   gmbh: "GmbH: Soll-Besteuerung — die Umsatzsteuer wird fällig bei Rechnungsstellung, unabhaengig davon ob die Zahlung bereits eingegangen ist.",
@@ -16,6 +17,8 @@ const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] 
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const { userRole } = useCompany();
+  const isAdmin = userRole === "admin";
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,11 +30,20 @@ export default function SettingsPage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // Smart Insights config (admin only)
+  const [insightsConfig, setInsightsConfig] = useState<SmartInsightsConfig | null>(null);
+  const [insightsSaving, setInsightsSaving] = useState(false);
+  const [insightsSaved, setInsightsSaved] = useState(false);
+
   const loadData = useCallback(async () => {
     const s = await getSettings();
     setSettings(s);
+    if (isAdmin) {
+      const ic = await getSmartInsightsConfig();
+      setInsightsConfig(ic);
+    }
     setLoading(false);
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -104,6 +116,26 @@ export default function SettingsPage() {
       setPasswordMessage({ type: "error", text: err instanceof Error ? err.message : "Passwort konnte nicht geändert werden." });
     } finally {
       setPasswordSaving(false);
+    }
+  }
+
+  function updateInsights(field: keyof SmartInsightsConfig, pct: number) {
+    if (!insightsConfig) return;
+    setInsightsConfig({ ...insightsConfig, [field]: Math.max(0, Math.min(100, pct)) / 100 });
+  }
+
+  async function handleInsightsSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!insightsConfig) return;
+    setInsightsSaving(true);
+    try {
+      const { id, company_id, created_at, updated_at, ...rest } = insightsConfig;
+      void id; void company_id; void created_at; void updated_at;
+      await upsertSmartInsightsConfig(rest);
+      setInsightsSaved(true);
+      setTimeout(() => setInsightsSaved(false), 2000);
+    } finally {
+      setInsightsSaving(false);
     }
   }
 
@@ -281,6 +313,50 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Smart Insights Thresholds — admin only */}
+      {isAdmin && insightsConfig && (
+        <form onSubmit={handleInsightsSave} className="mt-6 bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Smart-Insights-Schwellwerte</h2>
+              <p className="text-sm text-gray-500 mt-1">Schwellwerte fuer automatische Auswertungen und Warnungen.</p>
+            </div>
+            {insightsSaved && <span className="text-sm text-emerald-400 font-medium">Gespeichert!</span>}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Mindest-Billable-Rate (%)</label>
+              <input type="number" value={Math.round(insightsConfig.billable_rate_min * 100)} onChange={(e) => updateInsights("billable_rate_min", Number(e.target.value))} min={0} max={100} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Stundenanstieg-Warnung (%)</label>
+              <input type="number" value={Math.round(insightsConfig.period_growth_threshold * 100)} onChange={(e) => updateInsights("period_growth_threshold", Number(e.target.value))} min={0} max={100} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Projekt-Konzentrations-Warnung (%)</label>
+              <input type="number" value={Math.round(insightsConfig.top_project_share_max * 100)} onChange={(e) => updateInsights("top_project_share_max", Number(e.target.value))} min={0} max={100} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Budget-Warnung ab (%)</label>
+              <input type="number" value={Math.round(insightsConfig.budget_overshoot_warn_pct * 100)} onChange={(e) => updateInsights("budget_overshoot_warn_pct", Number(e.target.value))} min={0} max={100} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Budget-Critical ab (%)</label>
+              <input type="number" value={Math.round(insightsConfig.budget_overshoot_critical_pct * 100)} onChange={(e) => updateInsights("budget_overshoot_critical_pct", Number(e.target.value))} min={0} max={100} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Ueberstunden-Schwelle (%)</label>
+              <input type="number" value={Math.round(insightsConfig.overtime_threshold_pct * 100)} onChange={(e) => updateInsights("overtime_threshold_pct", Number(e.target.value))} min={0} max={100} className={inputClass} />
+            </div>
+          </div>
+          <div className="mt-4">
+            <button type="submit" disabled={insightsSaving} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
+              {insightsSaving ? "Wird gespeichert..." : "Schwellwerte speichern"}
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* Password Change — separate form, only affects current user */}
       <form onSubmit={handlePasswordChange} className="mt-6 bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
