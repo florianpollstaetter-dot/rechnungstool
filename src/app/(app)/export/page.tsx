@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { Invoice, Customer, Receipt, CompanySettings } from "@/lib/types";
 import { getInvoices, getCustomers, getReceipts, getSettings } from "@/lib/db";
+import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDateLong } from "@/lib/format";
+import type { ReceiptImageData } from "@/components/SteuerblattPDF";
 
 export default function ExportPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -16,6 +18,7 @@ export default function ExportPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const loadData = useCallback(async () => {
     const [inv, cust, rec, s] = await Promise.all([getInvoices(), getCustomers(), getReceipts(), getSettings()]);
@@ -127,6 +130,78 @@ export default function ExportPage() {
     }
   }
 
+  async function handleExportPDF() {
+    if (!settings) return;
+    setExportingPdf(true);
+    try {
+      // Resolve absolute logo URL
+      let logoUrl = settings.logo_url;
+      if (logoUrl && !logoUrl.startsWith("http")) {
+        logoUrl = `${window.location.origin}${logoUrl}`;
+      }
+      const absSettings = { ...settings, logo_url: logoUrl || "" };
+
+      // Fetch receipt images as data URLs
+      const receiptImages: ReceiptImageData[] = [];
+      const supabase = createClient();
+
+      for (const r of monthReceipts) {
+        if (!r.file_path) continue;
+        const ext = (r.file_type || "").toLowerCase();
+        if (ext === "pdf") continue;
+
+        const { data } = await supabase.storage
+          .from("receipts")
+          .createSignedUrl(r.file_path, 300);
+
+        if (!data?.signedUrl) continue;
+
+        try {
+          const resp = await fetch(data.signedUrl);
+          const blob = await resp.blob();
+          const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+
+          receiptImages.push({
+            receiptId: r.id,
+            dataUrl,
+            label: [r.issuer, r.purpose, r.invoice_date].filter(Boolean).join(" — "),
+          });
+        } catch {
+          // Skip receipts that fail to load
+        }
+      }
+
+      // Generate PDF
+      const { pdf } = await import("@react-pdf/renderer");
+      const { default: SteuerblattPDF } = await import("@/components/SteuerblattPDF");
+      const blob = await pdf(
+        <SteuerblattPDF
+          invoices={monthInvoices}
+          receipts={monthReceipts}
+          customers={customers}
+          settings={absSettings}
+          selectedMonth={selectedMonth}
+          receiptImages={receiptImages}
+        />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Steuerblatt_${selectedMonth}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
   const months: string[] = [];
   for (let i = 0; i < 12; i++) {
     const d = new Date();
@@ -144,11 +219,11 @@ export default function ExportPage() {
           <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)]">
             {months.map((m) => <option key={m} value={m}>{m.split("-")[1]}/{m.split("-")[0]}</option>)}
           </select>
-          <button onClick={handleExportCSV} disabled={exporting} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
-            {exporting ? "Exportiere..." : "CSV Export"}
+          <button onClick={handleExportPDF} disabled={exportingPdf} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
+            {exportingPdf ? "Exportiere PDF..." : "PDF Export"}
           </button>
-          <button onClick={() => window.print()} className="bg-emerald-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition">
-            PDF Drucken
+          <button onClick={handleExportCSV} disabled={exporting} className="bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
+            {exporting ? "Exportiere..." : "CSV Export"}
           </button>
         </div>
       </div>
