@@ -52,6 +52,13 @@ const allNavItems: { href: string; label: string; exact?: boolean; section: AppS
   { href: "/admin", label: "Admin", section: "admin" },
 ];
 
+/** Group definitions for the hamburger menu */
+const NAV_GROUPS: { label: string; sections: AppSection[] }[] = [
+  { label: "Finanzen", sections: ["quotes", "invoices", "receipts", "bank", "expenses", "export"] },
+  { label: "Verwaltung", sections: ["customers", "products", "fixed-costs", "time"] },
+  { label: "System", sections: ["admin"] },
+];
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -114,14 +121,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </>
               )}
               {/* 3. Desktop nav */}
-              <div className="hidden md:flex items-center gap-1 ml-2">
+              <div className="hidden lg:flex items-center gap-1 ml-2">
                 {navItems.map((item) => {
                   const active = isActive(item.href, item.exact);
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`relative px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      className={`relative px-2 py-1.5 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap ${
                         active
                           ? "text-[var(--text-primary)] bg-[var(--surface-hover)]"
                           : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
@@ -187,8 +194,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <button onClick={handleLogout} className="text-gray-500 hover:text-[var(--text-primary)] text-xs font-medium transition-colors hidden sm:block">
                 Abmelden
               </button>
-              {/* Mobile hamburger */}
-              <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden text-gray-400 hover:text-[var(--text-primary)] p-1">
+              {/* Hamburger menu toggle — visible below lg breakpoint */}
+              <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden text-gray-400 hover:text-[var(--text-primary)] p-1">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   {mobileOpen ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></> : <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>}
                 </svg>
@@ -196,12 +203,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
-        {/* Mobile menu */}
+        {/* Hamburger menu — visible below lg breakpoint */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-[var(--border)] bg-[var(--surface)]">
+          <div className="lg:hidden border-t border-[var(--border)] bg-[var(--surface)]">
             <div className="px-4 py-3 space-y-1">
               {userName && <p className="px-3 py-1 text-xs text-[var(--text-muted)] italic">{greeting.replace("{name}", userName)}</p>}
-              {navItems.map((item) => (
+              {/* Dashboard always first */}
+              {navItems.filter((item) => item.section === "dashboard").map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -215,9 +223,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   {item.label}
                 </Link>
               ))}
+              {/* Grouped nav items */}
+              {NAV_GROUPS.map((group) => {
+                const groupItems = navItems.filter((item) => group.sections.includes(item.section));
+                if (groupItems.length === 0) return null;
+                return (
+                  <div key={group.label} className="border-t border-[var(--border)] mt-2 pt-2">
+                    <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{group.label}</p>
+                    {groupItems.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`block px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          isActive(item.href, item.exact)
+                            ? "text-[var(--brand-orange)] bg-[var(--brand-orange-dim)]"
+                            : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                );
+              })}
               {showCompanyDropdown && (
                 <div className="border-t border-[var(--border)] mt-2 pt-2">
-                  <p className="px-3 py-1 text-xs text-[var(--text-muted)]">Unternehmen wechseln:</p>
+                  <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Unternehmen</p>
                   {accessibleCompanies.map((c) => (
                     <button key={c.id} onClick={() => { setCompanyId(c.id); setMobileOpen(false); window.location.reload(); }}
                       className={`block w-full text-left px-3 py-2 text-sm font-medium rounded-lg transition-colors ${company.id === c.id ? "text-[var(--brand-orange)]" : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"}`}>
@@ -227,17 +259,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
               )}
               {isSuperadmin && (
-                <Link
-                  href="/operator"
-                  onClick={() => setMobileOpen(false)}
-                  className="block px-3 py-2 text-sm font-medium text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                >
-                  Operator Console
-                </Link>
+                <div className="border-t border-[var(--border)] mt-2 pt-2">
+                  <Link
+                    href="/operator"
+                    onClick={() => setMobileOpen(false)}
+                    className="block px-3 py-2 text-sm font-medium text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                  >
+                    Operator Console
+                  </Link>
+                </div>
               )}
-              <button onClick={handleLogout} className="block w-full text-left px-3 py-2 text-sm font-medium text-rose-400 hover:bg-[var(--surface-hover)] rounded-lg transition-colors">
-                Abmelden
-              </button>
+              <div className="border-t border-[var(--border)] mt-2 pt-2">
+                <button onClick={handleLogout} className="block w-full text-left px-3 py-2 text-sm font-medium text-rose-400 hover:bg-[var(--surface-hover)] rounded-lg transition-colors">
+                  Abmelden
+                </button>
+              </div>
             </div>
           </div>
         )}
