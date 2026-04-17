@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Quote, Customer, CompanySettings, QuoteStatus, UNIT_OPTIONS, Language, DisplayMode, TemplateItem } from "@/lib/types";
-import { getQuote, getCustomer, getSettings, updateQuote, convertQuoteToInvoice, createInvoice, createTemplate } from "@/lib/db";
+import { Quote, Customer, CompanySettings, QuoteStatus, UNIT_OPTIONS, Language, DisplayMode, TemplateItem, CompanyRole } from "@/lib/types";
+import { getQuote, getCustomer, getSettings, updateQuote, convertQuoteToInvoice, createInvoice, createTemplate, getCompanyRoles } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
@@ -23,6 +23,7 @@ export default function QuoteDetailPage() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
+  const [roles, setRoles] = useState<CompanyRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [showPartialModal, setShowPartialModal] = useState(false);
@@ -33,9 +34,10 @@ export default function QuoteDetailPage() {
     const q = await getQuote(params.id as string);
     if (q) {
       setQuote(q);
-      const [cust, s] = await Promise.all([getCustomer(q.customer_id), getSettings()]);
+      const [cust, s, rolesData] = await Promise.all([getCustomer(q.customer_id), getSettings(), getCompanyRoles()]);
       if (cust) setCustomer(cust);
       setSettings(s);
+      setRoles(rolesData);
     }
     setLoading(false);
   }, [params.id]);
@@ -235,6 +237,7 @@ export default function QuoteDetailPage() {
               <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">Menge</th>
               <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">Einzelpreis</th>
               {hasDiscounts && <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">Rabatt</th>}
+              <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-32">Rolle</th>
               <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">Betrag</th>
             </tr>
           </thead>
@@ -251,6 +254,9 @@ export default function QuoteDetailPage() {
                     {item.discount_percent > 0 ? `${item.discount_percent}%` : item.discount_amount > 0 ? formatCurrency(item.discount_amount) : ""}
                   </td>
                 )}
+                <td className="py-3 text-sm text-gray-400">
+                  {item.role_id ? (() => { const role = roles.find((r) => r.id === item.role_id); return role ? (<span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: (role.color || "#6b7280") + "20", color: role.color || "#6b7280" }}>{role.name}</span>) : "—"; })() : "—"}
+                </td>
                 <td className="py-3 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(item.total)}</td>
               </tr>
             ))}

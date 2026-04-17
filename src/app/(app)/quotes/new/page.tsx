@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Customer, QuoteItem, Product, UNIT_OPTIONS, Language, DisplayMode } from "@/lib/types";
-import { getCustomers, getSettings, getActiveProducts, createQuote, getTemplate } from "@/lib/db";
+import { Customer, QuoteItem, Product, UNIT_OPTIONS, Language, DisplayMode, CompanyRole } from "@/lib/types";
+import { getCustomers, getSettings, getActiveProducts, createQuote, getTemplate, getCompanyRoles } from "@/lib/db";
 import { useAutosave } from "@/lib/use-autosave";
 import { addDays, formatCurrency } from "@/lib/format";
 import { calcItemTotal, calcTotals } from "@/lib/calc";
@@ -11,7 +11,7 @@ import { calcItemTotal, calcTotals } from "@/lib/calc";
 type ItemRow = Omit<QuoteItem, "id">;
 
 function emptyItem(pos: number): ItemRow {
-  return { position: pos, description: "", unit: "Stueck", product_id: null, quantity: 1, unit_price: 0, discount_percent: 0, discount_amount: 0, total: 0 };
+  return { position: pos, description: "", unit: "Stueck", product_id: null, quantity: 1, unit_price: 0, discount_percent: 0, discount_amount: 0, total: 0, role_id: null };
 }
 
 export default function NewQuotePageWrapper() {
@@ -23,6 +23,7 @@ function NewQuotePage() {
   const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [roles, setRoles] = useState<CompanyRole[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().split("T")[0]);
@@ -55,9 +56,10 @@ function NewQuotePage() {
   });
 
   const loadData = useCallback(async () => {
-    const [cust, settings, prods] = await Promise.all([getCustomers(), getSettings(), getActiveProducts()]);
+    const [cust, settings, prods, rolesData] = await Promise.all([getCustomers(), getSettings(), getActiveProducts(), getCompanyRoles()]);
     setCustomers(cust);
     setProducts(prods);
+    setRoles(rolesData);
     setTaxRate(settings.default_tax_rate);
 
     const templateId = searchParams.get("template");
@@ -96,7 +98,7 @@ function NewQuotePage() {
     const product = products.find((p) => p.id === productId);
     if (product) {
       const updated = [...items];
-      updated[index] = { ...updated[index], product_id: product.id, description: product.name, unit: product.unit, unit_price: product.unit_price, total: calcItemTotal({ ...updated[index], unit_price: product.unit_price }) };
+      updated[index] = { ...updated[index], product_id: product.id, description: product.name, unit: product.unit, unit_price: product.unit_price, role_id: product.role_id || null, total: calcItemTotal({ ...updated[index], unit_price: product.unit_price }) };
       setItems(updated);
     }
   }
@@ -203,6 +205,7 @@ function NewQuotePage() {
                   <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">Menge</th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">Einzelpreis</th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">Rabatt %</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-36">Rolle</th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">Betrag</th>
                   <th className="w-10"></th>
                 </tr>
@@ -226,6 +229,12 @@ function NewQuotePage() {
                     <td className="py-2"><input type="number" value={item.quantity} onChange={(e) => updateItem(idx, "quantity", Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateItem(idx, "quantity", v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black" min={1} step="1" required /></td>
                     <td className="py-2"><input type="number" value={item.unit_price} onChange={(e) => updateItem(idx, "unit_price", Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateItem(idx, "unit_price", v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} required /></td>
                     <td className="py-2"><input type="number" value={item.discount_percent} onChange={(e) => updateItem(idx, "discount_percent", Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateItem(idx, "discount_percent", v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} max={100} /></td>
+                    <td className="py-2">
+                      <select value={item.role_id || ""} onChange={(e) => updateItem(idx, "role_id", e.target.value || null)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                        <option value="">Keine Rolle</option>
+                        {roles.map((r) => (<option key={r.id} value={r.id}>{r.name}</option>))}
+                      </select>
+                    </td>
                     <td className="py-2 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(calcItemTotal(item))}</td>
                     <td className="py-2 text-center">
                       {items.length > 1 && (<button type="button" onClick={() => removeItem(idx)} className="text-rose-400 hover:text-rose-300 text-sm">X</button>)}

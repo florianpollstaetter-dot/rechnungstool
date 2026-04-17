@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Product, UNIT_OPTIONS, UnitType } from "@/lib/types";
-import { getProducts, createProduct, updateProduct, deleteProduct } from "@/lib/db";
+import { Product, UNIT_OPTIONS, UnitType, CompanyRole } from "@/lib/types";
+import { getProducts, createProduct, updateProduct, deleteProduct, getCompanyRoles } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [roles, setRoles] = useState<CompanyRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -19,11 +20,13 @@ export default function ProductsPage() {
     unit_price: "" as string | number,
     tax_rate: 20,
     active: true,
+    role_id: "" as string,
   });
 
   const loadData = useCallback(async () => {
-    const data = await getProducts();
+    const [data, rolesData] = await Promise.all([getProducts(), getCompanyRoles()]);
     setProducts(data);
+    setRoles(rolesData);
     setLoading(false);
   }, []);
 
@@ -32,7 +35,7 @@ export default function ProductsPage() {
   }, [loadData]);
 
   function resetForm() {
-    setForm({ name: "", description: "", name_en: "", description_en: "", unit: "Stueck", unit_price: "", tax_rate: 20, active: true });
+    setForm({ name: "", description: "", name_en: "", description_en: "", unit: "Stueck", unit_price: "", tax_rate: 20, active: true, role_id: "" });
     setEditingId(null);
     setShowForm(false);
   }
@@ -47,6 +50,7 @@ export default function ProductsPage() {
       unit_price: product.unit_price,
       tax_rate: product.tax_rate,
       active: product.active,
+      role_id: product.role_id || "",
     });
     setEditingId(product.id);
     setShowForm(true);
@@ -54,7 +58,7 @@ export default function ProductsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const data = { ...form, unit_price: Number(form.unit_price) || 0 };
+    const data = { ...form, unit_price: Number(form.unit_price) || 0, role_id: form.role_id || null };
     if (editingId) {
       await updateProduct(editingId, data);
     } else {
@@ -177,6 +181,19 @@ export default function ProductsPage() {
                 className={inputClass}
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Rolle</label>
+              <select
+                value={form.role_id}
+                onChange={(e) => setForm({ ...form, role_id: e.target.value })}
+                className={inputClass}
+              >
+                <option value="">Keine Rolle</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </div>
             <div className="flex items-center pt-6">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-400">
                 <input
@@ -216,6 +233,7 @@ export default function ProductsPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Einheit</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Preis</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">USt</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rolle</th>
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aktionen</th>
             </tr>
@@ -223,7 +241,7 @@ export default function ProductsPage() {
           <tbody className="divide-y divide-[var(--border)]">
             {products.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                   Noch keine Produkte angelegt.
                 </td>
               </tr>
@@ -249,6 +267,9 @@ export default function ProductsPage() {
                 </td>
                 <td className="px-6 py-4 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(p.unit_price)}</td>
                 <td className="px-6 py-4 text-sm text-right text-gray-400">{p.tax_rate}%</td>
+                <td className="px-6 py-4 text-sm text-gray-400">
+                  {p.role_id ? (() => { const role = roles.find((r) => r.id === p.role_id); return role ? (<span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: (role.color || "#6b7280") + "20", color: role.color || "#6b7280" }}>{role.name}</span>) : "—"; })() : "—"}
+                </td>
                 <td className="px-6 py-4 text-center">
                   <button
                     onClick={() => handleToggleActive(p)}

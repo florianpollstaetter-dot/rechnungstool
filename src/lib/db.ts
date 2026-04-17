@@ -436,6 +436,7 @@ export async function createQuote(
           discount_percent: item.discount_percent || 0,
           discount_amount: item.discount_amount || 0,
           total: item.total,
+          role_id: item.role_id || null,
         }))
       );
   }
@@ -472,6 +473,7 @@ export async function updateQuote(
             discount_percent: item.discount_percent || 0,
             discount_amount: item.discount_amount || 0,
             total: item.total,
+            role_id: item.role_id || null,
           }))
         );
     }
@@ -1216,6 +1218,7 @@ function mapProduct(row: Record<string, unknown>): Product {
     unit_price: Number(row.unit_price),
     tax_rate: Number(row.tax_rate),
     active: row.active as boolean,
+    role_id: (row.role_id as string) || null,
     created_at: row.created_at as string,
   };
 }
@@ -1277,6 +1280,7 @@ function mapQuoteItem(row: Record<string, unknown>): QuoteItem {
     discount_percent: Number(row.discount_percent || 0),
     discount_amount: Number(row.discount_amount || 0),
     total: Number(row.total),
+    role_id: (row.role_id as string) || null,
   };
 }
 
