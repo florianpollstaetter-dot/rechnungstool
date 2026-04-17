@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS, SmartInsightsConfig, UserProfile } from "@/lib/types";
 import { getSettings, updateSettings, getSmartInsightsConfig, upsertSmartInsightsConfig, getUserProfile, updateUserProfile } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
@@ -15,6 +15,52 @@ const COMPANY_TYPE_WARNINGS: Record<CompanyType, string> = {
 };
 
 const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
+
+const THRESHOLD_EXPLANATIONS: Record<string, string> = {
+  billable_rate_min: "Anteil der verrechenbaren Stunden an der Gesamtarbeitszeit. Liegt die Rate unter diesem Wert, wird eine Warnung angezeigt.",
+  period_growth_threshold: "Maximaler Stundenanstieg im Vergleich zur Vorperiode. Wird dieser Prozentsatz ueberschritten, erscheint ein Hinweis.",
+  top_project_share_max: "Maximaler Anteil eines einzelnen Projekts an der Gesamtzeit. Warnt vor zu starker Abhaengigkeit von einem Projekt.",
+  budget_overshoot_warn_pct: "Ab diesem Prozentsatz der Budgetauslastung wird eine gelbe Warnung angezeigt.",
+  budget_overshoot_critical_pct: "Ab diesem Prozentsatz der Budgetauslastung wird eine rote Critical-Warnung angezeigt.",
+  overtime_threshold_pct: "Prozentsatz ueber der geplanten Arbeitszeit, ab dem Ueberstunden gemeldet werden.",
+};
+
+function InfoTooltip({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function close(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  return (
+    <div className="relative inline-block ml-1" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors align-middle"
+        aria-label="Info"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 16v-4" />
+          <path d="M12 8h.01" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-xl p-3 text-xs text-[var(--text-secondary)] leading-relaxed">
+          {text}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-0 h-0 border-x-[6px] border-x-transparent border-t-[6px] border-t-[var(--border)]" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -456,27 +502,45 @@ export default function SettingsPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Mindest-Billable-Rate (%)</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
+                Mindest-Billable-Rate (%)
+                <InfoTooltip text={THRESHOLD_EXPLANATIONS.billable_rate_min} />
+              </label>
               <input type="number" value={Math.round(insightsConfig.billable_rate_min * 100)} onChange={(e) => updateInsights("billable_rate_min", Number(e.target.value))} min={0} max={100} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Stundenanstieg-Warnung (%)</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
+                Stundenanstieg-Warnung (%)
+                <InfoTooltip text={THRESHOLD_EXPLANATIONS.period_growth_threshold} />
+              </label>
               <input type="number" value={Math.round(insightsConfig.period_growth_threshold * 100)} onChange={(e) => updateInsights("period_growth_threshold", Number(e.target.value))} min={0} max={100} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Projekt-Konzentrations-Warnung (%)</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
+                Projekt-Konzentrations-Warnung (%)
+                <InfoTooltip text={THRESHOLD_EXPLANATIONS.top_project_share_max} />
+              </label>
               <input type="number" value={Math.round(insightsConfig.top_project_share_max * 100)} onChange={(e) => updateInsights("top_project_share_max", Number(e.target.value))} min={0} max={100} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Budget-Warnung ab (%)</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
+                Budget-Warnung ab (%)
+                <InfoTooltip text={THRESHOLD_EXPLANATIONS.budget_overshoot_warn_pct} />
+              </label>
               <input type="number" value={Math.round(insightsConfig.budget_overshoot_warn_pct * 100)} onChange={(e) => updateInsights("budget_overshoot_warn_pct", Number(e.target.value))} min={0} max={100} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Budget-Critical ab (%)</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
+                Budget-Critical ab (%)
+                <InfoTooltip text={THRESHOLD_EXPLANATIONS.budget_overshoot_critical_pct} />
+              </label>
               <input type="number" value={Math.round(insightsConfig.budget_overshoot_critical_pct * 100)} onChange={(e) => updateInsights("budget_overshoot_critical_pct", Number(e.target.value))} min={0} max={100} className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Ueberstunden-Schwelle (%)</label>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
+                Ueberstunden-Schwelle (%)
+                <InfoTooltip text={THRESHOLD_EXPLANATIONS.overtime_threshold_pct} />
+              </label>
               <input type="number" value={Math.round(insightsConfig.overtime_threshold_pct * 100)} onChange={(e) => updateInsights("overtime_threshold_pct", Number(e.target.value))} min={0} max={100} className={inputClass} />
             </div>
           </div>

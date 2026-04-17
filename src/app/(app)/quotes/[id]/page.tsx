@@ -231,7 +231,8 @@ export default function QuoteDetailPage() {
           </div>
         </div>
 
-        <table className="min-w-full mb-6">
+        <div className="overflow-x-auto mb-6">
+        <table className="min-w-full">
           <thead>
             <tr className="border-b-2 border-[var(--border)]">
               <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-12">Pos</th>
@@ -265,23 +266,24 @@ export default function QuoteDetailPage() {
             ))}
           </tbody>
         </table>
+        </div>
 
         <div className="flex flex-col items-end space-y-1 text-sm">
-          <div className="flex justify-between w-72">
+          <div className="flex justify-between w-full max-w-72">
             <span className="text-gray-400">Summe netto</span>
             <span className="font-medium text-[var(--text-primary)]">{formatCurrency(quote.subtotal)}</span>
           </div>
           {(quote.overall_discount_percent > 0 || quote.overall_discount_amount > 0) && (
-            <div className="flex justify-between w-72 text-amber-400">
+            <div className="flex justify-between w-full max-w-72 text-amber-400">
               <span>Gesamtrabatt</span>
               <span>{quote.overall_discount_percent > 0 && `${quote.overall_discount_percent}%`}{quote.overall_discount_amount > 0 && ` ${formatCurrency(-quote.overall_discount_amount)}`}</span>
             </div>
           )}
-          <div className="flex justify-between w-72">
+          <div className="flex justify-between w-full max-w-72">
             <span className="text-gray-400">Umsatzsteuer {quote.tax_rate}%</span>
             <span className="font-medium text-[var(--text-primary)]">{formatCurrency(quote.tax_amount)}</span>
           </div>
-          <div className="flex justify-between w-72 text-base font-bold border-t border-[var(--border)] pt-2 mt-1">
+          <div className="flex justify-between w-full max-w-72 text-base font-bold border-t border-[var(--border)] pt-2 mt-1">
             <span className="text-[var(--text-primary)]">BRUTTO</span>
             <span className="text-[var(--accent)]">{formatCurrency(quote.total)}</span>
           </div>

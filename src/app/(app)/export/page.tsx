@@ -177,7 +177,7 @@ export default function ExportPage() {
       </div>
 
       {/* Invoices for month */}
-      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] mb-6">
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] mb-6 overflow-x-auto">
         <div className="px-6 py-4 border-b border-[var(--border)]">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Ausgangsrechnungen ({selectedMonth.split("-")[1]}/{selectedMonth.split("-")[0]})</h2>
         </div>
@@ -214,7 +214,7 @@ export default function ExportPage() {
       </div>
 
       {/* Receipts for month */}
-      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)]">
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
         <div className="px-6 py-4 border-b border-[var(--border)]">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Eingangsbelege ({selectedMonth.split("-")[1]}/{selectedMonth.split("-")[0]})</h2>
         </div>

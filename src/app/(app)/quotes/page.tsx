@@ -152,7 +152,7 @@ export default function QuotesPage() {
         />
       </div>
 
-      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
             <tr>
