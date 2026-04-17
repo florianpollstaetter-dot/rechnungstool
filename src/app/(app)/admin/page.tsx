@@ -159,6 +159,8 @@ export default function AdminPage() {
         iban: "",
         address: "",
         company_access: form.company_access,
+        accompanying_text_de: "",
+        accompanying_text_en: "",
       });
 
       setForm({ email: "", password: "", display_name: "", role: "employee", company_access: ["vrthefans"] });

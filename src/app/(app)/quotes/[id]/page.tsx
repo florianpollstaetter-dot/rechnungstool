@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Quote, Customer, CompanySettings, QuoteStatus, UNIT_OPTIONS, Language, DisplayMode, TemplateItem, CompanyRole } from "@/lib/types";
-import { getQuote, getCustomer, getSettings, updateQuote, convertQuoteToInvoice, createInvoice, createTemplate, getCompanyRoles } from "@/lib/db";
+import { getQuote, getCustomer, getSettings, updateQuote, convertQuoteToInvoice, createInvoice, createTemplate, getCompanyRoles, getUserAccompanyingText } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
@@ -144,7 +144,7 @@ export default function QuoteDetailPage() {
       paid_amount: 0,
       notes: `Teilrechnung zu Angebot ${quote.quote_number} (${label})`,
       language: quote.language || "de",
-      accompanying_text: null,
+      accompanying_text: await getUserAccompanyingText(quote.language || "de"),
         created_by: null,
     });
 

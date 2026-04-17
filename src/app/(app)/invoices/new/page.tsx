@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Customer, InvoiceItem, Product, UNIT_OPTIONS, Language } from "@/lib/types";
-import { getCustomers, getSettings, getActiveProducts, createInvoice, getTemplate, getCurrentUserName } from "@/lib/db";
+import { getCustomers, getSettings, getActiveProducts, createInvoice, getTemplate, getCurrentUserName, getUserAccompanyingText } from "@/lib/db";
 import { useAutosave } from "@/lib/use-autosave";
 import { addDays, formatCurrency } from "@/lib/format";
 import { calcItemTotal, calcTotals } from "@/lib/calc";
@@ -147,7 +147,7 @@ function NewInvoicePage() {
         paid_amount: 0,
         notes,
         language,
-        accompanying_text: null,
+        accompanying_text: await getUserAccompanyingText(language),
         created_by: getCurrentUserName() || null,
       });
       clearDraft();

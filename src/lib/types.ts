@@ -254,6 +254,8 @@ export interface UserProfile {
   iban: string;
   address: string;
   company_access: string[];
+  accompanying_text_de: string;
+  accompanying_text_en: string;
   created_at: string;
 }
 

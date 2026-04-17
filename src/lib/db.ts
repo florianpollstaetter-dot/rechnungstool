@@ -102,6 +102,16 @@ export async function deleteUserProfile(id: string): Promise<void> {
 }
 
 // Company Settings
+/** Resolve per-user accompanying text. Returns the user's own text if set, otherwise null (caller falls back to company settings). */
+export async function getUserAccompanyingText(language: "de" | "en"): Promise<string | null> {
+  const { data: { user } } = await supabase().auth.getUser();
+  if (!user) return null;
+  const profile = await getUserProfile(user.id);
+  if (!profile) return null;
+  const text = language === "en" ? profile.accompanying_text_en : profile.accompanying_text_de;
+  return text || null;
+}
+
 export async function getSettings(): Promise<CompanySettings> {
   const companyId = getActiveCompanyId();
   const { data } = await supabase()
@@ -1544,6 +1554,8 @@ function mapUserProfile(row: Record<string, unknown>): UserProfile {
     iban: (row.iban as string) || "",
     address: (row.address as string) || "",
     company_access: companyAccess,
+    accompanying_text_de: (row.accompanying_text_de as string) || "",
+    accompanying_text_en: (row.accompanying_text_en as string) || "",
     created_at: row.created_at as string,
   };
 }

@@ -74,6 +74,10 @@ export default function SettingsPage() {
   const [rufname, setRufname] = useState("");
   const [rufnameSaving, setRufnameSaving] = useState(false);
   const [rufnameSaved, setRufnameSaved] = useState(false);
+  const [userTextDe, setUserTextDe] = useState("");
+  const [userTextEn, setUserTextEn] = useState("");
+  const [userTextSaving, setUserTextSaving] = useState(false);
+  const [userTextSaved, setUserTextSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -126,6 +130,8 @@ export default function SettingsPage() {
       if (profile) {
         setUserProfile(profile);
         setRufname(profile.display_name || "");
+        setUserTextDe(profile.accompanying_text_de || "");
+        setUserTextEn(profile.accompanying_text_en || "");
       }
     }
     setLoading(false);
@@ -175,6 +181,22 @@ export default function SettingsPage() {
       setTimeout(() => setRufnameSaved(false), 2000);
     } finally {
       setRufnameSaving(false);
+    }
+  }
+
+  async function handleUserTextSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!userProfile) return;
+    setUserTextSaving(true);
+    try {
+      await updateUserProfile(userProfile.id, {
+        accompanying_text_de: userTextDe,
+        accompanying_text_en: userTextEn,
+      });
+      setUserTextSaved(true);
+      setTimeout(() => setUserTextSaved(false), 2000);
+    } finally {
+      setUserTextSaving(false);
     }
   }
 
@@ -342,6 +364,48 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Per-user Begleittext — for non-admin invoice writers (e.g. accountant) */}
+      {!canManageCompany && canWriteInvoices && (
+        <form onSubmit={handleUserTextSave} className="space-y-6 mb-6">
+          <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Begleittext (Rechnungen)</h2>
+                <p className="text-sm text-gray-500 mt-1">Dein persoenlicher Begleittext — wird auf deinen Rechnungen angezeigt.</p>
+              </div>
+              {userTextSaved && <span className="text-sm text-emerald-400 font-medium">Gespeichert!</span>}
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Begleittext (Deutsch)</label>
+                <textarea
+                  value={userTextDe}
+                  onChange={(e) => setUserTextDe(e.target.value)}
+                  rows={2}
+                  className={inputClass}
+                  placeholder="z.B. Vielen Dank fuer Ihren Auftrag!"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Begleittext (English)</label>
+                <textarea
+                  value={userTextEn}
+                  onChange={(e) => setUserTextEn(e.target.value)}
+                  rows={2}
+                  className={inputClass}
+                  placeholder="e.g. Thank you for your order!"
+                />
+              </div>
+            </div>
+            <div className="mt-4">
+              <button type="submit" disabled={userTextSaving} className="bg-[var(--accent)] text-black px-5 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
+                {userTextSaving ? "Speichern..." : "Speichern"}
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
       {/* Company settings form — only for roles that can manage company or write invoices */}
       {(canManageCompany || canWriteInvoices) && (
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -449,10 +513,10 @@ export default function SettingsPage() {
         </div>
         )}
 
-        {canWriteInvoices && (
+        {canManageCompany && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Begleittext (Rechnungen)</h2>
-          <p className="text-sm text-gray-500 mb-4">Dieser Text wird auf jeder Rechnung und im PDF angezeigt. Pflegen Sie eine deutsche und eine englische Version.</p>
+          <p className="text-sm text-gray-500 mb-4">Firmenweiter Standard-Begleittext — wird auf Rechnungen angezeigt, sofern kein persoenlicher Text hinterlegt ist.</p>
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Begleittext (Deutsch)</label>
