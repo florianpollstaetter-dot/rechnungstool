@@ -335,6 +335,7 @@ const de = {
   "customers.aiSource": "Quelle",
   "customers.aiError": "Fehler bei der AI-Recherche",
   "customers.aiNetworkError": "Netzwerkfehler bei der AI-Recherche",
+  "customers.saveError": "Fehler beim Speichern des Kunden",
   "customers.notFound": "Kunde nicht gefunden.",
 
   // ── Customer Detail ──

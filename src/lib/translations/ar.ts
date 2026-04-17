@@ -335,6 +335,7 @@ const ar: Record<string, string> = {
   "customers.aiSource": "المصدر",
   "customers.aiError": "خطأ في بحث الذكاء الاصطناعي",
   "customers.aiNetworkError": "خطأ في الشبكة أثناء بحث الذكاء الاصطناعي",
+  "customers.saveError": "فشل في حفظ العميل",
   "customers.notFound": "لم يتم العثور على العميل.",
 
   // ── Customer Detail ──

@@ -335,6 +335,7 @@ const it: Record<string, string> = {
   "customers.aiSource": "Fonte",
   "customers.aiError": "Errore nella ricerca AI",
   "customers.aiNetworkError": "Errore di rete nella ricerca AI",
+  "customers.saveError": "Errore durante il salvataggio del cliente",
   "customers.notFound": "Cliente non trovato.",
 
   // ── Customer Detail ──

@@ -160,11 +160,12 @@ export async function getCustomer(
 export async function createCustomer(
   customer: Omit<Customer, "id" | "created_at">
 ): Promise<Customer> {
-  const { data } = await supabase()
+  const { data, error } = await supabase()
     .from("customers")
     .insert({ ...customer, company_id: getActiveCompanyId() })
     .select()
     .single();
+  if (error) throw new Error(`createCustomer failed: ${error.message}`);
   return mapCustomer(data!);
 }
 
@@ -172,12 +173,13 @@ export async function updateCustomer(
   id: string,
   updates: Partial<Customer>
 ): Promise<Customer> {
-  const { data } = await supabase()
+  const { data, error } = await supabase()
     .from("customers")
     .update(updates)
     .eq("id", id)
     .select()
     .single();
+  if (error) throw new Error(`updateCustomer failed: ${error.message}`);
   return mapCustomer(data!);
 }
 

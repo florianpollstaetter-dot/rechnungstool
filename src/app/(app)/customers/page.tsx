@@ -37,6 +37,8 @@ export default function CustomersPage() {
     cost_eur?: number;
   } | null>(null);
   const [showAllFields, setShowAllFields] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const loadCustomers = useCallback(async () => {
     const data = await getCustomers();
@@ -49,17 +51,27 @@ export default function CustomersPage() {
   }, [loadCustomers]);
 
   async function handleSave() {
-    if (editing) {
-      await updateCustomer(editing, form);
-    } else {
-      await createCustomer(form);
+    setSaving(true);
+    setSaveError(null);
+    try {
+      if (editing) {
+        await updateCustomer(editing, form);
+      } else {
+        await createCustomer(form);
+      }
+      await loadCustomers();
+      setForm(emptyCustomer);
+      setEditing(null);
+      setShowForm(false);
+      setShowAllFields(false);
+      setAiResult(null);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : t("customers.saveError")
+      );
+    } finally {
+      setSaving(false);
     }
-    await loadCustomers();
-    setForm(emptyCustomer);
-    setEditing(null);
-    setShowForm(false);
-    setShowAllFields(false);
-    setAiResult(null);
   }
 
   function handleEdit(customer: Customer) {
@@ -296,12 +308,19 @@ export default function CustomersPage() {
             </div>
           )}
 
+          {saveError && (
+            <div className="mt-3 px-3 py-2 rounded-lg text-sm bg-rose-500/10 text-rose-400">
+              {saveError}
+            </div>
+          )}
+
           <div className="flex gap-3 mt-4">
             <button
               onClick={handleSave}
-              className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
+              disabled={saving}
+              className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {t("common.save")}
+              {saving ? t("common.saving") : t("common.save")}
             </button>
             <button
               onClick={() => {
@@ -309,6 +328,7 @@ export default function CustomersPage() {
                 setEditing(null);
                 setShowAllFields(false);
                 setAiResult(null);
+                setSaveError(null);
               }}
               className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
             >

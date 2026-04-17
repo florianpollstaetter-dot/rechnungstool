@@ -335,6 +335,7 @@ const tr: Record<string, string> = {
   "customers.aiSource": "Kaynak",
   "customers.aiError": "Yapay zeka araştırmasında hata",
   "customers.aiNetworkError": "Yapay zeka araştırmasında ağ hatası",
+  "customers.saveError": "Müşteri kaydedilemedi",
   "customers.notFound": "Müşteri bulunamadı.",
 
   // ── Customer Detail ──
