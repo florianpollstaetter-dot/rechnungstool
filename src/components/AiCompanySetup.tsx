@@ -1,8 +1,15 @@
 "use client";
 
-// SCH-386 — AI-Firmen-Setup: Vorschläge laden und bei Firmenanlage anwenden.
+// SCH-386 / SCH-406 — AI-Firmen-Setup: Vorschläge laden und bei Firmenanlage anwenden.
+// SCH-406 additions:
+// 1. Protect pre-filled fields from AI overwrite
+// 2. Mark optional fields
+// 3. Web research for company + industry info
+// 4. Editable roles list (double-click to edit, save button)
+// 5. Manual role addition
+// 6. Cost display next to heading after AI run
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createCompanyRole, createProduct, getCompanyRoles } from "@/lib/db";
 import { UnitType } from "@/lib/types";
 import { useCompany } from "@/lib/company-context";
@@ -55,6 +62,11 @@ const CONFIDENCE_COLORS: Record<string, string> = {
   low: "text-rose-400",
 };
 
+const ROLE_COLOR_PRESETS = [
+  "#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6",
+  "#3b82f6", "#6366f1", "#a855f7", "#ec4899", "#78716c",
+];
+
 export default function AiCompanySetup({ companyName }: { companyName: string }) {
   const { company } = useCompany();
 
@@ -63,6 +75,9 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
   const [industry, setIndustry] = useState("");
   const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
+
+  // Track which fields were pre-filled before AI run
+  const preFilledRef = useRef<{ industry: string; website: string; description: string } | null>(null);
 
   // State
   const [loading, setLoading] = useState(false);
@@ -76,12 +91,32 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
   const [selectedRoles, setSelectedRoles] = useState<Set<number>>(new Set());
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
 
+  // Editable roles state: index → edited fields
+  const [editingRoleIdx, setEditingRoleIdx] = useState<number | null>(null);
+  const [editedRole, setEditedRole] = useState<SuggestedRole | null>(null);
+
+  // Manual role addition
+  const [showAddRole, setShowAddRole] = useState(false);
+  const [newRole, setNewRole] = useState<SuggestedRole>({
+    name: "",
+    description: "",
+    color: ROLE_COLOR_PRESETS[0],
+    typical_hourly_rate: null,
+  });
+
   async function handleFetch() {
     if (!name.trim()) return;
     setLoading(true);
     setError(null);
     setSuggestions(null);
     setApplied(false);
+
+    // Snapshot pre-filled values before the AI run
+    preFilledRef.current = {
+      industry: industry.trim(),
+      website: website.trim(),
+      description: description.trim(),
+    };
 
     try {
       const res = await fetch("/api/company/setup-suggestions", {
@@ -148,6 +183,36 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
     }
   }
 
+  function startEditRole(idx: number) {
+    if (!suggestions) return;
+    setEditingRoleIdx(idx);
+    setEditedRole({ ...suggestions.suggested_roles[idx] });
+  }
+
+  function saveEditedRole() {
+    if (!suggestions || editingRoleIdx === null || !editedRole) return;
+    const updated = [...suggestions.suggested_roles];
+    updated[editingRoleIdx] = editedRole;
+    setSuggestions({ ...suggestions, suggested_roles: updated });
+    setEditingRoleIdx(null);
+    setEditedRole(null);
+  }
+
+  function cancelEditRole() {
+    setEditingRoleIdx(null);
+    setEditedRole(null);
+  }
+
+  function addManualRole() {
+    if (!suggestions || !newRole.name.trim()) return;
+    const updated = [...suggestions.suggested_roles, { ...newRole, name: newRole.name.trim(), description: newRole.description.trim() }];
+    setSuggestions({ ...suggestions, suggested_roles: updated });
+    // Auto-select the new role
+    setSelectedRoles((prev) => new Set([...prev, updated.length - 1]));
+    setNewRole({ name: "", description: "", color: ROLE_COLOR_PRESETS[0], typical_hourly_rate: null });
+    setShowAddRole(false);
+  }
+
   async function handleApply() {
     if (!suggestions) return;
     setApplying(true);
@@ -164,7 +229,6 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
       for (const idx of selectedRoles) {
         const role = suggestions.suggested_roles[idx];
         if (existingRoleNames.has(role.name.toLowerCase())) {
-          // Find existing role ID
           const existing = existingRoles.find(
             (r) => r.name.toLowerCase() === role.name.toLowerCase()
           );
@@ -214,6 +278,11 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--accent-dim)] text-[var(--accent)]">
           Beta
         </span>
+        {costEur != null && suggestions && !applied && (
+          <span className="text-xs text-[var(--text-muted)] ml-auto">
+            Kosten: {costEur.toFixed(4)} EUR
+          </span>
+        )}
       </div>
       <p className="text-sm text-[var(--text-muted)] mb-4">
         Branchenspezifische Rollen, Produkte und Konfiguration per AI-Analyse vorschlagen lassen.
@@ -237,7 +306,7 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                Branche
+                Branche <span className="text-[var(--text-muted)] font-normal">(optional)</span>
               </label>
               <input
                 type="text"
@@ -249,7 +318,7 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                Website
+                Website <span className="text-[var(--text-muted)] font-normal">(optional)</span>
               </label>
               <input
                 type="text"
@@ -261,7 +330,7 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                Beschreibung
+                Beschreibung <span className="text-[var(--text-muted)] font-normal">(optional)</span>
               </label>
               <input
                 type="text"
@@ -291,7 +360,7 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
                   <circle cx="12" cy="12" r="10" className="opacity-25" />
                   <path d="M4 12a8 8 0 018-8" className="opacity-75" />
                 </svg>
-                AI analysiert...
+                AI analysiert &amp; recherchiert...
               </>
             ) : (
               "AI-Vorschläge laden"
@@ -325,59 +394,197 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
             <p className="text-xs text-[var(--text-muted)] -mt-3">{suggestions.reasoning}</p>
           )}
 
-          {/* Roles */}
+          {/* Roles — editable */}
           {suggestions.suggested_roles.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                   Rollen ({selectedRoles.size}/{suggestions.suggested_roles.length})
                 </h3>
-                <button
-                  type="button"
-                  onClick={toggleAllRoles}
-                  className="text-xs text-[var(--accent)] hover:underline"
-                >
-                  {selectedRoles.size === suggestions.suggested_roles.length
-                    ? "Keine auswählen"
-                    : "Alle auswählen"}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddRole(true)}
+                    className="text-xs text-[var(--accent)] hover:underline"
+                  >
+                    + Rolle hinzufügen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleAllRoles}
+                    className="text-xs text-[var(--accent)] hover:underline"
+                  >
+                    {selectedRoles.size === suggestions.suggested_roles.length
+                      ? "Keine auswählen"
+                      : "Alle auswählen"}
+                  </button>
+                </div>
               </div>
+
+              {/* Manual role addition form */}
+              {showAddRole && (
+                <div className="mb-3 p-3 rounded-lg border border-dashed border-[var(--accent)] bg-[var(--accent-dim)]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={newRole.name}
+                      onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
+                      className={inputClass}
+                      placeholder="Rollenname *"
+                      autoFocus
+                    />
+                    <input
+                      type="text"
+                      value={newRole.description}
+                      onChange={(e) => setNewRole({ ...newRole, description: e.target.value })}
+                      className={inputClass}
+                      placeholder="Beschreibung"
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[var(--text-muted)]">Farbe:</span>
+                      <div className="flex gap-1">
+                        {ROLE_COLOR_PRESETS.map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setNewRole({ ...newRole, color: c })}
+                            className={`w-5 h-5 rounded-full border-2 transition ${newRole.color === c ? "border-white scale-110" : "border-transparent"}`}
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <input
+                      type="number"
+                      value={newRole.typical_hourly_rate ?? ""}
+                      onChange={(e) => setNewRole({ ...newRole, typical_hourly_rate: e.target.value ? Number(e.target.value) : null })}
+                      className={inputClass}
+                      placeholder="Stundensatz EUR (optional)"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={addManualRole}
+                      disabled={!newRole.name.trim()}
+                      className="bg-[var(--accent)] text-black px-4 py-1.5 rounded-lg text-xs font-semibold hover:brightness-110 disabled:opacity-50 transition"
+                    >
+                      Hinzufügen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddRole(false)}
+                      className="px-4 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-lg transition"
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {suggestions.suggested_roles.map((role, i) => (
-                  <label
-                    key={i}
-                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedRoles.has(i)
-                        ? "border-[var(--accent)] bg-[var(--accent-dim)]"
-                        : "border-[var(--border)] hover:border-gray-500"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedRoles.has(i)}
-                      onChange={() => toggleRole(i)}
-                      className="mt-0.5 accent-[var(--accent)]"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: role.color }}
+                  <div key={i}>
+                    {editingRoleIdx === i && editedRole ? (
+                      /* Inline edit form */
+                      <div className="p-3 rounded-lg border border-[var(--accent)] bg-[var(--accent-dim)] space-y-2">
+                        <input
+                          type="text"
+                          value={editedRole.name}
+                          onChange={(e) => setEditedRole({ ...editedRole, name: e.target.value })}
+                          className={inputClass}
+                          placeholder="Rollenname"
+                          autoFocus
                         />
-                        <span className="text-sm font-medium text-[var(--text-primary)] truncate">
-                          {role.name}
-                        </span>
+                        <input
+                          type="text"
+                          value={editedRole.description}
+                          onChange={(e) => setEditedRole({ ...editedRole, description: e.target.value })}
+                          className={inputClass}
+                          placeholder="Beschreibung"
+                        />
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-[var(--text-muted)]">Farbe:</span>
+                          <div className="flex gap-1">
+                            {ROLE_COLOR_PRESETS.map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => setEditedRole({ ...editedRole, color: c })}
+                                className={`w-4 h-4 rounded-full border-2 transition ${editedRole.color === c ? "border-white scale-110" : "border-transparent"}`}
+                                style={{ backgroundColor: c }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <input
+                          type="number"
+                          value={editedRole.typical_hourly_rate ?? ""}
+                          onChange={(e) => setEditedRole({ ...editedRole, typical_hourly_rate: e.target.value ? Number(e.target.value) : null })}
+                          className={inputClass}
+                          placeholder="Stundensatz EUR"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={saveEditedRole}
+                            disabled={!editedRole.name.trim()}
+                            className="bg-[var(--accent)] text-black px-3 py-1 rounded text-xs font-semibold hover:brightness-110 disabled:opacity-50 transition"
+                          >
+                            Speichern
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditRole}
+                            className="px-3 py-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition"
+                          >
+                            Abbrechen
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs text-[var(--text-muted)] mt-0.5">{role.description}</p>
-                      {role.typical_hourly_rate != null && (
-                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                          ~{role.typical_hourly_rate} EUR/h
-                        </p>
-                      )}
-                    </div>
-                  </label>
+                    ) : (
+                      /* Normal role card */
+                      <label
+                        className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedRoles.has(i)
+                            ? "border-[var(--accent)] bg-[var(--accent-dim)]"
+                            : "border-[var(--border)] hover:border-gray-500"
+                        }`}
+                        onDoubleClick={(e) => {
+                          e.preventDefault();
+                          startEditRole(i);
+                        }}
+                        title="Doppelklick zum Bearbeiten"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedRoles.has(i)}
+                          onChange={() => toggleRole(i)}
+                          className="mt-0.5 accent-[var(--accent)]"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: role.color }}
+                            />
+                            <span className="text-sm font-medium text-[var(--text-primary)] truncate">
+                              {role.name}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[var(--text-muted)] mt-0.5">{role.description}</p>
+                          {role.typical_hourly_rate != null && (
+                            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                              ~{role.typical_hourly_rate} EUR/h
+                            </p>
+                          )}
+                        </div>
+                      </label>
+                    )}
+                  </div>
                 ))}
               </div>
+              <p className="text-xs text-[var(--text-muted)] mt-1">Doppelklick auf eine Rolle zum Bearbeiten</p>
             </div>
           )}
 
@@ -465,11 +672,6 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
           {/* Cost + actions */}
           <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]">
             <div className="flex items-center gap-4">
-              {costEur != null && (
-                <span className="text-xs text-[var(--text-muted)]">
-                  AI-Analyse: {costEur.toFixed(4)} EUR
-                </span>
-              )}
               <span className="text-xs text-[var(--text-secondary)]">
                 {totalSelected} Einträge ausgewählt
               </span>
@@ -480,6 +682,12 @@ export default function AiCompanySetup({ companyName }: { companyName: string })
                 onClick={() => {
                   setSuggestions(null);
                   setCostEur(null);
+                  // Restore pre-filled values that the user entered before the AI run
+                  if (preFilledRef.current) {
+                    if (preFilledRef.current.industry) setIndustry(preFilledRef.current.industry);
+                    if (preFilledRef.current.website) setWebsite(preFilledRef.current.website);
+                    if (preFilledRef.current.description) setDescription(preFilledRef.current.description);
+                  }
                 }}
                 className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-lg transition"
               >

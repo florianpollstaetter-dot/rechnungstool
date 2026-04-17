@@ -1,19 +1,16 @@
-// SCH-366 — AI-gestützte Firmen-Setup-Vorschläge.
+// SCH-366 / SCH-406 — AI-gestützte Firmen-Setup-Vorschläge mit Web-Recherche.
 //
 // Analoges Muster zu /api/analyze-receipt: ein API-Call an Anthropic Claude,
 // Prompt auf Deutsch (österreichischer Kontext), JSON-only-Antwort.
 //
-// Nimmt Firmenname + optionale Beschreibung/Branche/Website entgegen,
-// liefert Vorschläge für Rollen, Abteilungen, Produkte/Leistungen,
-// Stundensätze, Ausgabenkategorien und Zahlungsziele — alles was das
-// Einrichten einer neuen Firma so einfach wie möglich macht.
+// SCH-406: Nutzt Claude's web_search Tool um Infos über die Firma + Branche
+// im Internet zu recherchieren und daraus passende Rollen vorzuschlagen.
 //
 // Kosten pro Aufruf (geschätzt):
-//   Input: ~600-800 Tokens (Prompt + Firmenname)
+//   Input: ~800-1200 Tokens (Prompt + Firmenname + Web-Recherche-Kontext)
 //   Output: ~800-1200 Tokens (JSON-Antwort)
 //   Sonnet: $3/M Input, $15/M Output
-//   → ca. $0.002-0.004 pro Aufruf (~€0.002-0.004)
-//   → bei 100 Firmen: ~€0.20-0.40
+//   → ca. $0.003-0.008 pro Aufruf mit Web-Recherche
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -58,7 +55,14 @@ export async function POST(request: Request) {
   if (body?.description?.trim()) contextParts.push(`Beschreibung: "${body.description.trim()}"`);
   const contextBlock = contextParts.join("\n");
 
-  const prompt = `Du bist ein Experte für Unternehmensorganisation und österreichisches Wirtschaftsrecht. Eine neue Firma wird in unserem Zeiterfassungs- und Rechnungstool eingerichtet. Recherchiere anhand des Firmennamens und der gegebenen Informationen, um welche Art von Unternehmen es sich handelt, und schlage eine sinnvolle Grundkonfiguration vor.
+  const prompt = `Du bist ein Experte für Unternehmensorganisation und österreichisches Wirtschaftsrecht. Eine neue Firma wird in unserem Zeiterfassungs- und Rechnungstool eingerichtet.
+
+WICHTIG: Recherchiere zuerst im Internet nach der Firma "${companyName}"${body?.website?.trim() ? ` (Website: ${body.website.trim()})` : ""}. Suche nach:
+- Was die Firma macht, welche Dienstleistungen/Produkte sie anbietet
+- In welcher Branche sie tätig ist
+- Welche Rollen typisch für diese Art von Unternehmen sind
+
+Nutze die gefundenen Informationen um eine möglichst präzise und passende Konfiguration vorzuschlagen.
 
 ${contextBlock}
 
@@ -67,7 +71,7 @@ Antworte mit folgendem JSON-Schema. Passe alle Vorschläge an die erkannte Branc
 {
   "detected_industry": "Erkannte Branche (z.B. Filmproduktion, Softwareentwicklung, Gastronomie, ...)",
   "confidence": "high" | "medium" | "low",
-  "reasoning": "Kurze Begründung, warum du diese Branche vermutest (1-2 Sätze)",
+  "reasoning": "Kurze Begründung, warum du diese Branche vermutest (1-2 Sätze). Erwähne dabei auch, welche Informationen du aus der Web-Recherche gewonnen hast.",
   "suggested_roles": [
     {
       "name": "Rollenname (z.B. Kameramann, Projektleiter, Koch)",
@@ -125,7 +129,14 @@ Wichtig:
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 2048,
+        max_tokens: 4096,
+        tools: [
+          {
+            type: "web_search_20250305",
+            name: "web_search",
+            max_uses: 3,
+          },
+        ],
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -136,12 +147,14 @@ Wichtig:
     }
 
     const result = await response.json();
-    const textBlock = result.content?.find(
+
+    // Extract the final text block (after web search tool use)
+    const textBlock = result.content?.findLast(
       (b: Record<string, string>) => b.type === "text"
     );
     const rawText = textBlock?.text || "{}";
 
-    // Cost calculation (same pattern as analyze-receipt).
+    // Cost calculation — includes web search tokens.
     const inputTokens = result.usage?.input_tokens || 0;
     const outputTokens = result.usage?.output_tokens || 0;
     // Sonnet: $3/M input, $15/M output
@@ -163,6 +176,7 @@ Wichtig:
           output_tokens: outputTokens,
           cost_eur: costEUR,
           model: "claude-sonnet-4-20250514",
+          web_search: true,
         },
       },
       updated_at: new Date().toISOString(),
