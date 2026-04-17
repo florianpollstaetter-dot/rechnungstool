@@ -587,7 +587,8 @@ export async function getActiveTimer(userId: string): Promise<TimeEntry | null> 
 }
 
 export async function createTimeEntry(entry: Omit<TimeEntry, "id" | "created_at">): Promise<TimeEntry> {
-  const { data } = await supabase().from("time_entries").insert({ ...entry, company_id: getActiveCompanyId() }).select().single();
+  const { data, error } = await supabase().from("time_entries").insert({ ...entry, company_id: getActiveCompanyId() }).select().single();
+  if (error) throw new Error(`createTimeEntry failed: ${error.message}`);
   return data as unknown as TimeEntry;
 }
 

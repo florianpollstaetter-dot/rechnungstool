@@ -96,7 +96,7 @@ export default function TimePage() {
   async function handleStart(label: string) {
     if (!label) return;
     const uid = await resolveUserId();
-    if (!uid) return;
+    if (!uid) { console.error("[Zeiterfassung] handleStart: kein userId"); return; }
     setSelectedProject(label);
     const q = quotes.find((qt) => (qt.project_description || qt.quote_number) === label);
     const now = new Date();
@@ -105,12 +105,18 @@ export default function TimePage() {
       const duration = Math.round((now.getTime() - new Date(activeTimer.start_time).getTime()) / 60000);
       await updateTimeEntry(activeTimer.id, { end_time: now.toISOString(), duration_minutes: duration });
     }
-    await createTimeEntry({
-      company_id: "", user_id: uid, user_name: userName || getCurrentUserName(),
-      quote_id: q?.id || null, project_label: label, description: "",
-      start_time: now.toISOString(), end_time: null, duration_minutes: 0, billable: true, hourly_rate: 0,
-      entry_type: "work",
-    });
+    try {
+      await createTimeEntry({
+        company_id: "", user_id: uid, user_name: userName || getCurrentUserName(),
+        quote_id: q?.id || null, project_label: label, description: "",
+        start_time: now.toISOString(), end_time: null, duration_minutes: 0, billable: true, hourly_rate: 0,
+        entry_type: "work",
+      });
+    } catch (err) {
+      console.error("[Zeiterfassung] handleStart createTimeEntry failed:", err);
+      alert(`Fehler beim Starten: ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
     await loadData();
   }
 
@@ -182,14 +188,20 @@ export default function TimePage() {
 
   async function handleCalendarCreate(r: ModalResult) {
     const uid = await resolveUserId();
-    if (!uid) return;
+    if (!uid) { console.error("[Zeiterfassung] handleCalendarCreate: kein userId"); return; }
     const duration = Math.max(0, Math.round((r.end.getTime() - r.start.getTime()) / 60000));
-    await createTimeEntry({
-      company_id: "", user_id: uid, user_name: userName || getCurrentUserName(),
-      quote_id: r.quote_id, project_label: r.project_label, description: r.description,
-      start_time: r.start.toISOString(), end_time: r.end.toISOString(), duration_minutes: duration,
-      billable: true, hourly_rate: 0, entry_type: "work",
-    });
+    try {
+      await createTimeEntry({
+        company_id: "", user_id: uid, user_name: userName || getCurrentUserName(),
+        quote_id: r.quote_id, project_label: r.project_label, description: r.description,
+        start_time: r.start.toISOString(), end_time: r.end.toISOString(), duration_minutes: duration,
+        billable: true, hourly_rate: 0, entry_type: "work",
+      });
+    } catch (err) {
+      console.error("[Zeiterfassung] handleCalendarCreate failed:", err);
+      alert(`Fehler beim Erstellen: ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
     await loadData();
   }
 
