@@ -10,7 +10,6 @@ import { AppFooter } from "@/components/AppFooter";
 const OPERATOR_NAV = [
   { href: "/operator", label: "Dashboard", exact: true },
   { href: "/operator/companies", label: "Firmen" },
-  { href: "/operator/users", label: "User" },
   { href: "/operator/billing", label: "Abo & Billing" },
   { href: "/operator/audit", label: "Audit Log" },
 ];

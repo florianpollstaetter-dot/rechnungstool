@@ -36,7 +36,6 @@ export default function OperatorCompanies() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<CompanyRow | null>(null);
 
   useEffect(() => { loadCompanies(); }, []);
 
@@ -49,18 +48,6 @@ export default function OperatorCompanies() {
     if (!res.ok) { setError("Fehler beim Laden"); setLoading(false); return; }
     setCompanies(await res.json());
     setLoading(false);
-  }
-
-  async function updateCompany(id: string, updates: Record<string, unknown>) {
-    const res = await fetch("/api/operator/companies", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ...updates }),
-    });
-    if (res.ok) {
-      await loadCompanies();
-      setEditingCompany(null);
-    }
   }
 
   const filtered = companies.filter(
@@ -103,7 +90,6 @@ export default function OperatorCompanies() {
               <th className="text-right py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Belege</th>
               <th className="text-right py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Rechnungen</th>
               <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase hidden sm:table-cell">Trial endet</th>
-              <th className="text-right py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Aktionen</th>
             </tr>
           </thead>
           <tbody>
@@ -112,7 +98,11 @@ export default function OperatorCompanies() {
               const statusBadge = STATUS_BADGES[c.status] || { label: c.status, cls: "bg-gray-500/10 text-gray-500" };
               const trialExpired = c.trial_ends_at && new Date(c.trial_ends_at) < new Date();
               return (
-                <tr key={c.id} className="border-b border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors">
+                <tr
+                  key={c.id}
+                  onClick={() => router.push(`/operator/companies/${c.id}`)}
+                  className="border-b border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+                >
                   <td className="py-2.5 px-2">
                     <div className="font-medium text-[var(--text-primary)]">{c.name}</div>
                     <div className="text-xs text-[var(--text-muted)]">{c.slug}</div>
@@ -138,14 +128,6 @@ export default function OperatorCompanies() {
                       </span>
                     ) : "—"}
                   </td>
-                  <td className="py-2.5 px-2 text-right">
-                    <button
-                      onClick={() => setEditingCompany(c)}
-                      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                    >
-                      Bearbeiten
-                    </button>
-                  </td>
                 </tr>
               );
             })}
@@ -159,17 +141,7 @@ export default function OperatorCompanies() {
         </div>
       )}
 
-      {/* Create Modal */}
       {showCreateModal && <CreateCompanyModal onClose={() => setShowCreateModal(false)} onCreated={loadCompanies} />}
-
-      {/* Edit Modal */}
-      {editingCompany && (
-        <EditCompanyModal
-          company={editingCompany}
-          onClose={() => setEditingCompany(null)}
-          onUpdate={updateCompany}
-        />
-      )}
     </div>
   );
 }
@@ -232,88 +204,6 @@ function CreateCompanyModal({ onClose, onCreated }: { onClose: () => void; onCre
           <button onClick={handleCreate} disabled={saving || !name || !slug}
             className="px-3 py-1.5 text-xs font-medium bg-rose-500 text-white rounded-md hover:bg-rose-600 disabled:opacity-50 transition-colors">
             {saving ? "Erstelle..." : "Erstellen"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EditCompanyModal({
-  company,
-  onClose,
-  onUpdate,
-}: {
-  company: CompanyRow;
-  onClose: () => void;
-  onUpdate: (id: string, updates: Record<string, unknown>) => Promise<void>;
-}) {
-  const [plan, setPlan] = useState(company.plan);
-  const [status, setStatus] = useState(company.status);
-  const [trialEndsAt, setTrialEndsAt] = useState(
-    company.trial_ends_at ? company.trial_ends_at.split("T")[0] : ""
-  );
-  const [saving, setSaving] = useState(false);
-
-  async function handleSave() {
-    setSaving(true);
-    const updates: Record<string, unknown> = {};
-    if (plan !== company.plan) updates.plan = plan;
-    if (status !== company.status) updates.status = status;
-    if (trialEndsAt && trialEndsAt !== (company.trial_ends_at || "").split("T")[0]) {
-      updates.trial_ends_at = new Date(trialEndsAt).toISOString();
-    }
-    if (Object.keys(updates).length > 0) {
-      await onUpdate(company.id, updates);
-    }
-    setSaving(false);
-    onClose();
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
-        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-1">{company.name}</h2>
-        <p className="text-xs text-[var(--text-muted)] mb-4">ID: {company.id}</p>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs text-[var(--text-muted)] mb-1">Plan</label>
-            <select value={plan} onChange={(e) => setPlan(e.target.value)}
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-rose-500/50">
-              <option value="trial">Trial</option>
-              <option value="starter">Starter</option>
-              <option value="pro">Pro</option>
-              <option value="enterprise">Enterprise</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-[var(--text-muted)] mb-1">Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)}
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-rose-500/50">
-              <option value="active">Aktiv</option>
-              <option value="suspended">Gesperrt</option>
-              <option value="cancelled">Gekündigt</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-[var(--text-muted)] mb-1">Trial endet am</label>
-            <input type="date" value={trialEndsAt} onChange={(e) => setTrialEndsAt(e.target.value)}
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-rose-500/50" />
-          </div>
-        </div>
-        <div className="bg-[var(--background)] border border-[var(--border)] rounded-lg p-3 mt-4 text-xs text-[var(--text-muted)]">
-          <div className="grid grid-cols-3 gap-2">
-            <div><span className="font-medium">{company.user_count}</span> User</div>
-            <div><span className="font-medium">{company.receipt_count}</span> Belege</div>
-            <div><span className="font-medium">{company.invoice_count}</span> Rechnungen</div>
-          </div>
-          <div className="mt-1">Erstellt: {new Date(company.created_at).toLocaleDateString("de-AT")}</div>
-        </div>
-        <div className="flex justify-end gap-2 mt-4">
-          <button onClick={onClose} className="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Abbrechen</button>
-          <button onClick={handleSave} disabled={saving}
-            className="px-3 py-1.5 text-xs font-medium bg-rose-500 text-white rounded-md hover:bg-rose-600 disabled:opacity-50 transition-colors">
-            {saving ? "Speichere..." : "Speichern"}
           </button>
         </div>
       </div>
