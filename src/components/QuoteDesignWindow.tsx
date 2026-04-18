@@ -27,12 +27,641 @@ interface Props {
   onPreview: (blob: Blob) => void;
 }
 
-// Design preview thumbnails — CSS-based mini previews
-const DESIGN_PREVIEWS: Record<QuoteDesignKey, { bg: string; accent: string; label: string }> = {
-  classic: { bg: "#0A0A0A", accent: "#C9A84C", label: "Classic" },
-  modern: { bg: "#FFFFFF", accent: "#1A56DB", label: "Modern" },
-  minimal: { bg: "#FFFFFF", accent: "#1a1a1a", label: "Minimal" },
-  bold: { bg: "#111111", accent: "#FF6B2B", label: "Bold" },
+function previewDate(s: string): string {
+  try {
+    const d = new Date(s);
+    return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+  } catch {
+    return s;
+  }
+}
+
+function previewEuro(n: number): string {
+  return n.toLocaleString("de-AT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+}
+
+interface PreviewProps {
+  quote: Quote;
+  customer: Customer;
+  settings: CompanySettings;
+}
+
+// ── Classic ──────────────────────────────────────────────────────────────────
+// Cream/white, gold accents, serif elegance
+
+function ClassicPreview({ quote, customer, settings }: PreviewProps) {
+  const clientName = (customer.company || customer.name).substring(0, 26);
+  const title = (quote.project_description || "Projektangebot").substring(0, 34);
+  const items = quote.items.slice(0, 4);
+  return (
+    <div
+      className="w-full h-full overflow-hidden relative"
+      style={{ backgroundColor: "#FEFEFE", fontFamily: "Georgia, serif" }}
+    >
+      {/* Gold top stripe */}
+      <div style={{ height: 5, backgroundColor: "#C9A84C" }} />
+
+      {/* Header */}
+      <div
+        style={{
+          padding: "9px 14px 7px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          borderBottom: "0.5px solid #E7E5E4",
+        }}
+      >
+        {settings.logo_url ? (
+          <img
+            src={settings.logo_url}
+            alt=""
+            style={{ height: 18, maxWidth: 60, objectFit: "contain" }}
+          />
+        ) : (
+          <span style={{ fontSize: 7, fontWeight: 700, color: "#1C1917" }}>
+            {settings.company_name || "Ihr Unternehmen"}
+          </span>
+        )}
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 5, color: "#78716C" }}>{settings.company_name}</div>
+          <div style={{ fontSize: 5, color: "#78716C" }}>
+            {settings.zip} {settings.city}
+          </div>
+        </div>
+      </div>
+
+      {/* Hero */}
+      <div style={{ padding: "10px 14px 8px" }}>
+        <div
+          style={{
+            fontSize: 5,
+            color: "#C9A84C",
+            textTransform: "uppercase",
+            letterSpacing: 2,
+            marginBottom: 3,
+          }}
+        >
+          ANGEBOT
+        </div>
+        <div style={{ height: 0.75, width: 20, backgroundColor: "#C9A84C", marginBottom: 5 }} />
+        <div
+          style={{
+            fontSize: 8,
+            fontWeight: 700,
+            color: "#1C1917",
+            lineHeight: 1.25,
+            marginBottom: 5,
+          }}
+        >
+          {title}
+        </div>
+        <div style={{ fontSize: 5, color: "#78716C", marginBottom: 2 }}>für</div>
+        <div style={{ fontSize: 7, fontWeight: 600, color: "#1C1917" }}>{clientName}</div>
+      </div>
+
+      {/* Info chips */}
+      <div style={{ display: "flex", gap: 5, padding: "0 14px 8px" }}>
+        {[
+          { label: "Nr.", value: quote.quote_number },
+          { label: "Datum", value: previewDate(quote.quote_date) },
+          { label: "Gültig bis", value: previewDate(quote.valid_until) },
+        ].map((chip, i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              padding: "5px 4px",
+              backgroundColor: "#FBF5E6",
+              border: "0.5px solid #C9A84C",
+              borderTopWidth: 2,
+              borderTopColor: "#C9A84C",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{ fontSize: 4, color: "#C9A84C", textTransform: "uppercase", letterSpacing: 0.5 }}
+            >
+              {chip.label}
+            </div>
+            <div style={{ fontSize: 5.5, fontWeight: 600, color: "#1C1917", marginTop: 1 }}>
+              {chip.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div style={{ margin: "0 14px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            backgroundColor: "#C9A84C",
+            padding: "3px 6px",
+          }}
+        >
+          <span style={{ fontSize: 4.5, color: "#fff", fontWeight: 700 }}>Leistung</span>
+          <span style={{ fontSize: 4.5, color: "#fff", fontWeight: 700 }}>Betrag</span>
+        </div>
+        {items.map((item, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "3.5px 6px",
+              borderBottom: "0.5px solid #E7E5E4",
+              backgroundColor: i % 2 === 1 ? "#FAF9F7" : "transparent",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 4.5,
+                color: "#1C1917",
+                maxWidth: "62%",
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {item.description}
+            </span>
+            <span style={{ fontSize: 4.5, color: "#78716C" }}>{previewEuro(item.total)}</span>
+          </div>
+        ))}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            backgroundColor: "#1C1917",
+            padding: "5px 6px",
+            marginTop: 3,
+          }}
+        >
+          <span style={{ fontSize: 5, fontWeight: 700, color: "#C9A84C" }}>GESAMT</span>
+          <span style={{ fontSize: 5, fontWeight: 700, color: "#fff" }}>
+            {previewEuro(quote.total)}
+          </span>
+        </div>
+      </div>
+
+      {/* Bottom gold stripe */}
+      <div
+        style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, backgroundColor: "#C9A84C" }}
+      />
+    </div>
+  );
+}
+
+// ── Modern ───────────────────────────────────────────────────────────────────
+// White, blue accents, card-based layout
+
+function ModernPreview({ quote, customer, settings }: PreviewProps) {
+  const clientName = (customer.company || customer.name).substring(0, 26);
+  const title = (quote.project_description || "Projektangebot").substring(0, 34);
+  const items = quote.items.slice(0, 4);
+  return (
+    <div
+      className="w-full h-full overflow-hidden relative"
+      style={{ backgroundColor: "#FFFFFF", fontFamily: "Inter, system-ui, sans-serif" }}
+    >
+      {/* Blue top bar */}
+      <div style={{ height: 5, backgroundColor: "#1A56DB" }} />
+
+      {/* Header */}
+      <div
+        style={{
+          padding: "8px 14px 6px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        {settings.logo_url ? (
+          <img
+            src={settings.logo_url}
+            alt=""
+            style={{ height: 16, maxWidth: 56, objectFit: "contain" }}
+          />
+        ) : (
+          <span style={{ fontSize: 7, fontWeight: 700, color: "#111827" }}>
+            {settings.company_name || "Ihr Unternehmen"}
+          </span>
+        )}
+        <span style={{ fontSize: 5, color: "#6B7280" }}>
+          {settings.zip} {settings.city}
+        </span>
+      </div>
+
+      {/* Blue hero card */}
+      <div
+        style={{
+          margin: "0 14px 8px",
+          backgroundColor: "#E8EEFB",
+          borderRadius: 4,
+          padding: "8px 10px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 4.5,
+            color: "#1A56DB",
+            textTransform: "uppercase",
+            letterSpacing: 2,
+            marginBottom: 3,
+          }}
+        >
+          ANGEBOT
+        </div>
+        <div
+          style={{
+            fontSize: 8.5,
+            fontWeight: 700,
+            color: "#111827",
+            lineHeight: 1.2,
+            marginBottom: 4,
+          }}
+        >
+          {title}
+        </div>
+        <div style={{ height: 2, width: 24, backgroundColor: "#1A56DB", marginBottom: 5 }} />
+        <div style={{ fontSize: 5, color: "#6B7280" }}>
+          für:{" "}
+          <span style={{ color: "#111827", fontWeight: 600 }}>{clientName}</span>
+        </div>
+      </div>
+
+      {/* Info chips */}
+      <div style={{ display: "flex", gap: 5, padding: "0 14px 8px" }}>
+        {[
+          { label: "Nr.", value: quote.quote_number },
+          { label: "Datum", value: previewDate(quote.quote_date) },
+          { label: "Gültig bis", value: previewDate(quote.valid_until) },
+        ].map((chip, i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              backgroundColor: "#F3F4F6",
+              borderRadius: 3,
+              padding: "5px 4px",
+            }}
+          >
+            <div style={{ fontSize: 4, color: "#6B7280", textTransform: "uppercase" }}>
+              {chip.label}
+            </div>
+            <div style={{ fontSize: 5.5, fontWeight: 600, color: "#111827", marginTop: 1 }}>
+              {chip.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div style={{ margin: "0 14px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            backgroundColor: "#111827",
+            padding: "3px 6px",
+            borderRadius: "3px 3px 0 0",
+          }}
+        >
+          <span style={{ fontSize: 4.5, color: "#fff", fontWeight: 600 }}>Leistung</span>
+          <span style={{ fontSize: 4.5, color: "#fff", fontWeight: 600 }}>Betrag</span>
+        </div>
+        {items.map((item, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "3.5px 6px",
+              borderBottom: "0.5px solid #E5E7EB",
+              backgroundColor: i % 2 === 1 ? "#F9FAFB" : "#fff",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 4.5,
+                color: "#111827",
+                maxWidth: "62%",
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {item.description}
+            </span>
+            <span style={{ fontSize: 4.5, color: "#6B7280" }}>{previewEuro(item.total)}</span>
+          </div>
+        ))}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            backgroundColor: "#1A56DB",
+            padding: "5px 6px",
+            borderRadius: "0 0 3px 3px",
+          }}
+        >
+          <span style={{ fontSize: 5, fontWeight: 700, color: "#fff" }}>GESAMT</span>
+          <span style={{ fontSize: 5, fontWeight: 700, color: "#fff" }}>
+            {previewEuro(quote.total)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Minimal ──────────────────────────────────────────────────────────────────
+// Pure white, monochrome, editorial typography
+
+function MinimalPreview({ quote, customer, settings }: PreviewProps) {
+  const clientName = (customer.company || customer.name).substring(0, 26);
+  const title = (quote.project_description || "Projektangebot").substring(0, 32);
+  const items = quote.items.slice(0, 4);
+  return (
+    <div
+      className="w-full h-full overflow-hidden"
+      style={{ backgroundColor: "#FFFFFF", fontFamily: "Inter, system-ui, sans-serif" }}
+    >
+      {/* Company */}
+      <div style={{ padding: "12px 16px 6px" }}>
+        {settings.logo_url ? (
+          <img
+            src={settings.logo_url}
+            alt=""
+            style={{ height: 14, maxWidth: 56, objectFit: "contain", marginBottom: 2 }}
+          />
+        ) : (
+          <div style={{ fontSize: 6, fontWeight: 700, color: "#1a1a1a", marginBottom: 2 }}>
+            {settings.company_name || "Ihr Unternehmen"}
+          </div>
+        )}
+      </div>
+
+      {/* Big ANGEBOT heading */}
+      <div style={{ padding: "0 16px 8px" }}>
+        <div
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: "#1a1a1a",
+            letterSpacing: -0.5,
+            lineHeight: 1,
+            marginBottom: 5,
+          }}
+        >
+          ANGEBOT
+        </div>
+        <div style={{ height: 0.75, width: 20, backgroundColor: "#1a1a1a", marginBottom: 5 }} />
+        <div style={{ fontSize: 6.5, color: "#999999", lineHeight: 1.4, marginBottom: 3 }}>
+          {title}
+        </div>
+        <div style={{ fontSize: 7, fontWeight: 600, color: "#1a1a1a" }}>{clientName}</div>
+      </div>
+
+      {/* Metadata */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          padding: "4px 16px",
+          borderTop: "0.5px solid #e0e0e0",
+          borderBottom: "0.5px solid #e0e0e0",
+          marginBottom: 6,
+        }}
+      >
+        <span style={{ fontSize: 4, color: "#999" }}>Nr. {quote.quote_number}</span>
+        <span style={{ fontSize: 4, color: "#999" }}>{previewDate(quote.quote_date)}</span>
+        <span style={{ fontSize: 4, color: "#999" }}>bis {previewDate(quote.valid_until)}</span>
+      </div>
+
+      {/* Items */}
+      <div style={{ padding: "0 16px" }}>
+        {items.map((item, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              paddingTop: 3,
+              paddingBottom: 3,
+              borderBottom: "0.5px solid #e0e0e0",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 4.5,
+                color: "#1a1a1a",
+                maxWidth: "62%",
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {item.description}
+            </span>
+            <span style={{ fontSize: 4.5, color: "#999" }}>{previewEuro(item.total)}</span>
+          </div>
+        ))}
+
+        {/* Total */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            paddingTop: 5,
+            marginTop: 1,
+          }}
+        >
+          <span style={{ fontSize: 6, fontWeight: 700, color: "#1a1a1a" }}>Total</span>
+          <span style={{ fontSize: 6, fontWeight: 700, color: "#1a1a1a" }}>
+            {previewEuro(quote.total)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Bold ─────────────────────────────────────────────────────────────────────
+// Deep teal top panel, white body, split layout
+
+function BoldPreview({ quote, customer, settings }: PreviewProps) {
+  const clientName = (customer.company || customer.name).substring(0, 24);
+  const title = (quote.project_description || "Projektangebot").substring(0, 32);
+  const items = quote.items.slice(0, 3);
+  return (
+    <div
+      className="w-full h-full overflow-hidden"
+      style={{ backgroundColor: "#FFFFFF", fontFamily: "Inter, system-ui, sans-serif" }}
+    >
+      {/* Teal panel */}
+      <div
+        style={{ backgroundColor: "#0F5257", padding: "10px 14px 12px" }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 8,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "rgba(255,255,255,0.15)",
+              borderRadius: 3,
+              padding: "2px 5px",
+            }}
+          >
+            {settings.logo_url ? (
+              <img
+                src={settings.logo_url}
+                alt=""
+                style={{ height: 12, maxWidth: 48, objectFit: "contain" }}
+              />
+            ) : (
+              <span style={{ fontSize: 5, fontWeight: 700, color: "#fff" }}>
+                {settings.company_name || "Unternehmen"}
+              </span>
+            )}
+          </div>
+          <span style={{ fontSize: 4, color: "#AACECE" }}>
+            {settings.zip} {settings.city}
+          </span>
+        </div>
+        <div
+          style={{
+            fontSize: 4.5,
+            color: "#AACECE",
+            textTransform: "uppercase",
+            letterSpacing: 2,
+            marginBottom: 3,
+          }}
+        >
+          ANGEBOT
+        </div>
+        <div
+          style={{
+            fontSize: 8.5,
+            fontWeight: 700,
+            color: "#fff",
+            lineHeight: 1.25,
+            marginBottom: 4,
+          }}
+        >
+          {title}
+        </div>
+        <div style={{ fontSize: 5, color: "#AACECE" }}>
+          für:{" "}
+          <span style={{ color: "#fff", fontWeight: 600 }}>{clientName}</span>
+        </div>
+      </div>
+
+      {/* Info cards */}
+      <div style={{ display: "flex", gap: 5, padding: "8px 14px 6px" }}>
+        {[
+          { label: "Nr.", value: quote.quote_number },
+          { label: "Datum", value: previewDate(quote.quote_date) },
+          { label: "Gültig bis", value: previewDate(quote.valid_until) },
+        ].map((chip, i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              backgroundColor: "#E8F4F4",
+              borderTop: "2px solid #0F5257",
+              padding: "4px 4px",
+            }}
+          >
+            <div style={{ fontSize: 4, color: "#1A7A7A", textTransform: "uppercase" }}>
+              {chip.label}
+            </div>
+            <div style={{ fontSize: 5.5, fontWeight: 700, color: "#0C1B1C", marginTop: 1 }}>
+              {chip.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div style={{ margin: "0 14px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            backgroundColor: "#0F5257",
+            padding: "3px 6px",
+            borderRadius: "3px 3px 0 0",
+          }}
+        >
+          <span style={{ fontSize: 4.5, color: "#fff", fontWeight: 600 }}>Leistung</span>
+          <span style={{ fontSize: 4.5, color: "#fff", fontWeight: 600 }}>Betrag</span>
+        </div>
+        {items.map((item, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "3.5px 6px",
+              borderBottom: "0.5px solid #E2E8F0",
+              backgroundColor: i % 2 === 1 ? "#E8F4F4" : "#fff",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 4.5,
+                color: "#0C1B1C",
+                maxWidth: "62%",
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {item.description}
+            </span>
+            <span style={{ fontSize: 4.5, color: "#0F5257", fontWeight: 600 }}>
+              {previewEuro(item.total)}
+            </span>
+          </div>
+        ))}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            backgroundColor: "#0F5257",
+            padding: "5px 6px",
+            borderRadius: "0 0 3px 3px",
+          }}
+        >
+          <span style={{ fontSize: 5, fontWeight: 700, color: "#fff" }}>GESAMT</span>
+          <span style={{ fontSize: 5, fontWeight: 700, color: "#fff" }}>
+            {previewEuro(quote.total)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const DESIGN_LABELS: Record<QuoteDesignKey, { label: string; tagline: string }> = {
+  classic: { label: "Classic", tagline: "Gold · Elegant · Zeitlos" },
+  modern:  { label: "Modern",  tagline: "Blau · Klar · Strukturiert" },
+  minimal: { label: "Minimal", tagline: "Monochrom · Editorial · Clean" },
+  bold:    { label: "Bold",    tagline: "Teal · Kontrast · Professionell" },
+};
+
+const PREVIEW_COMPONENTS: Record<QuoteDesignKey, React.ComponentType<PreviewProps>> = {
+  classic: ClassicPreview,
+  modern:  ModernPreview,
+  minimal: MinimalPreview,
+  bold:    BoldPreview,
 };
 
 export default function QuoteDesignWindow({ quote, customer, settings, onClose, onPreview }: Props) {
@@ -153,7 +782,6 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
       }
       const data = await res.json();
       if (data.images && data.images.length > 0) {
-        // Reload photos — the API route saved them to the pool
         await loadData();
         setAiPrompt("");
       }
@@ -179,7 +807,6 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
             <p className="text-sm text-[var(--text-muted)]">{quote.project_description || customer.company || customer.name}</p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Display mode toggle */}
             <button
               onClick={() => setDisplayMode(displayMode === "simple" ? "detailed" : "simple")}
               className={`relative inline-flex h-7 items-center rounded-full px-3 text-xs font-medium transition-colors ${
@@ -231,43 +858,38 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
             {activeTab === "designs" && (
               <div>
                 <h3 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">{t("design.chooseDesign")}</h3>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
                   {QUOTE_DESIGN_OPTIONS.map((opt) => {
-                    const preview = DESIGN_PREVIEWS[opt.value];
+                    const PreviewComponent = PREVIEW_COMPONENTS[opt.value];
+                    const meta = DESIGN_LABELS[opt.value];
                     const isSelected = selectedDesign === opt.value;
                     return (
                       <button
                         key={opt.value}
                         onClick={() => setSelectedDesign(opt.value)}
-                        className={`rounded-xl border-2 transition overflow-hidden ${
-                          isSelected ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/30" : "border-[var(--border)] hover:border-[var(--text-muted)]"
+                        className={`rounded-xl border-2 transition overflow-hidden flex flex-col ${
+                          isSelected
+                            ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/30 shadow-lg"
+                            : "border-[var(--border)] hover:border-[var(--text-muted)] hover:shadow-md"
                         }`}
                       >
-                        {/* Mini preview */}
-                        <div className="aspect-[3/4] relative" style={{ backgroundColor: preview.bg }}>
-                          {/* Decorative bars */}
-                          <div className="absolute top-0 left-0 right-0 h-1.5" style={{ backgroundColor: preview.accent }} />
-                          <div className="absolute top-4 left-4 right-4 flex flex-col gap-1.5">
-                            <div className="h-1 rounded-full opacity-30" style={{ backgroundColor: preview.accent, width: "40%" }} />
-                            <div className="h-3 rounded-full opacity-20" style={{ backgroundColor: preview.bg === "#FFFFFF" ? "#000" : "#fff", width: "80%" }} />
-                            <div className="h-1.5 rounded-full opacity-15" style={{ backgroundColor: preview.bg === "#FFFFFF" ? "#000" : "#fff", width: "60%" }} />
-                          </div>
-                          <div className="absolute bottom-3 left-4 right-4">
-                            <div className="h-1 rounded-full opacity-10" style={{ backgroundColor: preview.bg === "#FFFFFF" ? "#000" : "#fff" }} />
-                            <div className="h-1 rounded-full opacity-10 mt-1" style={{ backgroundColor: preview.bg === "#FFFFFF" ? "#000" : "#fff", width: "70%" }} />
-                          </div>
+                        {/* Live mini-preview */}
+                        <div className="aspect-[3/4] relative w-full overflow-hidden">
+                          <PreviewComponent quote={quote} customer={customer} settings={settings} />
                           {isSelected && (
-                            <div className="absolute top-2 right-2 w-5 h-5 bg-[var(--accent)] rounded-full flex items-center justify-center">
+                            <div className="absolute top-2 right-2 w-6 h-6 bg-[var(--accent)] rounded-full flex items-center justify-center shadow-md z-10">
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="20 6 9 17 4 12" />
                               </svg>
                             </div>
                           )}
                         </div>
-                        <div className="p-2 bg-[var(--background)]">
-                          <p className={`text-xs font-medium ${isSelected ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"}`}>
-                            {preview.label}
+                        {/* Label */}
+                        <div className="p-2.5 bg-[var(--background)] flex-1 text-left">
+                          <p className={`text-sm font-semibold ${isSelected ? "text-[var(--accent)]" : "text-[var(--text-primary)]"}`}>
+                            {meta.label}
                           </p>
+                          <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{meta.tagline}</p>
                         </div>
                       </button>
                     );
@@ -406,7 +1028,7 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border)]">
           <div className="text-sm text-[var(--text-muted)]">
-            {t("design.selectedDesign")}: <span className="text-[var(--text-primary)] font-medium">{DESIGN_PREVIEWS[selectedDesign].label}</span>
+            {t("design.selectedDesign")}: <span className="text-[var(--text-primary)] font-medium">{DESIGN_LABELS[selectedDesign].label}</span>
             {selectedPhotoIds.length > 0 && (
               <span className="ml-3">{t("design.photosSelected", { count: String(selectedPhotoIds.length) })}</span>
             )}
