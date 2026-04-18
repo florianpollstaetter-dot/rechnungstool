@@ -14,9 +14,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 **How the pipeline works:**
 1. Engineer creates a new migration file under `supabase/migrations/` and pushes to master
-2. `.github/workflows/supabase-migrations.yml` runs `supabase db push` against the linked project
+2. `.github/workflows/supabase-migrations.yml` runs `.github/scripts/apply_migrations.py`, which applies pending migrations via the Supabase Management API (no DB password, no Supabase CLI). The script reads `supabase_migrations.schema_migrations`, applies each missing file in order, and records the version.
 3. Vercel auto-deploys in parallel — code and schema ship together
-4. First-run seeding of `supabase_migrations.schema_migrations` is already done for Orange Octo — the CLI will only pick up net-new versions on each push
+4. Required GitHub secrets: `SUPABASE_ACCESS_TOKEN` (personal access token) and `SUPABASE_PROJECT_REF` (`kjxmanenruaqzrzjueny` for Orange Octo). Nothing else — no DB password, no pooler URL.
 
 **If you need to apply an ad-hoc SQL change without a full deploy:**
 - Use the Supabase Management API: `POST https://api.supabase.com/v1/projects/{ref}/database/query`
