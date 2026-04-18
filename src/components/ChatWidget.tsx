@@ -17,6 +17,15 @@ interface ChatMessage {
 const STORAGE_KEY_CONV = "chatWidget.conversationId";
 const POLL_INTERVAL_MS = 10_000;
 
+const FAQ_TILES = [
+  "Wie erstelle ich ein Angebot?",
+  "Wie lade ich einen Beleg hoch?",
+  "Wie erstelle ich eine Rechnung aus einem Angebot?",
+  "Wie funktioniert die Zeiterfassung?",
+  "Wie ändere ich das Design eines Angebots?",
+  "Wie kontaktiere ich den Support?",
+];
+
 export function ChatWidget() {
   const { company, roleLoaded } = useCompany();
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -83,8 +92,8 @@ export function ChatWidget() {
     listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, open]);
 
-  const send = useCallback(async () => {
-    const content = input.trim();
+  const send = useCallback(async (override?: string) => {
+    const content = (override ?? input).trim();
     if (!content || sending) return;
     setSending(true);
 
@@ -95,7 +104,7 @@ export function ChatWidget() {
       created_at: new Date().toISOString(),
     };
     setMessages((m) => [...m, optimistic]);
-    setInput("");
+    if (override === undefined) setInput("");
 
     try {
       const res = await fetch("/api/chat/messages", {
@@ -219,10 +228,23 @@ export function ChatWidget() {
           {/* Messages */}
           <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-2 bg-[var(--bg,var(--surface))]">
             {messages.length === 0 && (
-              <div className="text-xs text-[var(--text-muted)] text-center mt-6 px-4">
-                Hallo! Ich helfe dir bei der Bedienung der App — frag mich z.B. wie du eine Rechnung erstellst,
-                einen Beleg hochlädst oder das Design anpasst. Wenn ich nicht weiterhelfen kann, leite ich an einen
-                Superadmin weiter.
+              <div className="mt-4 px-2">
+                <div className="text-xs text-[var(--text-muted)] text-center px-2 mb-3">
+                  Hallo! Wie kann ich dir helfen? Du kannst mich zu Angeboten, Rechnungen, Belegen, Kunden oder anderen Funktionen fragen.
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {FAQ_TILES.map((faq) => (
+                    <button
+                      key={faq}
+                      type="button"
+                      onClick={() => void send(faq)}
+                      disabled={sending}
+                      className="text-left text-xs bg-[var(--surface-hover)] border border-[var(--border)] rounded-md px-2.5 py-1.5 text-[var(--text-primary)] hover:border-[var(--brand-orange)] hover:bg-[var(--brand-orange)]/5 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {faq}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             {messages.map((m) => (
