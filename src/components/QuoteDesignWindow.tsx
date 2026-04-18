@@ -671,6 +671,7 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
   const [photos, setPhotos] = useState<QuoteDesignPhoto[]>([]);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -695,16 +696,23 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
 
   async function handleUpload(files: FileList) {
     setUploading(true);
+    setUploadError(null);
     try {
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith("image/")) continue;
+      const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+      if (images.length === 0) {
+        setUploadError(t("design.uploadNoImages"));
+        return;
+      }
+      for (const file of images) {
         await uploadDesignPhoto(file);
       }
       await loadData();
     } catch (err) {
       console.error("Upload failed:", err);
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -921,6 +929,12 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
                     </button>
                   </div>
                 </div>
+
+                {uploadError && (
+                  <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg px-4 py-3 text-sm text-rose-400 mb-4">
+                    {uploadError}
+                  </div>
+                )}
 
                 {photos.length === 0 ? (
                   <div className="text-center py-12 text-[var(--text-muted)]">

@@ -940,6 +940,7 @@ const ar: Record<string, string> = {
   "design.uploadPhotos": "رفع صور",
   "design.noPhotos": "لا توجد صور بعد",
   "design.noPhotosHint": "ارفع صورًا أو أنشئها بالذكاء الاصطناعي",
+  "design.uploadNoImages": "لم يتم اختيار ملفات صور صالحة",
   "design.selectedDesign": "التصميم المحدد",
   "design.photosSelected": "{count} صورة محددة",
   "design.preview": "معاينة",

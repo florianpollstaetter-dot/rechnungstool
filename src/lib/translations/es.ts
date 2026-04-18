@@ -940,6 +940,7 @@ const es: Record<string, string> = {
   "design.uploadPhotos": "Subir fotos",
   "design.noPhotos": "Aún no hay fotos",
   "design.noPhotosHint": "Sube fotos o genéralas con IA",
+  "design.uploadNoImages": "No se seleccionaron archivos de imagen válidos",
   "design.selectedDesign": "Diseño seleccionado",
   "design.photosSelected": "{count} foto(s) seleccionada(s)",
   "design.preview": "Vista previa",

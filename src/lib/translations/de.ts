@@ -971,6 +971,7 @@ const de = {
   "design.uploadPhotos": "Fotos hochladen",
   "design.noPhotos": "Noch keine Fotos vorhanden",
   "design.noPhotosHint": "Laden Sie Fotos hoch oder generieren Sie welche mit KI",
+  "design.uploadNoImages": "Keine gültigen Bilddateien ausgewählt",
   "design.selectedDesign": "Gewähltes Design",
   "design.photosSelected": "{count} Foto(s) ausgewählt",
   "design.preview": "Vorschau",

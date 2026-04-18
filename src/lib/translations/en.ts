@@ -971,6 +971,7 @@ const en: Record<string, string> = {
   "design.uploadPhotos": "Upload Photos",
   "design.noPhotos": "No photos yet",
   "design.noPhotosHint": "Upload photos or generate them with AI",
+  "design.uploadNoImages": "No valid image files selected",
   "design.selectedDesign": "Selected design",
   "design.photosSelected": "{count} photo(s) selected",
   "design.preview": "Preview",

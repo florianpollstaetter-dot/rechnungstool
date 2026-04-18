@@ -940,6 +940,7 @@ const tr: Record<string, string> = {
   "design.uploadPhotos": "Fotoğraf Yükle",
   "design.noPhotos": "Henüz fotoğraf yok",
   "design.noPhotosHint": "Fotoğraf yükleyin veya yapay zeka ile oluşturun",
+  "design.uploadNoImages": "Geçerli resim dosyası seçilmedi",
   "design.selectedDesign": "Seçili tasarım",
   "design.photosSelected": "{count} fotoğraf seçildi",
   "design.preview": "Önizleme",
