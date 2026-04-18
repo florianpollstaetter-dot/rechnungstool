@@ -328,11 +328,11 @@ ALTER TABLE user_dashboard_layouts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "tenant_isolation" ON user_dashboard_layouts
   FOR ALL USING (
     company_id = (select public.active_company_id())
-    AND user_id = (select auth.uid())::text
+    AND user_id = (select auth.uid())
   )
   WITH CHECK (
     company_id = (select public.active_company_id())
-    AND user_id = (select auth.uid())::text
+    AND user_id = (select auth.uid())
   );
 
 -- ---- company_roles ----
@@ -435,27 +435,25 @@ CREATE POLICY "users_own_profile" ON user_profiles
 
 CREATE POLICY "users_update_own" ON user_profiles
   FOR UPDATE USING (
-    auth_user_id = (select auth.uid())::text
+    auth_user_id = (select auth.uid())
   );
 
 CREATE POLICY "users_insert_own" ON user_profiles
   FOR INSERT WITH CHECK (
-    auth_user_id = (select auth.uid())::text
+    auth_user_id = (select auth.uid())
   );
 
--- ---- user_work_schedules ----
-ALTER TABLE user_work_schedules ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "own_schedules_select" ON user_work_schedules
-  FOR SELECT USING (true);  -- team can view schedules
-
-CREATE POLICY "own_schedules_modify" ON user_work_schedules
-  FOR ALL USING (
-    user_id = (SELECT id FROM user_profiles WHERE auth_user_id = (select auth.uid())::text LIMIT 1)
-  )
-  WITH CHECK (
-    user_id = (SELECT id FROM user_profiles WHERE auth_user_id = (select auth.uid())::text LIMIT 1)
-  );
+-- ---- user_work_schedules ---- (optional: only apply if table exists)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_work_schedules') THEN
+    EXECUTE 'ALTER TABLE user_work_schedules ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS "own_schedules_select" ON user_work_schedules';
+    EXECUTE 'CREATE POLICY "own_schedules_select" ON user_work_schedules FOR SELECT USING (true)';
+    EXECUTE 'DROP POLICY IF EXISTS "own_schedules_modify" ON user_work_schedules';
+    EXECUTE $POLICY$CREATE POLICY "own_schedules_modify" ON user_work_schedules FOR ALL USING (user_id = (SELECT id FROM user_profiles WHERE auth_user_id = (select auth.uid()) LIMIT 1)) WITH CHECK (user_id = (SELECT id FROM user_profiles WHERE auth_user_id = (select auth.uid()) LIMIT 1))$POLICY$;
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- 8. Company_id indexes for performance
