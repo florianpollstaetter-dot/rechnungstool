@@ -1,0 +1,11 @@
+# Supabase CLI config — see https://supabase.com/docs/reference/cli/config
+# Used by `supabase db push --linked` in .github/workflows/supabase-migrations.yml
+# Linked project ref: kjxmanenruaqzrzjueny (Orange Octo — Rechnungstool)
+
+project_id = "rechnungstool"
+
+[db]
+major_version = 15
+
+[db.migrations]
+schema_paths = []

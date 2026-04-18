@@ -9,14 +9,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 **Rule:** Never ask the user to paste SQL into the Supabase dashboard. Migrations deploy automatically via GitHub Actions on push to master.
 
 **Where migrations live:**
-- New migrations: `supabase/migrations/<timestamp>_<name>.sql` (Supabase CLI convention)
-- Legacy files at repo root (`supabase_migration_*.sql`) are historical — they have all been applied to production. Do not re-run them.
+- All migrations go under `supabase/migrations/<timestamp>_<name>.sql` (Supabase CLI convention; `<timestamp>` is `YYYYMMDDHHMMSS`).
+- Config lives at `supabase/config.toml`. Don't commit anything under `supabase/.temp/` or `supabase/.branches/`.
 
 **How the pipeline works:**
-1. Engineer creates a new migration file under `supabase/migrations/`
-2. Commits and pushes to master
-3. GitHub Action runs `supabase db push --linked` against the linked project
-4. Vercel auto-deploys in parallel — code and schema ship together
+1. Engineer creates a new migration file under `supabase/migrations/` and pushes to master
+2. `.github/workflows/supabase-migrations.yml` runs `supabase db push` against the linked project
+3. Vercel auto-deploys in parallel — code and schema ship together
+4. First-run seeding of `supabase_migrations.schema_migrations` is already done for Orange Octo — the CLI will only pick up net-new versions on each push
 
 **If you need to apply an ad-hoc SQL change without a full deploy:**
 - Use the Supabase Management API: `POST https://api.supabase.com/v1/projects/{ref}/database/query`
