@@ -1,11 +1,61 @@
 import { createClient } from "@supabase/supabase-js";
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-const TITAN_MODEL_ID = process.env.BEDROCK_IMAGE_MODEL_ID || "amazon.titan-image-generator-v1";
-const IMAGE_REGION = process.env.BEDROCK_IMAGE_REGION || process.env.AWS_REGION || "us-east-1";
+const REPLICATE_MODEL = process.env.REPLICATE_IMAGE_MODEL || "black-forest-labs/flux-1.1-pro";
+
+type ReplicatePrediction = {
+  id: string;
+  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
+  output?: string | string[] | null;
+  error?: string | null;
+};
+
+async function runReplicate(prompt: string, token: string): Promise<string[]> {
+  const res = await fetch(`https://api.replicate.com/v1/models/${REPLICATE_MODEL}/predictions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Prefer: "wait=60",
+    },
+    body: JSON.stringify({
+      input: {
+        prompt: `Professional business/corporate image: ${prompt}. High quality, suitable for a business proposal document.`,
+        aspect_ratio: "1:1",
+        output_format: "png",
+        safety_tolerance: 2,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`Replicate API error: ${res.status} ${detail}`);
+  }
+
+  let prediction = (await res.json()) as ReplicatePrediction;
+
+  while (prediction.status === "starting" || prediction.status === "processing") {
+    await new Promise((r) => setTimeout(r, 1500));
+    const poll = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!poll.ok) {
+      throw new Error(`Replicate poll error: ${poll.status} ${await poll.text()}`);
+    }
+    prediction = (await poll.json()) as ReplicatePrediction;
+  }
+
+  if (prediction.status !== "succeeded") {
+    throw new Error(`Replicate prediction ${prediction.status}: ${prediction.error || "unknown error"}`);
+  }
+
+  const output = prediction.output;
+  if (!output) return [];
+  return Array.isArray(output) ? output : [output];
+}
 
 export async function POST(request: Request) {
   const { prompt, count = 1, companyId } = await request.json();
@@ -14,9 +64,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "prompt required" }, { status: 400 });
   }
 
-  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+  const token = process.env.REPLICATE_API_TOKEN;
+  if (!token) {
     return Response.json(
-      { error: "AI image generation not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for Bedrock." },
+      { error: "AI image generation not configured. Set REPLICATE_API_TOKEN." },
       { status: 503 }
     );
   }
@@ -24,53 +75,22 @@ export async function POST(request: Request) {
   const imageCount = Math.min(Math.max(1, Number(count) || 1), 5);
 
   try {
-    const bedrock = new BedrockRuntimeClient({
-      region: IMAGE_REGION,
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      },
-    });
-
-    const body = {
-      taskType: "TEXT_IMAGE",
-      textToImageParams: {
-        text: `Professional business/corporate image: ${prompt}. High quality, suitable for a business proposal document.`,
-      },
-      imageGenerationConfig: {
-        numberOfImages: imageCount,
-        height: 1024,
-        width: 1024,
-        cfgScale: 8.0,
-      },
-    };
-
-    const response = await bedrock.send(
-      new InvokeModelCommand({
-        modelId: TITAN_MODEL_ID,
-        contentType: "application/json",
-        accept: "application/json",
-        body: JSON.stringify(body),
-      })
-    );
-
-    const decoded = JSON.parse(new TextDecoder().decode(response.body));
-    const images: string[] = decoded.images || [];
-
-    if (images.length === 0) {
-      return Response.json(
-        { error: "Titan returned no images", detail: decoded },
-        { status: 502 }
-      );
-    }
-
     const supabase = createClient(supabaseUrl, supabaseKey);
     const activeCompanyId = companyId || "vrthefans";
     const savedImages: { id: string; url: string }[] = [];
 
-    for (let i = 0; i < images.length; i++) {
-      const base64 = images[i];
-      const buffer = Buffer.from(base64, "base64");
+    for (let i = 0; i < imageCount; i++) {
+      const urls = await runReplicate(prompt, token);
+      if (urls.length === 0) continue;
+
+      const imageUrl = urls[0];
+      const imgRes = await fetch(imageUrl);
+      if (!imgRes.ok) {
+        console.error(`Failed to download Replicate image: ${imgRes.status}`);
+        continue;
+      }
+      const buffer = Buffer.from(await imgRes.arrayBuffer());
+
       const fileName = `ai-${Date.now()}-${i}.png`;
       const storagePath = `${activeCompanyId}/ai-${crypto.randomUUID()}.png`;
 
@@ -109,18 +129,17 @@ export async function POST(request: Request) {
       savedImages.push({ id: photoRow.id, url: urlData.publicUrl });
     }
 
+    if (savedImages.length === 0) {
+      return Response.json(
+        { error: "Image generation produced no images" },
+        { status: 502 }
+      );
+    }
+
     return Response.json({ images: savedImages });
   } catch (err) {
     console.error("Image generation error:", err);
     const message = err instanceof Error ? err.message : "Image generation failed";
-    const isAccessError = message.includes("AccessDenied") || message.includes("not authorized") || message.includes("don't have access");
-    return Response.json(
-      {
-        error: isAccessError
-          ? `Bedrock model access denied for ${TITAN_MODEL_ID} in ${IMAGE_REGION}. Enable Titan Image Generator in the Bedrock console or set BEDROCK_IMAGE_REGION to a supported region.`
-          : message,
-      },
-      { status: isAccessError ? 503 : 500 }
-    );
+    return Response.json({ error: message }, { status: 500 });
   }
 }
