@@ -57,58 +57,38 @@ export default function RegisterPage() {
 
     const slug = companySlug || generateSlug(companyName);
 
-    const supabase = createClient();
-
-    // 1. Sign up the user
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          display_name: displayName || email.split("@")[0],
-          company_id: slug,
-        },
-      },
+    // 1. Create the user + company server-side (email auto-confirmed via service role).
+    const res = await fetch("/api/register-company", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        password,
+        displayName: displayName || email.split("@")[0],
+        companyName: companyName.trim(),
+        companySlug: slug,
+      }),
     });
 
-    if (signUpError) {
-      setError(signUpError.message === "User already registered"
-        ? t("register.emailExists")
-        : `${t("register.registrationFailed")} ${signUpError.message}`);
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+      const code = body.error;
+      if (code === "email_exists") setError(t("register.emailExists"));
+      else if (code === "slug_taken") setError(t("register.slugTaken"));
+      else if (code === "weak_password") setError(t("register.passwordTooShort"));
+      else setError(body.message || t("register.registrationFailedGeneric"));
       setLoading(false);
       return;
     }
 
-    if (!signUpData.user) {
-      setError(t("register.registrationFailedGeneric"));
+    // 2. Sign in to establish the browser session with fresh JWT claims.
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInError) {
+      setError(`${t("register.registrationFailed")} ${signInError.message}`);
       setLoading(false);
       return;
     }
-
-    // 2. Call the onboarding API to create company + member + settings
-    try {
-      const res = await fetch("/api/register-company", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: companyName.trim(),
-          companySlug: slug,
-          displayName: displayName || email.split("@")[0],
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || t("register.companySetupFailed"));
-      }
-    } catch (err) {
-      // Company setup failed but user is created — they can still log in
-      // and set up their company later
-      console.error("Company setup error:", err);
-    }
-
-    // 3. Refresh session to pick up JWT claims
-    await supabase.auth.refreshSession();
 
     router.push("/dashboard");
     router.refresh();

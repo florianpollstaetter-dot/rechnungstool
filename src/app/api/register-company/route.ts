@@ -1,122 +1,167 @@
 import { createClient } from "@supabase/supabase-js";
-import { createClient as createServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
-  const { companyName, companySlug, displayName } = await request.json();
+  const { email, password, displayName, companyName, companySlug } = await request.json();
 
-  if (!companyName || !companySlug) {
-    return Response.json({ error: "Firmenname und Kürzel sind erforderlich" }, { status: 400 });
+  if (!email || !password || !companyName || !companySlug) {
+    return Response.json(
+      { error: "missing_fields", message: "E-Mail, Passwort, Firmenname und Kürzel sind erforderlich." },
+      { status: 400 },
+    );
   }
 
-  // Verify the caller is authenticated
-  const serverSupabase = await createServerClient();
-  const { data: { user } } = await serverSupabase.auth.getUser();
-  if (!user) {
-    return Response.json({ error: "Nicht authentifiziert" }, { status: 401 });
+  if (typeof password !== "string" || password.length < 8) {
+    return Response.json(
+      { error: "weak_password", message: "Passwort muss mindestens 8 Zeichen lang sein." },
+      { status: 400 },
+    );
   }
 
-  // Use service role to bypass RLS for company creation
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) {
-    return Response.json({ error: "Server-Konfiguration fehlt" }, { status: 500 });
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!serviceKey || !supabaseUrl) {
+    return Response.json(
+      { error: "server_misconfigured", message: "Server-Konfiguration fehlt." },
+      { status: 500 },
+    );
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceKey
-  );
+  const supabase = createClient(supabaseUrl, serviceKey);
+  const resolvedDisplayName = (displayName && String(displayName).trim()) || email.split("@")[0];
+
+  // 1. Pre-check slug collision to avoid creating an orphan auth user.
+  const { data: existingCompany } = await supabase
+    .from("companies")
+    .select("id")
+    .eq("slug", companySlug)
+    .maybeSingle();
+
+  if (existingCompany) {
+    return Response.json(
+      { error: "slug_taken", message: "Dieses Firmen-Kürzel ist bereits vergeben." },
+      { status: 409 },
+    );
+  }
+
+  // 2. Create the auth user with email already confirmed — no email verification step
+  //    needed because the account is bound to a trial company created in the same request.
+  const { data: created, error: createUserError } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      display_name: resolvedDisplayName,
+      company_id: companySlug,
+    },
+  });
+
+  if (createUserError || !created?.user) {
+    const msg = createUserError?.message || "";
+    if (/already|registered|exists/i.test(msg)) {
+      return Response.json(
+        { error: "email_exists", message: "Diese E-Mail ist bereits registriert." },
+        { status: 409 },
+      );
+    }
+    return Response.json(
+      { error: "signup_failed", message: msg || "Registrierung fehlgeschlagen." },
+      { status: 400 },
+    );
+  }
+
+  const userId = created.user.id;
+
+  const rollback = async () => {
+    try {
+      await supabase.auth.admin.deleteUser(userId);
+    } catch {
+      // best-effort rollback; orphan user will surface on next registration attempt
+    }
+  };
 
   try {
-    // 1. Create the company — SCH-486: 30-day free trial.
+    // 3. Create the company — SCH-486: 30-day free trial.
     const trialStartedAt = new Date();
     const trialEndsAt = new Date(trialStartedAt);
     trialEndsAt.setDate(trialEndsAt.getDate() + 30);
 
-    const { error: companyError } = await supabase
-      .from("companies")
-      .insert({
-        id: companySlug,
-        name: companyName,
-        slug: companySlug,
-        plan: "trial",
-        status: "active",
-        subscription_status: "free_trial",
-        trial_started_at: trialStartedAt.toISOString(),
-        trial_ends_at: trialEndsAt.toISOString(),
-      });
+    const { error: companyError } = await supabase.from("companies").insert({
+      id: companySlug,
+      name: companyName,
+      slug: companySlug,
+      plan: "trial",
+      status: "active",
+      subscription_status: "free_trial",
+      trial_started_at: trialStartedAt.toISOString(),
+      trial_ends_at: trialEndsAt.toISOString(),
+    });
 
     if (companyError) {
       if (companyError.code === "23505") {
-        return Response.json({ error: "Dieses Firmen-Kürzel ist bereits vergeben" }, { status: 409 });
+        await rollback();
+        return Response.json(
+          { error: "slug_taken", message: "Dieses Firmen-Kürzel ist bereits vergeben." },
+          { status: 409 },
+        );
       }
       throw companyError;
     }
 
-    // 2. Add the user as company owner
-    const { error: memberError } = await supabase
-      .from("company_members")
-      .insert({
-        company_id: companySlug,
-        user_id: user.id,
-        role: "owner",
-      });
-
+    // 4. Add the user as company owner
+    const { error: memberError } = await supabase.from("company_members").insert({
+      company_id: companySlug,
+      user_id: userId,
+      role: "owner",
+    });
     if (memberError) throw memberError;
 
-    // 3. Create default company_settings
-    const { error: settingsError } = await supabase
-      .from("company_settings")
-      .insert({
-        id: companySlug,
-        company_name: companyName,
-        company_type: "gmbh",
-        address: "",
-        city: "",
-        zip: "",
-        uid: "",
-        iban: "",
-        bic: "",
-        phone: "",
-        email: user.email || "",
-        logo_url: "",
-        default_tax_rate: 20,
-        default_payment_terms_days: 14,
-        next_invoice_number: 1,
-        next_quote_number: 1,
-        accompanying_text_de: "Vielen Dank für Ihren Auftrag!",
-        accompanying_text_en: "Thank you for your order!",
-      });
-
+    // 5. Create default company_settings
+    const { error: settingsError } = await supabase.from("company_settings").insert({
+      id: companySlug,
+      company_name: companyName,
+      company_type: "gmbh",
+      address: "",
+      city: "",
+      zip: "",
+      uid: "",
+      iban: "",
+      bic: "",
+      phone: "",
+      email,
+      logo_url: "",
+      default_tax_rate: 20,
+      default_payment_terms_days: 14,
+      next_invoice_number: 1,
+      next_quote_number: 1,
+      accompanying_text_de: "Vielen Dank für Ihren Auftrag!",
+      accompanying_text_en: "Thank you for your order!",
+    });
     if (settingsError) throw settingsError;
 
-    // 4. Create user profile if not exists
-    const { data: existingProfile } = await supabase
-      .from("user_profiles")
-      .select("id")
-      .eq("auth_user_id", user.id)
-      .single();
+    // 6. Create user profile
+    await supabase.from("user_profiles").insert({
+      auth_user_id: userId,
+      display_name: resolvedDisplayName,
+      email,
+      role: "admin",
+      company_access: JSON.stringify([companySlug]),
+    });
 
-    if (!existingProfile) {
-      await supabase.from("user_profiles").insert({
-        auth_user_id: user.id,
-        display_name: displayName || user.email?.split("@")[0] || "User",
-        email: user.email || "",
-        role: "admin",
-        company_access: JSON.stringify([companySlug]),
-      });
-    }
-
-    // 5. Set active company in user's app_metadata
-    await supabase.auth.admin.updateUserById(user.id, {
+    // 7. Set active company in user's app_metadata so JWT claims land on first sign-in
+    await supabase.auth.admin.updateUserById(userId, {
       app_metadata: { company_id: companySlug },
     });
 
-    return Response.json({ companyId: companySlug });
+    return Response.json({ userId, companyId: companySlug });
   } catch (err) {
     console.error("register-company error:", err);
+    await rollback();
     return Response.json(
-      { error: err instanceof Error ? err.message : "Firmen-Erstellung fehlgeschlagen" },
-      { status: 500 }
+      {
+        error: "company_setup_failed",
+        message: err instanceof Error ? err.message : "Firmen-Erstellung fehlgeschlagen.",
+      },
+      { status: 500 },
     );
   }
 }

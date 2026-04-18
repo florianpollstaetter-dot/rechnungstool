@@ -26,7 +26,10 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setError(t("login.failed"));
+      const msg = error.message || "";
+      if (/email not confirmed/i.test(msg)) setError(t("login.emailNotConfirmed"));
+      else if (/invalid login credentials|invalid credentials/i.test(msg)) setError(t("login.invalidCredentials"));
+      else setError(t("login.failed"));
       setLoading(false);
       return;
     }

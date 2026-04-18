@@ -861,6 +861,8 @@ const de = {
   "login.submit": "Anmelden",
   "login.submitting": "Anmelden...",
   "login.failed": "Anmeldung fehlgeschlagen. Bitte prüfen Sie Ihre Zugangsdaten.",
+  "login.invalidCredentials": "E-Mail oder Passwort ist falsch.",
+  "login.emailNotConfirmed": "Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse.",
   "login.noAccount": "Noch kein Konto?",
   "login.register": "Jetzt registrieren",
 
@@ -875,6 +877,7 @@ const de = {
   "register.next": "Weiter",
   "register.enterCompanyName": "Bitte geben Sie einen Firmennamen ein.",
   "register.emailExists": "Diese E-Mail ist bereits registriert.",
+  "register.slugTaken": "Dieses Firmen-Kürzel ist bereits vergeben.",
   "register.registrationFailed": "Registrierung fehlgeschlagen:",
   "register.registrationFailedGeneric": "Registrierung fehlgeschlagen.",
   "register.companySetupFailed": "Firmen-Setup fehlgeschlagen",

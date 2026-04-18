@@ -861,6 +861,8 @@ const en: Record<string, string> = {
   "login.submit": "Log in",
   "login.submitting": "Logging in...",
   "login.failed": "Login failed. Please check your credentials.",
+  "login.invalidCredentials": "Email or password is incorrect.",
+  "login.emailNotConfirmed": "Please confirm your email address first.",
   "login.noAccount": "Don't have an account?",
   "login.register": "Register now",
 
@@ -875,6 +877,7 @@ const en: Record<string, string> = {
   "register.next": "Next",
   "register.enterCompanyName": "Please enter a company name.",
   "register.emailExists": "This email is already registered.",
+  "register.slugTaken": "This company slug is already taken.",
   "register.registrationFailed": "Registration failed:",
   "register.registrationFailedGeneric": "Registration failed.",
   "register.companySetupFailed": "Company setup failed",
