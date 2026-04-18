@@ -8,6 +8,9 @@ import { formatCurrency } from "@/lib/format";
 import ReceiptCaptureModal from "@/components/ReceiptCaptureModal";
 import DocumentScannerModal from "@/components/DocumentScannerModal";
 import { useI18n } from "@/lib/i18n-context";
+import { useCompany } from "@/lib/company-context";
+
+const READ_ONLY_TITLE = "Rechnung ueberfaellig — Funktionen eingeschraenkt. Bitte ausstehende Rechnung begleichen.";
 
 const ACCOUNT_OPTIONS = [
   { value: "", label: "—" },
@@ -33,6 +36,7 @@ const ACCOUNT_OPTIONS = [
 
 export default function ReceiptsPage() {
   const { t } = useI18n();
+  const { isReadOnly } = useCompany();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -226,8 +230,9 @@ export default function ReceiptsPage() {
           {/* Scanner button */}
           <button
             onClick={() => setScannerOpen(true)}
-            disabled={uploading}
-            className={`bg-cyan-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-500 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}
+            disabled={uploading || isReadOnly}
+            title={isReadOnly ? READ_ONLY_TITLE : undefined}
+            className={`bg-cyan-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-500 transition cursor-pointer ${uploading || isReadOnly ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <span className="flex items-center gap-1.5">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -238,7 +243,10 @@ export default function ReceiptsPage() {
               {t("receipts.scan")}
             </span>
           </button>
-          <label className={`bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition cursor-pointer ${uploading ? "opacity-50" : ""}`}>
+          <label
+            title={isReadOnly ? READ_ONLY_TITLE : undefined}
+            className={`bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition ${uploading || isReadOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          >
             {uploading ? t("common.uploading") : t("receipts.uploadFile")}
             <input
               ref={fileInputRef}
@@ -246,7 +254,7 @@ export default function ReceiptsPage() {
               accept=".pdf,.png,.jpg,.jpeg"
               multiple
               onChange={handleUpload}
-              disabled={uploading}
+              disabled={uploading || isReadOnly}
               className="hidden"
             />
           </label>

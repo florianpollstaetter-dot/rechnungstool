@@ -7,9 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import type { ReceiptImageData } from "@/components/SteuerblattPDF";
 import { useI18n } from "@/lib/i18n-context";
+import { useCompany } from "@/lib/company-context";
+
+const READ_ONLY_TITLE = "Rechnung ueberfaellig — Funktionen eingeschraenkt. Bitte ausstehende Rechnung begleichen.";
 
 export default function ExportPage() {
   const { t } = useI18n();
+  const { isReadOnly } = useCompany();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -244,13 +248,13 @@ export default function ExportPage() {
           <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)]">
             {months.map((m) => <option key={m} value={m}>{m.split("-")[1]}/{m.split("-")[0]}</option>)}
           </select>
-          <button onClick={handleExportPDF} disabled={exportingPdf} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
+          <button onClick={handleExportPDF} disabled={exportingPdf || isReadOnly} title={isReadOnly ? READ_ONLY_TITLE : undefined} className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed">
             {exportingPdf ? t("export.exportingPdf") : t("export.pdfExport")}
           </button>
-          <button onClick={handleExportCSV} disabled={exporting} className="bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50">
+          <button onClick={handleExportCSV} disabled={exporting || isReadOnly} title={isReadOnly ? READ_ONLY_TITLE : undefined} className="bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed">
             {exporting ? t("export.exporting") : t("export.csvExport")}
           </button>
-          <button onClick={handleExportDatev} disabled={exportingDatev} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition disabled:opacity-50">
+          <button onClick={handleExportDatev} disabled={exportingDatev || isReadOnly} title={isReadOnly ? READ_ONLY_TITLE : undefined} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed">
             {exportingDatev ? t("export.exporting") : t("export.datevExport")}
           </button>
         </div>

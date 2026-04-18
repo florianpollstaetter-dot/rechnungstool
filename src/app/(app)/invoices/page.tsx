@@ -8,6 +8,9 @@ import { getInvoices, getCustomers, getSettings, updateInvoice, cancelInvoice, d
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
 import { useI18n } from "@/lib/i18n-context";
+import { useCompany } from "@/lib/company-context";
+
+const READ_ONLY_TITLE = "Rechnung ueberfaellig — Funktionen eingeschraenkt. Bitte ausstehende Rechnung begleichen.";
 
 function isOverdue(inv: Invoice): boolean {
   if (inv.status === "bezahlt" || inv.status === "storniert") return false;
@@ -39,6 +42,7 @@ function InvoicesPage() {
     { value: "ueberfaellig", label: t("invoiceStatus.ueberfaellig") },
   ];
 
+  const { isReadOnly } = useCompany();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
@@ -251,10 +255,14 @@ function InvoicesPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("invoices.title")}</h1>
         <div className="flex gap-2">
-          {templates.length > 0 && (
+          {templates.length > 0 && !isReadOnly && (
             <button onClick={() => setShowTemplateModal(true)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">{t("invoices.fromTemplate")}</button>
           )}
-          <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">{t("invoices.new")}</Link>
+          {isReadOnly ? (
+            <span title={READ_ONLY_TITLE} className="bg-[var(--accent)]/40 text-black/60 px-4 py-2 rounded-lg text-sm font-semibold cursor-not-allowed">{t("invoices.new")}</span>
+          ) : (
+            <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">{t("invoices.new")}</Link>
+          )}
         </div>
       </div>
 

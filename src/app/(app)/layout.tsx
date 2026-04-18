@@ -9,6 +9,7 @@ import { useCompany } from "@/lib/company-context";
 import { useI18n } from "@/lib/i18n-context";
 import { ROLE_PERMISSIONS, AppSection, UserRole } from "@/lib/types";
 import { AppFooter } from "@/components/AppFooter";
+import { PaymentOverdueBanner } from "@/components/PaymentOverdueBanner";
 import type { TranslationKey } from "@/lib/translations/de";
 
 const GREETING_COUNT = 25;
@@ -66,6 +67,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <PaymentOverdueBanner />
       <nav className="bg-[var(--surface)] border-b border-[var(--border)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-14">

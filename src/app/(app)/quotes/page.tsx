@@ -10,10 +10,14 @@ import PDFPreviewModal from "@/components/PDFPreviewModal";
 import QuoteDesignWindow from "@/components/QuoteDesignWindow";
 import QuoteStatusPicker from "@/components/QuoteStatusPicker";
 import { useI18n } from "@/lib/i18n-context";
+import { useCompany } from "@/lib/company-context";
+
+const READ_ONLY_TITLE = "Rechnung ueberfaellig — Funktionen eingeschraenkt. Bitte ausstehende Rechnung begleichen.";
 
 export default function QuotesPage() {
   const { t } = useI18n();
   const router = useRouter();
+  const { isReadOnly } = useCompany();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
@@ -134,10 +138,14 @@ export default function QuotesPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("quotes.title")}</h1>
         <div className="flex gap-2">
-          {templates.length > 0 && (
+          {templates.length > 0 && !isReadOnly && (
             <button onClick={() => setShowTemplateModal(true)} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">{t("quotes.fromTemplateBtn")}</button>
           )}
-          <Link href="/quotes/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ {t("quotes.new")}</Link>
+          {isReadOnly ? (
+            <span title={READ_ONLY_TITLE} className="bg-[var(--accent)]/40 text-black/60 px-4 py-2 rounded-lg text-sm font-semibold cursor-not-allowed">+ {t("quotes.new")}</span>
+          ) : (
+            <Link href="/quotes/new" className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">+ {t("quotes.new")}</Link>
+          )}
         </div>
       </div>
 

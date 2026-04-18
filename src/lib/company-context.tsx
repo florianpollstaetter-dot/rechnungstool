@@ -10,6 +10,12 @@ export interface Company {
   logo_url: string;
   plan: string;
   status: string;
+  /** SCH-480: payment status — paid|outstanding|overdue */
+  subscription_status?: string | null;
+  /** SCH-480: free-tier exemption (skips payment enforcement) */
+  is_free?: boolean | null;
+  /** SCH-480: ISO timestamp of next payment due date */
+  next_payment_due_at?: string | null;
 }
 
 /** Hardcoded fallback — used only while the DB query is in flight or if it fails. */
@@ -19,6 +25,28 @@ const FALLBACK_COMPANIES: Company[] = [
   { id: "55films", name: "55 Films GmbH", slug: "55films", logo_url: "/logos/55films.png", plan: "pro", status: "active" },
 ];
 
+/** SCH-481: read-only when subscription is overdue >60 days and not on free tier. */
+export function computeIsReadOnly(c: Company | null | undefined): boolean {
+  if (!c) return false;
+  if (c.is_free) return false;
+  if (c.subscription_status !== "overdue") return false;
+  if (!c.next_payment_due_at) return false;
+  const due = new Date(c.next_payment_due_at).getTime();
+  if (Number.isNaN(due)) return false;
+  const ageDays = (Date.now() - due) / (1000 * 60 * 60 * 24);
+  return ageDays > 60;
+}
+
+/** Whole days past `next_payment_due_at`, or 0 if not overdue. */
+export function daysOverdue(c: Company | null | undefined): number {
+  if (!c?.next_payment_due_at) return 0;
+  const due = new Date(c.next_payment_due_at).getTime();
+  if (Number.isNaN(due)) return 0;
+  const diffMs = Date.now() - due;
+  if (diffMs <= 0) return 0;
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
+
 interface CompanyContextType {
   company: Company;
   accessibleCompanies: Company[];
@@ -26,6 +54,7 @@ interface CompanyContextType {
   userName: string;
   roleLoaded: boolean;
   isSuperadmin: boolean;
+  isReadOnly: boolean;
   setCompanyId: (id: string) => void;
 }
 
@@ -36,6 +65,7 @@ const CompanyContext = createContext<CompanyContextType>({
   userName: "",
   roleLoaded: false,
   isSuperadmin: false,
+  isReadOnly: false,
   setCompanyId: () => {},
 });
 
@@ -95,7 +125,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       try {
         const { data: memberRows } = await supabase
           .from("company_members")
-          .select("company_id, companies(id, name, slug, logo_url, plan, status)")
+          .select("company_id, companies(id, name, slug, logo_url, plan, status, subscription_status, is_free, next_payment_due_at)")
           .eq("user_id", user.id);
 
         if (memberRows && memberRows.length > 0) {
@@ -169,9 +199,10 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const company = accessibleCompanies.find((c) => c.id === companyId)
     || accessibleCompanies[0]
     || FALLBACK_COMPANIES[0];
+  const isReadOnly = computeIsReadOnly(company);
 
   return (
-    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, roleLoaded, isSuperadmin, setCompanyId }}>
+    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, roleLoaded, isSuperadmin, isReadOnly, setCompanyId }}>
       {children}
     </CompanyContext.Provider>
   );

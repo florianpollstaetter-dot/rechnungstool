@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { invoicesToDatevRows, receiptsToDatevRows, datevRowsToCsv } from "@/lib/einvoice/datev-export";
+import { readOnlyGuard } from "@/lib/server/company-readonly";
 import type { Invoice, Customer, Receipt } from "@/lib/types";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -17,6 +18,9 @@ export async function POST(request: Request) {
   if (!companyId) {
     return Response.json({ error: "companyId required" }, { status: 400 });
   }
+
+  const blocked = await readOnlyGuard(companyId);
+  if (blocked) return blocked;
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
