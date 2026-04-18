@@ -1,7 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+const TITAN_MODEL_ID = process.env.BEDROCK_IMAGE_MODEL_ID || "amazon.titan-image-generator-v1";
+const IMAGE_REGION = process.env.BEDROCK_IMAGE_REGION || process.env.AWS_REGION || "us-east-1";
 
 export async function POST(request: Request) {
   const { prompt, count = 1, companyId } = await request.json();
@@ -10,55 +14,66 @@ export async function POST(request: Request) {
     return Response.json({ error: "prompt required" }, { status: 400 });
   }
 
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (!openaiKey) {
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
     return Response.json(
-      { error: "AI image generation not configured. Set OPENAI_API_KEY in environment." },
+      { error: "AI image generation not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for Bedrock." },
       { status: 503 }
     );
   }
 
-  const imageCount = Math.min(Math.max(1, Number(count) || 1), 4);
+  const imageCount = Math.min(Math.max(1, Number(count) || 1), 5);
 
   try {
-    // Call OpenAI DALL-E 3
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openaiKey}`,
-        "Content-Type": "application/json",
+    const bedrock = new BedrockRuntimeClient({
+      region: IMAGE_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
       },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: `Professional business/corporate image: ${prompt}. High quality, suitable for a business proposal document.`,
-        n: imageCount,
-        size: "1024x1024",
-        quality: "standard",
-        response_format: "b64_json",
-      }),
     });
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
+    const body = {
+      taskType: "TEXT_IMAGE",
+      textToImageParams: {
+        text: `Professional business/corporate image: ${prompt}. High quality, suitable for a business proposal document.`,
+      },
+      imageGenerationConfig: {
+        numberOfImages: imageCount,
+        height: 1024,
+        width: 1024,
+        cfgScale: 8.0,
+      },
+    };
+
+    const response = await bedrock.send(
+      new InvokeModelCommand({
+        modelId: TITAN_MODEL_ID,
+        contentType: "application/json",
+        accept: "application/json",
+        body: JSON.stringify(body),
+      })
+    );
+
+    const decoded = JSON.parse(new TextDecoder().decode(response.body));
+    const images: string[] = decoded.images || [];
+
+    if (images.length === 0) {
       return Response.json(
-        { error: err.error?.message || `OpenAI API error: ${response.status}` },
+        { error: "Titan returned no images", detail: decoded },
         { status: 502 }
       );
     }
 
-    const data = await response.json();
     const supabase = createClient(supabaseUrl, supabaseKey);
     const activeCompanyId = companyId || "vrthefans";
     const savedImages: { id: string; url: string }[] = [];
 
-    for (let i = 0; i < data.data.length; i++) {
-      const imageData = data.data[i];
-      const base64 = imageData.b64_json;
+    for (let i = 0; i < images.length; i++) {
+      const base64 = images[i];
       const buffer = Buffer.from(base64, "base64");
       const fileName = `ai-${Date.now()}-${i}.png`;
       const storagePath = `${activeCompanyId}/ai-${crypto.randomUUID()}.png`;
 
-      // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from("design-photos")
         .upload(storagePath, buffer, { contentType: "image/png" });
@@ -68,7 +83,6 @@ export async function POST(request: Request) {
         continue;
       }
 
-      // Save to database
       const { data: photoRow, error: dbError } = await supabase
         .from("quote_design_photos")
         .insert({
@@ -98,9 +112,15 @@ export async function POST(request: Request) {
     return Response.json({ images: savedImages });
   } catch (err) {
     console.error("Image generation error:", err);
+    const message = err instanceof Error ? err.message : "Image generation failed";
+    const isAccessError = message.includes("AccessDenied") || message.includes("not authorized") || message.includes("don't have access");
     return Response.json(
-      { error: err instanceof Error ? err.message : "Image generation failed" },
-      { status: 500 }
+      {
+        error: isAccessError
+          ? `Bedrock model access denied for ${TITAN_MODEL_ID} in ${IMAGE_REGION}. Enable Titan Image Generator in the Bedrock console or set BEDROCK_IMAGE_REGION to a supported region.`
+          : message,
+      },
+      { status: isAccessError ? 503 : 500 }
     );
   }
 }

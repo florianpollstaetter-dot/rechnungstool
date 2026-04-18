@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.28.1",
+    "@aws-sdk/client-bedrock-runtime": "^3.1031.0",
     "@react-pdf/renderer": "^4.4.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
