@@ -1686,10 +1686,10 @@ export async function getDesignPhotos(): Promise<QuoteDesignPhoto[]> {
 export async function uploadDesignPhoto(file: File): Promise<QuoteDesignPhoto> {
   const ext = file.name.split(".").pop() || "jpg";
   const path = `${getActiveCompanyId()}/${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase().storage.from("design-photos").upload(path, file);
-  if (error) throw new Error(error.message);
+  const { error: uploadError } = await supabase().storage.from("design-photos").upload(path, file);
+  if (uploadError) throw new Error(uploadError.message);
 
-  const { data } = await supabase()
+  const { data, error: insertError } = await supabase()
     .from("quote_design_photos")
     .insert({
       company_id: getActiveCompanyId(),
@@ -1700,7 +1700,11 @@ export async function uploadDesignPhoto(file: File): Promise<QuoteDesignPhoto> {
     })
     .select()
     .single();
-  return mapDesignPhoto(data!);
+  if (insertError || !data) {
+    await supabase().storage.from("design-photos").remove([path]);
+    throw new Error(insertError?.message || "Photo metadata insert returned no row");
+  }
+  return mapDesignPhoto(data);
 }
 
 export async function saveAiGeneratedPhoto(
@@ -1713,12 +1717,12 @@ export async function saveAiGeneratedPhoto(
   const ext = fileName.split(".").pop() || "png";
   const path = `${getActiveCompanyId()}/ai-${crypto.randomUUID()}.${ext}`;
 
-  const { error } = await supabase().storage.from("design-photos").upload(path, blob, {
+  const { error: uploadError } = await supabase().storage.from("design-photos").upload(path, blob, {
     contentType: blob.type || "image/png",
   });
-  if (error) throw new Error(error.message);
+  if (uploadError) throw new Error(uploadError.message);
 
-  const { data } = await supabase()
+  const { data, error: insertError } = await supabase()
     .from("quote_design_photos")
     .insert({
       company_id: getActiveCompanyId(),
@@ -1731,7 +1735,11 @@ export async function saveAiGeneratedPhoto(
     })
     .select()
     .single();
-  return mapDesignPhoto(data!);
+  if (insertError || !data) {
+    await supabase().storage.from("design-photos").remove([path]);
+    throw new Error(insertError?.message || "Photo metadata insert returned no row");
+  }
+  return mapDesignPhoto(data);
 }
 
 export async function deleteDesignPhoto(id: string): Promise<void> {
