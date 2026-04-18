@@ -98,5 +98,33 @@ export async function PATCH(request: Request) {
     return Response.json({ recovery_link: data.properties?.action_link || "Link generiert" });
   }
 
+  if (userAction === "set_temp_password") {
+    const tempPassword = generateTempPassword();
+    const { error: updateError } = await service.auth.admin.updateUserById(auth_user_id, {
+      password: tempPassword,
+    });
+    if (updateError) return Response.json({ error: updateError.message }, { status: 500 });
+
+    // Flag the profile so the login flow forces a password change.
+    const { error: profileError } = await service
+      .from("user_profiles")
+      .update({ must_change_password: true })
+      .eq("auth_user_id", auth_user_id);
+    if (profileError) return Response.json({ error: profileError.message }, { status: 500 });
+
+    await logOperatorAction(auth.user!.id, "user.set_temp_password", "user", auth_user_id);
+    return Response.json({ temp_password: tempPassword });
+  }
+
   return Response.json({ error: "Unbekannte Aktion" }, { status: 400 });
+}
+
+// Readable temp password: 4 blocks of 4 lowercase + digit chars separated by '-'.
+// Avoids look-alike characters (0/O, 1/l/I) so it can be read aloud or typed.
+function generateTempPassword(): string {
+  const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]);
+  return `${chars.slice(0, 4).join("")}-${chars.slice(4, 8).join("")}-${chars.slice(8, 12).join("")}-${chars.slice(12, 16).join("")}`;
 }

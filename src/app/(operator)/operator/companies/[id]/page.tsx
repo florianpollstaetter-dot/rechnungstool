@@ -82,6 +82,7 @@ export default function OperatorCompanyDetail() {
   const [editing, setEditing] = useState(false);
   const [actionUser, setActionUser] = useState<CompanyUser | null>(null);
   const [flash, setFlash] = useState("");
+  const [tempPasswordInfo, setTempPasswordInfo] = useState<{ user: string; email: string; password: string } | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/operator/companies/${companyId}`);
@@ -117,6 +118,12 @@ export default function OperatorCompanyDetail() {
       const data = await res.json().catch(() => ({} as Record<string, unknown>));
       if (action === "reset_password" && data.recovery_link) {
         setFlash(`Passwort-Reset Link: ${data.recovery_link}`);
+      } else if (action === "set_temp_password" && typeof data.temp_password === "string") {
+        setTempPasswordInfo({
+          user: user.display_name || user.email,
+          email: user.email,
+          password: data.temp_password,
+        });
       } else {
         setFlash("Erledigt");
       }
@@ -124,6 +131,8 @@ export default function OperatorCompanyDetail() {
       setActionUser(null);
     }
   }
+
+  const adminUser = company?.users.find((u) => u.member_role === "admin") || null;
 
   if (loading) return <div className="text-[var(--text-muted)] text-sm py-8 text-center">Lade Firma...</div>;
   if (error) return (
@@ -156,12 +165,23 @@ export default function OperatorCompanyDetail() {
           <h1 className="text-xl font-bold text-[var(--text-primary)]">{company.name}</h1>
           <div className="text-xs text-[var(--text-muted)] mt-0.5">Kürzel: {company.slug} · ID: {company.id}</div>
         </div>
-        <button
-          onClick={() => setEditing(true)}
-          className="px-3 py-1.5 text-xs font-medium bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] rounded-md hover:bg-[var(--surface-hover)] transition-colors"
-        >
-          Firma bearbeiten
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {adminUser?.email && (
+            <a
+              href={`mailto:${adminUser.email}?subject=${encodeURIComponent(`[${company.name}] `)}`}
+              className="px-3 py-1.5 text-xs font-medium bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] rounded-md hover:bg-[var(--surface-hover)] transition-colors"
+              title={`E-Mail an ${adminUser.display_name || adminUser.email}`}
+            >
+              Admin anschreiben
+            </a>
+          )}
+          <button
+            onClick={() => setEditing(true)}
+            className="px-3 py-1.5 text-xs font-medium bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] rounded-md hover:bg-[var(--surface-hover)] transition-colors"
+          >
+            Firma bearbeiten
+          </button>
+        </div>
       </div>
 
       {flash && (
@@ -279,8 +299,17 @@ export default function OperatorCompanyDetail() {
       {actionUser && (
         <UserActionsModal
           user={actionUser}
+          companyName={company.name}
           onClose={() => setActionUser(null)}
           onAction={handleUserAction}
+        />
+      )}
+
+      {tempPasswordInfo && (
+        <TempPasswordModal
+          info={tempPasswordInfo}
+          companyName={company.name}
+          onClose={() => setTempPasswordInfo(null)}
         />
       )}
     </div>
@@ -449,19 +478,31 @@ function EditCompanyModal({
 
 function UserActionsModal({
   user,
+  companyName,
   onClose,
   onAction,
 }: {
   user: CompanyUser;
+  companyName: string;
   onClose: () => void;
   onAction: (user: CompanyUser, action: string) => Promise<void>;
 }) {
+  const [confirmingTempPassword, setConfirmingTempPassword] = useState(false);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
         <h2 className="text-lg font-bold text-[var(--text-primary)] mb-1">{user.display_name || "Kein Name"}</h2>
         <p className="text-xs text-[var(--text-muted)] mb-4">{user.email}</p>
         <div className="space-y-2">
+          {user.email && (
+            <a
+              href={`mailto:${user.email}?subject=${encodeURIComponent(`[${companyName}] `)}`}
+              className="block w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] transition-colors"
+            >
+              E-Mail schreiben
+            </a>
+          )}
           {!user.banned ? (
             <button
               onClick={() => onAction(user, "suspend")}
@@ -483,6 +524,34 @@ function UserActionsModal({
           >
             Passwort-Reset Link generieren
           </button>
+          {!confirmingTempPassword ? (
+            <button
+              onClick={() => setConfirmingTempPassword(true)}
+              className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-amber-500/10 text-amber-600 transition-colors"
+            >
+              Temporäres Passwort setzen
+            </button>
+          ) : (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 space-y-2">
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                Das aktuelle Passwort wird sofort ungültig. Der User wird beim nächsten Login zur Passwort-Änderung gezwungen.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onAction(user, "set_temp_password")}
+                  className="px-3 py-1.5 text-xs font-medium bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors"
+                >
+                  Ja, Passwort zurücksetzen
+                </button>
+                <button
+                  onClick={() => setConfirmingTempPassword(false)}
+                  className="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="bg-[var(--background)] border border-[var(--border)] rounded-lg p-3 mt-3 text-xs text-[var(--text-muted)]">
           <div>Firmen-Rolle: {ROLE_LABELS[user.member_role] || user.member_role}</div>
@@ -494,6 +563,72 @@ function UserActionsModal({
             Schließen
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TempPasswordModal({
+  info,
+  companyName,
+  onClose,
+}: {
+  info: { user: string; email: string; password: string };
+  companyName: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyPassword() {
+    try {
+      await navigator.clipboard.writeText(info.password);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard blocked — user can still read the password.
+    }
+  }
+
+  const mailSubject = `[${companyName}] Dein temporäres Passwort`;
+  const mailBody = `Hallo ${info.user},\n\ndein temporäres Passwort lautet:\n\n${info.password}\n\nBitte logge dich damit ein — du wirst sofort zur Vergabe eines neuen Passworts geführt.\n\nDanke!`;
+  const mailto = `mailto:${info.email}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl p-6 max-w-md w-full">
+        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-1">Temporäres Passwort gesetzt</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-4">
+          Für <strong className="text-[var(--text-primary)]">{info.user}</strong> ({info.email}). Der User wird beim nächsten Login gezwungen, ein neues Passwort zu vergeben.
+        </p>
+        <div className="bg-[var(--background)] border border-[var(--border)] rounded-lg p-3 mb-3">
+          <div className="text-xs text-[var(--text-muted)] mb-1">Temporäres Passwort</div>
+          <div className="font-mono text-base font-semibold text-[var(--text-primary)] break-all select-all">
+            {info.password}
+          </div>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={copyPassword}
+            className="px-3 py-1.5 text-xs font-medium bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-primary)] rounded-md hover:bg-[var(--background)] transition-colors"
+          >
+            {copied ? "Kopiert ✓" : "Passwort kopieren"}
+          </button>
+          <a
+            href={mailto}
+            className="px-3 py-1.5 text-xs font-medium bg-rose-500 text-white rounded-md hover:bg-rose-600 transition-colors"
+          >
+            Per E-Mail senden
+          </a>
+          <button
+            onClick={onClose}
+            className="ml-auto px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            Schließen
+          </button>
+        </div>
+        <p className="text-[11px] text-[var(--text-muted)] mt-3">
+          Das Passwort wird nach dem Schließen nicht mehr angezeigt. Kopieren oder E-Mail öffnen, bevor du schließt.
+        </p>
       </div>
     </div>
   );
