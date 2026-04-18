@@ -104,18 +104,38 @@ export async function POST(request: Request) {
   return Response.json(data);
 }
 
+const SUBSCRIPTION_STATUS_VALUES = new Set(["paid", "outstanding", "overdue"]);
+
 export async function PATCH(request: Request) {
   const auth = await requireSuperadmin();
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
-  const { id, status, plan, trial_ends_at } = await request.json();
+  const body = await request.json();
+  const {
+    id,
+    status,
+    plan,
+    trial_ends_at,
+    subscription_status,
+    is_free,
+    last_payment_at,
+    next_payment_due_at,
+  } = body;
   if (!id) return Response.json({ error: "Company ID erforderlich" }, { status: 400 });
+
+  if (subscription_status !== undefined && !SUBSCRIPTION_STATUS_VALUES.has(subscription_status)) {
+    return Response.json({ error: "Ungültiger Zahlungsstatus" }, { status: 400 });
+  }
 
   const service = createServiceClient();
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (status) updates.status = status;
   if (plan) updates.plan = plan;
   if (trial_ends_at) updates.trial_ends_at = trial_ends_at;
+  if (subscription_status !== undefined) updates.subscription_status = subscription_status;
+  if (is_free !== undefined) updates.is_free = Boolean(is_free);
+  if (last_payment_at !== undefined) updates.last_payment_at = last_payment_at || null;
+  if (next_payment_due_at !== undefined) updates.next_payment_due_at = next_payment_due_at || null;
 
   const { data, error } = await service
     .from("companies")
@@ -126,7 +146,13 @@ export async function PATCH(request: Request) {
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  const action = status ? `company.${status}` : plan ? "company.plan_change" : "company.update";
+  const action = status
+    ? `company.${status}`
+    : plan
+      ? "company.plan_change"
+      : subscription_status !== undefined || is_free !== undefined
+        ? "company.payment_update"
+        : "company.update";
   await logOperatorAction(auth.user!.id, action, "company", id, updates);
 
   return Response.json(data);

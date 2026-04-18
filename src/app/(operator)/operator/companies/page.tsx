@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 interface CompanyRow {
@@ -11,6 +11,10 @@ interface CompanyRow {
   status: string;
   trial_ends_at: string | null;
   created_at: string;
+  subscription_status: "paid" | "outstanding" | "overdue" | null;
+  is_free: boolean | null;
+  last_payment_at: string | null;
+  next_payment_due_at: string | null;
   user_count: number;
   receipt_count: number;
   invoice_count: number;
@@ -29,12 +33,72 @@ const STATUS_BADGES: Record<string, { label: string; cls: string }> = {
   cancelled: { label: "Gekündigt", cls: "bg-gray-500/10 text-gray-500" },
 };
 
+type PaymentFilter = "all" | "paid" | "outstanding" | "overdue" | "free";
+type SortKey = "created_desc" | "overdue_days_desc" | "next_due_asc" | "payment_status";
+
+const PAYMENT_FILTERS: { key: PaymentFilter; label: string }[] = [
+  { key: "all", label: "Alle" },
+  { key: "paid", label: "Bezahlt" },
+  { key: "outstanding", label: "Offen" },
+  { key: "overdue", label: "Überfällig" },
+  { key: "free", label: "Gratis" },
+];
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "created_desc", label: "Neueste zuerst" },
+  { key: "overdue_days_desc", label: "Tage überfällig" },
+  { key: "next_due_asc", label: "Nächste Fälligkeit" },
+  { key: "payment_status", label: "Nach Zahlungsstatus" },
+];
+
+function daysOverdue(nextDueAt: string | null): number {
+  if (!nextDueAt) return 0;
+  const due = new Date(nextDueAt).getTime();
+  if (Number.isNaN(due)) return 0;
+  const diffMs = Date.now() - due;
+  if (diffMs <= 0) return 0;
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
+
+function PaymentBadge({ row }: { row: CompanyRow }) {
+  if (row.is_free) {
+    return (
+      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-sky-500/10 text-sky-600 border border-sky-500/20">
+        Gratis
+      </span>
+    );
+  }
+  const status = row.subscription_status || "paid";
+  if (status === "overdue") {
+    const days = daysOverdue(row.next_payment_due_at);
+    return (
+      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-rose-500/10 text-rose-600 border border-rose-500/20">
+        Überfällig{days > 0 ? ` · ${days}T` : ""}
+      </span>
+    );
+  }
+  if (status === "outstanding") {
+    return (
+      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20">
+        Offen
+      </span>
+    );
+  }
+  return (
+    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+      Bezahlt
+    </span>
+  );
+}
+
 export default function OperatorCompanies() {
   const router = useRouter();
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("created_desc");
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => { loadCompanies(); }, []);
@@ -50,11 +114,55 @@ export default function OperatorCompanies() {
     setLoading(false);
   }
 
-  const filtered = companies.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.slug.toLowerCase().includes(search.toLowerCase())
-  );
+  const counts = useMemo(() => {
+    const agg = { all: 0, paid: 0, outstanding: 0, overdue: 0, free: 0 };
+    for (const c of companies) {
+      agg.all += 1;
+      if (c.is_free) { agg.free += 1; continue; }
+      const s = c.subscription_status || "paid";
+      if (s === "paid") agg.paid += 1;
+      else if (s === "outstanding") agg.outstanding += 1;
+      else if (s === "overdue") agg.overdue += 1;
+    }
+    return agg;
+  }, [companies]);
+
+  const filteredSorted = useMemo(() => {
+    const q = search.toLowerCase();
+    const searched = companies.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q),
+    );
+    const payFiltered = searched.filter((c) => {
+      if (paymentFilter === "all") return true;
+      if (paymentFilter === "free") return !!c.is_free;
+      if (c.is_free) return false;
+      const s = c.subscription_status || "paid";
+      return s === paymentFilter;
+    });
+    const rank = (c: CompanyRow) => {
+      if (c.is_free) return 4;
+      const s = c.subscription_status || "paid";
+      if (s === "overdue") return 0;
+      if (s === "outstanding") return 1;
+      if (s === "paid") return 2;
+      return 3;
+    };
+    const sorted = [...payFiltered];
+    if (sortKey === "created_desc") {
+      sorted.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+    } else if (sortKey === "overdue_days_desc") {
+      sorted.sort((a, b) => daysOverdue(b.next_payment_due_at) - daysOverdue(a.next_payment_due_at));
+    } else if (sortKey === "next_due_asc") {
+      sorted.sort((a, b) => {
+        const av = a.next_payment_due_at ? new Date(a.next_payment_due_at).getTime() : Number.POSITIVE_INFINITY;
+        const bv = b.next_payment_due_at ? new Date(b.next_payment_due_at).getTime() : Number.POSITIVE_INFINITY;
+        return av - bv;
+      });
+    } else if (sortKey === "payment_status") {
+      sorted.sort((a, b) => rank(a) - rank(b) || daysOverdue(b.next_payment_due_at) - daysOverdue(a.next_payment_due_at));
+    }
+    return sorted;
+  }, [companies, search, paymentFilter, sortKey]);
 
   if (loading) return <div className="text-[var(--text-muted)] text-sm py-8 text-center">Lade Firmen...</div>;
   if (error) return <div className="text-rose-500 text-sm py-8 text-center">{error}</div>;
@@ -76,8 +184,47 @@ export default function OperatorCompanies() {
         placeholder="Firma suchen..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full mb-4 bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-rose-500/50"
+        className="w-full mb-3 bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-rose-500/50"
       />
+
+      <div className="flex flex-wrap gap-2 mb-3">
+        {PAYMENT_FILTERS.map((f) => {
+          const active = paymentFilter === f.key;
+          return (
+            <button
+              key={f.key}
+              onClick={() => setPaymentFilter(f.key)}
+              className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-colors ${
+                active
+                  ? "bg-rose-500 text-white border-rose-500"
+                  : "bg-[var(--surface)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {f.label} <span className={active ? "opacity-80" : "text-[var(--text-muted)]"}>({counts[f.key]})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <span className="text-xs text-[var(--text-muted)]">Sortieren:</span>
+        {SORT_OPTIONS.map((s) => {
+          const active = sortKey === s.key;
+          return (
+            <button
+              key={s.key}
+              onClick={() => setSortKey(s.key)}
+              className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                active
+                  ? "bg-[var(--text-primary)] text-[var(--background)] border-[var(--text-primary)]"
+                  : "bg-transparent border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -85,6 +232,7 @@ export default function OperatorCompanies() {
             <tr className="border-b border-[var(--border)]">
               <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Firma</th>
               <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Plan</th>
+              <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Zahlung</th>
               <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Status</th>
               <th className="text-right py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">User</th>
               <th className="text-right py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Belege</th>
@@ -93,7 +241,7 @@ export default function OperatorCompanies() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((c) => {
+            {filteredSorted.map((c) => {
               const planBadge = PLAN_BADGES[c.plan] || { label: c.plan, cls: "bg-gray-500/10 text-gray-500" };
               const statusBadge = STATUS_BADGES[c.status] || { label: c.status, cls: "bg-gray-500/10 text-gray-500" };
               const trialExpired = c.trial_ends_at && new Date(c.trial_ends_at) < new Date();
@@ -111,6 +259,9 @@ export default function OperatorCompanies() {
                     <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${planBadge.cls}`}>
                       {planBadge.label}
                     </span>
+                  </td>
+                  <td className="py-2.5 px-2">
+                    <PaymentBadge row={c} />
                   </td>
                   <td className="py-2.5 px-2">
                     <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusBadge.cls}`}>
@@ -135,9 +286,9 @@ export default function OperatorCompanies() {
         </table>
       </div>
 
-      {filtered.length === 0 && (
+      {filteredSorted.length === 0 && (
         <div className="text-center text-[var(--text-muted)] text-sm py-8">
-          {search ? "Keine Firma gefunden" : "Noch keine Firmen registriert"}
+          {search || paymentFilter !== "all" ? "Keine Firma gefunden" : "Noch keine Firmen registriert"}
         </div>
       )}
 
