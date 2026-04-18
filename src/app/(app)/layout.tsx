@@ -17,7 +17,7 @@ import type { TranslationKey } from "@/lib/translations/de";
 const GREETING_COUNT = 25;
 
 const NAV_ITEMS: { href: string; labelKey: TranslationKey; exact?: boolean; section: AppSection }[] = [
-  { href: "/", labelKey: "nav.dashboard", exact: true, section: "dashboard" },
+  { href: "/dashboard", labelKey: "nav.dashboard", exact: true, section: "dashboard" },
   { href: "/quotes", labelKey: "nav.quotes", section: "quotes" },
   { href: "/invoices", labelKey: "nav.invoices", section: "invoices" },
   { href: "/customers", labelKey: "nav.customers", section: "customers" },
@@ -76,7 +76,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex justify-between h-14">
             <div className="flex items-center gap-3">
               {/* 1. Brand logo */}
-              <Link href="/" className="flex items-center gap-2 shrink-0" title="Orange Octo">
+              <Link href="/dashboard" className="flex items-center gap-2 shrink-0" title="Orange Octo">
                 <Image
                   src="/brand/octo-icon-orange.png"
                   alt="Orange Octo"

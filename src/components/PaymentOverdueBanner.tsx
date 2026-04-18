@@ -5,6 +5,8 @@ import { daysOverdue, useCompany } from "@/lib/company-context";
 export function PaymentOverdueBanner() {
   const { company, isReadOnly } = useCompany();
   if (!isReadOnly) return null;
+
+  const isTrialExpired = company.subscription_status === "free_trial";
   const days = daysOverdue(company);
 
   return (
@@ -28,12 +30,25 @@ export function PaymentOverdueBanner() {
           <line x1="12" y1="9" x2="12" y2="14" />
           <line x1="12" y1="18" x2="12" y2="18" />
         </svg>
-        <span className="font-semibold">
-          Rechnung ueberfaellig — Funktionen eingeschraenkt.
-        </span>
-        <span className="text-rose-600/80 dark:text-rose-300/80">
-          Bitte ausstehende Rechnung begleichen{days > 0 ? ` (${days} Tage ueberfaellig)` : ""}.
-        </span>
+        {isTrialExpired ? (
+          <>
+            <span className="font-semibold">
+              Testphase beendet — Funktionen eingeschraenkt.
+            </span>
+            <span className="text-rose-600/80 dark:text-rose-300/80">
+              Bitte ein Abo abschliessen, um wieder vollen Zugriff zu erhalten.
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="font-semibold">
+              Rechnung ueberfaellig — Funktionen eingeschraenkt.
+            </span>
+            <span className="text-rose-600/80 dark:text-rose-300/80">
+              Bitte ausstehende Rechnung begleichen{days > 0 ? ` (${days} Tage ueberfaellig)` : ""}.
+            </span>
+          </>
+        )}
       </div>
     </div>
   );

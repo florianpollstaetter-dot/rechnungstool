@@ -87,7 +87,7 @@ export default function OperatorLayout({ children }: { children: React.ReactNode
             </div>
             <div className="flex items-center gap-2">
               <Link
-                href="/"
+                href="/dashboard"
                 className="text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors hidden sm:block"
               >
                 Zurück zur App
@@ -122,7 +122,7 @@ export default function OperatorLayout({ children }: { children: React.ReactNode
                   {item.label}
                 </Link>
               ))}
-              <Link href="/" className="block px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors">
+              <Link href="/dashboard" className="block px-3 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors">
                 Zurück zur App
               </Link>
               <button onClick={handleLogout} className="block w-full text-left px-3 py-2 text-sm font-medium text-rose-400 hover:bg-[var(--surface-hover)] rounded-lg transition-colors">

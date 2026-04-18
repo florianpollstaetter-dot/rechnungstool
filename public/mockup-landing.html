@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orange Octo – Buchhaltung, die sich selbst erledigt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0c0e14;
+    --surface: #161923;
+    --surface2: #1c2030;
+    --border: #2a2f42;
+    --border-hover: rgba(247,144,30,0.45);
+    --orange: #F7901E;
+    --orange-dim: rgba(247,144,30,0.12);
+    --orange-glow: rgba(247,144,30,0.08);
+    --text: #ffffff;
+    --text-sec: #9ca3af;
+    --text-muted: #6b7280;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ─── TYPOGRAPHY ──────────────────────────────── */
+  h1, h2, h3, .nav-logo-text, .pricing-headline {
+    font-family: 'Syne', sans-serif;
+  }
+
+  /* ─── LAYOUT ──────────────────────────────── */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* ─── NAV ──────────────────────────────── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(12,14,20,0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .nav-logo img {
+    height: 32px;
+    width: auto;
+  }
+
+  .nav-logo-fallback {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .nav-logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .nav-logo-text {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .nav-logo-text span { color: var(--orange); }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--text-sec);
+    text-decoration: none;
+    font-size: 14.5px;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    transition: color 0.18s;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  .nav-cta {
+    background: var(--orange);
+    color: #fff !important;
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 14.5px;
+    text-decoration: none;
+    transition: opacity 0.18s, transform 0.18s;
+    display: inline-block;
+  }
+
+  .nav-cta:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  /* ─── HERO ──────────────────────────────── */
+  .hero {
+    min-height: 100vh;
+    padding-top: 64px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Subtle gradient bg */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 800px 600px at 30% 50%, rgba(247,144,30,0.055) 0%, transparent 70%),
+      radial-gradient(ellipse 600px 400px at 70% 20%, rgba(0,212,255,0.03) 0%, transparent 60%),
+      linear-gradient(to bottom, rgba(22,25,35,0.3) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Grid lines (subtle) */
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(42,47,66,0.3) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(42,47,66,0.3) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%);
+    pointer-events: none;
+    opacity: 0.4;
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 80px 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--orange-dim);
+    border: 1px solid rgba(247,144,30,0.25);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--orange);
+    margin-bottom: 24px;
+    letter-spacing: 0.02em;
+  }
+
+  .hero-badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  h1 {
+    font-size: clamp(38px, 4.5vw, 62px);
+    font-weight: 800;
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    margin-bottom: 22px;
+  }
+
+  h1 .highlight {
+    color: var(--orange);
+    position: relative;
+    display: inline-block;
+  }
+
+  .hero-sub {
+    font-size: 17px;
+    color: var(--text-sec);
+    line-height: 1.65;
+    max-width: 440px;
+    margin-bottom: 40px;
+    font-weight: 300;
+  }
+
+  .hero-sub strong { color: var(--text); font-weight: 500; }
+
+  .hero-actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .btn-primary {
+    background: var(--orange);
+    color: #fff;
+    padding: 13px 26px;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary:hover {
+    background: #e8820f;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(247,144,30,0.3);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    padding: 13px 26px;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-ghost:hover {
+    border-color: rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.04);
+  }
+
+  .hero-note {
+    margin-top: 18px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  .hero-note svg { vertical-align: -2px; }
+
+  /* ─── DASHBOARD MOCK ──────────────────────────────── */
+  .dashboard-mock {
+    position: relative;
+  }
+
+  .dash-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(42,47,66,0.5),
+      0 32px 80px rgba(0,0,0,0.6),
+      0 0 60px rgba(247,144,30,0.06);
+  }
+
+  .dash-topbar {
+    background: var(--surface2);
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+
+  .dash-url {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    flex: 1;
+    max-width: 200px;
+  }
+
+  .dash-body {
+    padding: 20px;
+    display: grid;
+    gap: 12px;
+  }
+
+  .dash-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dash-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .dash-badge-orange {
+    background: var(--orange-dim);
+    border: 1px solid rgba(247,144,30,0.2);
+    color: var(--orange);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+
+  .dash-kpis {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .kpi-tile {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .kpi-label { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; }
+  .kpi-value { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); }
+  .kpi-value.orange { color: var(--orange); }
+  .kpi-change { font-size: 9px; color: #22c55e; margin-top: 2px; }
+
+  .dash-chart-area {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    height: 90px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 60px;
+  }
+
+  .bar {
+    flex: 1;
+    background: var(--border);
+    border-radius: 3px 3px 0 0;
+    transition: background 0.2s;
+    min-width: 8px;
+  }
+
+  .bar.active { background: var(--orange); }
+  .bar.semi { background: rgba(247,144,30,0.4); }
+
+  .chart-label { font-size: 9px; color: var(--text-muted); margin-top: 6px; }
+
+  .dash-rows { display: grid; gap: 7px; }
+
+  .dash-row {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .row-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: var(--orange-dim);
+    border: 1px solid rgba(247,144,30,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .row-text { flex: 1; }
+  .row-name { font-size: 11px; font-weight: 500; color: var(--text); }
+  .row-sub { font-size: 10px; color: var(--text-muted); }
+  .row-amount { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; color: var(--text); }
+  .row-status {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 100px;
+  }
+  .status-paid { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .status-pending { background: var(--orange-dim); color: var(--orange); }
+
+  /* floating annotation */
+  .float-badge {
+    position: absolute;
+    bottom: -16px;
+    right: -16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    white-space: nowrap;
+  }
+
+  .float-badge-icon {
+    width: 32px; height: 32px;
+    background: rgba(34,197,94,0.15);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #22c55e;
+    font-size: 16px;
+  }
+
+  .float-badge-text { font-size: 11px; color: var(--text-sec); }
+  .float-badge-text strong { color: var(--text); font-weight: 600; display: block; }
+
+  /* ─── TRUST BAR ──────────────────────────────── */
+  .trust-bar {
+    padding: 32px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .trust-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .trust-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .trust-logos {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .trust-logo-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sec);
+    letter-spacing: 0.01em;
+  }
+
+  /* ─── FEATURES ──────────────────────────────── */
+  .features {
+    padding: 96px 0;
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-size: clamp(28px, 3vw, 42px);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .section-sub {
+    font-size: 16.5px;
+    color: var(--text-sec);
+    max-width: 520px;
+    line-height: 1.65;
+    font-weight: 300;
+  }
+
+  .section-header {
+    margin-bottom: 56px;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 30px 28px;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--orange), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .feature-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(247,144,30,0.1);
+  }
+
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    width: 44px; height: 44px;
+    background: var(--orange-dim);
+    border: 1px solid rgba(247,144,30,0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    color: var(--orange);
+  }
+
+  .feature-card h3 {
+    font-size: 16.5px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 9px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+  }
+
+  .feature-card p {
+    font-size: 14.5px;
+    color: var(--text-sec);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  /* ─── SOCIAL PROOF ──────────────────────────────── */
+  .social {
+    padding: 80px 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(22,25,35,0.6) 50%, transparent 100%);
+  }
+
+  .social-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .social-header .headline-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 56px;
+    font-weight: 800;
+    color: var(--orange);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .social-header .headline-text {
+    font-size: 18px;
+    color: var(--text-sec);
+    font-weight: 300;
+  }
+
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .testimonial-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 30px;
+    position: relative;
+  }
+
+  .testimonial-card::before {
+    content: '"';
+    font-family: Georgia, serif;
+    font-size: 80px;
+    color: var(--orange);
+    opacity: 0.15;
+    position: absolute;
+    top: 8px;
+    left: 20px;
+    line-height: 1;
+  }
+
+  .testimonial-text {
+    font-size: 15px;
+    color: var(--text-sec);
+    line-height: 1.7;
+    font-weight: 300;
+    font-style: italic;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .author-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--orange), #e85d04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .author-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .author-role {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .stars {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 14px;
+    color: #fbbf24;
+    font-size: 14px;
+  }
+
+  /* ─── PRICING / CTA ──────────────────────────────── */
+  .pricing {
+    padding: 80px 0 100px;
+  }
+
+  .pricing-card {
+    max-width: 680px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid rgba(247,144,30,0.25);
+    border-radius: 20px;
+    padding: 56px 64px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(247,144,30,0.07), 0 0 120px rgba(247,144,30,0.03);
+  }
+
+  .pricing-card::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: 20%; right: 20%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--orange), transparent);
+  }
+
+  .pricing-badge {
+    display: inline-block;
+    background: var(--orange-dim);
+    border: 1px solid rgba(247,144,30,0.25);
+    border-radius: 100px;
+    padding: 5px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--orange);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .pricing-headline {
+    font-size: clamp(28px, 3.5vw, 40px);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .pricing-sub {
+    font-size: 16px;
+    color: var(--text-sec);
+    margin-bottom: 36px;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  .pricing-perks {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 36px;
+    text-align: left;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .perk {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14.5px;
+    color: var(--text-sec);
+  }
+
+  .perk-check {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: rgba(34,197,94,0.15);
+    border: 1px solid rgba(34,197,94,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #22c55e;
+    font-size: 11px;
+  }
+
+  .pricing-cta {
+    background: var(--orange);
+    color: #fff;
+    padding: 15px 40px;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-block;
+    margin-bottom: 16px;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .pricing-cta:hover {
+    background: #e8820f;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(247,144,30,0.35);
+  }
+
+  .pricing-note {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ─── FOOTER ──────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 0;
+  }
+
+  .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: gap;
+    gap: 24px;
+  }
+
+  .footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-decoration: none;
+  }
+
+  .footer-logo img {
+    height: 26px;
+    width: auto;
+    opacity: 0.7;
+  }
+
+  .footer-logo-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+
+  .footer-logo-text span { color: var(--orange); opacity: 0.8; }
+
+  .footer-links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+
+  .footer-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13.5px;
+    transition: color 0.18s;
+  }
+
+  .footer-links a:hover { color: var(--text-sec); }
+
+  .footer-links a.accent { color: var(--orange); opacity: 0.8; }
+  .footer-links a.accent:hover { opacity: 1; }
+
+  .footer-copy {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  /* ─── LOGIN/REGISTER SECTION (Mockup 2) ──────── */
+  .auth-section {
+    padding: 80px 0;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(to bottom, rgba(22,25,35,0.4), transparent);
+  }
+
+  .auth-section .section-label { text-align: center; }
+
+  .auth-section h2 { text-align: center; margin-bottom: 48px; }
+
+  .auth-grid {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 0;
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .auth-divider {
+    background: var(--border);
+    width: 1px;
+  }
+
+  .auth-panel {
+    padding: 48px 44px;
+  }
+
+  .auth-panel h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .auth-panel .auth-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sec);
+    margin-bottom: 7px;
+  }
+
+  .form-input {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14.5px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .form-input::placeholder { color: var(--text-muted); }
+
+  .form-input:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(247,144,30,0.1);
+  }
+
+  .auth-btn {
+    width: 100%;
+    background: var(--orange);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+  }
+
+  .auth-btn:hover {
+    background: #e8820f;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(247,144,30,0.25);
+  }
+
+  .auth-btn.ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .auth-btn.ghost:hover {
+    border-color: rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.04);
+    box-shadow: none;
+  }
+
+  .auth-trial-badge {
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 12.5px;
+    color: #86efac;
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .auth-forgot {
+    text-align: right;
+    margin-top: -10px;
+    margin-bottom: 18px;
+  }
+
+  .auth-forgot a {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.18s;
+  }
+
+  .auth-forgot a:hover { color: var(--orange); }
+
+  /* ─── PAGE TITLE SEPARATOR ──────────────────── */
+  .mockup-separator {
+    text-align: center;
+    padding: 48px 32px 32px;
+    border-top: 1px dashed var(--border);
+    margin-top: 40px;
+  }
+
+  .mockup-separator h2 {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .mockup-separator p {
+    font-size: 13px;
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+
+  /* ─── ANIMATIONS ──────────────────────────────── */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-text { animation: fade-up 0.7s ease both; }
+  .hero-badge { animation: fade-up 0.5s ease both; }
+  h1 { animation: fade-up 0.6s 0.1s ease both; }
+  .hero-sub { animation: fade-up 0.6s 0.2s ease both; }
+  .hero-actions { animation: fade-up 0.6s 0.3s ease both; }
+  .hero-note { animation: fade-up 0.6s 0.4s ease both; }
+  .dashboard-mock { animation: fade-up 0.8s 0.2s ease both; }
+
+  /* ─── RESPONSIVE ──────────────────────────────── */
+  @media (max-width: 900px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+    .dashboard-mock { order: -1; }
+    .features-grid { grid-template-columns: 1fr 1fr; }
+    .auth-grid { grid-template-columns: 1fr; }
+    .auth-divider { display: none; }
+  }
+
+  @media (max-width: 600px) {
+    .nav-links { display: none; }
+    .features-grid { grid-template-columns: 1fr; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+    .pricing-card { padding: 36px 24px; }
+    .footer-inner { flex-direction: column; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!--  MOCKUP 1: LANDING PAGE                            -->
+<!-- ═══════════════════════════════════════════════════ -->
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <!-- Tries white logo; fallback to SVG octopus icon + text -->
+      <img src="/brand/octo-logo-full-white.png" alt="Orange Octo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+      <div class="nav-logo-fallback" style="display:none; align-items:center; gap:9px;">
+        <svg class="nav-logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="16" fill="#F7901E" fill-opacity="0.15"/>
+          <path d="M16 8C14 8 12 9.5 12 12C12 14 13 15.5 14.5 16.2C12.5 16.8 11 18.5 11 21H13C13 19.5 14.3 18.5 16 18.5C17.7 18.5 19 19.5 19 21H21C21 18.5 19.5 16.8 17.5 16.2C19 15.5 20 14 20 12C20 9.5 18 8 16 8ZM16 10C17 10 18 10.9 18 12C18 13.1 17 14 16 14C15 14 14 13.1 14 12C14 10.9 15 10 16 10Z" fill="#F7901E"/>
+          <!-- tentacles -->
+          <path d="M10 20 Q8 22 9 24" stroke="#F7901E" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+          <path d="M13 22 Q12 24 13 26" stroke="#F7901E" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+          <path d="M16 23 Q16 25 16 27" stroke="#F7901E" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+          <path d="M19 22 Q20 24 19 26" stroke="#F7901E" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+          <path d="M22 20 Q24 22 23 24" stroke="#F7901E" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+        </svg>
+        <span class="nav-logo-text"><span>Orange</span> Octo</span>
+      </div>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#preise">Preise</a></li>
+      <li><a href="#auth">Login</a></li>
+    </ul>
+
+    <a href="#auth" class="nav-cta">Kostenlos starten</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        KI-gestützte Buchhaltung · Made in Germany
+      </div>
+
+      <h1>Buchhaltung,<br>die sich selbst<br><span class="highlight">erledigt.</span></h1>
+
+      <p class="hero-sub">
+        Belege scannen, Rechnungen erstellen, Angebote gestalten —
+        <strong>alles automatisch.</strong> Orange Octo verbindet
+        KI-Belegerfassung, EU-konforme E-Rechnung und Zeiterfassung
+        in einer übersichtlichen Plattform.
+      </p>
+
+      <div class="hero-actions">
+        <a href="#auth" class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Kostenlos starten
+        </a>
+        <a href="#" class="btn-ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          Demo ansehen
+        </a>
+      </div>
+
+      <p class="hero-note">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        &nbsp;14 Tage kostenlos · Keine Kreditkarte · Kündigung jederzeit
+      </p>
+    </div>
+
+    <!-- DASHBOARD MOCK -->
+    <div class="dashboard-mock">
+      <div class="dash-card">
+        <div class="dash-topbar">
+          <span class="dot dot-r"></span>
+          <span class="dot dot-y"></span>
+          <span class="dot dot-g"></span>
+          <div class="dash-url">app.orangeocto.de/dashboard</div>
+        </div>
+        <div class="dash-body">
+          <div class="dash-header-row">
+            <span class="dash-title">Dashboard</span>
+            <span class="dash-badge-orange">April 2026</span>
+          </div>
+
+          <div class="dash-kpis">
+            <div class="kpi-tile">
+              <div class="kpi-label">Umsatz</div>
+              <div class="kpi-value orange">€ 12.840</div>
+              <div class="kpi-change">▲ +18% ggü. Vormonat</div>
+            </div>
+            <div class="kpi-tile">
+              <div class="kpi-label">Offene Rechnungen</div>
+              <div class="kpi-value">3</div>
+              <div class="kpi-change" style="color: #fb923c">▲ Fällig: 1</div>
+            </div>
+            <div class="kpi-tile">
+              <div class="kpi-label">Erfasste Belege</div>
+              <div class="kpi-value">47</div>
+              <div class="kpi-change">KI: 100% ✓</div>
+            </div>
+          </div>
+
+          <div class="dash-chart-area">
+            <div style="font-size:10px; color: var(--text-muted); margin-bottom: 8px;">Umsatz (letzte 8 Monate)</div>
+            <div class="chart-bars">
+              <div class="bar" style="height:35%"></div>
+              <div class="bar" style="height:55%"></div>
+              <div class="bar" style="height:42%"></div>
+              <div class="bar semi" style="height:68%"></div>
+              <div class="bar" style="height:50%"></div>
+              <div class="bar" style="height:72%"></div>
+              <div class="bar semi" style="height:80%"></div>
+              <div class="bar active" style="height:100%"></div>
+            </div>
+          </div>
+
+          <div class="dash-rows">
+            <div class="dash-row">
+              <div class="row-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F7901E" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div class="row-text">
+                <div class="row-name">Rechnung #R-2026-041</div>
+                <div class="row-sub">VR The Fans GmbH</div>
+              </div>
+              <div>
+                <div class="row-amount">€ 4.200</div>
+                <div class="row-status status-paid">Bezahlt</div>
+              </div>
+            </div>
+            <div class="dash-row">
+              <div class="row-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F7901E" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div class="row-text">
+                <div class="row-name">Angebot #A-2026-012</div>
+                <div class="row-sub">Lola Agency</div>
+              </div>
+              <div>
+                <div class="row-amount">€ 8.500</div>
+                <div class="row-status status-pending">Ausstehend</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="float-badge">
+        <div class="float-badge-icon">✓</div>
+        <div class="float-badge-text">
+          <strong>Beleg automatisch erkannt</strong>
+          KI hat 3 Felder befüllt
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-inner">
+    <span class="trust-label">Bereits vertraut von</span>
+    <div class="trust-logos">
+      <span class="trust-logo-pill">VR The Fans</span>
+      <span class="trust-logo-pill">Lola Agency</span>
+      <span class="trust-logo-pill">55 Films</span>
+      <span class="trust-logo-pill">Mustermann GmbH</span>
+      <span class="trust-logo-pill">+196 weitere</span>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">Funktionen</div>
+      <h2>Alles was du brauchst,<br>nichts was du nicht brauchst.</h2>
+      <p class="section-sub">Von der Belegerfassung bis zur DATEV-Übergabe — Orange Octo deckt den gesamten Buchhaltungsablauf ab.</p>
+    </div>
+
+    <div class="features-grid">
+      <!-- Card 1 -->
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            <path d="M9 9h6M9 13h4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>KI-gestützte Belegerfassung</h3>
+        <p>Foto hochladen — fertig. Unsere KI liest Betrag, Datum, Lieferant und Kategorie automatisch aus.</p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <h3>Automatische Rechnungsverarbeitung</h3>
+        <p>Eingehende Rechnungen werden automatisch verbucht, auf Pflichtangaben geprüft und archiviert.</p>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18M9 21V9"/>
+          </svg>
+        </div>
+        <h3>Designte Angebote in Sekunden</h3>
+        <p>Professionelle Angebote mit deinem CI — automatisch als PDF, direkt per E-Mail versendbar.</p>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <polyline points="9 12 11 14 15 10"/>
+          </svg>
+        </div>
+        <h3>EU-konforme E-Rechnung</h3>
+        <p>XRechnung und ZUGFeRD ready. Pflichtformat ab 2025 für B2B in Deutschland — automatisch erfüllt.</p>
+      </div>
+
+      <!-- Card 5 -->
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <h3>Übersichtliche Zeiterfassung</h3>
+        <p>Zeiten erfassen, Projekte zuordnen, direkt in Rechnungen umwandeln. Alles in einem Workflow.</p>
+      </div>
+
+      <!-- Card 6 -->
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+          </svg>
+        </div>
+        <h3>DATEV-Export</h3>
+        <p>Übergabe an den Steuerberater mit einem Klick. DATEV-kompatibles Format, vollständig und geprüft.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOCIAL PROOF -->
+<section class="social" id="kunden">
+  <div class="container">
+    <div class="social-header">
+      <span class="headline-number">200+</span>
+      <span class="headline-text">Unternehmen nutzen Orange Octo täglich</span>
+    </div>
+
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="stars">★★★★★</div>
+        <p class="testimonial-text">
+          Endlich eine Buchhaltungssoftware, die wirklich einfach ist. Die KI-Belegerfassung spart uns locker 3 Stunden pro Woche. Unsere Steuerberaterin ist begeistert.
+        </p>
+        <div class="testimonial-author">
+          <div class="author-avatar">MK</div>
+          <div>
+            <div class="author-name">Maria K.</div>
+            <div class="author-role">Geschäftsführerin · Agentur für digitale Kommunikation</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testimonial-card">
+        <div class="stars">★★★★★</div>
+        <p class="testimonial-text">
+          Die E-Rechnungs-Funktion hat uns genau dann gerettet, als wir sie brauchten. Setup in 10 Minuten, seitdem läuft alles automatisch. Absolut empfehlenswert.
+        </p>
+        <div class="testimonial-author">
+          <div class="author-avatar">TF</div>
+          <div>
+            <div class="author-name">Thomas F.</div>
+            <div class="author-role">Freelance Developer · IT-Consulting</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING / CTA -->
+<section class="pricing" id="preise">
+  <div class="container">
+    <div class="pricing-card">
+      <div class="pricing-badge">Kostenlos starten</div>
+      <div class="pricing-headline">14 Tage kostenlos testen.<br>Keine Kreditkarte.</div>
+      <p class="pricing-sub">Voller Zugriff auf alle Features. Keine Einschränkungen. Nach 14 Tagen einfach weitermachen oder kündigen.</p>
+
+      <div class="pricing-perks">
+        <div class="perk">
+          <span class="perk-check">✓</span>
+          Alle Features freigeschaltet
+        </div>
+        <div class="perk">
+          <span class="perk-check">✓</span>
+          Unbegrenzte Belege & Rechnungen im Trial
+        </div>
+        <div class="perk">
+          <span class="perk-check">✓</span>
+          DATEV-Export & E-Rechnung inklusive
+        </div>
+        <div class="perk">
+          <span class="perk-check">✓</span>
+          Keine Kreditkarte, keine Fangfrage
+        </div>
+      </div>
+
+      <a href="#auth" class="pricing-cta">Jetzt kostenlos starten →</a>
+      <p class="pricing-note">Danach ab € 29/Monat · Monatlich kündbar</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!--  MOCKUP 2: LOGIN + REGISTRATION                    -->
+<!-- ═══════════════════════════════════════════════════ -->
+
+<div class="mockup-separator" id="auth">
+  <h2>— Mockup 2: Login &amp; Registrierung —</h2>
+  <p>Folgende Seite zeigt den kombinierten Login/Register-Flow</p>
+</div>
+
+<section class="auth-section">
+  <div class="container">
+    <div class="section-label" style="text-align:center">Zugang</div>
+    <h2 style="text-align:center; margin-bottom:48px;">Willkommen bei Orange<span style="color:var(--orange)"> Octo</span></h2>
+
+    <div class="auth-grid">
+      <!-- LOGIN -->
+      <div class="auth-panel">
+        <h3>Anmelden</h3>
+        <p class="auth-sub">Bereits Kunde? Direkt einloggen.</p>
+
+        <div class="form-group">
+          <label class="form-label">E-Mail-Adresse</label>
+          <input class="form-input" type="email" placeholder="name@firma.de" value="">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Passwort</label>
+          <input class="form-input" type="password" placeholder="••••••••••">
+        </div>
+
+        <div class="auth-forgot">
+          <a href="#">Passwort vergessen?</a>
+        </div>
+
+        <button class="auth-btn ghost">Einloggen</button>
+      </div>
+
+      <div class="auth-divider"></div>
+
+      <!-- REGISTER -->
+      <div class="auth-panel">
+        <h3>Kostenlos registrieren</h3>
+        <p class="auth-sub">14 Tage Trial. Keine Kreditkarte.</p>
+
+        <div class="form-group">
+          <label class="form-label">Firmenname</label>
+          <input class="form-input" type="text" placeholder="Mustermann GmbH">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Admin E-Mail</label>
+          <input class="form-input" type="email" placeholder="admin@firma.de">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Passwort wählen</label>
+          <input class="form-input" type="password" placeholder="Mind. 8 Zeichen">
+        </div>
+
+        <button class="auth-btn">Account erstellen &amp; Trial starten →</button>
+
+        <div class="auth-trial-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Trial startet sofort · Keine Kreditkarte erforderlich
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <a href="#" class="footer-logo">
+      <img src="/brand/octo-logo-full-white.png" alt="Orange Octo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+      <span class="footer-logo-text" style="display:none"><span>Orange</span> Octo</span>
+    </a>
+
+    <div class="footer-links">
+      <a href="#">Impressum</a>
+      <a href="#">Datenschutz</a>
+      <a href="#">AGB</a>
+      <a href="#auth" class="accent">Login</a>
+      <a href="#auth" class="accent">Registrieren</a>
+    </div>
+
+    <span class="footer-copy">© 2026 Orange Octo. Alle Rechte vorbehalten.</span>
+  </div>
+</footer>
+
+</body>
+</html>

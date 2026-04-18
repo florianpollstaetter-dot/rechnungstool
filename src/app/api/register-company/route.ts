@@ -27,9 +27,10 @@ export async function POST(request: Request) {
   );
 
   try {
-    // 1. Create the company
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+    // 1. Create the company — SCH-486: 30-day free trial.
+    const trialStartedAt = new Date();
+    const trialEndsAt = new Date(trialStartedAt);
+    trialEndsAt.setDate(trialEndsAt.getDate() + 30);
 
     const { error: companyError } = await supabase
       .from("companies")
@@ -39,6 +40,8 @@ export async function POST(request: Request) {
         slug: companySlug,
         plan: "trial",
         status: "active",
+        subscription_status: "free_trial",
+        trial_started_at: trialStartedAt.toISOString(),
         trial_ends_at: trialEndsAt.toISOString(),
       });
 

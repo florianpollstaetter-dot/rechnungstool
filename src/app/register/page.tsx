@@ -110,7 +110,7 @@ export default function RegisterPage() {
     // 3. Refresh session to pick up JWT claims
     await supabase.auth.refreshSession();
 
-    router.push("/");
+    router.push("/dashboard");
     router.refresh();
   }
 

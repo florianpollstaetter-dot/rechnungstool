@@ -10,12 +10,14 @@ export interface Company {
   logo_url: string;
   plan: string;
   status: string;
-  /** SCH-480: payment status — paid|outstanding|overdue */
+  /** SCH-480/486: payment status — paid|outstanding|overdue|free_trial */
   subscription_status?: string | null;
   /** SCH-480: free-tier exemption (skips payment enforcement) */
   is_free?: boolean | null;
   /** SCH-480: ISO timestamp of next payment due date */
   next_payment_due_at?: string | null;
+  /** SCH-486: ISO timestamp when the 30-day free trial ends */
+  trial_ends_at?: string | null;
 }
 
 /** Hardcoded fallback — used only while the DB query is in flight or if it fails. */
@@ -25,10 +27,22 @@ const FALLBACK_COMPANIES: Company[] = [
   { id: "55films", name: "55 Films GmbH", slug: "55films", logo_url: "/logos/55films.png", plan: "pro", status: "active" },
 ];
 
-/** SCH-481: read-only when subscription is overdue >60 days and not on free tier. */
+/**
+ * Read-only when:
+ *  - SCH-481: subscription is overdue >60 days and not on free tier, OR
+ *  - SCH-486: free trial has elapsed (trial_ends_at in the past).
+ */
 export function computeIsReadOnly(c: Company | null | undefined): boolean {
   if (!c) return false;
   if (c.is_free) return false;
+
+  if (c.subscription_status === "free_trial") {
+    if (!c.trial_ends_at) return false;
+    const ends = new Date(c.trial_ends_at).getTime();
+    if (Number.isNaN(ends)) return false;
+    return ends < Date.now();
+  }
+
   if (c.subscription_status !== "overdue") return false;
   if (!c.next_payment_due_at) return false;
   const due = new Date(c.next_payment_due_at).getTime();
@@ -125,7 +139,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       try {
         const { data: memberRows } = await supabase
           .from("company_members")
-          .select("company_id, companies(id, name, slug, logo_url, plan, status, subscription_status, is_free, next_payment_due_at)")
+          .select("company_id, companies(id, name, slug, logo_url, plan, status, subscription_status, is_free, next_payment_due_at, trial_ends_at)")
           .eq("user_id", user.id);
 
         if (memberRows && memberRows.length > 0) {
