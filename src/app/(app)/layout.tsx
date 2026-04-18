@@ -11,6 +11,7 @@ import { ROLE_PERMISSIONS, AppSection, UserRole } from "@/lib/types";
 import { AppFooter } from "@/components/AppFooter";
 import { PaymentOverdueBanner } from "@/components/PaymentOverdueBanner";
 import { PasswordChangeGate } from "@/components/PasswordChangeGate";
+import { ChatWidget } from "@/components/ChatWidget";
 import type { TranslationKey } from "@/lib/translations/de";
 
 const GREETING_COUNT = 25;
@@ -264,6 +265,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <AppFooter />
+      <ChatWidget />
     </>
   );
 }

@@ -97,3 +97,63 @@ export function calculateCostEUR(inputTokens: number, outputTokens: number): num
   const costUSD = (inputTokens * 3 + outputTokens * 15) / 1_000_000;
   return Math.round(costUSD * 0.92 * 10000) / 10000;
 }
+
+/**
+ * Calls Claude with a chat-style message history + optional system prompt.
+ * Used by the in-app chatbot (SCH-483).
+ */
+export async function callClaudeChat(
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+  system: string,
+  maxTokens = 1024,
+): Promise<{ text: string; inputTokens: number; outputTokens: number }> {
+  const ai = createAIClient();
+
+  if (ai) {
+    const response = await ai.client.messages.create({
+      model: ai.model,
+      max_tokens: maxTokens,
+      system,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    });
+    const textBlock = response.content.find((b) => b.type === "text");
+    return {
+      text: textBlock && "text" in textBlock ? textBlock.text : "",
+      inputTokens: response.usage?.input_tokens || 0,
+      outputTokens: response.usage?.output_tokens || 0,
+    };
+  }
+
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (!anthropicKey) {
+    throw new Error("No AI provider configured. Set AWS_ACCESS_KEY_ID+AWS_SECRET_ACCESS_KEY for Bedrock, or ANTHROPIC_API_KEY for direct API.");
+  }
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": anthropicKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: maxTokens,
+      system,
+      messages,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Claude API error: ${response.status} ${err}`);
+  }
+
+  const result = await response.json();
+  const textBlock = result.content?.find((b: Record<string, string>) => b.type === "text");
+  return {
+    text: textBlock?.text || "",
+    inputTokens: result.usage?.input_tokens || 0,
+    outputTokens: result.usage?.output_tokens || 0,
+  };
+}

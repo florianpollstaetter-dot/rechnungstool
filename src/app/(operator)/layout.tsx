@@ -11,6 +11,7 @@ import { PasswordChangeGate } from "@/components/PasswordChangeGate";
 const OPERATOR_NAV = [
   { href: "/operator", label: "Dashboard", exact: true },
   { href: "/operator/companies", label: "Firmen" },
+  { href: "/operator/chat", label: "Chat-Inbox" },
   { href: "/operator/billing", label: "Abo & Billing" },
   { href: "/operator/audit", label: "Audit Log" },
 ];
