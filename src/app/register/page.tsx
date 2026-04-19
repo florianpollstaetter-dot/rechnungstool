@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n-context";
+import styles from "./register.module.css";
 
 type Step = "credentials" | "company";
 
@@ -57,7 +59,6 @@ export default function RegisterPage() {
 
     const slug = companySlug || generateSlug(companyName);
 
-    // 1. Create the user + company server-side (email auto-confirmed via service role).
     const res = await fetch("/api/register-company", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -81,7 +82,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // 2. Sign in to establish the browser session with fresh JWT claims.
     const supabase = createClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) {
@@ -94,102 +94,199 @@ export default function RegisterPage() {
     router.refresh();
   }
 
-  const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-      <div className="max-w-sm w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Orange Octo</h1>
-          <p className="text-sm text-gray-500 mt-1">{t("register.title")}</p>
+    <div className={styles.root}>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <Link href="/" className={styles.logo} aria-label="Orange Octo Startseite">
+            <Image
+              src="/brand/octo-icon-orange.png"
+              alt="Orange Octo"
+              width={56}
+              height={56}
+              priority
+              className={styles.logoIcon}
+            />
+            <span className={styles.logoWord}>
+              Orange<span>Octo</span>
+            </span>
+          </Link>
+          <nav className={styles.headerLinks}>
+            <Link href="/" className={styles.headerLink}>
+              Startseite
+            </Link>
+            <Link href="/login" className={styles.headerLinkAccent}>
+              Login
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <div className={styles.content}>
+        <span className={styles.badge}>
+          <span className={styles.badgeDot} />
+          30 Tage kostenlos testen · Keine Kreditkarte
+        </span>
+
+        <h1 className={styles.title}>Konto erstellen</h1>
+        <p className={styles.subtitle}>
+          In 60 Sekunden loslegen. Alle Features freigeschaltet — ganz ohne Zahlungsdaten.
+        </p>
+
+        <div className={styles.steps} aria-hidden="true">
+          <div className={`${styles.step} ${styles.stepActive}`}>
+            <span className={styles.stepDot}>1</span>
+            Zugangsdaten
+          </div>
+          <span className={styles.stepSep} />
+          <div className={`${styles.step} ${step === "company" ? styles.stepActive : ""}`}>
+            <span className={styles.stepDot}>2</span>
+            Unternehmen
+          </div>
         </div>
 
         {step === "credentials" && (
-          <form
-            onSubmit={handleCredentials}
-            className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 space-y-4"
-          >
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.name")}</label>
-              <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-                className={inputClass} placeholder="Max Mustermann" />
+          <form onSubmit={handleCredentials} className={styles.card}>
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>{t("register.name")}</label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className={styles.input}
+                placeholder="Max Mustermann"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.email")}</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                className={inputClass} placeholder="max@unternehmen.at" />
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>{t("register.email")}</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className={styles.input}
+                placeholder="max@unternehmen.at"
+                autoComplete="email"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.password")}</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
-                className={inputClass} />
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>{t("register.password")}</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                className={styles.input}
+                autoComplete="new-password"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.confirmPassword")}</label>
-              <input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} required
-                className={inputClass} />
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>{t("register.confirmPassword")}</label>
+              <input
+                type="password"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                required
+                className={styles.input}
+                autoComplete="new-password"
+              />
             </div>
 
-            {error && <p className="text-sm text-rose-400">{error}</p>}
+            {error && <div className={styles.error}>{error}</div>}
 
-            <button type="submit"
-              className="w-full bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition">
-              {t("register.next")}
-            </button>
+            <div className={styles.actions}>
+              <button type="submit" className={styles.btnPrimary}>
+                {t("register.next")}
+              </button>
+            </div>
           </form>
         )}
 
         {step === "company" && (
-          <form
-            onSubmit={handleRegister}
-            className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 space-y-4"
-          >
-            <p className="text-sm text-[var(--text-secondary)] mb-2">
+          <form onSubmit={handleRegister} className={styles.card}>
+            <p className={styles.subtitle} style={{ textAlign: "left", marginBottom: 4 }}>
               {t("register.companySetupHint")}
             </p>
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.companyName")}</label>
-              <input type="text" value={companyName} onChange={(e) => {
-                setCompanyName(e.target.value);
-                if (!companySlug || companySlug === generateSlug(companyName)) {
-                  setCompanySlug(generateSlug(e.target.value));
-                }
-              }} required className={inputClass} placeholder="Mein Unternehmen GmbH" />
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>{t("register.companyName")}</label>
+              <input
+                type="text"
+                value={companyName}
+                onChange={(e) => {
+                  setCompanyName(e.target.value);
+                  if (!companySlug || companySlug === generateSlug(companyName)) {
+                    setCompanySlug(generateSlug(e.target.value));
+                  }
+                }}
+                required
+                className={styles.input}
+                placeholder="Mein Unternehmen GmbH"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                {t("register.companySlug")} <span className="text-gray-500 font-normal">{t("register.slugHint")}</span>
+            <div className={styles.fieldGroup}>
+              <label className={styles.label}>
+                {t("register.companySlug")}
+                <span className={styles.labelHint}>{t("register.slugHint")}</span>
               </label>
-              <input type="text" value={companySlug} onChange={(e) => setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-                className={inputClass} placeholder="mein-unternehmen" maxLength={30} />
+              <input
+                type="text"
+                value={companySlug}
+                onChange={(e) => setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                className={styles.input}
+                placeholder="mein-unternehmen"
+                maxLength={30}
+              />
             </div>
 
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
-              <p className="text-xs text-emerald-400">
-                {t("register.trialHint")}
-              </p>
+            <div className={styles.trialHint}>
+              <span className={styles.trialHintIcon}>✓</span>
+              <span>{t("register.trialHint")}</span>
             </div>
 
-            {error && <p className="text-sm text-rose-400">{error}</p>}
+            {error && <div className={styles.error}>{error}</div>}
 
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setStep("credentials")}
-                className="flex-1 border border-[var(--border)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--surface-hover)] transition">
+            <div className={styles.actions}>
+              <button type="button" onClick={() => setStep("credentials")} className={styles.btnSecondary}>
                 {t("register.back")}
               </button>
-              <button type="submit" disabled={loading}
-                className="flex-1 bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
+              <button type="submit" disabled={loading} className={styles.btnPrimary}>
                 {loading ? t("register.submitting") : t("register.submit")}
               </button>
             </div>
           </form>
         )}
 
-        <p className="text-center text-sm text-gray-500 mt-4">
-          {t("register.hasAccount")}{" "}
-          <Link href="/login" className="text-[var(--accent)] hover:underline font-medium">
-            {t("register.login")}
-          </Link>
+        <div className={styles.aside}>
+          <div className={styles.asideTitle}>Was dich erwartet</div>
+          <div className={styles.perksList}>
+            <div className={styles.perk}>
+              <span className={styles.perkCheck}>✓</span>
+              Alle Features freigeschaltet — 30 Tage
+            </div>
+            <div className={styles.perk}>
+              <span className={styles.perkCheck}>✓</span>
+              Unbegrenzte Belege, Rechnungen &amp; Angebote
+            </div>
+            <div className={styles.perk}>
+              <span className={styles.perkCheck}>✓</span>
+              DATEV-Export &amp; E-Rechnung inklusive
+            </div>
+            <div className={styles.perk}>
+              <span className={styles.perkCheck}>✓</span>
+              Monatlich kündbar — keine Bindung
+            </div>
+          </div>
+        </div>
+
+        <p className={styles.footerLinkRow}>
+          {t("register.hasAccount")}
+          <Link href="/login">{t("register.login")}</Link>
         </p>
       </div>
     </div>

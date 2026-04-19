@@ -55,26 +55,42 @@
 }
 
 .navInner {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 32px;
-  height: 64px;
+  min-height: 96px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 32px;
 }
 
 .navLogo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   text-decoration: none;
   color: inherit;
+  flex-shrink: 0;
 }
 
-.navLogo img {
-  height: 32px;
-  width: auto;
+.navLogoIcon {
+  height: 64px;
+  width: 64px;
+  object-fit: contain;
+  display: block;
+}
+
+.navLogoWord {
+  font-family: "Syne", sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.navLogoWord span {
+  color: var(--orange);
 }
 
 .navLogoText {
@@ -91,10 +107,17 @@
 .navLinks {
   display: flex;
   align-items: center;
-  gap: 36px;
+  gap: 28px;
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
 }
 
 .navLinks a {
@@ -130,7 +153,7 @@
 /* ─── HERO ──────────────────────────────── */
 .hero {
   min-height: 100vh;
-  padding-top: 64px;
+  padding-top: 96px;
   display: flex;
   align-items: center;
   position: relative;
@@ -988,6 +1011,773 @@
   color: var(--text-muted);
 }
 
+/* ─── INLINE HEADER LOGIN ─────────────────── */
+.inlineLogin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.inlineLoginInput {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: "DM Sans", sans-serif;
+  font-size: 13.5px;
+  padding: 8px 12px;
+  width: 150px;
+  transition: border-color 0.18s, background 0.18s;
+}
+
+.inlineLoginInput::placeholder {
+  color: var(--text-muted);
+}
+
+.inlineLoginInput:focus {
+  outline: none;
+  border-color: rgba(247, 144, 30, 0.55);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.inlineLoginBtn {
+  background: transparent;
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.inlineLoginBtn:hover {
+  border-color: rgba(247, 144, 30, 0.55);
+  background: rgba(247, 144, 30, 0.08);
+  color: var(--orange);
+}
+
+.inlineLoginBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inlineLoginError {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--surface2);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #fda4af;
+  font-size: 11.5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* ─── FEATURE ROWS ─────────────────────────── */
+.featureRow {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 64px;
+  align-items: center;
+  margin-bottom: 96px;
+}
+
+.featureRow:last-child {
+  margin-bottom: 0;
+}
+
+.featureRowReverse {
+  grid-template-columns: 1.1fr 1fr;
+}
+
+.featureRowReverse .featureRowText {
+  order: 2;
+}
+
+.featureRowReverse .featureRowMock {
+  order: 1;
+}
+
+.featureRowText h3 {
+  font-family: "Syne", sans-serif;
+  font-size: clamp(24px, 2.2vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0 0 14px;
+  color: var(--text);
+}
+
+.featureRowText p {
+  font-size: 16px;
+  color: var(--text-sec);
+  line-height: 1.65;
+  font-weight: 300;
+  margin: 0 0 18px;
+  max-width: 460px;
+}
+
+.featureRowLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 12px;
+}
+
+.featureBullets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.featureBullets li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14.5px;
+  color: var(--text-sec);
+}
+
+.featureBulletCheck {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #22c55e;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.featureRowMock {
+  position: relative;
+}
+
+/* ─── FEATURE MOCKUP: RECEIPT ─────────────── */
+.mockReceiptLayout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 14px;
+}
+
+.mockReceiptImage {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  position: relative;
+  overflow: hidden;
+  min-height: 160px;
+}
+
+.mockReceiptLine {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
+}
+
+.mockScanLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(247, 144, 30, 0.8), transparent);
+  box-shadow: 0 0 12px rgba(247, 144, 30, 0.6);
+  animation: scanPulse 2.6s ease-in-out infinite;
+}
+
+@keyframes scanPulse {
+  0%, 100% { top: 18%; opacity: 0.6; }
+  50% { top: 82%; opacity: 1; }
+}
+
+.mockFields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mockField {
+  display: grid;
+  grid-template-columns: 78px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.mockFieldLabel {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mockFieldValue {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.mockFieldValueOrange {
+  color: var(--orange);
+  font-weight: 600;
+}
+
+.mockFieldSmall {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.mockFieldTag {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--orange);
+  background: var(--orange-dim);
+  border: 1px solid rgba(247, 144, 30, 0.25);
+  border-radius: 100px;
+  padding: 2px 7px;
+  letter-spacing: 0.04em;
+}
+
+/* ─── FEATURE MOCKUP: INVOICE ─────────────── */
+.mockInvoice {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mockInvoiceHead {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.mockInvoiceMeta {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+}
+
+.mockInvoiceMeta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mockLineItems {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mockLineItem {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-sec);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 7px 11px;
+}
+
+.mockLineItem > span:last-child {
+  font-family: "Syne", sans-serif;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mockTotals {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 2px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.mockTotals > div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-sec);
+}
+
+.mockTotalsGrand {
+  font-family: "Syne", sans-serif;
+  font-size: 14px !important;
+  font-weight: 700;
+  color: var(--text) !important;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.mockTotalsGrand span:last-child {
+  color: var(--orange);
+}
+
+/* ─── FEATURE MOCKUP: E-RECHNUNG ───────────── */
+.mockERList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mockERRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.mockERCheck {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #22c55e;
+  font-size: 12px;
+}
+
+.mockERValidator {
+  margin-top: 10px;
+  background: var(--orange-dim);
+  border: 1px solid rgba(247, 144, 30, 0.25);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mockERValidatorTitle {
+  font-family: "Syne", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--orange);
+}
+
+.mockERValidatorResult {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #22c55e;
+}
+
+/* ─── FEATURE MOCKUP: QUOTE ───────────────── */
+.mockQuoteLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mockQuoteRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mockQuoteItems {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.mockQuoteItem {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.mockQuoteItemName {
+  font-size: 12.5px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.mockQuoteItemMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.mockQuoteTotal {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  font-family: "Syne", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* ─── FEATURE MOCKUP: TIME ────────────────── */
+.mockTimeGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  align-items: end;
+}
+
+.mockTimeDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 96px;
+  justify-content: flex-end;
+}
+
+.mockTimeDayLabel {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mockTimeBar {
+  width: 100%;
+  max-width: 28px;
+  background: linear-gradient(180deg, var(--orange), rgba(247, 144, 30, 0.3));
+  border-radius: 4px 4px 0 0;
+  min-height: 12px;
+}
+
+.mockTimeDayHours {
+  font-family: "Syne", sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mockTimeRows {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.mockTimeRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-sec);
+}
+
+.mockTimeDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─── FEATURE MOCKUP: DATEV EXPORT ──────────── */
+.mockExportSummary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.mockExportFiles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.mockExportFile {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.mockExportCta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--orange);
+  color: #fff;
+  font-family: "DM Sans", sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 11px 14px;
+  border-radius: 10px;
+  margin-top: 6px;
+  letter-spacing: 0.01em;
+}
+
+.mockExportCtaArrow {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* ─── PRICING TIERS (3-col) ─────────────────── */
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 1080px;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+.tierCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+
+.tierCard:hover {
+  border-color: rgba(247, 144, 30, 0.35);
+  transform: translateY(-3px);
+}
+
+.tierCardFeatured {
+  background: linear-gradient(180deg, rgba(247, 144, 30, 0.1) 0%, var(--surface) 40%);
+  border: 1px solid rgba(247, 144, 30, 0.45);
+  box-shadow: 0 0 60px rgba(247, 144, 30, 0.12), 0 0 120px rgba(247, 144, 30, 0.05);
+}
+
+.tierCardFeatured:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 80px rgba(247, 144, 30, 0.18);
+}
+
+.tierBadge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--orange);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.tierName {
+  font-family: "Syne", sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.tierTagline {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 4px 0 22px;
+}
+
+.tierPriceRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin-bottom: 22px;
+}
+
+.tierCurrency {
+  font-family: "Syne", sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+
+.tierPrice {
+  font-family: "Syne", sans-serif;
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.tierCardFeatured .tierPrice {
+  color: var(--orange);
+}
+
+.tierPer {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.tierFeatures {
+  list-style: none;
+  margin: 0 0 28px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.tierFeatures li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-sec);
+  line-height: 1.4;
+}
+
+.tierCheck {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #22c55e;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.tierCta,
+.tierCtaFeatured {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-family: "DM Sans", sans-serif;
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  margin-top: auto;
+}
+
+.tierCta {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.tierCta:hover {
+  border-color: rgba(247, 144, 30, 0.45);
+  color: var(--orange);
+}
+
+.tierCtaFeatured {
+  background: var(--orange);
+  color: #fff;
+  border: 1px solid var(--orange);
+}
+
+.tierCtaFeatured:hover {
+  background: #e8820f;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(247, 144, 30, 0.35);
+}
+
+.pricingFooterNote {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 36px auto 0;
+  max-width: 560px;
+}
+
+/* ─── FOOTER LOGO WORD ─────────────────────── */
+.footerLogoWord {
+  font-family: "Syne", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.footerLogoWord span {
+  color: var(--orange);
+}
+
+.footerLogo img {
+  height: 40px;
+  width: auto;
+  opacity: 1;
+}
+
 /* ─── ANIMATIONS ──────────────────────────────── */
 @keyframes fadeUp {
   from {
@@ -1007,6 +1797,41 @@
 }
 
 /* ─── RESPONSIVE ──────────────────────────────── */
+@media (max-width: 1100px) {
+  .inlineLoginInput {
+    width: 120px;
+  }
+  .navLinks {
+    gap: 18px;
+  }
+}
+
+@media (max-width: 960px) {
+  .inlineLogin {
+    display: none;
+  }
+  .navLinks {
+    gap: 20px;
+  }
+  .featureRow,
+  .featureRowReverse {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .featureRow .featureRowMock,
+  .featureRowReverse .featureRowMock {
+    order: 2;
+  }
+  .featureRow .featureRowText,
+  .featureRowReverse .featureRowText {
+    order: 1;
+  }
+  .pricingGrid {
+    grid-template-columns: 1fr;
+    max-width: 520px;
+  }
+}
+
 @media (max-width: 900px) {
   .heroInner {
     grid-template-columns: 1fr;
@@ -1015,23 +1840,42 @@
   .dashboardMock {
     order: -1;
   }
-  .featuresGrid {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 
 @media (max-width: 600px) {
+  .navInner {
+    min-height: 80px;
+    padding: 0 20px;
+    gap: 16px;
+  }
+  .navLogoIcon {
+    height: 48px;
+    width: 48px;
+  }
+  .navLogoWord {
+    font-size: 17px;
+  }
   .navLinks {
     display: none;
   }
-  .featuresGrid {
-    grid-template-columns: 1fr;
-  }
-  .testimonialsGrid {
-    grid-template-columns: 1fr;
+  .navCta {
+    padding: 8px 14px;
+    font-size: 13px;
   }
   .pricingCard {
     padding: 36px 24px;
+  }
+  .tierCard {
+    padding: 28px 22px;
+  }
+  .tierPrice {
+    font-size: 52px;
+  }
+  .mockReceiptLayout {
+    grid-template-columns: 1fr;
+  }
+  .mockInvoiceHead {
+    grid-template-columns: 1fr;
   }
   .footerInner {
     flex-direction: column;

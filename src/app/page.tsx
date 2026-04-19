@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import styles from "./landing.module.css";
+import LandingHeaderLogin from "./LandingHeaderLogin";
 
 export const metadata = {
   title: "Orange Octo — Buchhaltung, die sich selbst erledigt",
@@ -26,8 +27,18 @@ export default async function LandingPage() {
 
       <nav className={styles.nav}>
         <div className={styles.navInner}>
-          <Link href="/" className={styles.navLogo}>
-            <Image src="/brand/octo-logo-full-white.png" alt="Orange Octo" width={140} height={32} priority />
+          <Link href="/" className={styles.navLogo} aria-label="Orange Octo Startseite">
+            <Image
+              src="/brand/octo-icon-orange.png"
+              alt="Orange Octo"
+              width={72}
+              height={72}
+              priority
+              className={styles.navLogoIcon}
+            />
+            <span className={styles.navLogoWord}>
+              Orange<span>Octo</span>
+            </span>
           </Link>
           <ul className={styles.navLinks}>
             <li>
@@ -36,13 +47,13 @@ export default async function LandingPage() {
             <li>
               <a href="#preise">Preise</a>
             </li>
-            <li>
-              <Link href="/login">Login</Link>
-            </li>
           </ul>
-          <Link href="/register" className={styles.navCta}>
-            Kostenlos starten
-          </Link>
+          <div className={styles.navRight}>
+            <LandingHeaderLogin />
+            <Link href="/register" className={styles.navCta}>
+              Kostenlos starten
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -189,19 +200,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <div className={styles.trustBar}>
-        <div className={styles.trustInner}>
-          <span className={styles.trustLabel}>Bereits vertraut von</span>
-          <div className={styles.trustLogos}>
-            <span className={styles.trustLogoPill}>VR The Fans</span>
-            <span className={styles.trustLogoPill}>Lola Agency</span>
-            <span className={styles.trustLogoPill}>55 Films</span>
-            <span className={styles.trustLogoPill}>Mustermann GmbH</span>
-            <span className={styles.trustLogoPill}>+196 weitere</span>
-          </div>
-        </div>
-      </div>
-
       <section className={styles.features} id="features">
         <div className={styles.container}>
           <div className={styles.sectionHeader}>
@@ -216,161 +214,135 @@ export default async function LandingPage() {
             </p>
           </div>
 
-          <div className={styles.featuresGrid}>
-            <FeatureCard
-              title="KI-gestützte Belegerfassung"
-              body="Foto hochladen — fertig. Unsere KI liest Betrag, Datum, Lieferant und Kategorie automatisch aus."
-              icon={
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  <path d="M9 9h6M9 13h4" strokeLinecap="round" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              title="Automatische Rechnungsverarbeitung"
-              body="Eingehende Rechnungen werden automatisch verbucht, auf Pflichtangaben geprüft und archiviert."
-              icon={
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              title="Designte Angebote in Sekunden"
-              body="Professionelle Angebote mit deinem CI — automatisch als PDF, direkt per E-Mail versendbar."
-              icon={
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <path d="M3 9h18M9 21V9" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              title="EU-konforme E-Rechnung"
-              body="XRechnung und ZUGFeRD ready. Pflichtformat ab 2025 für B2B in Deutschland — automatisch erfüllt."
-              icon={
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  <polyline points="9 12 11 14 15 10" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              title="Übersichtliche Zeiterfassung"
-              body="Zeiten erfassen, Projekte zuordnen, direkt in Rechnungen umwandeln. Alles in einem Workflow."
-              icon={
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              title="DATEV-Export"
-              body="Übergabe an den Steuerberater mit einem Klick. DATEV-kompatibles Format, vollständig und geprüft."
-              icon={
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <ellipse cx="12" cy="5" rx="9" ry="3" />
-                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-                </svg>
-              }
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.social} id="kunden">
-        <div className={styles.container}>
-          <div className={styles.socialHeader}>
-            <span className={styles.headlineNumber}>200+</span>
-            <span className={styles.headlineText}>Unternehmen nutzen Orange Octo täglich</span>
-          </div>
-
-          <div className={styles.testimonialsGrid}>
-            <div className={styles.testimonialCard}>
-              <div className={styles.stars}>★★★★★</div>
-              <p className={styles.testimonialText}>
-                Endlich eine Buchhaltungssoftware, die wirklich einfach ist. Die KI-Belegerfassung spart uns locker 3
-                Stunden pro Woche. Unsere Steuerberaterin ist begeistert.
-              </p>
-              <div className={styles.testimonialAuthor}>
-                <div className={styles.authorAvatar}>MK</div>
-                <div>
-                  <div className={styles.authorName}>Maria K.</div>
-                  <div className={styles.authorRole}>
-                    Geschäftsführerin · Agentur für digitale Kommunikation
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.testimonialCard}>
-              <div className={styles.stars}>★★★★★</div>
-              <p className={styles.testimonialText}>
-                Die E-Rechnungs-Funktion hat uns genau dann gerettet, als wir sie brauchten. Setup in 10 Minuten,
-                seitdem läuft alles automatisch. Absolut empfehlenswert.
-              </p>
-              <div className={styles.testimonialAuthor}>
-                <div className={styles.authorAvatar}>TF</div>
-                <div>
-                  <div className={styles.authorName}>Thomas F.</div>
-                  <div className={styles.authorRole}>Freelance Developer · IT-Consulting</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <FeatureRow
+            reverse={false}
+            label="KI-Belegerfassung"
+            title="Foto hochladen — fertig."
+            body="Unsere KI liest Betrag, Datum, Lieferant und Kategorie automatisch aus. Kein Abtippen, keine Fehler. Direkt verbucht und archiviert."
+            bullets={["OCR + KI in einem Schritt", "Auto-Verbuchung auf SKR03/SKR04", "10-jähriges GoBD-Archiv"]}
+            mock={<ReceiptMock />}
+          />
+          <FeatureRow
+            reverse={true}
+            label="Rechnungen"
+            title="Professionelle Rechnungen in Sekunden."
+            body="Rechnung aus Vorlage, mit CI, automatischer Nummernkreis und direkt per E-Mail versandt. Zahlungseingang automatisch zugeordnet."
+            bullets={["Mehrere Steuersätze (0/7/19/20%)", "Versand per E-Mail mit PDF-Anhang", "Auto-Reminder bei Überfälligkeit"]}
+            mock={<InvoiceMock />}
+          />
+          <FeatureRow
+            reverse={false}
+            label="E-Rechnung"
+            title="XRechnung & ZUGFeRD — automatisch."
+            body="Pflichtformat ab 2025 für B2B in Deutschland. Orange Octo erzeugt EN 16931-konforme XML im Hintergrund — kein Setup nötig."
+            bullets={["XRechnung 3.0 validiert", "ZUGFeRD 2.3 Hybrid-PDF", "Leitweg-ID-Verwaltung"]}
+            mock={<ERechnungMock />}
+          />
+          <FeatureRow
+            reverse={true}
+            label="Angebote"
+            title="Designte Angebote, die gewinnen."
+            body="Mehrstufige Angebote mit Positionen, Rabatten, Gültigkeit und Online-Annahme. Ein Klick macht daraus eine Rechnung."
+            bullets={["Live-Vorschau beim Bearbeiten", "Online-Annahme mit Signatur", "1-Klick-Konvertierung zur Rechnung"]}
+            mock={<QuoteMock />}
+          />
+          <FeatureRow
+            reverse={false}
+            label="Zeiterfassung"
+            title="Stunden erfassen, direkt abrechnen."
+            body="Zeiten pro Projekt und Kunde erfassen — Stundensatz automatisch angewandt. Mit einem Klick in eine Rechnung übernehmen."
+            bullets={["Start/Stop-Timer oder manuell", "Projekt- und Kundenbezug", "Abrechnung per Export oder Rechnung"]}
+            mock={<TimeMock />}
+          />
+          <FeatureRow
+            reverse={true}
+            label="DATEV-Export"
+            title="Übergabe an den Steuerberater — ein Klick."
+            body="DATEV-kompatibler CSV-Export inkl. Belege und Buchungen. Zeitraum wählen, Datei herunterladen, fertig."
+            bullets={["DATEV Unternehmen online ready", "Beleg-PDFs im selben Paket", "SKR03 und SKR04 unterstützt"]}
+            mock={<DatevMock />}
+          />
         </div>
       </section>
 
       <section className={styles.pricing} id="preise">
         <div className={styles.container}>
-          <div className={styles.pricingCard}>
-            <div className={styles.pricingBadge}>Kostenlos starten</div>
-            <div className={styles.pricingHeadline}>
-              30 Tage kostenlos testen.
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionLabel}>Preise</div>
+            <h2>
+              Einfache Preise,
               <br />
-              Keine Kreditkarte.
-            </div>
-            <p className={styles.pricingSub}>
-              Voller Zugriff auf alle Features. Keine Einschränkungen. Nach 30 Tagen einfach weitermachen oder kündigen.
+              keine versteckten Kosten.
+            </h2>
+            <p className={styles.sectionSub}>
+              30 Tage kostenlos testen. Danach einer dieser Tarife — monatlich kündbar, keine Einrichtungsgebühr.
             </p>
-
-            <div className={styles.pricingPerks}>
-              <div className={styles.perk}>
-                <span className={styles.perkCheck}>✓</span>
-                Alle Features freigeschaltet
-              </div>
-              <div className={styles.perk}>
-                <span className={styles.perkCheck}>✓</span>
-                Unbegrenzte Belege & Rechnungen im Trial
-              </div>
-              <div className={styles.perk}>
-                <span className={styles.perkCheck}>✓</span>
-                DATEV-Export & E-Rechnung inklusive
-              </div>
-              <div className={styles.perk}>
-                <span className={styles.perkCheck}>✓</span>
-                Keine Kreditkarte, keine Fangfrage
-              </div>
-            </div>
-
-            <Link href="/register" className={styles.pricingCta}>
-              Jetzt kostenlos starten →
-            </Link>
-            <p className={styles.pricingNote}>Danach ab € 29/Monat · Monatlich kündbar</p>
           </div>
+
+          <div className={styles.pricingGrid}>
+            <PricingTier
+              name="Starter"
+              price="9"
+              tagline="Einzelunternehmer & Freelancer"
+              features={[
+                "1 Nutzer",
+                "Bis 50 Rechnungen / Monat",
+                "100 Belege / Monat mit KI",
+                "PDF-Rechnungen & Angebote",
+                "Zeiterfassung",
+                "E-Mail-Support",
+              ]}
+              cta="30 Tage gratis starten"
+              ctaHref="/register?plan=starter"
+            />
+            <PricingTier
+              featured
+              name="Business"
+              price="29"
+              tagline="Kleine GmbHs & Agenturen"
+              features={[
+                "Bis 3 Nutzer",
+                "Unbegrenzte Rechnungen",
+                "500 Belege / Monat mit KI",
+                "E-Rechnung (XRechnung + ZUGFeRD)",
+                "DATEV-Export",
+                "Bank-Import & Abgleich",
+                "Priority-E-Mail-Support",
+              ]}
+              cta="30 Tage gratis starten"
+              ctaHref="/register?plan=business"
+            />
+            <PricingTier
+              name="Pro"
+              price="79"
+              tagline="Wachsende Teams & Multi-Firma"
+              features={[
+                "Bis 10 Nutzer",
+                "Unbegrenzte Belege & Rechnungen",
+                "Multi-Firma (mehrere Mandanten)",
+                "API-Zugriff",
+                "Custom Branding",
+                "Telefon-Support",
+                "Dedicated Onboarding",
+              ]}
+              cta="30 Tage gratis starten"
+              ctaHref="/register?plan=pro"
+            />
+          </div>
+
+          <p className={styles.pricingFooterNote}>
+            Alle Preise netto pro Monat. Jährliche Zahlung spart 2 Monate. Keine Kreditkarte für den Trial.
+          </p>
         </div>
       </section>
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <Link href="/" className={styles.footerLogo}>
-            <Image src="/brand/octo-logo-full-white.png" alt="Orange Octo" width={120} height={26} />
+          <Link href="/" className={styles.footerLogo} aria-label="Orange Octo Startseite">
+            <Image src="/brand/octo-icon-orange.png" alt="Orange Octo" width={40} height={40} />
+            <span className={styles.footerLogoWord}>
+              Orange<span>Octo</span>
+            </span>
           </Link>
 
           <div className={styles.footerLinks}>
@@ -392,12 +364,351 @@ export default async function LandingPage() {
   );
 }
 
-function FeatureCard({ title, body, icon }: { title: string; body: string; icon: React.ReactNode }) {
+function FeatureRow({
+  reverse,
+  label,
+  title,
+  body,
+  bullets,
+  mock,
+}: {
+  reverse: boolean;
+  label: string;
+  title: string;
+  body: string;
+  bullets: string[];
+  mock: React.ReactNode;
+}) {
   return (
-    <div className={styles.featureCard}>
-      <div className={styles.featureIcon}>{icon}</div>
-      <h3>{title}</h3>
-      <p>{body}</p>
+    <div className={`${styles.featureRow} ${reverse ? styles.featureRowReverse : ""}`}>
+      <div className={styles.featureRowText}>
+        <div className={styles.featureRowLabel}>{label}</div>
+        <h3>{title}</h3>
+        <p>{body}</p>
+        <ul className={styles.featureBullets}>
+          {bullets.map((b) => (
+            <li key={b}>
+              <span className={styles.featureBulletCheck}>✓</span>
+              {b}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className={styles.featureRowMock}>{mock}</div>
     </div>
+  );
+}
+
+function PricingTier({
+  name,
+  price,
+  tagline,
+  features,
+  cta,
+  ctaHref,
+  featured,
+}: {
+  name: string;
+  price: string;
+  tagline: string;
+  features: string[];
+  cta: string;
+  ctaHref: string;
+  featured?: boolean;
+}) {
+  return (
+    <div className={`${styles.tierCard} ${featured ? styles.tierCardFeatured : ""}`}>
+      {featured && <div className={styles.tierBadge}>Beliebteste Wahl</div>}
+      <div className={styles.tierName}>{name}</div>
+      <div className={styles.tierTagline}>{tagline}</div>
+      <div className={styles.tierPriceRow}>
+        <span className={styles.tierCurrency}>€</span>
+        <span className={styles.tierPrice}>{price}</span>
+        <span className={styles.tierPer}>/ Monat</span>
+      </div>
+      <ul className={styles.tierFeatures}>
+        {features.map((f) => (
+          <li key={f}>
+            <span className={styles.tierCheck}>✓</span>
+            {f}
+          </li>
+        ))}
+      </ul>
+      <Link href={ctaHref} className={featured ? styles.tierCtaFeatured : styles.tierCta}>
+        {cta}
+      </Link>
+    </div>
+  );
+}
+
+function MockFrame({ url, children }: { url: string; children: React.ReactNode }) {
+  return (
+    <div className={styles.dashCard}>
+      <div className={styles.dashTopbar}>
+        <span className={`${styles.dot} ${styles.dotR}`} />
+        <span className={`${styles.dot} ${styles.dotY}`} />
+        <span className={`${styles.dot} ${styles.dotG}`} />
+        <div className={styles.dashUrl}>{url}</div>
+      </div>
+      <div className={styles.dashBody}>{children}</div>
+    </div>
+  );
+}
+
+function ReceiptMock() {
+  return (
+    <MockFrame url="app.orangeocto.de/belege/neu">
+      <div className={styles.dashHeaderRow}>
+        <span className={styles.dashTitle}>Beleg-Erfassung</span>
+        <span className={styles.dashBadgeOrange}>KI aktiv</span>
+      </div>
+      <div className={styles.mockReceiptLayout}>
+        <div className={styles.mockReceiptImage}>
+          <div className={styles.mockReceiptLine} style={{ width: "60%" }} />
+          <div className={styles.mockReceiptLine} style={{ width: "90%" }} />
+          <div className={styles.mockReceiptLine} style={{ width: "40%" }} />
+          <div className={styles.mockReceiptLine} style={{ width: "80%" }} />
+          <div className={styles.mockReceiptLine} style={{ width: "50%" }} />
+          <div className={styles.mockScanLine} />
+        </div>
+        <div className={styles.mockFields}>
+          <div className={styles.mockField}>
+            <span className={styles.mockFieldLabel}>Lieferant</span>
+            <span className={styles.mockFieldValue}>OBI Markt Berlin</span>
+            <span className={styles.mockFieldTag}>KI</span>
+          </div>
+          <div className={styles.mockField}>
+            <span className={styles.mockFieldLabel}>Datum</span>
+            <span className={styles.mockFieldValue}>12.04.2026</span>
+            <span className={styles.mockFieldTag}>KI</span>
+          </div>
+          <div className={styles.mockField}>
+            <span className={styles.mockFieldLabel}>Betrag</span>
+            <span className={`${styles.mockFieldValue} ${styles.mockFieldValueOrange}`}>€ 124,80</span>
+            <span className={styles.mockFieldTag}>KI</span>
+          </div>
+          <div className={styles.mockField}>
+            <span className={styles.mockFieldLabel}>Kategorie</span>
+            <span className={styles.mockFieldValue}>Bürobedarf</span>
+            <span className={styles.mockFieldTag}>KI</span>
+          </div>
+        </div>
+      </div>
+    </MockFrame>
+  );
+}
+
+function InvoiceMock() {
+  return (
+    <MockFrame url="app.orangeocto.de/rechnungen/R-2026-041">
+      <div className={styles.dashHeaderRow}>
+        <span className={styles.dashTitle}>Rechnung R-2026-041</span>
+        <span className={`${styles.rowStatus} ${styles.statusPaid}`}>Versendet</span>
+      </div>
+      <div className={styles.mockInvoice}>
+        <div className={styles.mockInvoiceHead}>
+          <div>
+            <div className={styles.mockFieldLabel}>An</div>
+            <div className={styles.mockFieldValue}>VR The Fans GmbH</div>
+            <div className={styles.mockFieldSmall}>Beethovenstr. 12 · 10115 Berlin</div>
+          </div>
+          <div className={styles.mockInvoiceMeta}>
+            <div>
+              <span className={styles.mockFieldLabel}>Rechnungsdatum</span>
+              <span className={styles.mockFieldValue}>15.04.2026</span>
+            </div>
+            <div>
+              <span className={styles.mockFieldLabel}>Fällig</span>
+              <span className={styles.mockFieldValue}>29.04.2026</span>
+            </div>
+          </div>
+        </div>
+        <div className={styles.mockLineItems}>
+          <div className={styles.mockLineItem}>
+            <span>Konzeption &amp; Design</span>
+            <span>1 × € 2.400</span>
+            <span>€ 2.400</span>
+          </div>
+          <div className={styles.mockLineItem}>
+            <span>Umsetzung Landingpage</span>
+            <span>12h × € 120</span>
+            <span>€ 1.440</span>
+          </div>
+          <div className={styles.mockLineItem}>
+            <span>Support &amp; Revisionen</span>
+            <span>3h × € 120</span>
+            <span>€ 360</span>
+          </div>
+        </div>
+        <div className={styles.mockTotals}>
+          <div>
+            <span>Netto</span>
+            <span>€ 4.200,00</span>
+          </div>
+          <div>
+            <span>USt 19%</span>
+            <span>€ 798,00</span>
+          </div>
+          <div className={styles.mockTotalsGrand}>
+            <span>Gesamt</span>
+            <span>€ 4.998,00</span>
+          </div>
+        </div>
+      </div>
+    </MockFrame>
+  );
+}
+
+function ERechnungMock() {
+  return (
+    <MockFrame url="app.orangeocto.de/rechnungen/R-2026-041/e-rechnung">
+      <div className={styles.dashHeaderRow}>
+        <span className={styles.dashTitle}>E-Rechnung</span>
+        <span className={styles.dashBadgeOrange}>EN 16931 ✓</span>
+      </div>
+      <div className={styles.mockERList}>
+        <div className={styles.mockERRow}>
+          <span className={styles.mockERCheck}>✓</span>
+          <span>XRechnung 3.0 XML</span>
+          <span className={styles.mockFieldSmall}>12 KB</span>
+        </div>
+        <div className={styles.mockERRow}>
+          <span className={styles.mockERCheck}>✓</span>
+          <span>ZUGFeRD 2.3 (Hybrid-PDF)</span>
+          <span className={styles.mockFieldSmall}>243 KB</span>
+        </div>
+        <div className={styles.mockERRow}>
+          <span className={styles.mockERCheck}>✓</span>
+          <span>Leitweg-ID 991-01234-44</span>
+          <span className={styles.mockFieldSmall}>verifiziert</span>
+        </div>
+        <div className={styles.mockERRow}>
+          <span className={styles.mockERCheck}>✓</span>
+          <span>Mehrwertsteuer 19% + 7% geprüft</span>
+          <span className={styles.mockFieldSmall}>BR-DE-14</span>
+        </div>
+      </div>
+      <div className={styles.mockERValidator}>
+        <span className={styles.mockERValidatorTitle}>Validator</span>
+        <span className={styles.mockERValidatorResult}>0 Fehler · 0 Warnungen</span>
+      </div>
+    </MockFrame>
+  );
+}
+
+function QuoteMock() {
+  return (
+    <MockFrame url="app.orangeocto.de/angebote/A-2026-012">
+      <div className={styles.dashHeaderRow}>
+        <span className={styles.dashTitle}>Angebot A-2026-012</span>
+        <span className={`${styles.rowStatus} ${styles.statusPending}`}>Entwurf</span>
+      </div>
+      <div className={styles.mockQuoteLayout}>
+        <div className={styles.mockQuoteRow}>
+          <span>Kunde</span>
+          <span className={styles.mockFieldValue}>Lola Agency</span>
+        </div>
+        <div className={styles.mockQuoteRow}>
+          <span>Gültig bis</span>
+          <span className={styles.mockFieldValue}>15.05.2026</span>
+        </div>
+        <div className={styles.mockQuoteItems}>
+          <div className={styles.mockQuoteItem}>
+            <div className={styles.mockQuoteItemName}>Branding Workshop</div>
+            <div className={styles.mockQuoteItemMeta}>2 Tage · € 3.200</div>
+          </div>
+          <div className={styles.mockQuoteItem}>
+            <div className={styles.mockQuoteItemName}>Logo-Design · 3 Varianten</div>
+            <div className={styles.mockQuoteItemMeta}>Pauschal · € 2.400</div>
+          </div>
+          <div className={styles.mockQuoteItem}>
+            <div className={styles.mockQuoteItemName}>Styleguide PDF + Figma</div>
+            <div className={styles.mockQuoteItemMeta}>Pauschal · € 2.900</div>
+          </div>
+        </div>
+        <div className={styles.mockQuoteTotal}>
+          <span>Gesamt</span>
+          <span className={styles.mockFieldValueOrange}>€ 8.500</span>
+        </div>
+      </div>
+    </MockFrame>
+  );
+}
+
+function TimeMock() {
+  return (
+    <MockFrame url="app.orangeocto.de/zeiten">
+      <div className={styles.dashHeaderRow}>
+        <span className={styles.dashTitle}>Zeiterfassung · KW 16</span>
+        <span className={styles.dashBadgeOrange}>24,5 h</span>
+      </div>
+      <div className={styles.mockTimeGrid}>
+        {["Mo", "Di", "Mi", "Do", "Fr"].map((d, i) => (
+          <div key={d} className={styles.mockTimeDay}>
+            <div className={styles.mockTimeDayLabel}>{d}</div>
+            <div className={styles.mockTimeBar} style={{ height: `${[65, 90, 40, 75, 55][i]}%` }} />
+            <div className={styles.mockTimeDayHours}>{[5.2, 7.0, 3.2, 6.1, 4.0][i]}h</div>
+          </div>
+        ))}
+      </div>
+      <div className={styles.mockTimeRows}>
+        <div className={styles.mockTimeRow}>
+          <span className={styles.mockTimeDot} style={{ background: "#F7901E" }} />
+          <span>VR The Fans · Redesign</span>
+          <span className={styles.mockFieldValue}>14,5h</span>
+        </div>
+        <div className={styles.mockTimeRow}>
+          <span className={styles.mockTimeDot} style={{ background: "#00d4ff" }} />
+          <span>Lola Agency · Branding</span>
+          <span className={styles.mockFieldValue}>7,0h</span>
+        </div>
+        <div className={styles.mockTimeRow}>
+          <span className={styles.mockTimeDot} style={{ background: "#22c55e" }} />
+          <span>55 Films · Beratung</span>
+          <span className={styles.mockFieldValue}>3,0h</span>
+        </div>
+      </div>
+    </MockFrame>
+  );
+}
+
+function DatevMock() {
+  return (
+    <MockFrame url="app.orangeocto.de/export/datev">
+      <div className={styles.dashHeaderRow}>
+        <span className={styles.dashTitle}>DATEV-Export</span>
+        <span className={styles.dashBadgeOrange}>Q1 2026</span>
+      </div>
+      <div className={styles.mockExportSummary}>
+        <div className={styles.kpiTile}>
+          <div className={styles.kpiLabel}>Buchungen</div>
+          <div className={styles.kpiValue}>312</div>
+        </div>
+        <div className={styles.kpiTile}>
+          <div className={styles.kpiLabel}>Belege</div>
+          <div className={styles.kpiValue}>287</div>
+        </div>
+        <div className={styles.kpiTile}>
+          <div className={styles.kpiLabel}>Zeitraum</div>
+          <div className={styles.kpiValue}>Q1 &apos;26</div>
+        </div>
+      </div>
+      <div className={styles.mockExportFiles}>
+        <div className={styles.mockExportFile}>
+          <span className={styles.mockERCheck}>✓</span>
+          <span>EXTF_Buchungsstapel.csv</span>
+          <span className={styles.mockFieldSmall}>48 KB</span>
+        </div>
+        <div className={styles.mockExportFile}>
+          <span className={styles.mockERCheck}>✓</span>
+          <span>Belege_Q1_2026.zip</span>
+          <span className={styles.mockFieldSmall}>12,4 MB</span>
+        </div>
+      </div>
+      <div className={styles.mockExportCta}>
+        <span>DATEV Unternehmen online</span>
+        <span className={styles.mockExportCtaArrow}>→</span>
+      </div>
+    </MockFrame>
   );
 }
