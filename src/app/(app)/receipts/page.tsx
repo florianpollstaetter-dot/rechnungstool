@@ -46,7 +46,9 @@ export default function ReceiptsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [captureFile, setCaptureFile] = useState<File | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [importingEInvoice, setImportingEInvoice] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const eInvoiceInputRef = useRef<HTMLInputElement>(null);
 
   function handleScanCapture(file: File) {
     setScannerOpen(false);
@@ -171,6 +173,82 @@ export default function ReceiptsPage() {
     }
   }
 
+  async function handleEInvoiceImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setImportingEInvoice(true);
+    try {
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "";
+        const isXml = ext === "xml";
+        const isPdf = ext === "pdf";
+        if (!isXml && !isPdf) {
+          alert(`${file.name}: ${t("receipts.einvoiceUnsupportedType")}`);
+          continue;
+        }
+
+        const body: Record<string, string> = {};
+        if (isXml) {
+          body.xml = await file.text();
+        } else {
+          const buf = new Uint8Array(await file.arrayBuffer());
+          let bin = "";
+          for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+          body.pdfBase64 = btoa(bin);
+        }
+
+        const res = await fetch("/api/einvoice/parse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const parsed = await res.json();
+        if (!res.ok) {
+          alert(`${file.name}: ${parsed.error || t("receipts.einvoiceParseFailed")}`);
+          continue;
+        }
+
+        const { path } = await uploadReceiptFile(file);
+        await createReceipt({
+          file_name: file.name,
+          file_path: path,
+          file_type: ext,
+          file_size: file.size,
+          invoice_date: parsed.issueDate || null,
+          purpose: parsed.invoiceNumber ? `E-Rechnung ${parsed.invoiceNumber}` : null,
+          issuer: parsed.sellerName || null,
+          amount_net: parsed.netTotal ?? null,
+          amount_gross: parsed.grossTotal ?? null,
+          amount_vat: parsed.taxAmount ?? null,
+          vat_rate: parsed.taxRate ?? null,
+          account_debit: null,
+          account_credit: null,
+          account_label: null,
+          currency: "EUR",
+          payment_method: "",
+          analysis_cost: 0,
+          notes: null,
+          analysis_status: "done",
+          analysis_raw: {
+            source: "einvoice",
+            format: parsed.format,
+            invoice_number: parsed.invoiceNumber,
+            due_date: parsed.dueDate,
+            buyer_name: parsed.buyerName,
+            line_items: parsed.lineItems,
+            raw_xml: parsed.rawXml,
+          },
+        });
+      }
+      await loadData();
+    } catch (err) {
+      alert(t("receipts.einvoiceImportFailed") + " " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setImportingEInvoice(false);
+      if (eInvoiceInputRef.current) eInvoiceInputRef.current.value = "";
+    }
+  }
+
   async function analyzeReceipt(id: string) {
     setAnalyzing(id);
     try {
@@ -255,6 +333,21 @@ export default function ReceiptsPage() {
               multiple
               onChange={handleUpload}
               disabled={uploading || isReadOnly}
+              className="hidden"
+            />
+          </label>
+          <label
+            title={isReadOnly ? READ_ONLY_TITLE : t("receipts.einvoiceImportHint")}
+            className={`bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition ${importingEInvoice || isReadOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          >
+            {importingEInvoice ? t("common.uploading") : t("receipts.einvoiceImport")}
+            <input
+              ref={eInvoiceInputRef}
+              type="file"
+              accept=".pdf,.xml"
+              multiple
+              onChange={handleEInvoiceImport}
+              disabled={importingEInvoice || isReadOnly}
               className="hidden"
             />
           </label>

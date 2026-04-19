@@ -107,7 +107,7 @@ export function generateCiiXml(data: EInvoiceData): string {
           <ram:LineOne>${esc(settings.address)}</ram:LineOne>
           <ram:PostcodeCode>${esc(settings.zip)}</ram:PostcodeCode>
           <ram:CityName>${esc(settings.city)}</ram:CityName>
-          <ram:CountryID>AT</ram:CountryID>
+          <ram:CountryID>${esc(settings.country || "AT")}</ram:CountryID>
         </ram:PostalTradeAddress>
         <ram:SpecifiedTaxRegistration>
           <ram:ID schemeID="VA">${esc(settings.uid)}</ram:ID>

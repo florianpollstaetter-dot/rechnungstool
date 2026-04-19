@@ -109,7 +109,7 @@ export default function InvoiceDetailPage() {
           <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title="Als Vorlage speichern">
             {t("invoiceDetail.template")}
           </button>
-          <PDFDownloadButton invoice={invoice} customer={customer} settings={settings} onPreview={setPreviewBlob} />
+          <PDFDownloadButton invoice={invoice} customer={customer} settings={settings} onPreview={setPreviewBlob} onInvoiceUpdated={loadData} />
         </div>
       </div>
 

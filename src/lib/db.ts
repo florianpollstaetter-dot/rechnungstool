@@ -42,6 +42,7 @@ const DEFAULT_SETTINGS: CompanySettings = {
   address: "Gastgebgasse 3/243",
   city: "Wien",
   zip: "1230",
+  country: "AT",
   uid: "ATU82587808",
   iban: "AT53 3506 2000 0020 5658",
   bic: "RVSAAT2S062",

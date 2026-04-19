@@ -57,7 +57,7 @@ ${leitwegId ? `  <cbc:BuyerReference>${esc(leitwegId)}</cbc:BuyerReference>` : `
         <cbc:CityName>${esc(settings.city)}</cbc:CityName>
         <cbc:PostalZone>${esc(settings.zip)}</cbc:PostalZone>
         <cac:Country>
-          <cbc:IdentificationCode>AT</cbc:IdentificationCode>
+          <cbc:IdentificationCode>${esc(settings.country || "AT")}</cbc:IdentificationCode>
         </cac:Country>
       </cac:PostalAddress>
       <cac:PartyTaxScheme>

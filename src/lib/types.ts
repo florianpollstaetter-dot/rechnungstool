@@ -158,6 +158,7 @@ export interface CompanySettings {
   address: string;
   city: string;
   zip: string;
+  country: string;
   uid: string;
   iban: string;
   bic: string;

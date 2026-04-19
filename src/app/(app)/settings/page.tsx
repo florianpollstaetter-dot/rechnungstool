@@ -559,7 +559,7 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("common.address")}</label>
               <input type="text" value={settings.address} onChange={(e) => update("address", e.target.value)} className={inputClass} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("common.zip")}</label>
                 <input type="text" value={settings.zip} onChange={(e) => update("zip", e.target.value)} className={inputClass} />
@@ -567,6 +567,17 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("common.city")}</label>
                 <input type="text" value={settings.city} onChange={(e) => update("city", e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("common.country")}</label>
+                <input
+                  type="text"
+                  value={settings.country}
+                  onChange={(e) => update("country", e.target.value.toUpperCase().slice(0, 2))}
+                  className={inputClass}
+                  maxLength={2}
+                  placeholder="AT"
+                />
               </div>
             </div>
             <div>
