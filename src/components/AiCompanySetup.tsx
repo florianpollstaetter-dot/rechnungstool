@@ -10,6 +10,8 @@
 // 6. Cost display next to heading after AI run
 
 import { useState, useRef } from "react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import { createCompanyRole, createProduct, getCompanyRoles } from "@/lib/db";
 import { UnitType } from "@/lib/types";
 import { useCompany } from "@/lib/company-context";
@@ -258,6 +260,19 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
     setError(null);
 
     try {
+      // SCH-525: make sure the JWT's app_metadata.company_id is current before
+      // we hit the RLS-protected INSERTs. CompanyProvider syncs on mount but
+      // this guards against stale sessions (e.g. tab open across a company
+      // switch) so "Übernehmen" doesn't fail with an RLS violation.
+      try {
+        const supabase = createClient();
+        await supabase.rpc("set_active_company", { p_company_id: company.id });
+        await supabase.auth.refreshSession();
+      } catch {
+        // RPC may not exist in older environments — fall through and let RLS
+        // surface the real error if the session is genuinely bad.
+      }
+
       // 1. Create selected roles first (we need their IDs for product role_id mapping)
       const roleNameToId: Record<string, string> = {};
 
@@ -854,17 +869,34 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
         </div>
       )}
 
-      {/* Success state */}
+      {/* Success state — SCH-525: confirms what was applied and where to edit later */}
       {applied && (
         <div className="mt-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
-          <p className="text-sm text-emerald-400 font-medium">
-            Vorschläge erfolgreich übernommen!
+          <p className="text-sm text-emerald-400 font-semibold flex items-center gap-2">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            AI-Vorschläge übernommen
           </p>
-          <p className="text-xs text-emerald-400/70 mt-1">
-            {selectedRoles.size} Rollen und {selectedProducts.size} Produkte wurden angelegt.
-            {selectedCompanyFields.size > 0 && ` ${selectedCompanyFields.size} Unternehmensdaten-Felder wurden übernommen.`}
-            {" "}Sie finden diese jetzt unter Admin bzw. Produkte.
-          </p>
+          <ul className="text-xs text-emerald-400/80 mt-2 space-y-1">
+            {selectedRoles.size > 0 && (
+              <li>
+                <strong>{selectedRoles.size}</strong> {selectedRoles.size === 1 ? "Rolle" : "Rollen"} angelegt — editierbar unter{" "}
+                <Link href="/admin" className="underline hover:text-emerald-300">Admin → Rollen</Link>
+              </li>
+            )}
+            {selectedProducts.size > 0 && (
+              <li>
+                <strong>{selectedProducts.size}</strong> {selectedProducts.size === 1 ? "Produkt" : "Produkte"} angelegt — editierbar unter{" "}
+                <Link href="/products" className="underline hover:text-emerald-300">Produkte</Link>
+              </li>
+            )}
+            {selectedCompanyFields.size > 0 && (
+              <li>
+                <strong>{selectedCompanyFields.size}</strong> Unternehmensdaten-{selectedCompanyFields.size === 1 ? "Feld" : "Felder"} übernommen — editierbar auf dieser Seite unter <em>Unternehmensdaten</em>
+              </li>
+            )}
+          </ul>
           <button
             type="button"
             onClick={() => {

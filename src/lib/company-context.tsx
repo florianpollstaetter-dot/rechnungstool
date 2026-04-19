@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export interface Company {
@@ -132,6 +132,41 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // SCH-525: decode the current access token's app_metadata.company_id so we can
+  // detect when the JWT claim is out of sync with the client-selected company
+  // (stale session from before SCH-422, or a manual app_metadata change by
+  // register-company that predates the current session).
+  const syncingJwtRef = useRef(false);
+  async function syncJwtCompanyId(
+    supabase: ReturnType<typeof createClient>,
+    targetCompanyId: string,
+  ) {
+    if (syncingJwtRef.current) return;
+    syncingJwtRef.current = true;
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) return;
+      let jwtCompanyId: string | null = null;
+      try {
+        const payload = JSON.parse(
+          atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+        );
+        jwtCompanyId =
+          (payload?.app_metadata?.company_id as string | undefined) ?? null;
+      } catch {
+        return;
+      }
+      if (jwtCompanyId === targetCompanyId) return;
+      await supabase.rpc("set_active_company", { p_company_id: targetCompanyId });
+      await supabase.auth.refreshSession();
+    } catch {
+      // RPC may not exist yet, or user is not a member — silently continue.
+    } finally {
+      syncingJwtRef.current = false;
+    }
+  }
+
   useEffect(() => {
     const supabase = createClient();
 
@@ -172,6 +207,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         // company_members table may not exist yet (pre-migration) — fall through
       }
 
+      let activeCompanyId = companyId;
       if (profile) {
         const name = profile.display_name || profile.email || fallbackName;
         localStorage.setItem("currentUserName", name);
@@ -190,6 +226,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
             const newId = dbCompanies[0].id;
             setCompanyIdState(newId);
             localStorage.setItem("activeCompanyId", newId);
+            activeCompanyId = newId;
           }
         } else {
           // Fallback to legacy company_access JSON array
@@ -206,6 +243,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
             if (!access.includes(companyId)) {
               setCompanyIdState(access[0]);
               localStorage.setItem("activeCompanyId", access[0]);
+              activeCompanyId = access[0];
             }
           }
         }
@@ -220,6 +258,11 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         }
       }
       setRoleLoaded(true);
+
+      // SCH-525: make sure the JWT claim matches the company we just committed
+      // to client state. Without this, RLS INSERT checks (e.g. AiCompanySetup
+      // creating company_roles) fail for users whose sessions predate SCH-422.
+      void syncJwtCompanyId(supabase, activeCompanyId);
     }
 
     loadUserAccess();
