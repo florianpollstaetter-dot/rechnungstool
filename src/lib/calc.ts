@@ -3,6 +3,17 @@ export interface CalcItem {
   unit_price: number;
   discount_percent: number;
   discount_amount: number;
+  tax_rate?: number;
+}
+
+export interface TaxBreakdownEntry {
+  rate: number;
+  taxableAmount: number;
+  taxAmount: number;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 export function calcItemTotal(item: CalcItem): number {
@@ -23,15 +34,40 @@ export function calcTotals(
   overallDiscountAmount: number
 ) {
   const itemSubtotal = items.reduce((sum, item) => sum + calcItemTotal(item), 0);
-  let subtotal = itemSubtotal;
-  if (overallDiscountPercent > 0) {
-    subtotal -= subtotal * (overallDiscountPercent / 100);
+  const discountFactor =
+    itemSubtotal > 0
+      ? Math.max(
+          0,
+          1 -
+            overallDiscountPercent / 100 -
+            (overallDiscountAmount > 0 ? overallDiscountAmount / itemSubtotal : 0),
+        )
+      : 0;
+
+  // Group by effective per-line rate (falling back to header rate).
+  const byRate = new Map<number, number>();
+  for (const item of items) {
+    const rate = item.tax_rate ?? taxRate;
+    const lineNet = calcItemTotal(item) * discountFactor;
+    byRate.set(rate, (byRate.get(rate) ?? 0) + lineNet);
   }
-  if (overallDiscountAmount > 0) {
-    subtotal -= overallDiscountAmount;
-  }
-  subtotal = Math.max(0, subtotal);
-  const taxAmount = subtotal * (taxRate / 100);
-  const total = subtotal + taxAmount;
-  return { subtotal: Math.round(subtotal * 100) / 100, taxAmount: Math.round(taxAmount * 100) / 100, total: Math.round(total * 100) / 100 };
+
+  const breakdown: TaxBreakdownEntry[] = [...byRate.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([rate, taxableAmount]) => ({
+      rate,
+      taxableAmount: round2(taxableAmount),
+      taxAmount: round2(taxableAmount * (rate / 100)),
+    }));
+
+  const subtotal = round2(itemSubtotal * discountFactor);
+  const taxAmount = breakdown.reduce((s, e) => s + e.taxAmount, 0);
+  const total = round2(subtotal + taxAmount);
+
+  return {
+    subtotal,
+    taxAmount: round2(taxAmount),
+    total,
+    taxBreakdown: breakdown,
+  };
 }

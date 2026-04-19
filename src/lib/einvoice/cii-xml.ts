@@ -39,10 +39,32 @@ function typeCode(status: string): string {
   return status === "storniert" ? "381" : "380";
 }
 
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 export function generateCiiXml(data: EInvoiceData): string {
   const { invoice, items, customer, settings } = data;
   const lines = items.length > 0 ? items : invoice.items;
   const currency = "EUR";
+
+  // SCH-524 — group by effective per-line VAT rate.
+  const byRate = new Map<number, { basis: number; tax: number }>();
+  for (const item of lines) {
+    const rate = item.tax_rate ?? invoice.tax_rate;
+    const entry = byRate.get(rate) ?? { basis: 0, tax: 0 };
+    entry.basis += item.total;
+    byRate.set(rate, entry);
+  }
+  for (const [rate, entry] of byRate) {
+    entry.basis = round2(entry.basis);
+    entry.tax = round2(entry.basis * (rate / 100));
+    byRate.set(rate, entry);
+  }
+  const orderedRates = [...byRate.keys()].sort((a, b) => a - b);
+  const totalBasis = round2(orderedRates.reduce((s, r) => s + byRate.get(r)!.basis, 0));
+  const totalTax = round2(orderedRates.reduce((s, r) => s + byRate.get(r)!.tax, 0));
+  const grand = round2(totalBasis + totalTax);
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
@@ -67,8 +89,9 @@ export function generateCiiXml(data: EInvoiceData): string {
   <rsm:SupplyChainTradeTransaction>
 `;
 
-  // Line items
+  // Line items — per-line VAT rate (EN 16931 BG-25 / BG-30).
   lines.forEach((item, idx) => {
+    const lineRate = item.tax_rate ?? invoice.tax_rate;
     const lineNet = item.total;
     xml += `    <ram:IncludedSupplyChainTradeLineItem>
       <ram:AssociatedDocumentLineDocument>
@@ -88,8 +111,8 @@ export function generateCiiXml(data: EInvoiceData): string {
       <ram:SpecifiedLineTradeSettlement>
         <ram:ApplicableTradeTax>
           <ram:TypeCode>VAT</ram:TypeCode>
-          <ram:CategoryCode>S</ram:CategoryCode>
-          <ram:RateApplicablePercent>${fmtAmount(invoice.tax_rate)}</ram:RateApplicablePercent>
+          <ram:CategoryCode>${lineRate === 0 ? "Z" : "S"}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${fmtAmount(lineRate)}</ram:RateApplicablePercent>
         </ram:ApplicableTradeTax>
         <ram:SpecifiedTradeSettlementLineMonetarySummation>
           <ram:LineTotalAmount>${fmtAmount(lineNet)}</ram:LineTotalAmount>
@@ -107,7 +130,7 @@ export function generateCiiXml(data: EInvoiceData): string {
           <ram:LineOne>${esc(settings.address)}</ram:LineOne>
           <ram:PostcodeCode>${esc(settings.zip)}</ram:PostcodeCode>
           <ram:CityName>${esc(settings.city)}</ram:CityName>
-          <ram:CountryID>${esc(settings.country || "AT")}</ram:CountryID>
+          <ram:CountryID>${esc(settings.country)}</ram:CountryID>
         </ram:PostalTradeAddress>
         <ram:SpecifiedTaxRegistration>
           <ram:ID schemeID="VA">${esc(settings.uid)}</ram:ID>
@@ -146,24 +169,32 @@ ${customer.uid_number ? `        <ram:SpecifiedTaxRegistration>
           <ram:BICID>${esc(settings.bic)}</ram:BICID>
         </ram:PayeeSpecifiedCreditorFinancialInstitution>
       </ram:SpecifiedTradeSettlementPaymentMeans>
-      <ram:ApplicableTradeTax>
-        <ram:CalculatedAmount>${fmtAmount(invoice.tax_amount)}</ram:CalculatedAmount>
+`;
+
+  // Tax subtotals grouped per rate (BG-23).
+  for (const rate of orderedRates) {
+    const entry = byRate.get(rate)!;
+    xml += `      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>${fmtAmount(entry.tax)}</ram:CalculatedAmount>
         <ram:TypeCode>VAT</ram:TypeCode>
-        <ram:BasisAmount>${fmtAmount(invoice.subtotal)}</ram:BasisAmount>
-        <ram:CategoryCode>S</ram:CategoryCode>
-        <ram:RateApplicablePercent>${fmtAmount(invoice.tax_rate)}</ram:RateApplicablePercent>
+        <ram:BasisAmount>${fmtAmount(entry.basis)}</ram:BasisAmount>
+        <ram:CategoryCode>${rate === 0 ? "Z" : "S"}</ram:CategoryCode>
+        <ram:RateApplicablePercent>${fmtAmount(rate)}</ram:RateApplicablePercent>
       </ram:ApplicableTradeTax>
-      <ram:SpecifiedTradePaymentTerms>
+`;
+  }
+
+  xml += `      <ram:SpecifiedTradePaymentTerms>
         <ram:DueDateDateTime>
           <udt:DateTimeString format="102">${fmtDate(invoice.due_date)}</udt:DateTimeString>
         </ram:DueDateDateTime>
       </ram:SpecifiedTradePaymentTerms>
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
-        <ram:LineTotalAmount>${fmtAmount(invoice.subtotal)}</ram:LineTotalAmount>
-        <ram:TaxBasisTotalAmount>${fmtAmount(invoice.subtotal)}</ram:TaxBasisTotalAmount>
-        <ram:TaxTotalAmount currencyID="${currency}">${fmtAmount(invoice.tax_amount)}</ram:TaxTotalAmount>
-        <ram:GrandTotalAmount>${fmtAmount(invoice.total)}</ram:GrandTotalAmount>
-        <ram:DuePayableAmount>${fmtAmount(invoice.total)}</ram:DuePayableAmount>
+        <ram:LineTotalAmount>${fmtAmount(totalBasis)}</ram:LineTotalAmount>
+        <ram:TaxBasisTotalAmount>${fmtAmount(totalBasis)}</ram:TaxBasisTotalAmount>
+        <ram:TaxTotalAmount currencyID="${currency}">${fmtAmount(totalTax)}</ram:TaxTotalAmount>
+        <ram:GrandTotalAmount>${fmtAmount(grand)}</ram:GrandTotalAmount>
+        <ram:DuePayableAmount>${fmtAmount(grand)}</ram:DuePayableAmount>
       </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
     </ram:ApplicableHeaderTradeSettlement>
   </rsm:SupplyChainTradeTransaction>

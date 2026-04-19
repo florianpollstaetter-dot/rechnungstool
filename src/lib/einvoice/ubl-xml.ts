@@ -29,12 +29,34 @@ function unitCode(unit: string): string {
   return map[unit] || "C62";
 }
 
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 export function generateUblXml(data: EInvoiceData): string {
   const { invoice, items, customer, settings, leitwegId } = data;
   const lines = items.length > 0 ? items : invoice.items;
   const currency = "EUR";
   const isCredit = invoice.status === "storniert";
   const typeCode = isCredit ? "381" : "380";
+
+  // SCH-524 — group per-line rates (BG-23 TaxSubtotal per rate).
+  const byRate = new Map<number, { basis: number; tax: number }>();
+  for (const item of lines) {
+    const rate = item.tax_rate ?? invoice.tax_rate;
+    const entry = byRate.get(rate) ?? { basis: 0, tax: 0 };
+    entry.basis += item.total;
+    byRate.set(rate, entry);
+  }
+  for (const [rate, entry] of byRate) {
+    entry.basis = round2(entry.basis);
+    entry.tax = round2(entry.basis * (rate / 100));
+    byRate.set(rate, entry);
+  }
+  const orderedRates = [...byRate.keys()].sort((a, b) => a - b);
+  const totalBasis = round2(orderedRates.reduce((s, r) => s + byRate.get(r)!.basis, 0));
+  const totalTax = round2(orderedRates.reduce((s, r) => s + byRate.get(r)!.tax, 0));
+  const grand = round2(totalBasis + totalTax);
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <ubl:Invoice xmlns:ubl="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
@@ -57,7 +79,7 @@ ${leitwegId ? `  <cbc:BuyerReference>${esc(leitwegId)}</cbc:BuyerReference>` : `
         <cbc:CityName>${esc(settings.city)}</cbc:CityName>
         <cbc:PostalZone>${esc(settings.zip)}</cbc:PostalZone>
         <cac:Country>
-          <cbc:IdentificationCode>${esc(settings.country || "AT")}</cbc:IdentificationCode>
+          <cbc:IdentificationCode>${esc(settings.country)}</cbc:IdentificationCode>
         </cac:Country>
       </cac:PostalAddress>
       <cac:PartyTaxScheme>
@@ -114,30 +136,36 @@ ${customer.uid_number ? `      <cac:PartyTaxScheme>
   </cac:PaymentTerms>
 
   <cac:TaxTotal>
-    <cbc:TaxAmount currencyID="${currency}">${fmtAmount(invoice.tax_amount)}</cbc:TaxAmount>
-    <cac:TaxSubtotal>
-      <cbc:TaxableAmount currencyID="${currency}">${fmtAmount(invoice.subtotal)}</cbc:TaxableAmount>
-      <cbc:TaxAmount currencyID="${currency}">${fmtAmount(invoice.tax_amount)}</cbc:TaxAmount>
+    <cbc:TaxAmount currencyID="${currency}">${fmtAmount(totalTax)}</cbc:TaxAmount>
+`;
+  for (const rate of orderedRates) {
+    const entry = byRate.get(rate)!;
+    xml += `    <cac:TaxSubtotal>
+      <cbc:TaxableAmount currencyID="${currency}">${fmtAmount(entry.basis)}</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="${currency}">${fmtAmount(entry.tax)}</cbc:TaxAmount>
       <cac:TaxCategory>
-        <cbc:ID>S</cbc:ID>
-        <cbc:Percent>${fmtAmount(invoice.tax_rate)}</cbc:Percent>
+        <cbc:ID>${rate === 0 ? "Z" : "S"}</cbc:ID>
+        <cbc:Percent>${fmtAmount(rate)}</cbc:Percent>
         <cac:TaxScheme>
           <cbc:ID>VAT</cbc:ID>
         </cac:TaxScheme>
       </cac:TaxCategory>
     </cac:TaxSubtotal>
-  </cac:TaxTotal>
+`;
+  }
+  xml += `  </cac:TaxTotal>
 
   <cac:LegalMonetaryTotal>
-    <cbc:LineExtensionAmount currencyID="${currency}">${fmtAmount(invoice.subtotal)}</cbc:LineExtensionAmount>
-    <cbc:TaxExclusiveAmount currencyID="${currency}">${fmtAmount(invoice.subtotal)}</cbc:TaxExclusiveAmount>
-    <cbc:TaxInclusiveAmount currencyID="${currency}">${fmtAmount(invoice.total)}</cbc:TaxInclusiveAmount>
-    <cbc:PayableAmount currencyID="${currency}">${fmtAmount(invoice.total)}</cbc:PayableAmount>
+    <cbc:LineExtensionAmount currencyID="${currency}">${fmtAmount(totalBasis)}</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="${currency}">${fmtAmount(totalBasis)}</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="${currency}">${fmtAmount(grand)}</cbc:TaxInclusiveAmount>
+    <cbc:PayableAmount currencyID="${currency}">${fmtAmount(grand)}</cbc:PayableAmount>
   </cac:LegalMonetaryTotal>
 
 `;
 
   lines.forEach((item, idx) => {
+    const lineRate = item.tax_rate ?? invoice.tax_rate;
     xml += `  <cac:InvoiceLine>
     <cbc:ID>${idx + 1}</cbc:ID>
     <cbc:InvoicedQuantity unitCode="${unitCode(item.unit)}">${fmtAmount(item.quantity)}</cbc:InvoicedQuantity>
@@ -145,8 +173,8 @@ ${customer.uid_number ? `      <cac:PartyTaxScheme>
     <cac:Item>
       <cbc:Name>${esc(item.description)}</cbc:Name>
       <cac:ClassifiedTaxCategory>
-        <cbc:ID>S</cbc:ID>
-        <cbc:Percent>${fmtAmount(invoice.tax_rate)}</cbc:Percent>
+        <cbc:ID>${lineRate === 0 ? "Z" : "S"}</cbc:ID>
+        <cbc:Percent>${fmtAmount(lineRate)}</cbc:Percent>
         <cac:TaxScheme>
           <cbc:ID>VAT</cbc:ID>
         </cac:TaxScheme>

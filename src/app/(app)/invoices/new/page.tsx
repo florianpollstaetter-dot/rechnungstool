@@ -12,7 +12,7 @@ import { useI18n } from "@/lib/i18n-context";
 type ItemRow = Omit<InvoiceItem, "id">;
 
 function emptyItem(pos: number): ItemRow {
-  return { position: pos, description: "", unit: "Stueck", product_id: null, quantity: 1, unit_price: 0, discount_percent: 0, discount_amount: 0, total: 0 };
+  return { position: pos, description: "", unit: "Stueck", product_id: null, quantity: 1, unit_price: 0, discount_percent: 0, discount_amount: 0, tax_rate: undefined, total: 0 };
 }
 
 export default function NewInvoicePageWrapper() {
@@ -110,6 +110,9 @@ function NewInvoicePage() {
         description: product.name,
         unit: product.unit,
         unit_price: product.unit_price,
+        // Adopt the product's VAT only when it differs from the invoice default,
+        // otherwise keep undefined so the line inherits the header rate.
+        tax_rate: product.tax_rate !== taxRate ? product.tax_rate : undefined,
         total: calcItemTotal({ ...updated[index], unit_price: product.unit_price }),
       };
       setItems(updated);
@@ -126,7 +129,7 @@ function NewInvoicePage() {
     setItems(updated);
   }
 
-  const { subtotal, taxAmount, total } = calcTotals(items, taxRate, overallDiscountPercent, overallDiscountAmount);
+  const { subtotal, taxAmount, total, taxBreakdown } = calcTotals(items, taxRate, overallDiscountPercent, overallDiscountAmount);
   const dueDate = addDays(invoiceDate, paymentTermsDays);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -231,6 +234,7 @@ function NewInvoicePage() {
                   <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">{t("invoiceNew.quantity")}</th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">{t("invoiceNew.unitPrice")}</th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">{t("invoiceNew.discountPercent")}</th>
+                  <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">USt %</th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">{t("invoiceNew.amount")}</th>
                   <th className="w-10"></th>
                 </tr>
@@ -262,6 +266,22 @@ function NewInvoicePage() {
                     <td className="py-2">
                       <input type="number" value={item.discount_percent} onChange={(e) => updateItem(idx, "discount_percent", Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateItem(idx, "discount_percent", v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} max={100} />
                     </td>
+                    <td className="py-2">
+                      <input
+                        type="number"
+                        value={item.tax_rate ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          updateItem(idx, "tax_rate", v === "" ? null : Number(v));
+                        }}
+                        placeholder={String(taxRate)}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners"
+                        step="0.01"
+                        min={0}
+                        max={100}
+                        title={`Leer lassen für Kopf-Satz (${taxRate}%)`}
+                      />
+                    </td>
                     <td className="py-2 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(calcItemTotal(item))}</td>
                     <td className="py-2 text-center">
                       {items.length > 1 && (
@@ -292,10 +312,19 @@ function NewInvoicePage() {
               <span className="text-gray-400">{t("invoiceNew.netTotal")}</span>
               <span className="font-medium">{formatCurrency(subtotal)}</span>
             </div>
-            <div className="flex justify-between w-full sm:w-64">
-              <span className="text-gray-400">{t("invoiceNew.vatAmount", { rate: String(taxRate) })}</span>
-              <span className="font-medium">{formatCurrency(taxAmount)}</span>
-            </div>
+            {taxBreakdown.length <= 1 ? (
+              <div className="flex justify-between w-full sm:w-64">
+                <span className="text-gray-400">{t("invoiceNew.vatAmount", { rate: String(taxBreakdown[0]?.rate ?? taxRate) })}</span>
+                <span className="font-medium">{formatCurrency(taxAmount)}</span>
+              </div>
+            ) : (
+              taxBreakdown.map((entry) => (
+                <div key={entry.rate} className="flex justify-between w-full sm:w-64">
+                  <span className="text-gray-400">USt {entry.rate}% ({formatCurrency(entry.taxableAmount)})</span>
+                  <span className="font-medium">{formatCurrency(entry.taxAmount)}</span>
+                </div>
+              ))
+            )}
             <div className="flex justify-between w-full sm:w-64 text-base font-bold border-t border-[var(--border)] pt-1">
               <span>{t("invoiceNew.grossTotal")}</span>
               <span>{formatCurrency(total)}</span>

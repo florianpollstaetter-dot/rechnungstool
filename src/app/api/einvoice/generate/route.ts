@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { generateCiiXml } from "@/lib/einvoice/cii-xml";
 import { generateUblXml } from "@/lib/einvoice/ubl-xml";
 import { embedZugferdXml } from "@/lib/einvoice/zugferd-embed";
+import { validateEInvoice } from "@/lib/einvoice/validator";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -70,10 +71,23 @@ export async function POST(request: Request) {
     leitwegId: customer.leitweg_id || undefined,
   };
 
+  // SCH-524 — EN 16931 pre-flight rule check. Block on hard errors,
+  // surface warnings to the client.
+  const validation = validateEInvoice(eInvoiceData);
+  if (!validation.ok && !body.skipValidation) {
+    return Response.json(
+      {
+        error: "E-Rechnung ist nicht EN-16931-konform",
+        validation,
+      },
+      { status: 422 },
+    );
+  }
+
   try {
     if (format === "xrechnung") {
       const xml = generateUblXml(eInvoiceData);
-      return Response.json({ xml, format: "xrechnung" });
+      return Response.json({ xml, format: "xrechnung", validation });
     }
 
     // ZUGFeRD: generate CII XML
@@ -84,10 +98,10 @@ export async function POST(request: Request) {
       const pdfBytes = Uint8Array.from(atob(pdfBase64), (c) => c.charCodeAt(0));
       const zugferdPdf = await embedZugferdXml(pdfBytes, xml);
       const resultBase64 = Buffer.from(zugferdPdf).toString("base64");
-      return Response.json({ pdf: resultBase64, xml, format: "zugferd" });
+      return Response.json({ pdf: resultBase64, xml, format: "zugferd", validation });
     }
 
-    return Response.json({ xml, format: "zugferd" });
+    return Response.json({ xml, format: "zugferd", validation });
   } catch (err) {
     console.error("E-Rechnung generation failed:", err);
     return Response.json(

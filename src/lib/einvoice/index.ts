@@ -7,6 +7,8 @@ export {
   receiptsToDatevRows,
   datevRowsToCsv,
 } from "./datev-export";
+export { validateEInvoice } from "./validator";
+export type { ValidationIssue, ValidationResult } from "./validator";
 export type {
   EInvoiceFormat,
   ZugferdProfile,

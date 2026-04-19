@@ -124,6 +124,15 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
     }
   }
 
+  function formatValidationMessage(data: { error?: string; validation?: { errors: { message: string }[] } }): string {
+    if (data.validation?.errors?.length) {
+      const bullets = data.validation.errors.slice(0, 5).map((e) => `• ${e.message}`).join("\n");
+      const more = data.validation.errors.length > 5 ? `\n…und ${data.validation.errors.length - 5} weitere` : "";
+      return `E-Rechnung ist nicht EN-16931-konform:\n${bullets}${more}`;
+    }
+    return data.error || "Generation failed";
+  }
+
   async function runEInvoiceDownload(format: Exclude<EInvoiceFormat, "none">) {
     if (!invoice) return;
     if (format === "xrechnung") {
@@ -133,7 +142,7 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
         body: JSON.stringify({ invoiceId: invoice.id }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Generation failed");
+      if (!res.ok) throw new Error(formatValidationMessage(data));
 
       const blob = new Blob([data.xml], { type: "application/xml" });
       triggerDownload(blob, `XRechnung_${invoice.invoice_number.replace(/\s/g, "_")}.xml`);
@@ -152,7 +161,7 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
         body: JSON.stringify({ invoiceId: invoice.id, pdfBase64 }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Generation failed");
+      if (!res.ok) throw new Error(formatValidationMessage(data));
 
       const zugferdBytes = Uint8Array.from(atob(data.pdf), (c) => c.charCodeAt(0));
       const blob = new Blob([zugferdBytes], { type: "application/pdf" });
@@ -240,7 +249,7 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
           </div>
         )}
       </div>
-      {error && <p className="text-xs text-rose-400 max-w-xs text-right">{error}</p>}
+      {error && <pre className="text-xs text-rose-400 max-w-md text-right whitespace-pre-wrap">{error}</pre>}
     </div>
   );
 }

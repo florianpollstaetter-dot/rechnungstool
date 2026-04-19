@@ -63,6 +63,10 @@ export interface InvoiceItem {
   unit_price: number;
   discount_percent: number;
   discount_amount: number;
+  // SCH-524 — per-line VAT rate. Falls back to invoice header tax_rate when
+  // omitted (legacy single-rate invoices). Required for EN 16931 mixed-rate
+  // invoices.
+  tax_rate?: number;
   total: number;
 }
 
@@ -112,6 +116,7 @@ export interface QuoteItem {
   unit_price: number;
   discount_percent: number;
   discount_amount: number;
+  tax_rate?: number;
   total: number;
   role_id?: string | null;
 }

@@ -359,6 +359,7 @@ export async function createInvoice(
           unit_price: item.unit_price,
           discount_percent: item.discount_percent || 0,
           discount_amount: item.discount_amount || 0,
+          tax_rate: item.tax_rate ?? null,
           total: item.total,
         }))
       );
@@ -395,6 +396,7 @@ export async function updateInvoice(
             unit_price: item.unit_price,
             discount_percent: item.discount_percent || 0,
             discount_amount: item.discount_amount || 0,
+            tax_rate: item.tax_rate ?? null,
             total: item.total,
           }))
         );
@@ -500,6 +502,7 @@ export async function createQuote(
           unit_price: item.unit_price,
           discount_percent: item.discount_percent || 0,
           discount_amount: item.discount_amount || 0,
+          tax_rate: item.tax_rate ?? null,
           total: item.total,
           role_id: item.role_id || null,
         }))
@@ -537,6 +540,7 @@ export async function updateQuote(
             unit_price: item.unit_price,
             discount_percent: item.discount_percent || 0,
             discount_amount: item.discount_amount || 0,
+            tax_rate: item.tax_rate ?? null,
             total: item.total,
             role_id: item.role_id || null,
           }))
@@ -1333,6 +1337,7 @@ function mapInvoiceItem(row: Record<string, unknown>): InvoiceItem {
     unit_price: Number(row.unit_price),
     discount_percent: Number(row.discount_percent || 0),
     discount_amount: Number(row.discount_amount || 0),
+    tax_rate: row.tax_rate === null || row.tax_rate === undefined ? undefined : Number(row.tax_rate),
     total: Number(row.total),
   };
 }
@@ -1379,6 +1384,7 @@ function mapQuoteItem(row: Record<string, unknown>): QuoteItem {
     unit_price: Number(row.unit_price),
     discount_percent: Number(row.discount_percent || 0),
     discount_amount: Number(row.discount_amount || 0),
+    tax_rate: row.tax_rate === null || row.tax_rate === undefined ? undefined : Number(row.tax_rate),
     total: Number(row.total),
     role_id: (row.role_id as string) || null,
   };

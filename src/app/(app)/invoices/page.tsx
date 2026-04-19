@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Invoice, Customer, CompanySettings, InvoiceStatus, Language, Template } from "@/lib/types";
+import { Invoice, Customer, CompanySettings, InvoiceStatus, Language, Template, EInvoiceFormat } from "@/lib/types";
 import { getInvoices, getCustomers, getSettings, updateInvoice, cancelInvoice, deleteInvoice, createInvoice, getTemplates } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
@@ -56,6 +56,8 @@ function InvoicesPage() {
   const [activeFilter, setActiveFilter] = useState(initialFilter);
   const [searchQuery, setSearchQuery] = useState("");
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
+  const [eInvoiceLoading, setEInvoiceLoading] = useState<string | null>(null);
+  const [eInvoiceError, setEInvoiceError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
 
@@ -118,6 +120,82 @@ function InvoicesPage() {
     } finally {
       setPdfLoading(null);
     }
+  }
+
+  async function handleEInvoiceDirect(inv: Invoice) {
+    if (!settings) return;
+    const customer = getCustomer(inv.customer_id);
+    if (!customer) return;
+    setEInvoiceLoading(inv.id);
+    setEInvoiceError(null);
+    try {
+      // Auto-select: XRechnung for DE + Leitweg-ID, else ZUGFeRD. Respect an
+      // already-set format on the invoice.
+      const existing = inv.e_invoice_format;
+      const chosen: Exclude<EInvoiceFormat, "none"> =
+        existing === "xrechnung" || existing === "zugferd"
+          ? existing
+          : customer.country === "DE" && (customer.leitweg_id || "").trim()
+            ? "xrechnung"
+            : "zugferd";
+
+      if (!existing || existing === "none") {
+        await updateInvoice(inv.id, { e_invoice_format: chosen });
+      }
+
+      if (chosen === "xrechnung") {
+        const res = await fetch("/api/einvoice/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invoiceId: inv.id }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(formatValidation(data));
+        const blob = new Blob([data.xml], { type: "application/xml" });
+        downloadBlob(blob, `XRechnung_${inv.invoice_number.replace(/\s/g, "_")}.xml`);
+      } else {
+        const pdfResult = await generatePdfBlob(inv);
+        if (!pdfResult) throw new Error("PDF Erstellung fehlgeschlagen");
+        const buf = await pdfResult.blob.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(buf).reduce((data, byte) => data + String.fromCharCode(byte), ""),
+        );
+        const res = await fetch("/api/einvoice/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invoiceId: inv.id, pdfBase64: base64 }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(formatValidation(data));
+        const bytes = Uint8Array.from(atob(data.pdf), (c) => c.charCodeAt(0));
+        downloadBlob(new Blob([bytes], { type: "application/pdf" }), `ZUGFeRD_${inv.invoice_number.replace(/\s/g, "_")}.pdf`);
+      }
+      await loadData();
+    } catch (err) {
+      setEInvoiceError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEInvoiceLoading(null);
+    }
+  }
+
+  function formatValidation(data: { error?: string; validation?: { errors: { message: string }[] } }): string {
+    if (data.validation?.errors?.length) {
+      const lines = data.validation.errors.slice(0, 3).map((e) => `• ${e.message}`).join("\n");
+      const more = data.validation.errors.length > 3 ? `\n…+${data.validation.errors.length - 3} weitere` : "";
+      return `E-Rechnung nicht EN-16931-konform:\n${lines}${more}`;
+    }
+    return data.error || "Generation fehlgeschlagen";
+  }
+
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   async function handleDirectPreview(inv: Invoice) {
@@ -398,6 +476,24 @@ function InvoicesPage() {
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                         </svg>
                       </button>
+                      <button
+                        onClick={() => handleEInvoiceDirect(inv)}
+                        disabled={eInvoiceLoading === inv.id || isStorniert}
+                        className="text-emerald-500 hover:text-emerald-400 p-1 disabled:opacity-50"
+                        title={inv.e_invoice_format && inv.e_invoice_format !== "none"
+                          ? `E-Rechnung (${inv.e_invoice_format === "zugferd" ? "ZUGFeRD" : "XRechnung"}) herunterladen`
+                          : "E-Rechnung erstellen"}
+                      >
+                        {eInvoiceLoading === inv.id ? (
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" /></svg>
+                        ) : (
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <path d="M9 13h6" /><path d="M9 17h3" />
+                          </svg>
+                        )}
+                      </button>
                       {!isStorniert && (
                         <button onClick={() => handleCancel(inv.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title={t("invoices.cancelInvoice")}>
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -415,6 +511,15 @@ function InvoicesPage() {
       </div>
 
       <PDFPreviewModal blob={previewBlob} onClose={() => setPreviewBlob(null)} />
+
+      {eInvoiceError && (
+        <div className="fixed bottom-6 right-6 max-w-md bg-rose-950 border border-rose-500/40 rounded-lg px-4 py-3 shadow-xl z-50">
+          <div className="flex justify-between items-start gap-3">
+            <pre className="text-xs text-rose-200 whitespace-pre-wrap">{eInvoiceError}</pre>
+            <button onClick={() => setEInvoiceError(null)} className="text-rose-300 hover:text-rose-100">×</button>
+          </div>
+        </div>
+      )}
 
       {/* Payment Modal */}
       {paymentModal && (
