@@ -103,6 +103,30 @@ const tr: Record<string, string> = {
   "greetings.23": "Hiçbir şey seni durduramaz, {name}!",
   "greetings.24": "Bu harika olacak, {name}!",
 
+  // ── Greetings · Challenging (SCH-518) ──
+  "greetingsChallenging.0": "Sonuç verme zamanı, {name}.",
+  "greetingsChallenging.1": "Bugün mazeret yok, {name}.",
+  "greetingsChallenging.2": "Beklentileri aş, {name}.",
+  "greetingsChallenging.3": "Dünden fazlasını ver, {name}.",
+  "greetingsChallenging.4": "Yarım işler sayılmaz, {name}.",
+  "greetingsChallenging.5": "Bugün kanıtla, {name}.",
+  "greetingsChallenging.6": "Rakiplerin uyumuyor, {name}.",
+  "greetingsChallenging.7": "Konfor alanından çık, {name}.",
+  "greetingsChallenging.8": "Ciddileşme zamanı, {name}.",
+  "greetingsChallenging.9": "Mazeret değil, sonuç, {name}.",
+
+  // ── Greetings · Sarcastic (SCH-518) ──
+  "greetingsSarcastic.0": "Vay, uyanmışsın, {name}?",
+  "greetingsSarcastic.1": "Bir muhteşem gün daha, {name}.",
+  "greetingsSarcastic.2": "Faturalar kendi kendine yazılmıyor, {name}.",
+  "greetingsSarcastic.3": "Vergi ödemenin keyfini çıkar, {name}.",
+  "greetingsSarcastic.4": "Muhasebenin parlak dünyasına hoş geldin, {name}.",
+  "greetingsSarcastic.5": "Birinin bu işi yürütmesi lazım, {name}.",
+  "greetingsSarcastic.6": "Merak etme {name}, vergi dairesi sabırlıdır.",
+  "greetingsSarcastic.7": "Bugün ekstra iyimserlikle, {name}.",
+  "greetingsSarcastic.8": "Ne büyük zevk, {name}!",
+  "greetingsSarcastic.9": "Sakın keyfini çıkarma, {name}.",
+
   // ── Dashboard ──
   "dashboard.monthlyRevenue": "Aylık Gelir",
   "dashboard.openInvoices": "Açık Faturalar",
@@ -717,6 +741,12 @@ const tr: Record<string, string> = {
   "settings.themeSand": "Kum",
   "settings.dashboardCards": "Gösterge Paneli Kartları",
   "settings.dashboardCardsHint": "Gösterge panelindeki kartları gösterin veya gizleyin.",
+  "settings.greetingTone": "Karşılama Tonu",
+  "settings.greetingToneHint": "Navigasyondaki karşılamanın tonu. Her gün otomatik değişir.",
+  "settings.greetingToneMotivating": "Motive Edici",
+  "settings.greetingToneChallenging": "Zorlayıcı",
+  "settings.greetingToneSarcastic": "Alaycı",
+  "settings.greetingToneOff": "Kapalı",
   "settings.cardGroupKpi": "Göstergeler",
   "settings.cardGroupAreas": "Alanlar",
   "settings.cardGroupExtras": "Ekstralar",

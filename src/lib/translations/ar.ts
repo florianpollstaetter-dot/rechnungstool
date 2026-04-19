@@ -103,6 +103,30 @@ const ar: Record<string, string> = {
   "greetings.23": "لا شيء يوقفك، {name}!",
   "greetings.24": "سيكون رائعًا، {name}!",
 
+  // ── Greetings · Challenging (SCH-518) ──
+  "greetingsChallenging.0": "حان وقت الإنجاز، {name}.",
+  "greetingsChallenging.1": "لا أعذار اليوم، {name}.",
+  "greetingsChallenging.2": "تجاوز التوقعات، {name}.",
+  "greetingsChallenging.3": "قدم أكثر من الأمس، {name}.",
+  "greetingsChallenging.4": "الحلول الوسط لا تُحسب، {name}.",
+  "greetingsChallenging.5": "أثبت ذلك اليوم، {name}.",
+  "greetingsChallenging.6": "منافسوك لا ينامون، {name}.",
+  "greetingsChallenging.7": "اخرج من منطقة الراحة، {name}.",
+  "greetingsChallenging.8": "حان وقت الجدية، {name}.",
+  "greetingsChallenging.9": "نتائج لا أعذار، {name}.",
+
+  // ── Greetings · Sarcastic (SCH-518) ──
+  "greetingsSarcastic.0": "ها أنت مستيقظ، {name}؟",
+  "greetingsSarcastic.1": "يوم مجيد آخر، {name}.",
+  "greetingsSarcastic.2": "الفواتير لا تكتب نفسها، {name}.",
+  "greetingsSarcastic.3": "استمتع بدفع الضرائب، {name}.",
+  "greetingsSarcastic.4": "أهلاً بك في بريق المحاسبة، {name}.",
+  "greetingsSarcastic.5": "لا بد لأحد أن يدير المكان، {name}.",
+  "greetingsSarcastic.6": "لا تقلق، {name}، مصلحة الضرائب صبورة.",
+  "greetingsSarcastic.7": "بتفاؤل إضافي اليوم، {name}.",
+  "greetingsSarcastic.8": "يا له من متعة، {name}!",
+  "greetingsSarcastic.9": "حاول ألا تستمتع، {name}.",
+
   // ── Dashboard ──
   "dashboard.monthlyRevenue": "الإيرادات الشهرية",
   "dashboard.openInvoices": "الفواتير المفتوحة",
@@ -717,6 +741,12 @@ const ar: Record<string, string> = {
   "settings.themeSand": "رملي",
   "settings.dashboardCards": "بطاقات لوحة المعلومات",
   "settings.dashboardCardsHint": "إظهار أو إخفاء البطاقات على لوحة المعلومات.",
+  "settings.greetingTone": "نبرة التحية",
+  "settings.greetingToneHint": "نبرة التحية في شريط التنقل. تتغير تلقائيًا كل يوم.",
+  "settings.greetingToneMotivating": "تحفيزية",
+  "settings.greetingToneChallenging": "تحدٍ",
+  "settings.greetingToneSarcastic": "ساخرة",
+  "settings.greetingToneOff": "مُعطّلة",
   "settings.cardGroupKpi": "المؤشرات",
   "settings.cardGroupAreas": "الأقسام",
   "settings.cardGroupExtras": "إضافات",

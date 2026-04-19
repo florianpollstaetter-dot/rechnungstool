@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS, SmartInsightsConfig, UserProfile } from "@/lib/types";
+import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS, SmartInsightsConfig, UserProfile, GREETING_TONES, GreetingTone } from "@/lib/types";
 import { getSettings, updateSettings, getSmartInsightsConfig, upsertSmartInsightsConfig, getUserProfile, updateUserProfile } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/ThemeProvider";
@@ -54,7 +54,7 @@ function InfoTooltip({ text }: { text: string }) {
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { userRole } = useCompany();
+  const { userRole, greetingTone, setGreetingTone } = useCompany();
   const { t, locale, setLocale } = useI18n();
   const isAdmin = userRole === "admin";
   const isManager = userRole === "manager";
@@ -183,6 +183,16 @@ export default function SettingsPage() {
     if (!pendingTypeChange) return;
     update("company_type", pendingTypeChange);
     setPendingTypeChange(null);
+  }
+
+  async function handleGreetingToneChange(tone: GreetingTone) {
+    setGreetingTone(tone);
+    if (!userProfile) return;
+    try {
+      await updateUserProfile(userProfile.id, { greeting_tone: tone });
+    } catch {
+      // Tone is already applied client-side via context; surface nothing on save failure.
+    }
   }
 
   async function handleRufnameSave(e: React.FormEvent) {
@@ -432,7 +442,29 @@ export default function SettingsPage() {
         </div>
       </form>
 
-      {/* 3. Passwort */}
+      {/* 3. Begrüßungston (SCH-518) */}
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-1">{t("settings.greetingTone")}</h2>
+        <p className="text-sm text-gray-500 mb-4">{t("settings.greetingToneHint")}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {GREETING_TONES.map((tone) => (
+            <button
+              key={tone}
+              type="button"
+              onClick={() => handleGreetingToneChange(tone)}
+              className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border-2 ${
+                greetingTone === tone
+                  ? "border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--text-primary)]"
+                  : "border-[var(--border)] text-[var(--text-secondary)] hover:border-gray-500 hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {t(`settings.greetingTone${tone.charAt(0).toUpperCase()}${tone.slice(1)}` as TranslationKey)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. Passwort */}
       <form onSubmit={handlePasswordChange} className="mb-6 bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
         <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">{t("settings.changePassword")}</h2>
         <p className="text-sm text-[var(--text-muted)] mb-4">{t("settings.changePasswordHint")}</p>

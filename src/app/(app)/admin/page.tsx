@@ -166,6 +166,7 @@ export default function AdminPage() {
         company_access: form.company_access,
         accompanying_text_de: "",
         accompanying_text_en: "",
+        greeting_tone: "motivating",
       });
 
       setForm({ email: "", password: "", display_name: "", role: "employee", company_access: ["vrthefans"], default_language: "de" });

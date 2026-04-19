@@ -14,7 +14,24 @@ import { PasswordChangeGate } from "@/components/PasswordChangeGate";
 import { ChatWidget } from "@/components/ChatWidget";
 import type { TranslationKey } from "@/lib/translations/de";
 
-const GREETING_COUNT = 25;
+const GREETING_POOL_SIZE: Record<"motivating" | "challenging" | "sarcastic", number> = {
+  motivating: 25,
+  challenging: 10,
+  sarcastic: 10,
+};
+
+const GREETING_KEY_PREFIX: Record<"motivating" | "challenging" | "sarcastic", string> = {
+  motivating: "greetings",
+  challenging: "greetingsChallenging",
+  sarcastic: "greetingsSarcastic",
+};
+
+/** Day index used for daily rotation — stable within a calendar day (local time). */
+function dayOfEpoch(): number {
+  const now = new Date();
+  const utcMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.floor(utcMs / 86_400_000);
+}
 
 const NAV_ITEMS: { href: string; labelKey: TranslationKey; exact?: boolean; section: AppSection }[] = [
   { href: "/dashboard", labelKey: "nav.dashboard", exact: true, section: "dashboard" },
@@ -41,7 +58,7 @@ const NAV_GROUPS: { labelKey: TranslationKey; sections: AppSection[] }[] = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { company, accessibleCompanies, userName, userRole, roleLoaded, isSuperadmin, setCompanyId } = useCompany();
+  const { company, accessibleCompanies, userName, userRole, roleLoaded, isSuperadmin, greetingTone, setCompanyId } = useCompany();
   const { t } = useI18n();
   const permissions = roleLoaded
     ? (ROLE_PERMISSIONS[userRole as UserRole] || ROLE_PERMISSIONS.employee)
@@ -49,8 +66,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = NAV_ITEMS.filter((item) => permissions.includes(item.section));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
-  const greetingIdx = useMemo(() => Math.floor(Math.random() * GREETING_COUNT), []);
-  const greeting = t(`greetings.${greetingIdx}` as TranslationKey, { name: "{name}" });
+  const greeting = useMemo(() => {
+    if (greetingTone === "off") return "";
+    const size = GREETING_POOL_SIZE[greetingTone];
+    const prefix = GREETING_KEY_PREFIX[greetingTone];
+    const idx = dayOfEpoch() % size;
+    return t(`${prefix}.${idx}` as TranslationKey, { name: "{name}" });
+  }, [greetingTone, t]);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -95,7 +117,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 />
               </Link>
               {/* 2. Dynamic greeting */}
-              {userName && (
+              {userName && greeting && (
                 <>
                   <div className="h-6 w-px bg-[var(--border)] shrink-0 hidden sm:block" />
                   <span className="text-[10px] sm:text-xs text-[var(--text-muted)] italic hidden lg:inline whitespace-nowrap">
@@ -190,7 +212,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {mobileOpen && (
           <div className="lg:hidden border-t border-[var(--border)] bg-[var(--surface)] relative z-30">
             <div className="px-4 py-3 space-y-1">
-              {userName && <p className="px-3 py-1 text-xs text-[var(--text-muted)] italic">{greeting.replace("{name}", userName)}</p>}
+              {userName && greeting && <p className="px-3 py-1 text-xs text-[var(--text-muted)] italic">{greeting.replace("{name}", userName)}</p>}
               {/* Dashboard always first */}
               {navItems.filter((item) => item.section === "dashboard").map((item) => (
                 <Link

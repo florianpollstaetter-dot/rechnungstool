@@ -274,6 +274,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, AppSection[]> = {
   employee: ["expenses", "time"],
 };
 
+export type GreetingTone = "motivating" | "challenging" | "sarcastic" | "off";
+
+export const GREETING_TONES: GreetingTone[] = ["motivating", "challenging", "sarcastic", "off"];
+
 export interface UserProfile {
   id: string;
   auth_user_id: string;
@@ -289,6 +293,8 @@ export interface UserProfile {
   // SCH-447 — per-locale overrides for 8 UI languages.
   // Optional on input; mapper returns populated objects from the DB.
   accompanying_text_translations?: TranslationMap;
+  // SCH-518 — navbar greeting tone; "off" hides the greeting.
+  greeting_tone: GreetingTone;
   created_at: string;
 }
 

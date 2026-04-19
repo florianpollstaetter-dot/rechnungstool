@@ -103,6 +103,30 @@ const fr: Record<string, string> = {
   "greetings.23": "Rien ne t'arrête, {name} !",
   "greetings.24": "Ça va être super, {name} !",
 
+  // ── Greetings · Challenging (SCH-518) ──
+  "greetingsChallenging.0": "À toi de livrer, {name}.",
+  "greetingsChallenging.1": "Pas d'excuses aujourd'hui, {name}.",
+  "greetingsChallenging.2": "Dépasse les attentes, {name}.",
+  "greetingsChallenging.3": "Fais mieux qu'hier, {name}.",
+  "greetingsChallenging.4": "Les demi-mesures ne comptent pas, {name}.",
+  "greetingsChallenging.5": "Prouve-le aujourd'hui, {name}.",
+  "greetingsChallenging.6": "Tes concurrents ne dorment pas, {name}.",
+  "greetingsChallenging.7": "Sors de ta zone de confort, {name}.",
+  "greetingsChallenging.8": "Il est temps d'être sérieux, {name}.",
+  "greetingsChallenging.9": "Des résultats, pas des excuses, {name}.",
+
+  // ── Greetings · Sarcastic (SCH-518) ──
+  "greetingsSarcastic.0": "Tiens, déjà debout, {name} ?",
+  "greetingsSarcastic.1": "Encore une journée glorieuse, {name}.",
+  "greetingsSarcastic.2": "Les factures ne s'écrivent pas toutes seules, {name}.",
+  "greetingsSarcastic.3": "Amuse-toi bien à payer tes impôts, {name}.",
+  "greetingsSarcastic.4": "Bienvenue dans le glamour de la comptabilité, {name}.",
+  "greetingsSarcastic.5": "Il faut bien que quelqu'un tienne la boutique, {name}.",
+  "greetingsSarcastic.6": "Pas d'inquiétude, {name}, le fisc est patient.",
+  "greetingsSarcastic.7": "Avec un soupçon d'optimisme aujourd'hui, {name}.",
+  "greetingsSarcastic.8": "Quel plaisir, {name} !",
+  "greetingsSarcastic.9": "Surtout, n'en profite pas, {name}.",
+
   // ── Dashboard ──
   "dashboard.monthlyRevenue": "Chiffre d'affaires mensuel",
   "dashboard.openInvoices": "Factures en attente",
@@ -717,6 +741,12 @@ const fr: Record<string, string> = {
   "settings.themeSand": "Sable",
   "settings.dashboardCards": "Cartes du tableau de bord",
   "settings.dashboardCardsHint": "Afficher ou masquer les cartes du tableau de bord.",
+  "settings.greetingTone": "Ton du message d'accueil",
+  "settings.greetingToneHint": "Ton du message d'accueil dans la navigation. Change chaque jour.",
+  "settings.greetingToneMotivating": "Motivant",
+  "settings.greetingToneChallenging": "Exigeant",
+  "settings.greetingToneSarcastic": "Sarcastique",
+  "settings.greetingToneOff": "Désactivé",
   "settings.cardGroupKpi": "Indicateurs clés",
   "settings.cardGroupAreas": "Domaines",
   "settings.cardGroupExtras": "Extras",

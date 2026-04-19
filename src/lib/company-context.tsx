@@ -61,11 +61,16 @@ export function daysOverdue(c: Company | null | undefined): number {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
+import type { GreetingTone } from "@/lib/types";
+
 interface CompanyContextType {
   company: Company;
   accessibleCompanies: Company[];
   userRole: string;
   userName: string;
+  /** SCH-518 — per-user greeting tone preference; "off" hides the navbar greeting. */
+  greetingTone: GreetingTone;
+  setGreetingTone: (tone: GreetingTone) => void;
   roleLoaded: boolean;
   isSuperadmin: boolean;
   isReadOnly: boolean;
@@ -77,6 +82,8 @@ const CompanyContext = createContext<CompanyContextType>({
   accessibleCompanies: FALLBACK_COMPANIES,
   userRole: "",
   userName: "",
+  greetingTone: "motivating",
+  setGreetingTone: () => {},
   roleLoaded: false,
   isSuperadmin: false,
   isReadOnly: false,
@@ -95,6 +102,20 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [isSuperadmin, setIsSuperadmin] = useState(false);
   const [userName, setUserName] = useState("");
+  const [greetingTone, setGreetingToneState] = useState<GreetingTone>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("greetingTone");
+      if (stored === "motivating" || stored === "challenging" || stored === "sarcastic" || stored === "off") {
+        return stored;
+      }
+    }
+    return "motivating";
+  });
+
+  const setGreetingTone = useCallback((tone: GreetingTone) => {
+    setGreetingToneState(tone);
+    if (typeof window !== "undefined") localStorage.setItem("greetingTone", tone);
+  }, []);
 
   const setCompanyId = useCallback(async (id: string) => {
     setCompanyIdState(id);
@@ -156,6 +177,11 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("currentUserName", name);
         setUserName(name);
         setIsSuperadmin(!!profile.is_superadmin);
+        const tone = profile.greeting_tone;
+        if (tone === "motivating" || tone === "challenging" || tone === "sarcastic" || tone === "off") {
+          setGreetingToneState(tone);
+          localStorage.setItem("greetingTone", tone);
+        }
 
         if (dbCompanies.length > 0) {
           // DB-driven company access
@@ -216,7 +242,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const isReadOnly = computeIsReadOnly(company);
 
   return (
-    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, roleLoaded, isSuperadmin, isReadOnly, setCompanyId }}>
+    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, greetingTone, setGreetingTone, roleLoaded, isSuperadmin, isReadOnly, setCompanyId }}>
       {children}
     </CompanyContext.Provider>
   );

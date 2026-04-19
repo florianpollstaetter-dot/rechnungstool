@@ -103,6 +103,30 @@ const pl: Record<string, string> = {
   "greetings.23": "Nic Cię nie zatrzyma, {name}!",
   "greetings.24": "To będzie super, {name}!",
 
+  // ── Greetings · Challenging (SCH-518) ──
+  "greetingsChallenging.0": "Czas dostarczać, {name}.",
+  "greetingsChallenging.1": "Żadnych wymówek dzisiaj, {name}.",
+  "greetingsChallenging.2": "Przekrocz oczekiwania, {name}.",
+  "greetingsChallenging.3": "Daj więcej niż wczoraj, {name}.",
+  "greetingsChallenging.4": "Półśrodki się nie liczą, {name}.",
+  "greetingsChallenging.5": "Udowodnij to dziś, {name}.",
+  "greetingsChallenging.6": "Konkurencja nie śpi, {name}.",
+  "greetingsChallenging.7": "Wyjdź ze strefy komfortu, {name}.",
+  "greetingsChallenging.8": "Czas na poważnie, {name}.",
+  "greetingsChallenging.9": "Wyniki, nie wymówki, {name}.",
+
+  // ── Greetings · Sarcastic (SCH-518) ──
+  "greetingsSarcastic.0": "O, już nie śpisz, {name}?",
+  "greetingsSarcastic.1": "Kolejny wspaniały dzień, {name}.",
+  "greetingsSarcastic.2": "Faktury same się nie wystawią, {name}.",
+  "greetingsSarcastic.3": "Miłego płacenia podatków, {name}.",
+  "greetingsSarcastic.4": "Witaj w blasku księgowości, {name}.",
+  "greetingsSarcastic.5": "Ktoś musi prowadzić ten interes, {name}.",
+  "greetingsSarcastic.6": "Spokojnie, {name}, urząd skarbowy jest cierpliwy.",
+  "greetingsSarcastic.7": "Dziś z dodatkowym optymizmem, {name}.",
+  "greetingsSarcastic.8": "Co za przyjemność, {name}!",
+  "greetingsSarcastic.9": "Tylko się za bardzo nie ciesz, {name}.",
+
   // ── Dashboard ──
   "dashboard.monthlyRevenue": "Przychód miesięczny",
   "dashboard.openInvoices": "Otwarte faktury",
@@ -717,6 +741,12 @@ const pl: Record<string, string> = {
   "settings.themeSand": "Piaskowy",
   "settings.dashboardCards": "Karty pulpitu",
   "settings.dashboardCardsHint": "Pokaż lub ukryj karty na pulpicie.",
+  "settings.greetingTone": "Ton powitania",
+  "settings.greetingToneHint": "Ton powitania w nawigacji. Zmienia się codziennie.",
+  "settings.greetingToneMotivating": "Motywujący",
+  "settings.greetingToneChallenging": "Wymagający",
+  "settings.greetingToneSarcastic": "Sarkastyczny",
+  "settings.greetingToneOff": "Wyłączone",
   "settings.cardGroupKpi": "Wskaźniki",
   "settings.cardGroupAreas": "Obszary",
   "settings.cardGroupExtras": "Dodatki",

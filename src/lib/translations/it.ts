@@ -103,6 +103,30 @@ const it: Record<string, string> = {
   "greetings.23": "Niente ti ferma, {name}!",
   "greetings.24": "Sarà fantastico, {name}!",
 
+  // ── Greetings · Challenging (SCH-518) ──
+  "greetingsChallenging.0": "È ora di consegnare, {name}.",
+  "greetingsChallenging.1": "Niente scuse oggi, {name}.",
+  "greetingsChallenging.2": "Supera le aspettative, {name}.",
+  "greetingsChallenging.3": "Dai più di ieri, {name}.",
+  "greetingsChallenging.4": "Le mezze misure non contano, {name}.",
+  "greetingsChallenging.5": "Dimostralo oggi, {name}.",
+  "greetingsChallenging.6": "I tuoi concorrenti non dormono, {name}.",
+  "greetingsChallenging.7": "Esci dalla zona di comfort, {name}.",
+  "greetingsChallenging.8": "È ora di fare sul serio, {name}.",
+  "greetingsChallenging.9": "Risultati, non scuse, {name}.",
+
+  // ── Greetings · Sarcastic (SCH-518) ──
+  "greetingsSarcastic.0": "Oh, sei già sveglio, {name}?",
+  "greetingsSarcastic.1": "Un altro giorno glorioso, {name}.",
+  "greetingsSarcastic.2": "Le fatture non si scrivono da sole, {name}.",
+  "greetingsSarcastic.3": "Divertiti a pagare le tasse, {name}.",
+  "greetingsSarcastic.4": "Bentornato nel glamour della contabilità, {name}.",
+  "greetingsSarcastic.5": "Qualcuno deve pur mandare avanti la baracca, {name}.",
+  "greetingsSarcastic.6": "Tranquillo, {name}, il fisco ha pazienza.",
+  "greetingsSarcastic.7": "Con un extra di ottimismo oggi, {name}.",
+  "greetingsSarcastic.8": "Che piacere, {name}!",
+  "greetingsSarcastic.9": "Cerca di non divertirti, {name}.",
+
   // ── Dashboard ──
   "dashboard.monthlyRevenue": "Fatturato mensile",
   "dashboard.openInvoices": "Fatture aperte",
@@ -717,6 +741,12 @@ const it: Record<string, string> = {
   "settings.themeSand": "Sabbia",
   "settings.dashboardCards": "Schede dashboard",
   "settings.dashboardCardsHint": "Mostra o nascondi le schede sulla dashboard.",
+  "settings.greetingTone": "Tono del saluto",
+  "settings.greetingToneHint": "Tono del saluto nella navigazione. Cambia ogni giorno.",
+  "settings.greetingToneMotivating": "Motivante",
+  "settings.greetingToneChallenging": "Impegnativo",
+  "settings.greetingToneSarcastic": "Sarcastico",
+  "settings.greetingToneOff": "Disattivato",
   "settings.cardGroupKpi": "Indicatori",
   "settings.cardGroupAreas": "Aree",
   "settings.cardGroupExtras": "Extra",
