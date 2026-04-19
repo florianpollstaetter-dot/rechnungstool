@@ -10,6 +10,9 @@ export interface Customer {
   email: string;
   phone: string;
   leitweg_id: string;
+  // SCH-526 — sevDesk `Kunden-Nr` preserved when imported. Empty string
+  // for hand-entered rows. Unique within a company when non-empty.
+  external_ref?: string;
   created_at: string;
 }
 
@@ -50,6 +53,8 @@ export interface Product {
   tax_rate: number;
   active: boolean;
   role_id?: string | null;
+  // SCH-526 — sevDesk `Artikelnummer` preserved when imported.
+  external_ref?: string;
   created_at: string;
 }
 

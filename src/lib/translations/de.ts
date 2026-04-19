@@ -1051,6 +1051,29 @@ const de = {
   "design.aiGenerating": "Generiere...",
   "design.aiExamples": "Beispiel-Prompts:",
   "design.openDesign": "Design",
+
+  // ── SCH-526 — sevDesk Import ──
+  "sevdesk.importButton": "Daten aus sevDesk übernehmen",
+  "sevdesk.titleProducts": "Produkte aus sevDesk importieren",
+  "sevdesk.titleCustomers": "Kunden aus sevDesk importieren",
+  "sevdesk.introLine1": "Lade den CSV- oder PDF-Export aus sevDesk hoch.",
+  "sevdesk.introProducts": "Erwartet wird der Artikel-Export (parts.csv bzw. Artikeluebersicht.pdf).",
+  "sevdesk.introCustomers": "Erwartet wird der Kontakte-Export (contacts.csv bzw. Alle Kontakte.pdf).",
+  "sevdesk.csvPreferred": "Hinweis: CSV ist empfohlen. PDF-Exporte enthalten weniger Felder (z.B. keine USt, UID, IBAN).",
+  "sevdesk.dropHere": "Datei auswählen",
+  "sevdesk.supportedFormats": "Unterstützt: .csv, .pdf",
+  "sevdesk.parsing": "Datei wird analysiert…",
+  "sevdesk.importing": "Importiere {count} Einträge…",
+  "sevdesk.doneInserted": "{count} Einträge importiert",
+  "sevdesk.doneSkipped": "{count} bereits vorhandene Einträge übersprungen (gleiche sevDesk-Nr).",
+  "sevdesk.selectAll": "Alle auswählen",
+  "sevdesk.deselectAll": "Auswahl leeren",
+  "sevdesk.selectedCount": "{selected} von {total} ausgewählt",
+  "sevdesk.importBtn": "{count} importieren",
+  "sevdesk.colRef": "sevDesk-Nr",
+  "sevdesk.issuesHeading": "{count} Zeile(n) übersprungen",
+  "sevdesk.issueItem": "Zeile {row}: {message}",
+  "sevdesk.aiCost": "KI-Kosten: {cost} EUR",
 } as const;
 
 export type TranslationKey = keyof typeof de;

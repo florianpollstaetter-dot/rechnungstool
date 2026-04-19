@@ -9,6 +9,7 @@ import {
   deleteCustomer,
 } from "@/lib/db";
 import { useI18n } from "@/lib/i18n-context";
+import SevDeskImportModal from "@/components/SevDeskImportModal";
 
 const emptyCustomer = {
   name: "",
@@ -28,6 +29,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState(emptyCustomer);
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
@@ -175,19 +177,35 @@ export default function CustomersPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("customers.title")}</h1>
-        <button
-          onClick={() => {
-            setForm(emptyCustomer);
-            setEditing(null);
-            setShowForm(true);
-            setShowAllFields(false);
-            setAiResult(null);
-          }}
-          className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
-        >
-          {t("customers.new")}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="bg-[var(--surface-hover)] text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[var(--border)] transition border border-[var(--border)]"
+          >
+            {t("sevdesk.importButton")}
+          </button>
+          <button
+            onClick={() => {
+              setForm(emptyCustomer);
+              setEditing(null);
+              setShowForm(true);
+              setShowAllFields(false);
+              setAiResult(null);
+            }}
+            className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
+          >
+            {t("customers.new")}
+          </button>
+        </div>
       </div>
+
+      {showImport && (
+        <SevDeskImportModal
+          kind="customers"
+          onClose={() => setShowImport(false)}
+          onImported={() => loadCustomers()}
+        />
+      )}
 
       {showForm && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">

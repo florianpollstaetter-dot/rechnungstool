@@ -6,6 +6,7 @@ import { getProducts, createProduct, updateProduct, deleteProduct, getCompanyRol
 import { formatCurrency } from "@/lib/format";
 import { useI18n } from "@/lib/i18n-context";
 import { CONTENT_LOCALES } from "@/lib/i18n-content";
+import SevDeskImportModal from "@/components/SevDeskImportModal";
 
 // SCH-447 — Extra locales beyond the first-class de/en inputs. Rendered in a collapsible panel.
 const EXTRA_LOCALES: ContentLocale[] = ["fr", "es", "it", "tr", "pl", "ar"];
@@ -16,6 +17,7 @@ export default function ProductsPage() {
   const [roles, setRoles] = useState<CompanyRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
@@ -220,13 +222,29 @@ export default function ProductsPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("products.title")}</h1>
-        <button
-          onClick={() => { resetForm(); setShowForm(true); }}
-          className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
-        >
-          {t("products.new")}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="bg-[var(--surface-hover)] text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[var(--border)] transition border border-[var(--border)]"
+          >
+            {t("sevdesk.importButton")}
+          </button>
+          <button
+            onClick={() => { resetForm(); setShowForm(true); }}
+            className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
+          >
+            {t("products.new")}
+          </button>
+        </div>
       </div>
+
+      {showImport && (
+        <SevDeskImportModal
+          kind="products"
+          onClose={() => setShowImport(false)}
+          onImported={() => loadData()}
+        />
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">

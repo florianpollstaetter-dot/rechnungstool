@@ -1051,5 +1051,28 @@ const en: Record<string, string> = {
   "design.aiGenerating": "Generating...",
   "design.aiExamples": "Example prompts:",
   "design.openDesign": "Design",
+
+  // ── SCH-526 — sevDesk Import ──
+  "sevdesk.importButton": "Import from sevDesk",
+  "sevdesk.titleProducts": "Import products from sevDesk",
+  "sevdesk.titleCustomers": "Import customers from sevDesk",
+  "sevdesk.introLine1": "Upload the CSV or PDF export from sevDesk.",
+  "sevdesk.introProducts": "Expected: the products export (parts.csv or Artikeluebersicht.pdf).",
+  "sevdesk.introCustomers": "Expected: the contacts export (contacts.csv or Alle Kontakte.pdf).",
+  "sevdesk.csvPreferred": "Note: CSV is preferred. PDF exports contain fewer fields (no VAT, UID, IBAN).",
+  "sevdesk.dropHere": "Choose file",
+  "sevdesk.supportedFormats": "Supported: .csv, .pdf",
+  "sevdesk.parsing": "Analysing file…",
+  "sevdesk.importing": "Importing {count} entries…",
+  "sevdesk.doneInserted": "{count} entries imported",
+  "sevdesk.doneSkipped": "{count} duplicates skipped (same sevDesk number).",
+  "sevdesk.selectAll": "Select all",
+  "sevdesk.deselectAll": "Clear selection",
+  "sevdesk.selectedCount": "{selected} of {total} selected",
+  "sevdesk.importBtn": "Import {count}",
+  "sevdesk.colRef": "sevDesk #",
+  "sevdesk.issuesHeading": "{count} row(s) skipped",
+  "sevdesk.issueItem": "Row {row}: {message}",
+  "sevdesk.aiCost": "AI cost: {cost} EUR",
 };
 export default en;

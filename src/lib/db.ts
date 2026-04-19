@@ -250,6 +250,56 @@ export async function deleteProduct(id: string): Promise<void> {
   await supabase().from("products").delete().eq("id", id);
 }
 
+// SCH-526 — bulk insert helpers for sevDesk import. Skips rows whose
+// external_ref already exists for this company so re-imports don't duplicate.
+export async function bulkCreateProducts(
+  rows: Array<Omit<Product, "id" | "created_at">>,
+): Promise<{ inserted: number; skipped: number }> {
+  if (rows.length === 0) return { inserted: 0, skipped: 0 };
+  const companyId = getActiveCompanyId();
+  const refs = rows.map((r) => r.external_ref).filter((r): r is string => !!r);
+  const existing = new Set<string>();
+  if (refs.length > 0) {
+    const { data } = await supabase()
+      .from("products")
+      .select("external_ref")
+      .eq("company_id", companyId)
+      .in("external_ref", refs);
+    (data ?? []).forEach((r) => r.external_ref && existing.add(r.external_ref));
+  }
+  const toInsert = rows.filter((r) => !r.external_ref || !existing.has(r.external_ref));
+  if (toInsert.length === 0) return { inserted: 0, skipped: rows.length };
+  const { error } = await supabase()
+    .from("products")
+    .insert(toInsert.map((r) => ({ ...r, company_id: companyId })));
+  if (error) throw new Error(`bulkCreateProducts failed: ${error.message}`);
+  return { inserted: toInsert.length, skipped: rows.length - toInsert.length };
+}
+
+export async function bulkCreateCustomers(
+  rows: Array<Omit<Customer, "id" | "created_at">>,
+): Promise<{ inserted: number; skipped: number }> {
+  if (rows.length === 0) return { inserted: 0, skipped: 0 };
+  const companyId = getActiveCompanyId();
+  const refs = rows.map((r) => r.external_ref).filter((r): r is string => !!r);
+  const existing = new Set<string>();
+  if (refs.length > 0) {
+    const { data } = await supabase()
+      .from("customers")
+      .select("external_ref")
+      .eq("company_id", companyId)
+      .in("external_ref", refs);
+    (data ?? []).forEach((r) => r.external_ref && existing.add(r.external_ref));
+  }
+  const toInsert = rows.filter((r) => !r.external_ref || !existing.has(r.external_ref));
+  if (toInsert.length === 0) return { inserted: 0, skipped: rows.length };
+  const { error } = await supabase()
+    .from("customers")
+    .insert(toInsert.map((r) => ({ ...r, company_id: companyId })));
+  if (error) throw new Error(`bulkCreateCustomers failed: ${error.message}`);
+  return { inserted: toInsert.length, skipped: rows.length - toInsert.length };
+}
+
 // Invoices
 export async function getInvoices(): Promise<Invoice[]> {
   const { data: invoices } = await supabase()
@@ -1283,6 +1333,7 @@ function mapCustomer(row: Record<string, unknown>): Customer {
     email: row.email as string,
     phone: row.phone as string,
     leitweg_id: (row.leitweg_id as string) || "",
+    external_ref: (row.external_ref as string) || "",
     created_at: row.created_at as string,
   };
 }
@@ -1306,6 +1357,7 @@ function mapProduct(row: Record<string, unknown>): Product {
     tax_rate: Number(row.tax_rate),
     active: row.active as boolean,
     role_id: (row.role_id as string) || null,
+    external_ref: (row.external_ref as string) || "",
     created_at: row.created_at as string,
   };
 }
