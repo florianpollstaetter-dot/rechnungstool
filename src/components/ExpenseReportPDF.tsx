@@ -43,7 +43,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 const PAYMENT_LABELS: Record<string, string> = {
   bar: "Bar",
   karte: "Karte (privat)",
-  firmenkarte: "Firmenkarte",
+  firmenkarte: "Unternehmenskarte",
   ueberweisung: "Überweisung",
   paypal: "PayPal",
   sonstige: "Sonstige",

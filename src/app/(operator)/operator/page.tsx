@@ -105,7 +105,7 @@ export default function OperatorDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Firmen" value={stats.total_companies} />
+        <StatCard label="Unternehmen" value={stats.total_companies} />
         <StatCard label="User" value={stats.total_users} />
         <StatCard label="MRR" value={`€${stats.mrr}`} accent />
         <StatCard label="Ablaufende Trials" value={stats.expiring_trials} warn={stats.expiring_trials > 0} />
@@ -143,7 +143,7 @@ export default function OperatorDashboard() {
 
       {/* Activity */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Neue Firmen (Monat)" value={stats.new_companies_this_month} />
+        <StatCard label="Neue Unternehmen (Monat)" value={stats.new_companies_this_month} />
         <StatCard label="Neue User (Monat)" value={stats.new_users_this_month} />
         <StatCard label="Rechnungen gesamt" value={stats.total_invoices} />
         <StatCard label="Belege gesamt" value={stats.total_receipts} />

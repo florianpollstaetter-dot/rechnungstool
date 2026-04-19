@@ -593,7 +593,7 @@ export default function SettingsPage() {
         </div>
         )}
 
-        {/* AI Company Setup — admin only, positioned right after Firmendaten */}
+        {/* AI Company Setup — admin only, positioned right after Unternehmensdaten */}
         {isAdmin && (
           <AiCompanySetup
             companyName={settings.company_name}

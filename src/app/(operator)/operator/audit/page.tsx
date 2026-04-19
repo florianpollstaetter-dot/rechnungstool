@@ -15,12 +15,12 @@ interface AuditEntry {
 }
 
 const ACTION_LABELS: Record<string, string> = {
-  "company.create": "Firma erstellt",
-  "company.active": "Firma aktiviert",
-  "company.suspended": "Firma gesperrt",
-  "company.cancelled": "Firma gekündigt",
+  "company.create": "Unternehmen erstellt",
+  "company.active": "Unternehmen aktiviert",
+  "company.suspended": "Unternehmen gesperrt",
+  "company.cancelled": "Unternehmen gekündigt",
   "company.plan_change": "Plan geändert",
-  "company.update": "Firma aktualisiert",
+  "company.update": "Unternehmen aktualisiert",
   "user.suspend": "User gesperrt",
   "user.unsuspend": "Sperre aufgehoben",
   "user.password_reset": "Passwort-Reset",

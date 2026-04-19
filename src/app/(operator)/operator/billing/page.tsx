@@ -89,7 +89,7 @@ export default function OperatorBilling() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--border)]">
-              <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Firma</th>
+              <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Unternehmen</th>
               <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Aktueller Plan</th>
               <th className="text-right py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Preis/Monat</th>
               <th className="text-right py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">User</th>

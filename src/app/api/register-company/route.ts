@@ -5,7 +5,7 @@ export async function POST(request: Request) {
 
   if (!email || !password || !companyName || !companySlug) {
     return Response.json(
-      { error: "missing_fields", message: "E-Mail, Passwort, Firmenname und Kürzel sind erforderlich." },
+      { error: "missing_fields", message: "E-Mail, Passwort, Unternehmensname und Kürzel sind erforderlich." },
       { status: 400 },
     );
   }
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
   if (existingCompany) {
     return Response.json(
-      { error: "slug_taken", message: "Dieses Firmen-Kürzel ist bereits vergeben." },
+      { error: "slug_taken", message: "Dieses Unternehmens-Kürzel ist bereits vergeben." },
       { status: 409 },
     );
   }
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
       if (companyError.code === "23505") {
         await rollback();
         return Response.json(
-          { error: "slug_taken", message: "Dieses Firmen-Kürzel ist bereits vergeben." },
+          { error: "slug_taken", message: "Dieses Unternehmens-Kürzel ist bereits vergeben." },
           { status: 409 },
         );
       }
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
     return Response.json(
       {
         error: "company_setup_failed",
-        message: err instanceof Error ? err.message : "Firmen-Erstellung fehlgeschlagen.",
+        message: err instanceof Error ? err.message : "Unternehmens-Erstellung fehlgeschlagen.",
       },
       { status: 500 },
     );

@@ -164,24 +164,24 @@ export default function OperatorCompanies() {
     return sorted;
   }, [companies, search, paymentFilter, sortKey]);
 
-  if (loading) return <div className="text-[var(--text-muted)] text-sm py-8 text-center">Lade Firmen...</div>;
+  if (loading) return <div className="text-[var(--text-muted)] text-sm py-8 text-center">Lade Unternehmen...</div>;
   if (error) return <div className="text-rose-500 text-sm py-8 text-center">{error}</div>;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">Firmen-Verwaltung</h1>
+        <h1 className="text-xl font-bold text-[var(--text-primary)]">Unternehmens-Verwaltung</h1>
         <button
           onClick={() => setShowCreateModal(true)}
           className="px-3 py-1.5 text-xs font-medium bg-rose-500 text-white rounded-md hover:bg-rose-600 transition-colors"
         >
-          + Neue Firma
+          + Neues Unternehmen
         </button>
       </div>
 
       <input
         type="text"
-        placeholder="Firma suchen..."
+        placeholder="Unternehmen suchen..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="w-full mb-3 bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-rose-500/50"
@@ -230,7 +230,7 @@ export default function OperatorCompanies() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--border)]">
-              <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Firma</th>
+              <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Unternehmen</th>
               <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Plan</th>
               <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Zahlung</th>
               <th className="text-left py-2 px-2 text-xs font-medium text-[var(--text-muted)] uppercase">Status</th>
@@ -288,7 +288,7 @@ export default function OperatorCompanies() {
 
       {filteredSorted.length === 0 && (
         <div className="text-center text-[var(--text-muted)] text-sm py-8">
-          {search || paymentFilter !== "all" ? "Keine Firma gefunden" : "Noch keine Firmen registriert"}
+          {search || paymentFilter !== "all" ? "Kein Unternehmen gefunden" : "Noch keine Unternehmen registriert"}
         </div>
       )}
 
@@ -326,11 +326,11 @@ function CreateCompanyModal({ onClose, onCreated }: { onClose: () => void; onCre
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
-        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">Neue Firma erstellen</h2>
+        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">Neues Unternehmen erstellen</h2>
         {error && <div className="text-rose-500 text-sm mb-3">{error}</div>}
         <div className="space-y-3">
           <div>
-            <label className="block text-xs text-[var(--text-muted)] mb-1">Firmenname</label>
+            <label className="block text-xs text-[var(--text-muted)] mb-1">Unternehmensname</label>
             <input value={name} onChange={(e) => { setName(e.target.value); if (!slug) setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "")); }}
               className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-rose-500/50" />
           </div>

@@ -128,7 +128,7 @@ export default function DatenschutzPage() {
       <p>
         Wir setzen <strong>technisch notwendige Cookies bzw. Browser-Storage-
         Einträge</strong> ein, die für Login, Session-Handhabung und Speicherung
-        der aktiven Firmen- und Sprachauswahl erforderlich sind (insbesondere
+        der aktiven Unternehmens- und Sprachauswahl erforderlich sind (insbesondere
         Supabase-Auth-Cookies, <code>activeCompanyId</code>,{" "}
         <code>currentUserName</code> im Local Storage).
       </p>

@@ -1,6 +1,6 @@
 "use client";
 
-// SCH-386 / SCH-406 — AI-Firmen-Setup: Vorschläge laden und bei Firmenanlage anwenden.
+// SCH-386 / SCH-406 — AI-Unternehmens-Setup: Vorschläge laden und bei Unternehmensanlage anwenden.
 // SCH-406 additions:
 // 1. Protect pre-filled fields from AI overwrite
 // 2. Mark optional fields
@@ -344,7 +344,7 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
   return (
     <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
       <div className="flex items-center gap-3 mb-1">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)]">AI-Firmen-Setup</h2>
+        <h2 className="text-lg font-semibold text-[var(--text-primary)]">AI-Unternehmens-Setup</h2>
         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--accent-dim)] text-[var(--accent)]">
           Beta
         </span>
@@ -364,14 +364,14 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                Firmenname *
+                Unternehmensname *
               </label>
               <input
                 type="text"
                 value={name}
                 readOnly
                 className={`${inputClass} opacity-70 cursor-not-allowed`}
-                title="Firmenname wird aus den Einstellungen übernommen"
+                title="Unternehmensname wird aus den Einstellungen übernommen"
               />
             </div>
             <div>
@@ -400,7 +400,7 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
                 onChange={hasPrefilledWebsite ? undefined : (e) => setWebsite(e.target.value)}
                 readOnly={hasPrefilledWebsite}
                 className={`${inputClass}${hasPrefilledWebsite ? " opacity-70 cursor-not-allowed" : ""}`}
-                placeholder="z.B. www.firma.at"
+                placeholder="z.B. www.unternehmen.at"
                 title={hasPrefilledWebsite ? "Wird aus den Einstellungen übernommen — dort änderbar" : undefined}
               />
             </div>
@@ -415,7 +415,7 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
                 onChange={hasPrefilledDescription ? undefined : (e) => setDescription(e.target.value)}
                 readOnly={hasPrefilledDescription}
                 className={`${inputClass}${hasPrefilledDescription ? " opacity-70 cursor-not-allowed" : ""}`}
-                placeholder="Was macht die Firma?"
+                placeholder="Was macht das Unternehmen?"
                 title={hasPrefilledDescription ? "Wird aus den Einstellungen übernommen — dort änderbar" : undefined}
               />
             </div>
@@ -482,7 +482,7 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-                    Firmendaten ({selectedCompanyFields.size}/{availableFields.length})
+                    Unternehmensdaten ({selectedCompanyFields.size}/{availableFields.length})
                   </h3>
                   <button
                     type="button"
@@ -521,7 +521,7 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
                     </label>
                   ))}
                 </div>
-                <p className="text-xs text-[var(--text-muted)] mt-1">Ausgewählte Felder werden in die Firmendaten übernommen</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1">Ausgewählte Felder werden in die Unternehmensdaten übernommen</p>
               </div>
             );
           })()}
@@ -862,7 +862,7 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
           </p>
           <p className="text-xs text-emerald-400/70 mt-1">
             {selectedRoles.size} Rollen und {selectedProducts.size} Produkte wurden angelegt.
-            {selectedCompanyFields.size > 0 && ` ${selectedCompanyFields.size} Firmendaten-Felder wurden übernommen.`}
+            {selectedCompanyFields.size > 0 && ` ${selectedCompanyFields.size} Unternehmensdaten-Felder wurden übernommen.`}
             {" "}Sie finden diese jetzt unter Admin bzw. Produkte.
           </p>
           <button

@@ -17,7 +17,7 @@ export async function GET(
     .single();
 
   if (error || !company) {
-    return Response.json({ error: error?.message || "Firma nicht gefunden" }, { status: 404 });
+    return Response.json({ error: error?.message || "Unternehmen nicht gefunden" }, { status: 404 });
   }
 
   const [{ count: receiptCount }, { count: invoiceCount }, { data: members }] = await Promise.all([

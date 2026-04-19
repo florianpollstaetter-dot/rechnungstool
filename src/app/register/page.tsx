@@ -117,7 +117,7 @@ export default function RegisterPage() {
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.email")}</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                className={inputClass} placeholder="max@firma.at" />
+                className={inputClass} placeholder="max@unternehmen.at" />
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("register.password")}</label>
@@ -154,14 +154,14 @@ export default function RegisterPage() {
                 if (!companySlug || companySlug === generateSlug(companyName)) {
                   setCompanySlug(generateSlug(e.target.value));
                 }
-              }} required className={inputClass} placeholder="Meine Firma GmbH" />
+              }} required className={inputClass} placeholder="Mein Unternehmen GmbH" />
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 {t("register.companySlug")} <span className="text-gray-500 font-normal">{t("register.slugHint")}</span>
               </label>
               <input type="text" value={companySlug} onChange={(e) => setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-                className={inputClass} placeholder="meine-firma" maxLength={30} />
+                className={inputClass} placeholder="mein-unternehmen" maxLength={30} />
             </div>
 
             <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">

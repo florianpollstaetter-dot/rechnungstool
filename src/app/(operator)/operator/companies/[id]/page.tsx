@@ -88,7 +88,7 @@ export default function OperatorCompanyDetail() {
     const res = await fetch(`/api/operator/companies/${companyId}`);
     if (res.status === 401) { router.push("/login"); return; }
     if (res.status === 403) { router.push("/operator"); return; }
-    if (res.status === 404) { setError("Firma nicht gefunden"); setLoading(false); return; }
+    if (res.status === 404) { setError("Unternehmen nicht gefunden"); setLoading(false); return; }
     if (!res.ok) { setError("Fehler beim Laden"); setLoading(false); return; }
     setCompany(await res.json());
     setLoading(false);
@@ -134,11 +134,11 @@ export default function OperatorCompanyDetail() {
 
   const adminUser = company?.users.find((u) => u.member_role === "admin") || null;
 
-  if (loading) return <div className="text-[var(--text-muted)] text-sm py-8 text-center">Lade Firma...</div>;
+  if (loading) return <div className="text-[var(--text-muted)] text-sm py-8 text-center">Lade Unternehmen...</div>;
   if (error) return (
     <div className="text-center py-8">
       <div className="text-rose-500 text-sm mb-2">{error}</div>
-      <Link href="/operator/companies" className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">← Zurück zu Firmen</Link>
+      <Link href="/operator/companies" className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">← Zurück zu Unternehmen</Link>
     </div>
   );
   if (!company) return null;
@@ -157,7 +157,7 @@ export default function OperatorCompanyDetail() {
   return (
     <div>
       <Link href="/operator/companies" className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors inline-block mb-2">
-        ← Firmen
+        ← Unternehmen
       </Link>
 
       <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
@@ -179,7 +179,7 @@ export default function OperatorCompanyDetail() {
             onClick={() => setEditing(true)}
             className="px-3 py-1.5 text-xs font-medium bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] rounded-md hover:bg-[var(--surface-hover)] transition-colors"
           >
-            Firma bearbeiten
+            Unternehmen bearbeiten
           </button>
         </div>
       </div>
@@ -284,7 +284,7 @@ export default function OperatorCompanyDetail() {
           </div>
         ))}
         {company.users.length === 0 && (
-          <div className="text-center text-[var(--text-muted)] text-sm py-6">Keine User in dieser Firma</div>
+          <div className="text-center text-[var(--text-muted)] text-sm py-6">Keine User in diesem Unternehmen</div>
         )}
       </div>
 
@@ -554,7 +554,7 @@ function UserActionsModal({
           )}
         </div>
         <div className="bg-[var(--background)] border border-[var(--border)] rounded-lg p-3 mt-3 text-xs text-[var(--text-muted)]">
-          <div>Firmen-Rolle: {ROLE_LABELS[user.member_role] || user.member_role}</div>
+          <div>Unternehmens-Rolle: {ROLE_LABELS[user.member_role] || user.member_role}</div>
           <div>Profil-Rolle: {ROLE_LABELS[user.role] || user.role}</div>
           <div>Mitglied seit: {new Date(user.member_since).toLocaleDateString("de-AT")}</div>
         </div>
