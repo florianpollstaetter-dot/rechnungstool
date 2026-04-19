@@ -1085,6 +1085,44 @@
   gap: 64px;
   align-items: center;
   margin-bottom: 96px;
+  padding: 28px;
+  border-radius: 18px;
+  border: 1px solid transparent;
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.featureRowClickable {
+  cursor: pointer;
+}
+
+.featureRowClickable:hover,
+.featureRowClickable:focus-visible {
+  border-color: rgba(247, 144, 30, 0.35);
+  background: rgba(247, 144, 30, 0.04);
+  outline: none;
+  transform: translateY(-2px);
+}
+
+.featureRowClickable:focus-visible {
+  box-shadow: 0 0 0 3px rgba(247, 144, 30, 0.35);
+}
+
+.featureRowMore {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--orange);
+  opacity: 0.75;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.featureRowClickable:hover .featureRowMore,
+.featureRowClickable:focus-visible .featureRowMore {
+  opacity: 1;
+  transform: translateX(3px);
 }
 
 .featureRow:last-child {
@@ -1837,8 +1875,11 @@
     grid-template-columns: 1fr;
     gap: 48px;
   }
+  .heroText {
+    order: 1;
+  }
   .dashboardMock {
-    order: -1;
+    order: 2;
   }
 }
 
@@ -1881,4 +1922,137 @@
     flex-direction: column;
     text-align: center;
   }
+}
+
+/* ─── FEATURE MODAL ─────────────────────────── */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(4, 6, 12, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  animation: modalFadeIn 160ms ease-out;
+}
+
+.modalPanel {
+  position: relative;
+  width: min(1080px, 100%);
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 56px 48px 48px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  animation: modalRise 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modalClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.modalClose:hover,
+.modalClose:focus-visible {
+  background: rgba(247, 144, 30, 0.15);
+  border-color: rgba(247, 144, 30, 0.5);
+  color: var(--orange);
+  outline: none;
+}
+
+.modalGrid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.modalMockWrap {
+  transform: scale(1.05);
+  transform-origin: center;
+}
+
+.modalText h3.modalTitle {
+  font-family: "Syne", sans-serif;
+  font-size: clamp(26px, 2.6vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 8px 0 16px;
+  color: var(--text);
+}
+
+.modalDetailed {
+  font-size: 16px;
+  color: var(--text-sec);
+  line-height: 1.7;
+  font-weight: 300;
+  margin: 0 0 20px;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 900px) {
+  .modalGrid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .modalMockWrap {
+    transform: none;
+  }
+  .modalPanel {
+    padding: 48px 24px 32px;
+  }
+}
+
+/* ─── BIG LOGO ABOVE FOOTER ─────────────────── */
+.bigLogo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 24px 40px;
+}
+
+.bigLogoIcon {
+  width: clamp(180px, 28vw, 360px);
+  height: auto;
+  opacity: 0.95;
+  filter: drop-shadow(0 20px 60px rgba(247, 144, 30, 0.25));
 }

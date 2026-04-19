@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import styles from "./landing.module.css";
 import LandingHeaderLogin from "./LandingHeaderLogin";
+import LandingFeaturesGrid, { type LandingFeature } from "./LandingFeaturesGrid";
 
 export const metadata = {
   title: "Orange Octo — Buchhaltung, die sich selbst erledigt",
@@ -17,6 +18,75 @@ export default async function LandingPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) redirect("/dashboard");
+
+  const features: LandingFeature[] = [
+    {
+      reverse: false,
+      label: "KI-Belegerfassung",
+      title: "Foto hochladen — fertig.",
+      body:
+        "Unsere KI liest Betrag, Datum, Lieferant und Kategorie automatisch aus. Kein Abtippen, keine Fehler. Direkt verbucht und archiviert.",
+      detailed:
+        "Fotografiere den Beleg mit dem Handy, ziehe PDF-Rechnungen per Drag & Drop rein oder leite E-Mail-Belege an deine Orange-Octo-Adresse weiter. Die KI erkennt innerhalb von Sekunden Lieferant, Datum, Betrag, Steuersatz und Kategorie — und schlägt die passende SKR03- oder SKR04-Buchung vor. Du bestätigst mit einem Klick, der Beleg landet GoBD-konform im 10-Jahres-Archiv und ist später per Volltextsuche auffindbar.",
+      bullets: ["OCR + KI in einem Schritt", "Auto-Verbuchung auf SKR03/SKR04", "10-jähriges GoBD-Archiv"],
+      mock: <ReceiptMock />,
+    },
+    {
+      reverse: true,
+      label: "Rechnungen",
+      title: "Professionelle Rechnungen in Sekunden.",
+      body:
+        "Rechnung aus Vorlage, mit CI, automatischer Nummernkreis und direkt per E-Mail versandt. Zahlungseingang automatisch zugeordnet.",
+      detailed:
+        "Aus Stammdaten, Produkten und erfassten Zeiten erzeugst du in Sekunden eine Rechnung mit deinem Logo und deiner CI. Nummernkreise laufen automatisch weiter, Steuersätze (0/7/19/20%) werden je Position gesetzt, Fremdwährungen umgerechnet. Ein Klick erzeugt PDF + E-Rechnung, versendet sie per Mail und gleicht den Zahlungseingang aus dem Bank-Import automatisch ab.",
+      bullets: ["Mehrere Steuersätze (0/7/19/20%)", "Versand per E-Mail mit PDF-Anhang", "Auto-Reminder bei Überfälligkeit"],
+      mock: <InvoiceMock />,
+    },
+    {
+      reverse: false,
+      label: "E-Rechnung",
+      title: "XRechnung & ZUGFeRD — automatisch.",
+      body:
+        "Pflichtformat ab 2025 für B2B in Deutschland. Orange Octo erzeugt EN 16931-konforme XML im Hintergrund — kein Setup nötig.",
+      detailed:
+        "Seit 2025 müssen B2B-Rechnungen in Deutschland elektronisch sein. Orange Octo erzeugt zu jeder Rechnung im Hintergrund EN-16931-konforme XML in XRechnung 3.0 oder als ZUGFeRD 2.3 Hybrid-PDF — inklusive Leitweg-ID, Käuferreferenz und eingebautem Validator, der Fehler vor dem Versand meldet. Kein separates Tool, kein Setup: du erstellst eine normale Rechnung, das E-Rechnungs-XML liegt automatisch dabei.",
+      bullets: ["XRechnung 3.0 validiert", "ZUGFeRD 2.3 Hybrid-PDF", "Leitweg-ID-Verwaltung"],
+      mock: <ERechnungMock />,
+    },
+    {
+      reverse: true,
+      label: "Angebote",
+      title: "Designte Angebote, die gewinnen.",
+      body:
+        "Mehrstufige Angebote mit Positionen, Rabatten, Gültigkeit und Online-Annahme. Ein Klick macht daraus eine Rechnung.",
+      detailed:
+        "Gestalte mehrstufige Angebote mit Positionen, Rabatten, optionalen Bausteinen und individueller Gültigkeit. Deine Kunden erhalten einen Link zur Online-Ansicht und unterschreiben direkt per digitaler Signatur — kein Ausdrucken, kein Einscannen. Nach der Annahme erzeugt ein einziger Klick daraus eine Rechnung inklusive Referenz auf das Angebot und der ursprünglichen Konditionen.",
+      bullets: ["Live-Vorschau beim Bearbeiten", "Online-Annahme mit Signatur", "1-Klick-Konvertierung zur Rechnung"],
+      mock: <QuoteMock />,
+    },
+    {
+      reverse: false,
+      label: "Zeiterfassung",
+      title: "Stunden erfassen, direkt abrechnen.",
+      body:
+        "Zeiten pro Projekt und Kunde erfassen — Stundensatz automatisch angewandt. Mit einem Klick in eine Rechnung übernehmen.",
+      detailed:
+        "Erfasse Zeiten per Start/Stop-Timer im Browser oder trage sie manuell pro Tag nach. Jeder Eintrag ist an Projekt und Kunde gebunden, Stundensätze und Abrechnungsarten werden automatisch angewandt. Am Monatsende wählst du Zeitraum und Kunde — Orange Octo erzeugt daraus saubere Excel-Reports oder direkt eine abrechenbare Rechnung mit aufgeschlüsselten Positionen.",
+      bullets: ["Start/Stop-Timer oder manuell", "Projekt- und Kundenbezug", "Abrechnung per Export oder Rechnung"],
+      mock: <TimeMock />,
+    },
+    {
+      reverse: true,
+      label: "DATEV-Export",
+      title: "Übergabe an den Steuerberater — ein Klick.",
+      body:
+        "DATEV-kompatibler CSV-Export inkl. Belege und Buchungen. Zeitraum wählen, Datei herunterladen, fertig.",
+      detailed:
+        "Wähle einen Zeitraum, klicke „Export\" — heraus kommt ein Paket aus DATEV-Buchungsstapel-CSV im EXTF-Format (für DATEV Unternehmen online) und allen zugehörigen Beleg-PDFs, sauber verknüpft über die Belegnummer. Dein Steuerberater importiert es in DATEV mit einem einzigen Klick. Funktioniert für SKR03 und SKR04 und respektiert deine Kontenzuordnung aus der Belegerfassung.",
+      bullets: ["DATEV Unternehmen online ready", "Beleg-PDFs im selben Paket", "SKR03 und SKR04 unterstützt"],
+      mock: <DatevMock />,
+    },
+  ];
 
   return (
     <div className={styles.root}>
@@ -62,7 +132,7 @@ export default async function LandingPage() {
           <div className={styles.heroText}>
             <div className={styles.heroBadge}>
               <span className={styles.heroBadgeDot} />
-              KI-gestützte Buchhaltung · Made in Germany
+              KI-gestützte Buchhaltung · Made in Austria
             </div>
 
             <h1>
@@ -214,54 +284,7 @@ export default async function LandingPage() {
             </p>
           </div>
 
-          <FeatureRow
-            reverse={false}
-            label="KI-Belegerfassung"
-            title="Foto hochladen — fertig."
-            body="Unsere KI liest Betrag, Datum, Lieferant und Kategorie automatisch aus. Kein Abtippen, keine Fehler. Direkt verbucht und archiviert."
-            bullets={["OCR + KI in einem Schritt", "Auto-Verbuchung auf SKR03/SKR04", "10-jähriges GoBD-Archiv"]}
-            mock={<ReceiptMock />}
-          />
-          <FeatureRow
-            reverse={true}
-            label="Rechnungen"
-            title="Professionelle Rechnungen in Sekunden."
-            body="Rechnung aus Vorlage, mit CI, automatischer Nummernkreis und direkt per E-Mail versandt. Zahlungseingang automatisch zugeordnet."
-            bullets={["Mehrere Steuersätze (0/7/19/20%)", "Versand per E-Mail mit PDF-Anhang", "Auto-Reminder bei Überfälligkeit"]}
-            mock={<InvoiceMock />}
-          />
-          <FeatureRow
-            reverse={false}
-            label="E-Rechnung"
-            title="XRechnung & ZUGFeRD — automatisch."
-            body="Pflichtformat ab 2025 für B2B in Deutschland. Orange Octo erzeugt EN 16931-konforme XML im Hintergrund — kein Setup nötig."
-            bullets={["XRechnung 3.0 validiert", "ZUGFeRD 2.3 Hybrid-PDF", "Leitweg-ID-Verwaltung"]}
-            mock={<ERechnungMock />}
-          />
-          <FeatureRow
-            reverse={true}
-            label="Angebote"
-            title="Designte Angebote, die gewinnen."
-            body="Mehrstufige Angebote mit Positionen, Rabatten, Gültigkeit und Online-Annahme. Ein Klick macht daraus eine Rechnung."
-            bullets={["Live-Vorschau beim Bearbeiten", "Online-Annahme mit Signatur", "1-Klick-Konvertierung zur Rechnung"]}
-            mock={<QuoteMock />}
-          />
-          <FeatureRow
-            reverse={false}
-            label="Zeiterfassung"
-            title="Stunden erfassen, direkt abrechnen."
-            body="Zeiten pro Projekt und Kunde erfassen — Stundensatz automatisch angewandt. Mit einem Klick in eine Rechnung übernehmen."
-            bullets={["Start/Stop-Timer oder manuell", "Projekt- und Kundenbezug", "Abrechnung per Export oder Rechnung"]}
-            mock={<TimeMock />}
-          />
-          <FeatureRow
-            reverse={true}
-            label="DATEV-Export"
-            title="Übergabe an den Steuerberater — ein Klick."
-            body="DATEV-kompatibler CSV-Export inkl. Belege und Buchungen. Zeitraum wählen, Datei herunterladen, fertig."
-            bullets={["DATEV Unternehmen online ready", "Beleg-PDFs im selben Paket", "SKR03 und SKR04 unterstützt"]}
-            mock={<DatevMock />}
-          />
+          <LandingFeaturesGrid features={features} />
         </div>
       </section>
 
@@ -336,6 +359,16 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      <section className={styles.bigLogo} aria-hidden="true">
+        <Image
+          src="/brand/octo-icon-orange.png"
+          alt=""
+          width={360}
+          height={360}
+          className={styles.bigLogoIcon}
+        />
+      </section>
+
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <Link href="/" className={styles.footerLogo} aria-label="Orange Octo Startseite">
@@ -360,41 +393,6 @@ export default async function LandingPage() {
           <span className={styles.footerCopy}>© 2026 Orange Octo. Alle Rechte vorbehalten.</span>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function FeatureRow({
-  reverse,
-  label,
-  title,
-  body,
-  bullets,
-  mock,
-}: {
-  reverse: boolean;
-  label: string;
-  title: string;
-  body: string;
-  bullets: string[];
-  mock: React.ReactNode;
-}) {
-  return (
-    <div className={`${styles.featureRow} ${reverse ? styles.featureRowReverse : ""}`}>
-      <div className={styles.featureRowText}>
-        <div className={styles.featureRowLabel}>{label}</div>
-        <h3>{title}</h3>
-        <p>{body}</p>
-        <ul className={styles.featureBullets}>
-          {bullets.map((b) => (
-            <li key={b}>
-              <span className={styles.featureBulletCheck}>✓</span>
-              {b}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className={styles.featureRowMock}>{mock}</div>
     </div>
   );
 }
