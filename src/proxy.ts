@@ -32,6 +32,7 @@ export async function proxy(request: NextRequest) {
   const PUBLIC_PATHS = ["/impressum", "/agb", "/datenschutz"];
   const path = request.nextUrl.pathname;
   const isPublic =
+    path === "/" ||
     path.startsWith("/login") ||
     path.startsWith("/register") ||
     path.startsWith("/api/") ||
