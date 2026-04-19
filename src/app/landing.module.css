@@ -2006,7 +2006,8 @@
 .modalBackdrop {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  /* must sit above .nav (z-index 100) so the close button clears the fixed header */
+  z-index: 200;
   background: rgba(4, 6, 12, 0.72);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
