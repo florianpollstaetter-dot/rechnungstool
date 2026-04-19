@@ -329,13 +329,13 @@ export default function SettingsPage() {
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">{t("settings.languageTitle")}</h2>
           <p className="text-sm text-gray-500 mb-4">{t("settings.languageHint")}</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {SUPPORTED_LOCALES.map((loc) => (
               <button
                 key={loc.code}
                 type="button"
                 onClick={() => setLocale(loc.code)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border-2 ${
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border-2 ${
                   locale === loc.code
                     ? "border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--text-primary)]"
                     : "border-[var(--border)] text-[var(--text-secondary)] hover:border-gray-500 hover:text-[var(--text-primary)]"
