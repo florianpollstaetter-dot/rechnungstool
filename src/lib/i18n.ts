@@ -51,6 +51,10 @@ const translations = {
   totalGross: { de: "GESAMT BRUTTO", en: "TOTAL GROSS" },
   validityNote: { de: "Dieses Angebot ist gültig bis {date}. Bei Fragen stehen wir Ihnen gerne zur Verfuegung.", en: "This quote is valid until {date}. Please don\u2019t hesitate to contact us with any questions." },
   closingText: { de: "Lassen Sie uns gemeinsam\nGrossartiges schaffen.", en: "Let\u2019s create something\namazing together." },
+  kleinunternehmerExemptionNote: {
+    de: "Umsatzsteuerbefreit gemaess § 6 Abs. 1 Z 27 UStG (Kleinunternehmerregelung).",
+    en: "VAT-exempt under § 6 Abs. 1 Z 27 UStG (Austrian small-business regulation).",
+  },
   // UI labels
   invoices: { de: "Rechnungen", en: "Invoices" },
   newInvoice: { de: "+ Neue Rechnung", en: "+ New Invoice" },

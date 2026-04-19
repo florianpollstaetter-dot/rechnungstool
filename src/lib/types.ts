@@ -143,13 +143,40 @@ export interface Quote {
   created_at: string;
 }
 
-export type CompanyType = "gmbh" | "og" | "verein";
+export type CompanyType =
+  | "gmbh"
+  | "ag"
+  | "kg"
+  | "gmbh_co_kg"
+  | "og"
+  | "eu"
+  | "ez"
+  | "verein";
 
 export const COMPANY_TYPE_OPTIONS: { value: CompanyType; label: string; description: string }[] = [
-  { value: "gmbh", label: "GmbH", description: "Soll-Besteuerung (USt bei Rechnungsstellung)" },
-  { value: "og", label: "OG", description: "Ist-Besteuerung (USt bei Zahlungseingang)" },
+  { value: "gmbh", label: "GmbH", description: "Gesellschaft mit beschränkter Haftung" },
+  { value: "ag", label: "AG", description: "Aktiengesellschaft" },
+  { value: "kg", label: "KG", description: "Kommanditgesellschaft" },
+  { value: "gmbh_co_kg", label: "GmbH & Co. KG", description: "KG mit GmbH als Komplementär" },
+  { value: "og", label: "OG", description: "Offene Gesellschaft" },
+  { value: "eu", label: "e.U.", description: "Eingetragener Unternehmer (Firmenbuch)" },
+  { value: "ez", label: "EZ", description: "Einzelunternehmer (nicht eingetragen)" },
   { value: "verein", label: "Verein", description: "Eigene Regelungen" },
 ];
+
+// Forms that are registered in the Firmenbuch and therefore require Firmenbuchnummer/gericht on invoices.
+export const FIRMENBUCH_REGISTERED_TYPES: CompanyType[] = [
+  "gmbh",
+  "ag",
+  "kg",
+  "gmbh_co_kg",
+  "og",
+  "eu",
+];
+
+export function isFirmenbuchRegistered(type: CompanyType): boolean {
+  return FIRMENBUCH_REGISTERED_TYPES.includes(type);
+}
 
 export interface CompanySettings {
   id: string;
@@ -160,6 +187,11 @@ export interface CompanySettings {
   zip: string;
   country: string;
   uid: string;
+  firmenbuchnummer: string;
+  firmenbuchgericht: string;
+  firmenbuchnummer_komplementaer: string;
+  firmenbuchgericht_komplementaer: string;
+  is_kleinunternehmer: boolean;
   iban: string;
   bic: string;
   phone: string;

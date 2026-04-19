@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS, SmartInsightsConfig, UserProfile, GREETING_TONES, GreetingTone } from "@/lib/types";
+import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS, isFirmenbuchRegistered, SmartInsightsConfig, UserProfile, GREETING_TONES, GreetingTone } from "@/lib/types";
 import { getSettings, updateSettings, getSmartInsightsConfig, upsertSmartInsightsConfig, getUserProfile, updateUserProfile } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/ThemeProvider";
@@ -169,7 +169,7 @@ export default function SettingsPage() {
     }
   }
 
-  function update(field: keyof CompanySettings, value: string | number) {
+  function update(field: keyof CompanySettings, value: string | number | boolean) {
     if (!settings) return;
     setSettings({ ...settings, [field]: value });
   }
@@ -180,9 +180,20 @@ export default function SettingsPage() {
   }
 
   function confirmTypeChange() {
-    if (!pendingTypeChange) return;
-    update("company_type", pendingTypeChange);
+    if (!pendingTypeChange || !settings) return;
+    setSettings({ ...settings, company_type: pendingTypeChange });
     setPendingTypeChange(null);
+  }
+
+  function handleKleinunternehmerToggle(enabled: boolean) {
+    if (!settings) return;
+    // SCH-519: Toggling Kleinunternehmerregelung recalculates the default tax rate.
+    // Existing invoices keep their stored tax_rate; only the default for new ones flips.
+    setSettings({
+      ...settings,
+      is_kleinunternehmer: enabled,
+      default_tax_rate: enabled ? 0 : 20,
+    });
   }
 
   async function handleGreetingToneChange(tone: GreetingTone) {
@@ -569,40 +580,6 @@ export default function SettingsPage() {
 
         {canManageCompany && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">{t("settings.companyType")}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {COMPANY_TYPE_OPTIONS.map((opt) => (
-              <label
-                key={opt.value}
-                className={`flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                  settings.company_type === opt.value
-                    ? "border-[var(--accent)] bg-[var(--accent-dim)]"
-                    : "border-[var(--border)] hover:border-gray-500"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="company_type"
-                  value={opt.value}
-                  checked={settings.company_type === opt.value}
-                  onChange={(e) => handleCompanyTypeChange(e.target.value)}
-                  className="sr-only"
-                />
-                <span className="font-semibold text-[var(--text-primary)]">{opt.label}</span>
-                <span className="text-xs text-gray-500 mt-1">{opt.description}</span>
-              </label>
-            ))}
-          </div>
-          {selectedType && (
-            <p className="text-sm text-[var(--text-secondary)] mt-3">
-              {t("settings.companyTypeActive")} <strong className="text-[var(--text-primary)]">{selectedType.label}</strong> — {selectedType.description}
-            </p>
-          )}
-        </div>
-        )}
-
-        {canManageCompany && (
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">{t("settings.bankDetails")}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -843,6 +820,102 @@ export default function SettingsPage() {
         </form>
       )}
 
+      {/* SCH-519: Gesellschaftsform & Firmenbuch — positioned at the very bottom per board request. */}
+      {canManageCompany && (
+        <form onSubmit={handleSubmit} className="mb-6 bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t("settings.legalFormSection")}</h2>
+              <p className="text-sm text-gray-500 mt-1">{t("settings.legalFormSectionHint")}</p>
+            </div>
+            {saved && <span className="text-sm text-emerald-400 font-medium">{t("common.saved")}</span>}
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            {COMPANY_TYPE_OPTIONS.map((opt) => (
+              <label
+                key={opt.value}
+                className={`flex flex-col p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                  settings.company_type === opt.value
+                    ? "border-[var(--accent)] bg-[var(--accent-dim)]"
+                    : "border-[var(--border)] hover:border-gray-500"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="company_type"
+                  value={opt.value}
+                  checked={settings.company_type === opt.value}
+                  onChange={(e) => handleCompanyTypeChange(e.target.value)}
+                  className="sr-only"
+                />
+                <span className="font-semibold text-[var(--text-primary)] text-sm">{t(`companyType.${opt.value}` as TranslationKey)}</span>
+                <span className="text-xs text-gray-500 mt-1">{t(`companyType.${opt.value}Desc` as TranslationKey)}</span>
+              </label>
+            ))}
+          </div>
+
+          {selectedType && (
+            <p className="text-sm text-[var(--text-secondary)] mb-4">
+              {t("settings.companyTypeActive")} <strong className="text-[var(--text-primary)]">{t(`companyType.${selectedType.value}` as TranslationKey)}</strong> — {t(`companyType.${selectedType.value}Desc` as TranslationKey)}
+            </p>
+          )}
+
+          {isFirmenbuchRegistered(settings.company_type) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("settings.firmenbuchnummer")}</label>
+                <input type="text" value={settings.firmenbuchnummer} onChange={(e) => update("firmenbuchnummer", e.target.value)} className={inputClass} placeholder={t("settings.firmenbuchnummerPlaceholder")} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("settings.firmenbuchgericht")}</label>
+                <input type="text" value={settings.firmenbuchgericht} onChange={(e) => update("firmenbuchgericht", e.target.value)} className={inputClass} placeholder={t("settings.firmenbuchgerichtPlaceholder")} />
+              </div>
+            </div>
+          )}
+
+          {settings.company_type === "gmbh_co_kg" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("settings.firmenbuchnummerKomplementaer")}</label>
+                <input type="text" value={settings.firmenbuchnummer_komplementaer} onChange={(e) => update("firmenbuchnummer_komplementaer", e.target.value)} className={inputClass} placeholder={t("settings.firmenbuchnummerPlaceholder")} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t("settings.firmenbuchgerichtKomplementaer")}</label>
+                <input type="text" value={settings.firmenbuchgericht_komplementaer} onChange={(e) => update("firmenbuchgericht_komplementaer", e.target.value)} className={inputClass} placeholder={t("settings.firmenbuchgerichtPlaceholder")} />
+              </div>
+            </div>
+          )}
+
+          <div className="border-t border-[var(--border)] pt-4 mb-4">
+            <label className="flex items-center justify-between cursor-pointer">
+              <div className="flex-1 pr-4">
+                <span className="text-sm font-medium text-[var(--text-primary)]">{t("settings.kleinunternehmer")}</span>
+                <p className="text-xs text-gray-500 mt-1">{t("settings.kleinunternehmerHint")}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.is_kleinunternehmer}
+                onClick={() => handleKleinunternehmerToggle(!settings.is_kleinunternehmer)}
+                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${settings.is_kleinunternehmer ? "bg-[var(--accent)]" : "bg-[var(--border)]"}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${settings.is_kleinunternehmer ? "translate-x-5" : ""}`} />
+              </button>
+            </label>
+            {settings.is_kleinunternehmer && (
+              <p className="text-xs text-emerald-400 mt-2">{t("settings.kleinunternehmerRecalcNotice")}</p>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <button type="submit" disabled={saving} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
+              {saving ? t("settings.savingSettings") : t("settings.saveSettings")}
+            </button>
+          </div>
+        </form>
+      )}
+
       {pendingTypeChange && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setPendingTypeChange(null)}>
           <div className="bg-[var(--surface)] rounded-xl shadow-2xl border border-[var(--border)] max-w-md w-full mx-4 p-6" onClick={(e) => e.stopPropagation()}>
@@ -855,10 +928,13 @@ export default function SettingsPage() {
               <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t("settings.changeCompanyType")}</h3>
             </div>
             <p className="text-sm text-[var(--text-secondary)] mb-2">
-              {t("settings.changeCompanyTypeFrom")} <strong className="text-[var(--text-primary)]">{COMPANY_TYPE_OPTIONS.find((o) => o.value === settings?.company_type)?.label}</strong> {t("settings.changeCompanyTypeTo")} <strong className="text-[var(--text-primary)]">{COMPANY_TYPE_OPTIONS.find((o) => o.value === pendingTypeChange)?.label}</strong>.
+              {t("settings.changeCompanyTypeFrom")} <strong className="text-[var(--text-primary)]">{t(`companyType.${settings?.company_type}` as TranslationKey)}</strong> {t("settings.changeCompanyTypeTo")} <strong className="text-[var(--text-primary)]">{t(`companyType.${pendingTypeChange}` as TranslationKey)}</strong>.
             </p>
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-4">
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-3">
               <p className="text-sm text-amber-300">{t(`companyTypeWarning.${pendingTypeChange}` as TranslationKey)}</p>
+            </div>
+            <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3 mb-4">
+              <p className="text-sm text-rose-300">{t("companyTypeWarning.midYear")}</p>
             </div>
             <div className="flex justify-end gap-3">
               <button onClick={() => setPendingTypeChange(null)} className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-lg transition">
