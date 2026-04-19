@@ -91,12 +91,22 @@ const CompanyContext = createContext<CompanyContextType>({
 });
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
-  const [companyId, setCompanyIdState] = useState<string>(() => {
+  const [companyId, setCompanyIdStateRaw] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("activeCompanyId") || "vrthefans";
     }
     return "vrthefans";
   });
+  // SCH-546: mirror companyId into a ref so the onAuthStateChange handler (whose
+  // loadUserAccess closure captures the initial render's companyId forever) can
+  // read the *current* selection. Without this, a TOKEN_REFRESHED that fires
+  // right after a switch would call syncJwtCompanyId with the stale pre-switch
+  // id and reset the JWT claim back to the old company.
+  const companyIdRef = useRef(companyId);
+  const setCompanyIdState = useCallback((id: string) => {
+    companyIdRef.current = id;
+    setCompanyIdStateRaw(id);
+  }, []);
   const [accessibleCompanies, setAccessibleCompanies] = useState<Company[]>(FALLBACK_COMPANIES);
   const [userRole, setUserRole] = useState("");
   const [roleLoaded, setRoleLoaded] = useState(false);
@@ -130,7 +140,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     } catch {
       // RPC may not exist yet (pre-migration) — silently continue
     }
-  }, []);
+  }, [setCompanyIdState]);
 
   // SCH-525: decode the current access token's app_metadata.company_id so we can
   // detect when the JWT claim is out of sync with the client-selected company
@@ -207,7 +217,9 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         // company_members table may not exist yet (pre-migration) — fall through
       }
 
-      let activeCompanyId = companyId;
+      // SCH-546: read the *current* companyId via ref, not the stale closure.
+      const currentCompanyId = companyIdRef.current;
+      let activeCompanyId = currentCompanyId;
       if (profile) {
         const name = profile.display_name || profile.email || fallbackName;
         localStorage.setItem("currentUserName", name);
@@ -222,7 +234,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         if (dbCompanies.length > 0) {
           // DB-driven company access
           setAccessibleCompanies(dbCompanies);
-          if (!dbCompanies.some((c) => c.id === companyId)) {
+          if (!dbCompanies.some((c) => c.id === currentCompanyId)) {
             const newId = dbCompanies[0].id;
             setCompanyIdState(newId);
             localStorage.setItem("activeCompanyId", newId);
@@ -240,7 +252,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
           if (access.length > 0) {
             const filtered = FALLBACK_COMPANIES.filter((c) => access.includes(c.id));
             setAccessibleCompanies(filtered.length > 0 ? filtered : FALLBACK_COMPANIES);
-            if (!access.includes(companyId)) {
+            if (!access.includes(currentCompanyId)) {
               setCompanyIdState(access[0]);
               localStorage.setItem("activeCompanyId", access[0]);
               activeCompanyId = access[0];

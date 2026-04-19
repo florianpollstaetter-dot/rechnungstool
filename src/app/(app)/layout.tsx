@@ -66,6 +66,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = NAV_ITEMS.filter((item) => permissions.includes(item.section));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
+  // SCH-546: during switch, await the RPC + session refresh so the reloaded
+  // page's JWT already has the new company_id claim.
+  const [switching, setSwitching] = useState(false);
+  // SCH-546: the CompanyProvider's useState initializer returns the
+  // FALLBACK_COMPANIES default during SSR (no localStorage), so SSR paints
+  // the first fallback logo; after a reload triggered by the company
+  // switcher, this reads as the logo "snapping back to the original" until
+  // the client-side loadUserAccess finishes. Hold the real image until
+  // accessibleCompanies is DB-loaded (tracked by roleLoaded).
+  const logoReady = roleLoaded;
+  async function handleCompanySwitch(id: string) {
+    if (switching || id === company.id) {
+      setShowCompanySwitcher(false);
+      setMobileOpen(false);
+      return;
+    }
+    setSwitching(true);
+    setShowCompanySwitcher(false);
+    setMobileOpen(false);
+    await setCompanyId(id);
+    window.location.reload();
+  }
   const greeting = useMemo(() => {
     if (greetingTone === "off") return "";
     const size = GREETING_POOL_SIZE[greetingTone];
@@ -156,8 +178,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     onClick={() => { setShowCompanySwitcher(!showCompanySwitcher); setMobileOpen(false); }}
                     className="flex items-center gap-1 px-1.5 py-1 rounded-md hover:bg-[var(--surface-hover)] transition-colors"
                     title={t("nav.switchCompany")}
+                    disabled={switching}
                   >
-                    <Image src={company.logo_url} alt={company.name} width={24} height={24} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+                    {logoReady ? (
+                      <Image src={company.logo_url} alt={company.name} width={24} height={24} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+                    ) : (
+                      <span className="inline-block w-6 h-6 rounded" aria-hidden="true" />
+                    )}
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-muted)]"><polyline points="6 9 12 15 18 9" /></svg>
                   </button>
                   {showCompanySwitcher && (
@@ -165,8 +192,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       <div className="fixed inset-0 z-40" onClick={() => setShowCompanySwitcher(false)} />
                       <div className="absolute right-0 top-full mt-1 z-50 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-xl py-1 min-w-[200px]">
                         {accessibleCompanies.map((c) => (
-                          <button key={c.id} onClick={() => { setCompanyId(c.id); setShowCompanySwitcher(false); window.location.reload(); }}
-                            className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--surface-hover)] transition flex items-center gap-2 ${company.id === c.id ? "text-[var(--brand-orange)]" : "text-[var(--text-secondary)]"}`}>
+                          <button key={c.id} onClick={() => { void handleCompanySwitch(c.id); }}
+                            disabled={switching}
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--surface-hover)] transition flex items-center gap-2 disabled:opacity-60 ${company.id === c.id ? "text-[var(--brand-orange)]" : "text-[var(--text-secondary)]"}`}>
                             <Image src={c.logo_url} alt={c.name} width={20} height={20} className="rounded" style={{ filter: "var(--logo-filter)" }} />
                             {c.name}
                           </button>
@@ -177,7 +205,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
               ) : (
                 <div className="flex items-center px-1.5">
-                  <Image src={company.logo_url} alt={company.name} width={24} height={24} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+                  {logoReady ? (
+                    <Image src={company.logo_url} alt={company.name} width={24} height={24} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+                  ) : (
+                    <span className="inline-block w-6 h-6 rounded" aria-hidden="true" />
+                  )}
                 </div>
               )}
               {/* 5. Operator Console (superadmin only) */}
@@ -256,8 +288,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="border-t border-[var(--border)] mt-2 pt-2">
                   <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{t("nav.groupCompany")}</p>
                   {accessibleCompanies.map((c) => (
-                    <button key={c.id} onClick={() => { setCompanyId(c.id); setMobileOpen(false); window.location.reload(); }}
-                      className={`block w-full text-left px-3 py-2 text-sm font-medium rounded-lg transition-colors ${company.id === c.id ? "text-[var(--brand-orange)]" : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"}`}>
+                    <button key={c.id} onClick={() => { void handleCompanySwitch(c.id); }}
+                      disabled={switching}
+                      className={`block w-full text-left px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-60 ${company.id === c.id ? "text-[var(--brand-orange)]" : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"}`}>
                       {c.name}
                     </button>
                   ))}
