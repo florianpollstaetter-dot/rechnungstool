@@ -130,7 +130,7 @@ export default function RegisterPage() {
       <div className={styles.content}>
         <span className={styles.badge}>
           <span className={styles.badgeDot} />
-          30 Tage kostenlos testen · Keine Kreditkarte
+          14 Tage kostenlos testen · Keine Kreditkarte
         </span>
 
         <h1 className={styles.title}>Konto erstellen</h1>
@@ -267,7 +267,7 @@ export default function RegisterPage() {
           <div className={styles.perksList}>
             <div className={styles.perk}>
               <span className={styles.perkCheck}>✓</span>
-              Alle Features freigeschaltet — 30 Tage
+              Alle Features freigeschaltet — 14 Tage
             </div>
             <div className={styles.perk}>
               <span className={styles.perkCheck}>✓</span>

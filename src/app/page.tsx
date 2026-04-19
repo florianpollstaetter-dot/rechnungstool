@@ -5,11 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import styles from "./landing.module.css";
 import LandingHeaderLogin from "./LandingHeaderLogin";
 import LandingFeaturesGrid, { type LandingFeature } from "./LandingFeaturesGrid";
+import LandingPricingSection from "./LandingPricingSection";
 
 export const metadata = {
   title: "Orange Octo — Buchhaltung, die sich selbst erledigt",
   description:
-    "KI-Belegerfassung, EU-konforme E-Rechnung und Zeiterfassung in einer Plattform. 30 Tage kostenlos testen.",
+    "KI-Belegerfassung, EU-konforme E-Rechnung und Zeiterfassung in einer Plattform. 14 Tage kostenlos testen.",
 };
 
 export default async function LandingPage() {
@@ -170,7 +171,7 @@ export default async function LandingPage() {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
-              &nbsp;30 Tage kostenlos · Keine Kreditkarte · Kündigung jederzeit
+              &nbsp;14 Tage kostenlos · Keine Kreditkarte · Kündigung jederzeit
             </p>
           </div>
 
@@ -288,76 +289,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <section className={styles.pricing} id="preise">
-        <div className={styles.container}>
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionLabel}>Preise</div>
-            <h2>
-              Einfache Preise,
-              <br />
-              keine versteckten Kosten.
-            </h2>
-            <p className={styles.sectionSub}>
-              30 Tage kostenlos testen. Danach einer dieser Tarife — monatlich kündbar, keine Einrichtungsgebühr.
-            </p>
-          </div>
-
-          <div className={styles.pricingGrid}>
-            <PricingTier
-              name="Starter"
-              price="9"
-              tagline="Einzelunternehmer & Freelancer"
-              features={[
-                "1 Nutzer",
-                "Bis 50 Rechnungen / Monat",
-                "100 Belege / Monat mit KI",
-                "PDF-Rechnungen & Angebote",
-                "Zeiterfassung",
-                "E-Mail-Support",
-              ]}
-              cta="30 Tage gratis starten"
-              ctaHref="/register?plan=starter"
-            />
-            <PricingTier
-              featured
-              name="Business"
-              price="29"
-              tagline="Kleine GmbHs & Agenturen"
-              features={[
-                "Bis 3 Nutzer",
-                "Unbegrenzte Rechnungen",
-                "500 Belege / Monat mit KI",
-                "E-Rechnung (XRechnung + ZUGFeRD)",
-                "DATEV-Export",
-                "Bank-Import & Abgleich",
-                "Priority-E-Mail-Support",
-              ]}
-              cta="30 Tage gratis starten"
-              ctaHref="/register?plan=business"
-            />
-            <PricingTier
-              name="Pro"
-              price="79"
-              tagline="Wachsende Teams & Multi-Firma"
-              features={[
-                "Bis 10 Nutzer",
-                "Unbegrenzte Belege & Rechnungen",
-                "Multi-Firma (mehrere Mandanten)",
-                "API-Zugriff",
-                "Custom Branding",
-                "Telefon-Support",
-                "Dedicated Onboarding",
-              ]}
-              cta="30 Tage gratis starten"
-              ctaHref="/register?plan=pro"
-            />
-          </div>
-
-          <p className={styles.pricingFooterNote}>
-            Alle Preise netto pro Monat. Jährliche Zahlung spart 2 Monate. Keine Kreditkarte für den Trial.
-          </p>
-        </div>
-      </section>
+      <LandingPricingSection />
 
       <section className={styles.bigLogo} aria-hidden="true">
         <Image
@@ -393,48 +325,6 @@ export default async function LandingPage() {
           <span className={styles.footerCopy}>© 2026 Orange Octo. Alle Rechte vorbehalten.</span>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function PricingTier({
-  name,
-  price,
-  tagline,
-  features,
-  cta,
-  ctaHref,
-  featured,
-}: {
-  name: string;
-  price: string;
-  tagline: string;
-  features: string[];
-  cta: string;
-  ctaHref: string;
-  featured?: boolean;
-}) {
-  return (
-    <div className={`${styles.tierCard} ${featured ? styles.tierCardFeatured : ""}`}>
-      {featured && <div className={styles.tierBadge}>Beliebteste Wahl</div>}
-      <div className={styles.tierName}>{name}</div>
-      <div className={styles.tierTagline}>{tagline}</div>
-      <div className={styles.tierPriceRow}>
-        <span className={styles.tierCurrency}>€</span>
-        <span className={styles.tierPrice}>{price}</span>
-        <span className={styles.tierPer}>/ Monat</span>
-      </div>
-      <ul className={styles.tierFeatures}>
-        {features.map((f) => (
-          <li key={f}>
-            <span className={styles.tierCheck}>✓</span>
-            {f}
-          </li>
-        ))}
-      </ul>
-      <Link href={ctaHref} className={featured ? styles.tierCtaFeatured : styles.tierCta}>
-        {cta}
-      </Link>
     </div>
   );
 }

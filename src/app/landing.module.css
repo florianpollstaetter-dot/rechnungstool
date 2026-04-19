@@ -1796,6 +1796,84 @@
   max-width: 560px;
 }
 
+/* ─── BILLING TOGGLE ───────────────────────── */
+.billingToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 28px auto 0;
+  padding: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.billingOption {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border: none;
+  background: transparent;
+  font-family: "DM Sans", sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-sec);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.billingOption:hover {
+  color: var(--text);
+}
+
+.billingOptionActive {
+  background: var(--orange);
+  color: #fff;
+}
+
+.billingOptionActive:hover {
+  color: #fff;
+}
+
+.billingBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.billingOptionActive .billingBadge {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.tierBillingNote {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: -12px 0 20px;
+  line-height: 1.4;
+}
+
+.tierSavingsHint {
+  color: var(--text-sec);
+}
+
+.tierFootnote {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 10px;
+  line-height: 1.45;
+}
+
 /* ─── FOOTER LOGO WORD ─────────────────────── */
 .footerLogoWord {
   font-family: "Syne", sans-serif;
