@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import styles from "./landing.module.css";
 import LandingHeaderLogin from "./LandingHeaderLogin";
+import LandingInlineLogin from "./LandingInlineLogin";
 import LandingFeaturesGrid, { type LandingFeature } from "./LandingFeaturesGrid";
 import LandingPricingSection from "./LandingPricingSection";
 
@@ -233,7 +234,7 @@ export default async function LandingPage() {
                     </div>
                     <div className={styles.rowText}>
                       <div className={styles.rowName}>Rechnung #R-2026-041</div>
-                      <div className={styles.rowSub}>VR The Fans GmbH</div>
+                      <div className={styles.rowSub}>Mustermann GmbH</div>
                     </div>
                     <div>
                       <div className={styles.rowAmount}>€ 4.200</div>
@@ -249,7 +250,7 @@ export default async function LandingPage() {
                     </div>
                     <div className={styles.rowText}>
                       <div className={styles.rowName}>Angebot #A-2026-012</div>
-                      <div className={styles.rowSub}>Lola Agency</div>
+                      <div className={styles.rowSub}>Beispiel & Partner</div>
                     </div>
                     <div>
                       <div className={styles.rowAmount}>€ 8.500</div>
@@ -270,6 +271,8 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
+      <LandingInlineLogin />
 
       <section className={styles.features} id="features">
         <div className={styles.container}>
@@ -362,7 +365,7 @@ function ReceiptMock() {
         <div className={styles.mockFields}>
           <div className={styles.mockField}>
             <span className={styles.mockFieldLabel}>Lieferant</span>
-            <span className={styles.mockFieldValue}>OBI Markt Berlin</span>
+            <span className={styles.mockFieldValue}>Musterhandel KG</span>
             <span className={styles.mockFieldTag}>KI</span>
           </div>
           <div className={styles.mockField}>
@@ -397,7 +400,7 @@ function InvoiceMock() {
         <div className={styles.mockInvoiceHead}>
           <div>
             <div className={styles.mockFieldLabel}>An</div>
-            <div className={styles.mockFieldValue}>VR The Fans GmbH</div>
+            <div className={styles.mockFieldValue}>Mustermann GmbH</div>
             <div className={styles.mockFieldSmall}>Beethovenstr. 12 · 10115 Berlin</div>
           </div>
           <div className={styles.mockInvoiceMeta}>
@@ -494,7 +497,7 @@ function QuoteMock() {
       <div className={styles.mockQuoteLayout}>
         <div className={styles.mockQuoteRow}>
           <span>Kunde</span>
-          <span className={styles.mockFieldValue}>Lola Agency</span>
+          <span className={styles.mockFieldValue}>Beispiel & Partner</span>
         </div>
         <div className={styles.mockQuoteRow}>
           <span>Gültig bis</span>
@@ -542,17 +545,17 @@ function TimeMock() {
       <div className={styles.mockTimeRows}>
         <div className={styles.mockTimeRow}>
           <span className={styles.mockTimeDot} style={{ background: "#F7901E" }} />
-          <span>VR The Fans · Redesign</span>
+          <span>Mustermann GmbH · Redesign</span>
           <span className={styles.mockFieldValue}>14,5h</span>
         </div>
         <div className={styles.mockTimeRow}>
           <span className={styles.mockTimeDot} style={{ background: "#00d4ff" }} />
-          <span>Lola Agency · Branding</span>
+          <span>Beispiel & Partner · Branding</span>
           <span className={styles.mockFieldValue}>7,0h</span>
         </div>
         <div className={styles.mockTimeRow}>
           <span className={styles.mockTimeDot} style={{ background: "#22c55e" }} />
-          <span>55 Films · Beratung</span>
+          <span>Acme Consulting · Beratung</span>
           <span className={styles.mockFieldValue}>3,0h</span>
         </div>
       </div>

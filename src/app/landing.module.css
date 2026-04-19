@@ -38,7 +38,7 @@
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 32px;
+  padding: 0 clamp(24px, 5vw, 56px);
 }
 
 /* ─── NAV ──────────────────────────────── */
@@ -57,7 +57,7 @@
 .navInner {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 32px;
+  padding: 0 clamp(24px, 5vw, 56px);
   min-height: 96px;
   display: flex;
   align-items: center;
@@ -155,9 +155,10 @@
   min-height: 100vh;
   padding-top: 96px;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   position: relative;
-  overflow: hidden;
+  /* overflow-x clips the background decorations horizontally; overflow-y must stay visible for position: sticky on the dashboard mock to work */
+  overflow-x: clip;
 }
 
 .hero::before {
@@ -190,11 +191,11 @@
   z-index: 1;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 80px 32px;
+  padding: 80px clamp(24px, 5vw, 56px);
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 80px;
-  align-items: center;
+  align-items: start;
   width: 100%;
 }
 
@@ -326,7 +327,10 @@
 
 /* ─── DASHBOARD MOCK ──────────────────────────────── */
 .dashboardMock {
-  position: relative;
+  position: sticky;
+  /* nav is 96px tall + ~24px breathing room */
+  top: 120px;
+  align-self: start;
 }
 
 .dashCard {
@@ -1958,6 +1962,8 @@
   }
   .dashboardMock {
     order: 2;
+    position: static;
+    top: auto;
   }
 }
 
@@ -2118,6 +2124,161 @@
   }
   .modalPanel {
     padding: 48px 24px 32px;
+  }
+}
+
+/* ─── EMBEDDED LOGIN ────────────────────────── */
+.embeddedLoginSection {
+  padding: 80px 0 40px;
+}
+
+.embeddedLoginCard {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 56px;
+  align-items: center;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 44px 48px;
+  background: linear-gradient(180deg, rgba(247, 144, 30, 0.08) 0%, var(--surface) 60%);
+  border: 1px solid rgba(247, 144, 30, 0.25);
+  border-radius: 22px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.embeddedLoginHeadline {
+  font-family: "Syne", sans-serif;
+  font-size: clamp(26px, 2.6vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 8px 0 14px;
+  color: var(--text);
+}
+
+.embeddedLoginBody {
+  font-size: 15px;
+  color: var(--text-sec);
+  line-height: 1.6;
+  font-weight: 300;
+  margin: 0;
+  max-width: 360px;
+}
+
+.embeddedLoginLink {
+  color: var(--orange);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.embeddedLoginLink:hover {
+  text-decoration: underline;
+}
+
+.embeddedLoginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: rgba(10, 12, 18, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px 22px 20px;
+}
+
+.embeddedLoginLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.embeddedLoginInput {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: "DM Sans", sans-serif;
+  font-size: 14.5px;
+  padding: 11px 14px;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.embeddedLoginInput::placeholder {
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.embeddedLoginInput:focus {
+  outline: none;
+  border-color: rgba(247, 144, 30, 0.55);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.embeddedLoginSubmit {
+  margin-top: 4px;
+  padding: 12px 18px;
+  background: var(--orange);
+  color: #fff;
+  border: 1px solid var(--orange);
+  border-radius: 10px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.embeddedLoginSubmit:hover:not(:disabled) {
+  background: #e8820f;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(247, 144, 30, 0.3);
+}
+
+.embeddedLoginSubmit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.embeddedLoginErrorRow {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #fda4af;
+  font-size: 12.5px;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.embeddedLoginMeta {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.embeddedLoginMetaLink {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.embeddedLoginMetaLink:hover {
+  color: var(--orange);
+  text-decoration: underline;
+}
+
+@media (max-width: 760px) {
+  .embeddedLoginCard {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 32px 24px;
+  }
+  .embeddedLoginBody {
+    max-width: none;
   }
 }
 
