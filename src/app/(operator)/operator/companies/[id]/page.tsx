@@ -124,6 +124,21 @@ export default function OperatorCompanyDetail() {
           email: user.email,
           password: data.temp_password,
         });
+      } else if (action === "send_temp_password_email") {
+        if (data.sent === true) {
+          setFlash(`Passwort-Reset Email an ${user.email} gesendet.`);
+        } else if (typeof data.temp_password === "string") {
+          setTempPasswordInfo({
+            user: user.display_name || user.email,
+            email: user.email,
+            password: data.temp_password,
+          });
+          if (data.reason === "not_configured") {
+            setFlash("Email-Versand nicht konfiguriert — nutze Kopieren / mailto.");
+          } else if (data.reason === "error") {
+            setFlash(`Email-Versand fehlgeschlagen: ${data.message || "unbekannter Fehler"} — nutze mailto.`);
+          }
+        }
       } else {
         setFlash("Erledigt");
       }
@@ -536,12 +551,18 @@ function UserActionsModal({
               <p className="text-xs text-amber-700 dark:text-amber-300">
                 Das aktuelle Passwort wird sofort ungültig. Der User wird beim nächsten Login zur Passwort-Änderung gezwungen.
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button
-                  onClick={() => onAction(user, "set_temp_password")}
+                  onClick={() => onAction(user, "send_temp_password_email")}
                   className="px-3 py-1.5 text-xs font-medium bg-amber-500 text-white rounded-md hover:bg-amber-600 transition-colors"
                 >
-                  Ja, Passwort zurücksetzen
+                  Zurücksetzen + E-Mail senden
+                </button>
+                <button
+                  onClick={() => onAction(user, "set_temp_password")}
+                  className="px-3 py-1.5 text-xs font-medium bg-[var(--surface)] border border-amber-500/40 text-amber-700 dark:text-amber-300 rounded-md hover:bg-amber-500/10 transition-colors"
+                >
+                  Nur zurücksetzen (Passwort anzeigen)
                 </button>
                 <button
                   onClick={() => setConfirmingTempPassword(false)}

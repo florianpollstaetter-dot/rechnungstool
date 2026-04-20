@@ -1,4 +1,6 @@
 import { requireSuperadmin, createServiceClient, logOperatorAction } from "@/lib/operator";
+import { sendEmail, isEmailConfigured } from "@/lib/email";
+import { buildTempPasswordEmail } from "@/lib/emails/temp-password";
 
 export async function GET() {
   const auth = await requireSuperadmin();
@@ -114,6 +116,77 @@ export async function PATCH(request: Request) {
 
     await logOperatorAction(auth.user!.id, "user.set_temp_password", "user", auth_user_id);
     return Response.json({ temp_password: tempPassword });
+  }
+
+  if (userAction === "send_temp_password_email") {
+    const tempPassword = generateTempPassword();
+
+    const { error: updateError } = await service.auth.admin.updateUserById(auth_user_id, {
+      password: tempPassword,
+    });
+    if (updateError) return Response.json({ error: updateError.message }, { status: 500 });
+
+    const { error: profileError } = await service
+      .from("user_profiles")
+      .update({ must_change_password: true })
+      .eq("auth_user_id", auth_user_id);
+    if (profileError) return Response.json({ error: profileError.message }, { status: 500 });
+
+    const { data: profile } = await service
+      .from("user_profiles")
+      .select("email, display_name")
+      .eq("auth_user_id", auth_user_id)
+      .maybeSingle();
+
+    const recipientEmail = (profile?.email as string) || (plan as string) || "";
+    const displayName = (profile?.display_name as string) || recipientEmail;
+
+    const { data: membership } = await service
+      .from("company_members")
+      .select("company_id, companies(name)")
+      .eq("user_id", auth_user_id)
+      .limit(1)
+      .maybeSingle();
+    const rawCompanies = (membership?.companies as unknown) as
+      | { name?: string }
+      | { name?: string }[]
+      | null
+      | undefined;
+    const companyRecord = Array.isArray(rawCompanies) ? rawCompanies[0] : rawCompanies;
+    const companyName = companyRecord?.name || "Orange Octo";
+
+    await logOperatorAction(auth.user!.id, "user.set_temp_password", "user", auth_user_id);
+
+    if (!isEmailConfigured()) {
+      return Response.json({ sent: false, reason: "not_configured", temp_password: tempPassword });
+    }
+
+    if (!recipientEmail) {
+      return Response.json({ sent: false, reason: "error", message: "E-Mail-Adresse fehlt", temp_password: tempPassword });
+    }
+
+    const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "https://orange-octo.com";
+    const loginUrl = `${origin}/login`;
+    const payload = buildTempPasswordEmail({
+      to: recipientEmail,
+      displayName,
+      tempPassword,
+      companyName,
+      loginUrl,
+    });
+
+    const result = await sendEmail(payload);
+    if (result.sent) {
+      await logOperatorAction(auth.user!.id, "user.send_temp_password_email", "user", auth_user_id);
+      return Response.json({ sent: true, email: recipientEmail });
+    }
+
+    return Response.json({
+      sent: false,
+      reason: result.reason,
+      message: result.reason === "error" ? result.message : undefined,
+      temp_password: tempPassword,
+    });
   }
 
   return Response.json({ error: "Unbekannte Aktion" }, { status: 400 });
