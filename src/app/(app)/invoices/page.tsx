@@ -42,7 +42,7 @@ function InvoicesPage() {
     { value: "ueberfaellig", label: t("invoiceStatus.ueberfaellig") },
   ];
 
-  const { isReadOnly } = useCompany();
+  const { company, isReadOnly } = useCompany();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
@@ -147,7 +147,7 @@ function InvoicesPage() {
         const res = await fetch("/api/einvoice/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ invoiceId: inv.id }),
+          body: JSON.stringify({ invoiceId: inv.id, companyId: company.id }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(formatValidation(data));
@@ -163,7 +163,7 @@ function InvoicesPage() {
         const res = await fetch("/api/einvoice/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ invoiceId: inv.id, pdfBase64: base64 }),
+          body: JSON.stringify({ invoiceId: inv.id, companyId: company.id, pdfBase64: base64 }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(formatValidation(data));

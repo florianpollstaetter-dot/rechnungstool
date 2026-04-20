@@ -1,7 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { requireCompanyMembership } from "@/lib/api-auth";
 
 const REPLICATE_MODEL = process.env.REPLICATE_IMAGE_MODEL || "black-forest-labs/flux-1.1-pro";
 
@@ -64,6 +61,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "prompt required" }, { status: 400 });
   }
 
+  const auth = await requireCompanyMembership(companyId);
+  if (!auth.ok) {
+    return Response.json({ error: auth.error }, { status: auth.status });
+  }
+
   const token = process.env.REPLICATE_API_TOKEN;
   if (!token) {
     return Response.json(
@@ -75,8 +77,8 @@ export async function POST(request: Request) {
   const imageCount = Math.min(Math.max(1, Number(count) || 1), 5);
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const activeCompanyId = companyId || "vrthefans";
+    const supabase = auth.service;
+    const activeCompanyId = companyId as string;
     const savedImages: { id: string; url: string }[] = [];
 
     for (let i = 0; i < imageCount; i++) {

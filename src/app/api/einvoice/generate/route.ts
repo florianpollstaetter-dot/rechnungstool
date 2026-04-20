@@ -1,32 +1,32 @@
-import { createClient } from "@supabase/supabase-js";
 import { generateCiiXml } from "@/lib/einvoice/cii-xml";
 import { generateUblXml } from "@/lib/einvoice/ubl-xml";
 import { embedZugferdXml } from "@/lib/einvoice/zugferd-embed";
 import { validateEInvoice } from "@/lib/einvoice/validator";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { requireCompanyMembership } from "@/lib/api-auth";
 
 /**
  * POST /api/einvoice/generate
- * Body: { invoiceId: string, pdfBytes?: string (base64, required for zugferd) }
+ * Body: { invoiceId: string, companyId: string, pdfBytes?: string (base64, required for zugferd) }
  * Returns: { xml: string, format: string } or { pdf: string (base64), xml: string } for ZUGFeRD
  */
 export async function POST(request: Request) {
   const body = await request.json();
-  const { invoiceId, pdfBase64 } = body;
+  const { invoiceId, companyId, pdfBase64 } = body;
 
   if (!invoiceId) {
     return Response.json({ error: "invoiceId required" }, { status: 400 });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const auth = await requireCompanyMembership(companyId);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
+  const supabase = auth.service;
 
-  // Fetch invoice
+  // Fetch invoice AND verify tenant ownership in one query
   const { data: invoice } = await supabase
     .from("invoices")
     .select("*")
     .eq("id", invoiceId)
+    .eq("company_id", companyId)
     .single();
   if (!invoice) {
     return Response.json({ error: "Invoice not found" }, { status: 404 });
@@ -39,11 +39,12 @@ export async function POST(request: Request) {
     .eq("invoice_id", invoiceId)
     .order("position", { ascending: true });
 
-  // Fetch customer
+  // Fetch customer (scope to same company as a defense-in-depth check)
   const { data: customer } = await supabase
     .from("customers")
     .select("*")
     .eq("id", invoice.customer_id)
+    .eq("company_id", companyId)
     .single();
   if (!customer) {
     return Response.json({ error: "Customer not found" }, { status: 404 });
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
   const { data: settings } = await supabase
     .from("company_settings")
     .select("*")
-    .eq("company_id", invoice.company_id)
+    .eq("company_id", companyId)
     .single();
   if (!settings) {
     return Response.json({ error: "Company settings not found" }, { status: 404 });

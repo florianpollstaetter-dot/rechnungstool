@@ -1,17 +1,21 @@
-import { createClient } from "@supabase/supabase-js";
 import { callClaude, calculateCostEUR } from "@/lib/ai-client";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { requireCompanyMembership } from "@/lib/api-auth";
 
 export async function POST(request: Request) {
-  const { receiptId } = await request.json();
+  const { receiptId, companyId } = await request.json();
   if (!receiptId) return Response.json({ error: "receiptId required" }, { status: 400 });
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const auth = await requireCompanyMembership(companyId);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
+  const supabase = auth.service;
 
-  // Get receipt
-  const { data: receipt } = await supabase.from("receipts").select("*").eq("id", receiptId).single();
+  // Get receipt AND verify tenant ownership in one query
+  const { data: receipt } = await supabase
+    .from("receipts")
+    .select("*")
+    .eq("id", receiptId)
+    .eq("company_id", companyId)
+    .single();
   if (!receipt) return Response.json({ error: "Receipt not found" }, { status: 404 });
 
   // Update status to analyzing

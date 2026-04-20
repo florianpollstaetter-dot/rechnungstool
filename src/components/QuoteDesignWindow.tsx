@@ -19,6 +19,7 @@ import {
   upsertDesignSelection,
 } from "@/lib/db";
 import { useI18n } from "@/lib/i18n-context";
+import { useCompany } from "@/lib/company-context";
 
 interface Props {
   quote: Quote;
@@ -754,6 +755,7 @@ const PREVIEW_COMPONENTS: Record<Exclude<QuoteDesignKey, "ai_custom">, React.Com
 
 export default function QuoteDesignWindow({ quote, customer, settings, onClose, onPreview }: Props) {
   const { t } = useI18n();
+  const { company } = useCompany();
   const [activeTab, setActiveTab] = useState<"designs" | "photos" | "ai">("designs");
   const [selectedDesign, setSelectedDesign] = useState<QuoteDesignKey>("classic");
   const [photos, setPhotos] = useState<QuoteDesignPhoto[]>([]);
@@ -922,7 +924,7 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
       const res = await fetch("/api/generate-design-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: aiPrompt, count: 1 }),
+        body: JSON.stringify({ prompt: aiPrompt, count: 1, companyId: company.id }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Generation failed" }));

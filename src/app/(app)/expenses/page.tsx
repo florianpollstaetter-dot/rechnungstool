@@ -232,7 +232,7 @@ export default function ExpensesPage() {
       const res = await fetch("/api/analyze-expense", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expenseItemId: id }),
+        body: JSON.stringify({ expenseItemId: id, companyId: company.id }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: t("expenses.analysisFailed") }));

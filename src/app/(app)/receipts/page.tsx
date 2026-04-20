@@ -36,7 +36,7 @@ const ACCOUNT_OPTIONS = [
 
 export default function ReceiptsPage() {
   const { t } = useI18n();
-  const { isReadOnly } = useCompany();
+  const { company, isReadOnly } = useCompany();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -255,7 +255,7 @@ export default function ReceiptsPage() {
       const res = await fetch("/api/analyze-receipt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ receiptId: id }),
+        body: JSON.stringify({ receiptId: id, companyId: company.id }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: t("receipts.analysisFailed") }));

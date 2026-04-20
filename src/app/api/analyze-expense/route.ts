@@ -1,17 +1,21 @@
-import { createClient } from "@supabase/supabase-js";
 import { callClaude, calculateCostEUR } from "@/lib/ai-client";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { requireCompanyMembership } from "@/lib/api-auth";
 
 export async function POST(request: Request) {
-  const { expenseItemId } = await request.json();
+  const { expenseItemId, companyId } = await request.json();
   if (!expenseItemId) return Response.json({ error: "expenseItemId required" }, { status: 400 });
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const auth = await requireCompanyMembership(companyId);
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
+  const supabase = auth.service;
 
-  // Get expense item
-  const { data: item } = await supabase.from("expense_items").select("*").eq("id", expenseItemId).single();
+  // Get expense item AND verify tenant ownership in one query
+  const { data: item } = await supabase
+    .from("expense_items")
+    .select("*")
+    .eq("id", expenseItemId)
+    .eq("company_id", companyId)
+    .single();
   if (!item) return Response.json({ error: "Expense item not found" }, { status: 404 });
   if (!item.receipt_file_path) return Response.json({ error: "No receipt file attached" }, { status: 400 });
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Invoice, Quote, Customer, CompanySettings, EInvoiceFormat } from "@/lib/types";
 import { updateInvoice } from "@/lib/db";
+import { useCompany } from "@/lib/company-context";
 
 interface Props {
   invoice?: Invoice;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function PDFDownloadButton({ invoice, quote, customer, settings, onPreview, onInvoiceUpdated }: Props) {
+  const { company } = useCompany();
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [eInvoiceLoading, setEInvoiceLoading] = useState(false);
@@ -139,7 +141,7 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
       const res = await fetch("/api/einvoice/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: invoice.id }),
+        body: JSON.stringify({ invoiceId: invoice.id, companyId: company.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(formatValidationMessage(data));
@@ -158,7 +160,7 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
       const res = await fetch("/api/einvoice/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: invoice.id, pdfBase64 }),
+        body: JSON.stringify({ invoiceId: invoice.id, companyId: company.id, pdfBase64 }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(formatValidationMessage(data));
