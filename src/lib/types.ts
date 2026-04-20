@@ -578,14 +578,36 @@ export interface Template {
 
 // SCH-440 — Quote Design System
 
-export type QuoteDesignKey = "classic" | "modern" | "minimal" | "bold";
+export type QuoteDesignKey = "classic" | "modern" | "minimal" | "bold" | "ai_custom";
 
 export const QUOTE_DESIGN_OPTIONS: { value: QuoteDesignKey; label: string; label_en: string }[] = [
   { value: "classic", label: "Klassisch", label_en: "Classic" },
   { value: "modern", label: "Modern", label_en: "Modern" },
   { value: "minimal", label: "Minimalistisch", label_en: "Minimal" },
   { value: "bold", label: "Markant", label_en: "Bold" },
+  { value: "ai_custom", label: "AI Custom", label_en: "AI Custom" },
 ];
+
+export interface QuoteDesignAIPayload {
+  coverTitle: string;
+  coverSubtitle: string;
+  coverTagline: string;
+  introText: string;
+  accentColor: string;
+  recommendedPalette: {
+    accent: string;
+    accentLight: string;
+    dark: string;
+    bg: string;
+  };
+  coverHtml?: string;
+  generatedAt: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens: number;
+  costUSD: number;
+}
 
 export interface QuoteDesignPhoto {
   id: string;
@@ -606,6 +628,7 @@ export interface QuoteDesignSelection {
   quote_id: string;
   design_key: QuoteDesignKey;
   photo_ids: string[];
+  ai_generated_payload: QuoteDesignAIPayload | null;
   created_at: string;
   updated_at: string;
 }

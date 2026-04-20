@@ -33,6 +33,7 @@ import {
   QuoteDesignPhoto,
   QuoteDesignSelection,
   QuoteDesignKey,
+  QuoteDesignAIPayload,
 } from "./types";
 
 const DEFAULT_SETTINGS: CompanySettings = {
@@ -1731,12 +1732,24 @@ function mapDesignSelection(row: Record<string, unknown>): QuoteDesignSelection 
     if (typeof raw === "string") photoIds = JSON.parse(raw);
     else if (Array.isArray(raw)) photoIds = raw as string[];
   } catch { /* empty */ }
+
+  let aiPayload: QuoteDesignAIPayload | null = null;
+  const rawPayload = row.ai_generated_payload;
+  if (rawPayload) {
+    try {
+      aiPayload = typeof rawPayload === "string"
+        ? (JSON.parse(rawPayload) as QuoteDesignAIPayload)
+        : (rawPayload as QuoteDesignAIPayload);
+    } catch { /* empty */ }
+  }
+
   return {
     id: row.id as string,
     company_id: row.company_id as string,
     quote_id: row.quote_id as string,
     design_key: (row.design_key as QuoteDesignKey) || "classic",
     photo_ids: photoIds,
+    ai_generated_payload: aiPayload,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };
@@ -1840,20 +1853,22 @@ export async function getDesignSelection(quoteId: string): Promise<QuoteDesignSe
 export async function upsertDesignSelection(
   quoteId: string,
   designKey: QuoteDesignKey,
-  photoIds: string[]
+  photoIds: string[],
+  aiPayload?: QuoteDesignAIPayload | null
 ): Promise<QuoteDesignSelection> {
+  const row: Record<string, unknown> = {
+    company_id: getActiveCompanyId(),
+    quote_id: quoteId,
+    design_key: designKey,
+    photo_ids: JSON.stringify(photoIds),
+    updated_at: new Date().toISOString(),
+  };
+  if (aiPayload !== undefined) {
+    row.ai_generated_payload = aiPayload;
+  }
   const { data } = await supabase()
     .from("quote_design_selections")
-    .upsert(
-      {
-        company_id: getActiveCompanyId(),
-        quote_id: quoteId,
-        design_key: designKey,
-        photo_ids: JSON.stringify(photoIds),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "quote_id" }
-    )
+    .upsert(row, { onConflict: "quote_id" })
     .select()
     .single();
   return mapDesignSelection(data!);

@@ -7,6 +7,7 @@ import {
   CompanySettings,
   QuoteDesignKey,
   QuoteDesignPhoto,
+  QuoteDesignAIPayload,
   QUOTE_DESIGN_OPTIONS,
 } from "@/lib/types";
 import {
@@ -650,14 +651,101 @@ function BoldPreview({ quote, customer, settings }: PreviewProps) {
   );
 }
 
+// ── AI Custom ────────────────────────────────────────────────────────────────
+// Live preview of the Opus 4.7-generated cover. Falls back to a placeholder
+// hero when no payload is present yet (before the user clicks Generate).
+
+function AiCustomPreview({ quote, customer, settings, aiPayload }: PreviewProps & { aiPayload: QuoteDesignAIPayload | null }) {
+  const clientName = (customer.company || customer.name).substring(0, 26);
+  const palette = aiPayload?.recommendedPalette;
+  const accent = palette?.accent || "#6D28D9";
+  const accentLight = palette?.accentLight || "#EDE9FE";
+  const dark = palette?.dark || "#111827";
+  const bg = palette?.bg || "#FFFFFF";
+
+  const tagline = aiPayload?.coverTagline || (quote.language === "en" ? "PROPOSAL" : "ANGEBOT");
+  const title = (aiPayload?.coverTitle || quote.project_description || (quote.language === "en" ? "AI Custom Quote" : "AI-generiertes Angebot")).substring(0, 38);
+  const subtitle = (aiPayload?.coverSubtitle || (quote.language === "en" ? "Generate with Opus 4.7 for a tailor-made cover" : "Mit Opus 4.7 generieren für ein maßgeschneidertes Cover")).substring(0, 54);
+
+  return (
+    <div
+      className="w-full h-full overflow-hidden relative"
+      style={{ backgroundColor: bg, fontFamily: "Inter, system-ui, sans-serif" }}
+    >
+      <div style={{ height: 5, backgroundColor: accent }} />
+
+      <div style={{ padding: "8px 14px 6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {settings.logo_url ? (
+          <img src={settings.logo_url} alt="" style={{ height: 16, maxWidth: 56, objectFit: "contain" }} />
+        ) : (
+          <span style={{ fontSize: 7, fontWeight: 700, color: dark }}>{settings.company_name || "Ihr Unternehmen"}</span>
+        )}
+        <span style={{ fontSize: 5, color: "#6B7280" }}>{settings.zip} {settings.city}</span>
+      </div>
+
+      <div style={{ padding: "8px 14px 6px" }}>
+        <div style={{ fontSize: 4.5, color: accent, textTransform: "uppercase", letterSpacing: 2, marginBottom: 3 }}>
+          {tagline}
+        </div>
+        <div style={{ height: 1, width: 20, backgroundColor: accent, marginBottom: 5 }} />
+        <div style={{ fontSize: 8.5, fontWeight: 700, color: dark, lineHeight: 1.22, marginBottom: 4 }}>{title}</div>
+        <div style={{ fontSize: 5, color: "#6B7280", marginBottom: 5 }}>{subtitle}</div>
+        <div style={{ fontSize: 5, color: "#6B7280" }}>
+          {quote.language === "en" ? "for" : "für"}:{" "}
+          <span style={{ color: dark, fontWeight: 600 }}>{clientName}</span>
+        </div>
+      </div>
+
+      <div
+        style={{
+          margin: "0 14px 8px",
+          backgroundColor: accentLight,
+          borderLeft: `2px solid ${accent}`,
+          padding: "6px 8px",
+          fontSize: 4.5,
+          color: dark,
+          lineHeight: 1.55,
+          maxHeight: 44,
+          overflow: "hidden",
+        }}
+      >
+        {aiPayload?.introText || (quote.language === "en"
+          ? "After you click Generate, Opus 4.7 will compose a cover title, subtitle, tagline, and an opening paragraph tailored to this customer and project."
+          : "Nach Klick auf Generieren entwirft Opus 4.7 einen maßgeschneiderten Cover-Titel, Subtitel, Tagline und Einleitungsabsatz für diesen Kunden und dieses Projekt.")}
+      </div>
+
+      <div style={{ display: "flex", gap: 5, padding: "0 14px 8px" }}>
+        {[
+          { label: "Nr.", value: quote.quote_number },
+          { label: "Datum", value: previewDate(quote.quote_date) },
+          { label: "Gültig", value: previewDate(quote.valid_until) },
+        ].map((chip, i) => (
+          <div key={i} style={{ flex: 1, backgroundColor: accentLight, borderTop: `2px solid ${accent}`, padding: "4px 4px" }}>
+            <div style={{ fontSize: 4, color: accent, textTransform: "uppercase" }}>{chip.label}</div>
+            <div style={{ fontSize: 5.5, fontWeight: 700, color: dark, marginTop: 1 }}>{chip.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {!aiPayload && (
+        <div style={{ position: "absolute", bottom: 4, left: 0, right: 0, textAlign: "center", fontSize: 5, color: "#9333EA", fontWeight: 600 }}>
+          ⚡ Opus 4.7
+        </div>
+      )}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, backgroundColor: accent }} />
+    </div>
+  );
+}
+
 const DESIGN_LABELS: Record<QuoteDesignKey, { label: string; tagline: string }> = {
-  classic: { label: "Classic", tagline: "Gold · Elegant · Zeitlos" },
-  modern:  { label: "Modern",  tagline: "Blau · Klar · Strukturiert" },
-  minimal: { label: "Minimal", tagline: "Monochrom · Editorial · Clean" },
-  bold:    { label: "Bold",    tagline: "Teal · Kontrast · Professionell" },
+  classic:   { label: "Classic",   tagline: "Gold · Elegant · Zeitlos" },
+  modern:    { label: "Modern",    tagline: "Blau · Klar · Strukturiert" },
+  minimal:   { label: "Minimal",   tagline: "Monochrom · Editorial · Clean" },
+  bold:      { label: "Bold",      tagline: "Teal · Kontrast · Professionell" },
+  ai_custom: { label: "AI Custom", tagline: "Opus 4.7 · Maßgeschneidert" },
 };
 
-const PREVIEW_COMPONENTS: Record<QuoteDesignKey, React.ComponentType<PreviewProps>> = {
+const PREVIEW_COMPONENTS: Record<Exclude<QuoteDesignKey, "ai_custom">, React.ComponentType<PreviewProps>> = {
   classic: ClassicPreview,
   modern:  ModernPreview,
   minimal: MinimalPreview,
@@ -678,6 +766,12 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
   const [saving, setSaving] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [displayMode, setDisplayMode] = useState(quote.display_mode);
+  const [aiDesignPayload, setAiDesignPayload] = useState<QuoteDesignAIPayload | null>(null);
+  const [aiDesignBusy, setAiDesignBusy] = useState(false);
+  const [aiDesignError, setAiDesignError] = useState<string | null>(null);
+  const [aiDesignWarn, setAiDesignWarn] = useState<string | null>(null);
+  const [aiBrandTone, setAiBrandTone] = useState<"professional" | "warm" | "bold" | "minimal" | "playful" | "luxurious">("professional");
+  const [aiIndustry, setAiIndustry] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async () => {
@@ -689,6 +783,7 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
     if (selection) {
       setSelectedDesign(selection.design_key);
       setSelectedPhotoIds(selection.photo_ids);
+      setAiDesignPayload(selection.ai_generated_payload ?? null);
     }
   }, [quote.id]);
 
@@ -731,9 +826,53 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
   async function handleSave() {
     setSaving(true);
     try {
-      await upsertDesignSelection(quote.id, selectedDesign, selectedPhotoIds);
+      await upsertDesignSelection(quote.id, selectedDesign, selectedPhotoIds, aiDesignPayload);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleGenerateAiDesign() {
+    setAiDesignBusy(true);
+    setAiDesignError(null);
+    setAiDesignWarn(null);
+    try {
+      const res = await fetch("/api/generate-quote-design", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quoteId: quote.id,
+          customer: {
+            name: customer.name,
+            company: customer.company,
+            city: customer.city,
+            country: customer.country,
+          },
+          industry: aiIndustry.trim() || undefined,
+          projectDescription: quote.project_description || undefined,
+          brandTone: aiBrandTone,
+          language: quote.language || "de",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.payload) {
+        setAiDesignPayload(null);
+        // SCH-562: fallback → Minimal + warn
+        setSelectedDesign("minimal");
+        setAiDesignWarn(
+          data?.error
+            ? `${data.error}${" "}— using Minimal template as fallback.`
+            : "AI design generation failed. Using Minimal template as fallback.",
+        );
+        return;
+      }
+      setAiDesignPayload(data.payload as QuoteDesignAIPayload);
+    } catch (err) {
+      setAiDesignPayload(null);
+      setSelectedDesign("minimal");
+      setAiDesignError(err instanceof Error ? err.message : "AI design generation failed");
+    } finally {
+      setAiDesignBusy(false);
     }
   }
 
@@ -763,6 +902,7 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
           customer={customer}
           settings={absSettings}
           photoUrls={photoUrls}
+          aiPayload={aiDesignPayload}
         />
       ).toBlob();
 
@@ -866,9 +1006,8 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
             {activeTab === "designs" && (
               <div>
                 <h3 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">{t("design.chooseDesign")}</h3>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-5">
                   {QUOTE_DESIGN_OPTIONS.map((opt) => {
-                    const PreviewComponent = PREVIEW_COMPONENTS[opt.value];
                     const meta = DESIGN_LABELS[opt.value];
                     const isSelected = selectedDesign === opt.value;
                     return (
@@ -883,12 +1022,24 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
                       >
                         {/* Live mini-preview */}
                         <div className="aspect-[3/4] relative w-full overflow-hidden">
-                          <PreviewComponent quote={quote} customer={customer} settings={settings} />
+                          {opt.value === "ai_custom" ? (
+                            <AiCustomPreview quote={quote} customer={customer} settings={settings} aiPayload={aiDesignPayload} />
+                          ) : (
+                            (() => {
+                              const PreviewComponent = PREVIEW_COMPONENTS[opt.value];
+                              return <PreviewComponent quote={quote} customer={customer} settings={settings} />;
+                            })()
+                          )}
                           {isSelected && (
                             <div className="absolute top-2 right-2 w-6 h-6 bg-[var(--accent)] rounded-full flex items-center justify-center shadow-md z-10">
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="20 6 9 17 4 12" />
                               </svg>
+                            </div>
+                          )}
+                          {opt.value === "ai_custom" && (
+                            <div className="absolute top-2 left-2 bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm z-10">
+                              OPUS 4.7
                             </div>
                           )}
                         </div>
@@ -903,6 +1054,85 @@ export default function QuoteDesignWindow({ quote, customer, settings, onClose, 
                     );
                   })}
                 </div>
+
+                {selectedDesign === "ai_custom" && (
+                  <div className="mt-6 bg-[var(--background)] border border-purple-500/40 rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-[var(--text-primary)]">AI Custom Cover & Intro</h4>
+                        <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                          Opus 4.7 composes a bespoke cover page (title, subtitle, tagline, palette) and an opener paragraph for this specific quote.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleGenerateAiDesign}
+                        disabled={aiDesignBusy}
+                        className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-500 transition disabled:opacity-60 whitespace-nowrap"
+                      >
+                        {aiDesignBusy
+                          ? (quote.language === "en" ? "Generating..." : "Generiere...")
+                          : aiDesignPayload
+                            ? (quote.language === "en" ? "Regenerate" : "Neu generieren")
+                            : (quote.language === "en" ? "Generate" : "Generieren")}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-[11px] uppercase tracking-wider text-[var(--text-muted)] mb-1">Brand tone</label>
+                        <select
+                          value={aiBrandTone}
+                          onChange={(e) => setAiBrandTone(e.target.value as typeof aiBrandTone)}
+                          className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-[var(--text-primary)]"
+                        >
+                          <option value="professional">professional</option>
+                          <option value="warm">warm</option>
+                          <option value="bold">bold</option>
+                          <option value="minimal">minimal</option>
+                          <option value="playful">playful</option>
+                          <option value="luxurious">luxurious</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] uppercase tracking-wider text-[var(--text-muted)] mb-1">Industry (optional)</label>
+                        <input
+                          type="text"
+                          value={aiIndustry}
+                          onChange={(e) => setAiIndustry(e.target.value)}
+                          placeholder={quote.language === "en" ? "e.g. VR events, real estate" : "z.B. VR-Events, Immobilien"}
+                          className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm text-[var(--text-primary)]"
+                        />
+                      </div>
+                    </div>
+
+                    {aiDesignPayload && (
+                      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-xs text-[var(--text-secondary)] space-y-1">
+                        <div><span className="text-[var(--text-muted)]">Title:</span> <span className="text-[var(--text-primary)] font-medium">{aiDesignPayload.coverTitle}</span></div>
+                        <div><span className="text-[var(--text-muted)]">Subtitle:</span> {aiDesignPayload.coverSubtitle}</div>
+                        <div><span className="text-[var(--text-muted)]">Tagline:</span> {aiDesignPayload.coverTagline}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[var(--text-muted)]">Accent:</span>
+                          <span className="inline-block w-4 h-4 rounded border border-[var(--border)]" style={{ backgroundColor: aiDesignPayload.accentColor }} />
+                          <code className="text-[var(--text-primary)]">{aiDesignPayload.accentColor}</code>
+                        </div>
+                        <div className="text-[10px] text-[var(--text-muted)] pt-1 border-t border-[var(--border)] mt-2">
+                          {aiDesignPayload.model} · in {aiDesignPayload.inputTokens} / out {aiDesignPayload.outputTokens} / cached {aiDesignPayload.cachedInputTokens} tokens · ${aiDesignPayload.costUSD.toFixed(4)} USD
+                        </div>
+                      </div>
+                    )}
+
+                    {aiDesignError && (
+                      <div className="mt-3 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 text-xs text-rose-400">
+                        {aiDesignError}
+                      </div>
+                    )}
+                    {aiDesignWarn && (
+                      <div className="mt-3 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 text-xs text-amber-400">
+                        {aiDesignWarn}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

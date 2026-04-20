@@ -9,7 +9,7 @@ import {
   Image,
   Font,
 } from "@react-pdf/renderer";
-import { Quote, Customer, CompanySettings, Reference, UNIT_OPTIONS, Language, QuoteDesignKey } from "@/lib/types";
+import { Quote, Customer, CompanySettings, Reference, UNIT_OPTIONS, Language, QuoteDesignKey, QuoteDesignAIPayload } from "@/lib/types";
 import { t } from "@/lib/i18n";
 
 Font.register({
@@ -737,6 +737,160 @@ function BoldDesign({ quote, customer, settings, references, photoUrls }: Design
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// DESIGN 5: AI CUSTOM — cover + intro driven by Opus 4.7 payload
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface AiDesignProps extends DesignProps {
+  aiPayload: QuoteDesignAIPayload;
+}
+
+function AiCustomDesign({ quote, customer, settings, references, photoUrls, aiPayload }: AiDesignProps) {
+  const lang = quote.language || "de";
+  const isSimple = quote.display_mode === "simple";
+  const refs = references || [];
+  const photos = photoUrls || [];
+
+  const palette = aiPayload.recommendedPalette;
+  const colors = {
+    accent: palette.accent,
+    accentLight: palette.accentLight,
+    dark: palette.dark,
+    bg: palette.bg,
+    white: "#FFFFFF",
+    gray: "#64748B",
+    grayLight: "#F1F5F9",
+    border: "#E2E8F0",
+  };
+
+  return (
+    <Document>
+      {/* Cover — AI-generated hero */}
+      <Page size="A4" style={{ backgroundColor: colors.bg, fontFamily: "Inter", padding: 0 }}>
+        <View style={{ height: 6, backgroundColor: colors.accent }} />
+
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingHorizontal: 55, paddingTop: 30, paddingBottom: 22 }}>
+          {settings.logo_url
+            ? <Image src={settings.logo_url} style={{ width: 120, height: 50, objectFit: "contain" }} />
+            : <Text style={{ fontSize: 13, fontWeight: 700, color: colors.dark }}>{settings.company_name}</Text>}
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={{ fontSize: 8, color: colors.gray }}>{settings.company_name}</Text>
+            <Text style={{ fontSize: 8, color: colors.gray }}>{settings.address}</Text>
+            <Text style={{ fontSize: 8, color: colors.gray }}>{settings.zip} {settings.city}</Text>
+          </View>
+        </View>
+
+        <View style={{ paddingHorizontal: 55, paddingTop: 30 }}>
+          <Text style={{ fontSize: 9, color: colors.accent, textTransform: "uppercase", letterSpacing: 4, marginBottom: 14 }}>{aiPayload.coverTagline}</Text>
+          <View style={{ height: 2, backgroundColor: colors.accent, width: 56, marginBottom: 22 }} />
+          <Text style={{ fontSize: 30, fontWeight: 700, color: colors.dark, lineHeight: 1.22, marginBottom: 14 }}>{aiPayload.coverTitle}</Text>
+          {aiPayload.coverSubtitle ? (
+            <Text style={{ fontSize: 13, color: colors.gray, lineHeight: 1.55, marginBottom: 24 }}>{aiPayload.coverSubtitle}</Text>
+          ) : null}
+          <Text style={{ fontSize: 11, color: colors.gray, marginBottom: 4 }}>{t("forClient", lang)}</Text>
+          <Text style={{ fontSize: 15, fontWeight: 600, color: colors.dark }}>{customer.company || customer.name}</Text>
+        </View>
+
+        <View style={{ backgroundColor: colors.accentLight, marginTop: 30, marginHorizontal: 55, padding: 18, borderLeftWidth: 3, borderLeftColor: colors.accent }}>
+          <Text style={{ fontSize: 10.5, color: colors.dark, lineHeight: 1.65 }}>{aiPayload.introText}</Text>
+        </View>
+
+        <View style={{ flexDirection: "row", marginHorizontal: 55, gap: 12, marginTop: 26 }}>
+          {[
+            { label: t("quoteNumber", lang), value: quote.quote_number },
+            { label: t("date", lang), value: fmtDate(quote.quote_date) },
+            { label: t("validUntil", lang), value: fmtDate(quote.valid_until) },
+          ].map((item, idx) => (
+            <View key={idx} style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.accent, backgroundColor: colors.accentLight, padding: 12 }}>
+              <Text style={{ fontSize: 7.5, color: colors.accent, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 5 }}>{item.label}</Text>
+              <Text style={{ fontSize: 11, fontWeight: 700, color: colors.dark }}>{item.value}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, backgroundColor: colors.accent }} />
+      </Page>
+
+      {/* About / References (detailed only) */}
+      {!isSimple && (photos.length > 0 || refs.length > 0) && (
+        <Page size="A4" style={{ backgroundColor: colors.bg, fontFamily: "Inter", paddingTop: 50, paddingBottom: 60, paddingHorizontal: 55 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: colors.border, marginBottom: 28 }}>
+            {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 80, height: 35, objectFit: "contain" }} /> : <View />}
+            <Text style={{ fontSize: 7.5, color: colors.gray, textTransform: "uppercase", letterSpacing: 2 }}>{t("references", lang)}</Text>
+          </View>
+          <Text style={{ fontSize: 8, color: colors.accent, textTransform: "uppercase", letterSpacing: 3, marginBottom: 14 }}>{t("references", lang)}</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+            {(photos.length > 0 ? photos.slice(0, 4) : [null, null, null, null]).map((photo, idx) => {
+              const ref = refs[idx];
+              return (
+                <View key={idx} style={{ width: "47%", marginBottom: 18 }}>
+                  {photo
+                    ? <Image src={photo} style={{ width: "100%", height: 120, objectFit: "cover" }} />
+                    : <View style={{ width: "100%", height: 120, backgroundColor: colors.accentLight, borderTopWidth: 3, borderTopColor: colors.accent }} />}
+                  {ref && <Text style={{ fontSize: 10, fontWeight: 600, marginTop: 7, color: colors.dark }}>{ref.title}</Text>}
+                  {ref && <Text style={{ fontSize: 8.5, color: colors.gray, marginTop: 3, lineHeight: 1.5 }}>{ref.description}</Text>}
+                </View>
+              );
+            })}
+          </View>
+        </Page>
+      )}
+
+      {/* Services (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={{ backgroundColor: colors.bg, fontFamily: "Inter", paddingTop: 50, paddingBottom: 60, paddingHorizontal: 55 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: colors.border, marginBottom: 28 }}>
+            {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 80, height: 35, objectFit: "contain" }} /> : <View />}
+            <Text style={{ fontSize: 7.5, color: colors.gray, textTransform: "uppercase", letterSpacing: 2 }}>{t("serviceScope", lang)}</Text>
+          </View>
+          <Text style={{ fontSize: 8, color: colors.accent, textTransform: "uppercase", letterSpacing: 3, marginBottom: 10 }}>{t("serviceScope", lang)}</Text>
+          <Text style={{ fontSize: 20, fontWeight: 700, color: colors.dark, marginBottom: 14, lineHeight: 1.3 }}>{quote.project_description || t("projectServices", lang)}</Text>
+          {quote.notes && <Text style={{ fontSize: 9.5, color: colors.gray, lineHeight: 1.8, marginBottom: 24 }}>{quote.notes}</Text>}
+          {quote.items.map((item, idx) => (
+            <View key={idx} style={{ flexDirection: "row", alignItems: "flex-start", paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <View style={{ width: 28, height: 28, backgroundColor: colors.accent, justifyContent: "center", alignItems: "center", marginRight: 14 }}>
+                <Text style={{ fontSize: 9, fontWeight: 700, color: colors.white }}>{item.position}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 10, fontWeight: 600, color: colors.dark }}>{item.description}</Text>
+                <Text style={{ fontSize: 8.5, color: colors.gray, marginTop: 3 }}>{item.quantity} {unitLabel(item.unit, lang)} × {fmtEuro(item.unit_price)}</Text>
+              </View>
+              <Text style={{ fontSize: 10, fontWeight: 600, color: colors.accent }}>{fmtEuro(item.total)}</Text>
+            </View>
+          ))}
+        </Page>
+      )}
+
+      {/* Pricing */}
+      <Page size="A4" style={{ backgroundColor: colors.bg, fontFamily: "Inter", fontSize: 9.5, color: colors.dark, paddingTop: 50, paddingBottom: 60, paddingHorizontal: 55 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: colors.border, marginBottom: 28 }}>
+          {settings.logo_url ? <Image src={settings.logo_url} style={{ width: 80, height: 35, objectFit: "contain" }} /> : <View />}
+          <Text style={{ fontSize: 7.5, color: colors.gray, textTransform: "uppercase", letterSpacing: 2 }}>{t("pricingOverview", lang)}</Text>
+        </View>
+        <Text style={{ fontSize: 8, color: colors.accent, textTransform: "uppercase", letterSpacing: 3, marginBottom: 10 }}>{t("pricingOverview", lang)}</Text>
+        <Text style={{ fontSize: 20, fontWeight: 700, color: colors.dark, marginBottom: 20 }}>{t("investmentOverview", lang)}</Text>
+        <PricingTable quote={quote} settings={settings} lang={lang} colors={{ accent: colors.accent, black: colors.dark, white: colors.white, gray: colors.gray, border: colors.border, bg: colors.accentLight }} />
+      </Page>
+
+      {/* Closing (detailed only) */}
+      {!isSimple && (
+        <Page size="A4" style={{ backgroundColor: colors.bg, fontFamily: "Inter", justifyContent: "center", alignItems: "center", padding: 60 }}>
+          <View style={{ height: 1, backgroundColor: colors.accent, width: 180, marginBottom: 35 }} />
+          {settings.logo_url && (
+            <Image src={settings.logo_url} style={{ width: 120, height: 50, objectFit: "contain", marginBottom: 30 }} />
+          )}
+          <Text style={{ fontSize: 22, fontWeight: 700, color: colors.dark, textAlign: "center", lineHeight: 1.5 }}>{t("closingText", lang)}</Text>
+          <View style={{ height: 1, backgroundColor: colors.accent, width: 180, marginTop: 35, marginBottom: 25 }} />
+          <Text style={{ fontSize: 10, fontWeight: 600, color: colors.accent, textAlign: "center" }}>{settings.company_name}</Text>
+          <Text style={{ fontSize: 9, color: colors.gray, textAlign: "center", marginTop: 8, lineHeight: 1.7 }}>
+            {settings.phone}{"\n"}{settings.email}{"\n"}{settings.address}, {settings.zip} {settings.city}
+          </Text>
+        </Page>
+      )}
+    </Document>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // ROUTER: Picks the right design based on designKey
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -747,9 +901,10 @@ interface QuotePDFDesignProps {
   settings: CompanySettings;
   references?: Reference[];
   photoUrls?: string[];
+  aiPayload?: QuoteDesignAIPayload | null;
 }
 
-export default function QuotePDFDesign({ designKey, ...props }: QuotePDFDesignProps) {
+export default function QuotePDFDesign({ designKey, aiPayload, ...props }: QuotePDFDesignProps) {
   switch (designKey) {
     case "modern":
       return <ModernDesign {...props} />;
@@ -757,6 +912,11 @@ export default function QuotePDFDesign({ designKey, ...props }: QuotePDFDesignPr
       return <MinimalDesign {...props} />;
     case "bold":
       return <BoldDesign {...props} />;
+    case "ai_custom":
+      // Fallback to Minimal when the payload is missing (SCH-562 fallback clause)
+      return aiPayload
+        ? <AiCustomDesign {...props} aiPayload={aiPayload} />
+        : <MinimalDesign {...props} />;
     case "classic":
     default:
       return <ClassicDesign {...props} />;
