@@ -669,7 +669,9 @@ export async function getExpenseReports(): Promise<ExpenseReport[]> {
 }
 
 export async function createExpenseReport(report: Omit<ExpenseReport, "id" | "created_at">): Promise<ExpenseReport> {
-  const { data } = await supabase().from("expense_reports").insert({ ...report, company_id: getActiveCompanyId() }).select().single();
+  const { data, error } = await supabase().from("expense_reports").insert({ ...report, company_id: getActiveCompanyId() }).select().single();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Insert returned no row");
   return data as unknown as ExpenseReport;
 }
 
@@ -689,7 +691,9 @@ export async function getExpenseItems(): Promise<ExpenseItem[]> {
 }
 
 export async function createExpenseItem(item: Omit<ExpenseItem, "id" | "created_at">): Promise<ExpenseItem> {
-  const { data } = await supabase().from("expense_items").insert({ ...item, company_id: getActiveCompanyId() }).select().single();
+  const { data, error } = await supabase().from("expense_items").insert({ ...item, company_id: getActiveCompanyId() }).select().single();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Insert returned no row");
   return data as unknown as ExpenseItem;
 }
 

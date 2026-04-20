@@ -138,6 +138,8 @@ export default function ExpensesPage() {
       setShowNewItem(false);
       if (fileRef.current) fileRef.current.value = "";
       await loadData();
+    } catch (err) {
+      alert(t("expenses.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)));
     } finally { setSaving(false); }
   }
 
