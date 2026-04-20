@@ -99,22 +99,25 @@ export async function getUserProfiles(): Promise<UserProfile[]> {
 }
 
 export async function createUserProfile(profile: Omit<UserProfile, "id" | "created_at">): Promise<UserProfile> {
-  const { data } = await supabase().from("user_profiles").insert({
+  const { data, error } = await supabase().from("user_profiles").insert({
     ...profile,
     company_access: JSON.stringify(profile.company_access),
   }).select().single();
+  if (error) throw new Error(`createUserProfile failed: ${error.message}`);
   return mapUserProfile(data!);
 }
 
 export async function updateUserProfile(id: string, updates: Partial<UserProfile>): Promise<UserProfile> {
   const payload: Record<string, unknown> = { ...updates };
   if (updates.company_access) payload.company_access = JSON.stringify(updates.company_access);
-  const { data } = await supabase().from("user_profiles").update(payload).eq("id", id).select().single();
+  const { data, error } = await supabase().from("user_profiles").update(payload).eq("id", id).select().single();
+  if (error) throw new Error(`updateUserProfile failed: ${error.message}`);
   return mapUserProfile(data!);
 }
 
 export async function deleteUserProfile(id: string): Promise<void> {
-  await supabase().from("user_profiles").delete().eq("id", id);
+  const { error } = await supabase().from("user_profiles").delete().eq("id", id);
+  if (error) throw new Error(`deleteUserProfile failed: ${error.message}`);
 }
 
 // Company Settings
