@@ -105,6 +105,17 @@ export default function AdminPage() {
     | { kind: "error"; message: string }
     | null
   >(null);
+  const [tempPwCopied, setTempPwCopied] = useState(false);
+
+  async function copyTempPassword(pw: string) {
+    try {
+      await navigator.clipboard.writeText(pw);
+      setTempPwCopied(true);
+      setTimeout(() => setTempPwCopied(false), 1500);
+    } catch {
+      // Clipboard blocked — user can still read/select the password manually.
+    }
+  }
 
   const loadData = useCallback(async () => {
     const supabase = createClient();
@@ -407,6 +418,7 @@ export default function AdminPage() {
     setResetUser(null);
     setResetResult(null);
     setResetBusy(false);
+    setTempPwCopied(false);
   }
 
   async function toggleUserRole(userId: string, roleId: string) {
@@ -911,10 +923,14 @@ export default function AdminPage() {
                       onFocus={(e) => e.currentTarget.select()}
                     />
                     <button
-                      onClick={() => navigator.clipboard?.writeText(resetResult.tempPassword)}
-                      className="px-3 py-2 text-xs font-medium bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] rounded-md hover:bg-[var(--border)] transition-colors"
+                      onClick={() => copyTempPassword(resetResult.tempPassword)}
+                      className={`px-3 py-2 text-xs font-medium border rounded-md transition-colors ${
+                        tempPwCopied
+                          ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600"
+                          : "bg-[var(--surface-hover)] border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--border)]"
+                      }`}
                     >
-                      Kopieren
+                      {tempPwCopied ? "Kopiert ✓" : "Kopieren"}
                     </button>
                   </div>
                 </div>
