@@ -10,6 +10,7 @@ import { useI18n, SUPPORTED_LOCALES } from "@/lib/i18n-context";
 import type { TranslationKey } from "@/lib/translations/de";
 import AiCompanySetup from "@/components/AiCompanySetup";
 import type { SuggestedCompanyData } from "@/components/AiCompanySetup";
+import SubscriptionSection from "@/components/SubscriptionSection";
 
 const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
 
@@ -323,6 +324,9 @@ export default function SettingsPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("settings.title")}</h1>
       </div>
+
+      {/* SCH-569: Abonnement — admin only */}
+      <SubscriptionSection />
 
       {/* 1. Dashboard Karten */}
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">

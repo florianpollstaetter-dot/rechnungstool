@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { getStripe, isStripeConfigured } from "@/lib/stripe";
 
 export async function POST(request: Request) {
   const { email, password, displayName, companyName, companySlug } = await request.json();
@@ -81,9 +82,27 @@ export async function POST(request: Request) {
 
   try {
     // 3. Create the company — SCH-486: 30-day free trial.
+    //    SCH-569: also create a Stripe Customer up-front so checkout/portal/webhook
+    //    can reference it without a just-in-time lookup. If Stripe is unavailable
+    //    or the request fails we still proceed — the customer can be created on
+    //    first checkout. A broken Stripe config should not block onboarding.
     const trialStartedAt = new Date();
     const trialEndsAt = new Date(trialStartedAt);
     trialEndsAt.setDate(trialEndsAt.getDate() + 30);
+
+    let stripeCustomerId: string | null = null;
+    if (isStripeConfigured()) {
+      try {
+        const customer = await getStripe().customers.create({
+          email,
+          name: companyName,
+          metadata: { company_id: companySlug },
+        });
+        stripeCustomerId = customer.id;
+      } catch (stripeErr) {
+        console.error("register-company: stripe customer create failed", stripeErr);
+      }
+    }
 
     const { error: companyError } = await supabase.from("companies").insert({
       id: companySlug,
@@ -94,6 +113,7 @@ export async function POST(request: Request) {
       subscription_status: "free_trial",
       trial_started_at: trialStartedAt.toISOString(),
       trial_ends_at: trialEndsAt.toISOString(),
+      stripe_customer_id: stripeCustomerId,
     });
 
     if (companyError) {
@@ -118,6 +138,7 @@ export async function POST(request: Request) {
     // 5. Create default company_settings
     const { error: settingsError } = await supabase.from("company_settings").insert({
       id: companySlug,
+      company_id: companySlug,
       company_name: companyName,
       company_type: "gmbh",
       address: "",
