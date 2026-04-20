@@ -4,7 +4,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useCompany } from "@/lib/company-context";
 
 interface ChatMessage {
@@ -27,8 +26,10 @@ const FAQ_TILES = [
 ];
 
 export function ChatWidget() {
-  const { company, roleLoaded } = useCompany();
-  const [authed, setAuthed] = useState<boolean | null>(null);
+  // SCH-568: consume auth/role state from CompanyProvider instead of an
+  // independent auth subscription. Two subscriptions previously raced each
+  // other during first-login, producing a visible mount/unmount flicker.
+  const { company, roleLoaded, authed } = useCompany();
   const [open, setOpen] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationStatus, setConversationStatus] = useState<string>("active");
@@ -38,17 +39,6 @@ export function ChatWidget() {
   const [escalating, setEscalating] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Auth check — don't render for logged-out users.
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setAuthed(!!data.user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") setAuthed(false);
-      else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") setAuthed(!!session?.user);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   // Restore persisted conversation id.
   useEffect(() => {

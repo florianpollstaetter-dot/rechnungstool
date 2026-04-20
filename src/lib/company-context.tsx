@@ -72,6 +72,8 @@ interface CompanyContextType {
   greetingTone: GreetingTone;
   setGreetingTone: (tone: GreetingTone) => void;
   roleLoaded: boolean;
+  /** SCH-568 — single source of truth for auth status; null = not yet checked. */
+  authed: boolean | null;
   isSuperadmin: boolean;
   isReadOnly: boolean;
   setCompanyId: (id: string) => void;
@@ -85,6 +87,7 @@ const CompanyContext = createContext<CompanyContextType>({
   greetingTone: "motivating",
   setGreetingTone: () => {},
   roleLoaded: false,
+  authed: null,
   isSuperadmin: false,
   isReadOnly: false,
   setCompanyId: () => {},
@@ -110,6 +113,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const [accessibleCompanies, setAccessibleCompanies] = useState<Company[]>(FALLBACK_COMPANIES);
   const [userRole, setUserRole] = useState("");
   const [roleLoaded, setRoleLoaded] = useState(false);
+  const [authed, setAuthed] = useState<boolean | null>(null);
   const [isSuperadmin, setIsSuperadmin] = useState(false);
   const [userName, setUserName] = useState("");
   const [greetingTone, setGreetingToneState] = useState<GreetingTone>(() => {
@@ -185,11 +189,13 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       if (!user) {
         setUserRole("");
         setRoleLoaded(false);
+        setAuthed(false);
         setIsSuperadmin(false);
         setUserName("");
         setAccessibleCompanies(FALLBACK_COMPANIES);
         return;
       }
+      setAuthed(true);
 
       // Load user profile
       const { data: profile } = await supabase
@@ -279,9 +285,22 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
     loadUserAccess();
 
+    // SCH-568: do NOT flip `roleLoaded` back to `false` on SIGNED_IN/TOKEN_REFRESHED.
+    // Supabase can fire both multiple times during a fresh login, and every toggle
+    // unmounts gated UI (navbar contents, chat icon, company logo) for a frame,
+    // producing the flicker reported for newly-created users. Reset state only on
+    // actual sign-out; refresh in place for everything else.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+      if (event === "SIGNED_OUT") {
+        setUserRole("");
         setRoleLoaded(false);
+        setAuthed(false);
+        setIsSuperadmin(false);
+        setUserName("");
+        setAccessibleCompanies(FALLBACK_COMPANIES);
+        return;
+      }
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         loadUserAccess();
       }
     });
@@ -297,7 +316,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const isReadOnly = computeIsReadOnly(company);
 
   return (
-    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, greetingTone, setGreetingTone, roleLoaded, isSuperadmin, isReadOnly, setCompanyId }}>
+    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, greetingTone, setGreetingTone, roleLoaded, authed, isSuperadmin, isReadOnly, setCompanyId }}>
       {children}
     </CompanyContext.Provider>
   );
