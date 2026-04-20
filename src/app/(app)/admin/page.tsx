@@ -69,6 +69,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string>("user");
+  const [currentAuthUserId, setCurrentAuthUserId] = useState<string | null>(null);
   const [form, setForm] = useState({ email: "", password: "", display_name: "", role: "employee" as UserRole, company_access: ["vrthefans"] as string[], default_language: "de" as AppLocale });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -95,6 +96,16 @@ export default function AdminPage() {
   const [roleAssignUser, setRoleAssignUser] = useState<UserProfile | null>(null);
   const [assignSaving, setAssignSaving] = useState(false);
 
+  // Password-reset state (SCH-557)
+  const [resetUser, setResetUser] = useState<UserProfile | null>(null);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetResult, setResetResult] = useState<
+    | { kind: "password"; tempPassword: string; email: string; displayName: string; note?: string }
+    | { kind: "sent"; email: string }
+    | { kind: "error"; message: string }
+    | null
+  >(null);
+
   const loadData = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -103,6 +114,7 @@ export default function AdminPage() {
       setUsers(profiles);
       const myProfile = profiles.find((p) => p.auth_user_id === user.id);
       setCurrentUserRole(myProfile?.role || "admin"); // first user is admin
+      setCurrentAuthUserId(user.id);
     }
     setLoading(false);
   }, []);
@@ -343,6 +355,60 @@ export default function AdminPage() {
     setRoleAssignUser(user);
   }
 
+  // --- Password reset handlers (SCH-557) ---
+
+  async function handleResetPassword(user: UserProfile, mode: "email" | "show") {
+    setResetBusy(true);
+    setResetResult(null);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          auth_user_id: user.auth_user_id,
+          action: mode === "email" ? "send_temp_password_email" : "set_temp_password",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setResetResult({ kind: "error", message: data.error || "Fehler beim Zurücksetzen" });
+        return;
+      }
+      if (data.sent) {
+        setResetResult({ kind: "sent", email: data.email });
+        return;
+      }
+      if (data.temp_password) {
+        const note =
+          data.reason === "not_configured"
+            ? "E-Mail-Versand nicht konfiguriert — Passwort manuell weitergeben."
+            : data.reason === "error"
+              ? `E-Mail konnte nicht gesendet werden: ${data.message || "unbekannter Fehler"}. Passwort manuell weitergeben.`
+              : undefined;
+        setResetResult({
+          kind: "password",
+          tempPassword: data.temp_password,
+          email: user.email,
+          displayName: user.display_name,
+          note,
+        });
+      }
+    } catch (err) {
+      setResetResult({
+        kind: "error",
+        message: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setResetBusy(false);
+    }
+  }
+
+  function closeResetModal() {
+    setResetUser(null);
+    setResetResult(null);
+    setResetBusy(false);
+  }
+
   async function toggleUserRole(userId: string, roleId: string) {
     setAssignSaving(true);
     try {
@@ -551,6 +617,15 @@ export default function AdminPage() {
                       ) : (
                         <>
                           <button onClick={() => openSchedule(u)} className="text-sm text-[var(--brand-orange)] hover:brightness-110 mr-2" title={t("admin.scheduleTitle")}>{t("admin.schedule")}</button>
+                          {u.auth_user_id !== currentAuthUserId && (
+                            <button
+                              onClick={() => { setResetUser(u); setResetResult(null); }}
+                              className="text-sm text-amber-500 hover:brightness-110 mr-2"
+                              title="Passwort zurücksetzen"
+                            >
+                              Passwort
+                            </button>
+                          )}
                           <button onClick={() => startEditUser(u)} className="text-sm text-[var(--accent)] hover:brightness-110 mr-2">{t("common.edit")}</button>
                           <button onClick={() => handleDelete(u.id)} className="text-sm text-rose-400 hover:text-rose-300">{t("common.delete")}</button>
                         </>
@@ -760,6 +835,102 @@ export default function AdminPage() {
                 {t("common.done")}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== PASSWORD RESET MODAL (SCH-557) ==================== */}
+      {resetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={closeResetModal}>
+          <div className="bg-[var(--surface)] rounded-xl shadow-2xl border border-[var(--border)] max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">Passwort zurücksetzen</h3>
+                <p className="text-sm text-[var(--text-muted)]">{resetUser.display_name} — {resetUser.email}</p>
+              </div>
+              <button onClick={closeResetModal} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]" title={t("common.close")}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+
+            {!resetResult && (
+              <div className="space-y-3">
+                <p className="text-sm text-[var(--text-secondary)]">
+                  Das aktuelle Passwort wird sofort ungültig. Der User wird beim nächsten Login zur Passwort-Änderung gezwungen.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => handleResetPassword(resetUser, "email")}
+                    disabled={resetBusy}
+                    className="px-3 py-2 text-sm font-medium bg-amber-500 text-white rounded-md hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                  >
+                    {resetBusy ? "Wird zurückgesetzt…" : "Zurücksetzen + E-Mail senden"}
+                  </button>
+                  <button
+                    onClick={() => handleResetPassword(resetUser, "show")}
+                    disabled={resetBusy}
+                    className="px-3 py-2 text-sm font-medium bg-[var(--surface)] border border-amber-500/40 text-amber-600 rounded-md hover:bg-amber-500/10 disabled:opacity-50 transition-colors"
+                  >
+                    Nur zurücksetzen (Passwort anzeigen)
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {resetResult?.kind === "error" && (
+              <div className="space-y-3">
+                <p className="text-sm text-rose-500">{resetResult.message}</p>
+                <button onClick={closeResetModal} className="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">{t("common.close")}</button>
+              </div>
+            )}
+
+            {resetResult?.kind === "sent" && (
+              <div className="space-y-3">
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-sm text-emerald-600">
+                  E-Mail mit neuem Passwort wurde an {resetResult.email} gesendet.
+                </div>
+                <button onClick={closeResetModal} className="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">{t("common.close")}</button>
+              </div>
+            )}
+
+            {resetResult?.kind === "password" && (
+              <div className="space-y-3">
+                {resetResult.note && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-700 dark:text-amber-300">
+                    {resetResult.note}
+                  </div>
+                )}
+                <div>
+                  <label className="block text-xs uppercase tracking-wide text-[var(--text-muted)] mb-1">Temporäres Passwort</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={resetResult.tempPassword}
+                      className="flex-1 bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm font-mono text-[var(--text-primary)]"
+                      onFocus={(e) => e.currentTarget.select()}
+                    />
+                    <button
+                      onClick={() => navigator.clipboard?.writeText(resetResult.tempPassword)}
+                      className="px-3 py-2 text-xs font-medium bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] rounded-md hover:bg-[var(--border)] transition-colors"
+                    >
+                      Kopieren
+                    </button>
+                  </div>
+                </div>
+                {resetResult.email && (
+                  <a
+                    href={`mailto:${resetResult.email}?subject=${encodeURIComponent("Dein temporäres Passwort")}&body=${encodeURIComponent(`Hallo ${resetResult.displayName || resetResult.email},\n\ndein temporäres Passwort lautet:\n\n  ${resetResult.tempPassword}\n\nDu wirst beim nächsten Login zur Passwort-Änderung geführt.`)}`}
+                    className="inline-block px-3 py-1.5 text-xs font-medium bg-[var(--accent)] text-black rounded-md hover:brightness-110 transition-colors"
+                  >
+                    Per E-Mail senden
+                  </a>
+                )}
+                <div className="flex justify-end">
+                  <button onClick={closeResetModal} className="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">{t("common.close")}</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
