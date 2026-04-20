@@ -126,3 +126,95 @@ export async function PATCH(request: Request) {
     temp_password: tempPassword,
   });
 }
+
+// SCH-567: Delete a user from the caller's companies.
+// Removes memberships first, then if the target has no remaining memberships,
+// purges the profile and the auth identity so the email can be reused and
+// the user can no longer log in. auth.users is deleted LAST so a failure
+// there leaves us re-runnable (profile already gone, but auth.admin.deleteUser
+// is idempotent on 404).
+export async function DELETE(request: Request) {
+  const auth = await requireCompanyAdmin();
+  if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
+
+  const { auth_user_id: targetAuthUserId } = await request.json();
+  if (!targetAuthUserId) {
+    return Response.json({ error: "auth_user_id erforderlich" }, { status: 400 });
+  }
+
+  if (targetAuthUserId === auth.user!.id) {
+    return Response.json({ error: "Eigenes Konto kann nicht gelöscht werden." }, { status: 400 });
+  }
+
+  const service = createServiceClient();
+
+  const { data: targetMemberships } = await service
+    .from("company_members")
+    .select("company_id")
+    .eq("user_id", targetAuthUserId);
+
+  const targetCompanyIds = (targetMemberships ?? []).map((m) => m.company_id as string);
+  const sharedCompanyIds = targetCompanyIds.filter((id) => auth.adminCompanyIds.includes(id));
+
+  if (sharedCompanyIds.length === 0) {
+    return Response.json(
+      { error: "Kein Zugriff auf diese:n Mitarbeiter:in (andere Firma)." },
+      { status: 403 },
+    );
+  }
+
+  const { data: targetProfile } = await service
+    .from("user_profiles")
+    .select("id, is_superadmin")
+    .eq("auth_user_id", targetAuthUserId)
+    .maybeSingle();
+
+  if (targetProfile?.is_superadmin) {
+    return Response.json(
+      { error: "Superadmin kann nicht über das Admin-Panel gelöscht werden." },
+      { status: 403 },
+    );
+  }
+
+  const { error: memberDeleteError } = await service
+    .from("company_members")
+    .delete()
+    .eq("user_id", targetAuthUserId)
+    .in("company_id", sharedCompanyIds);
+  if (memberDeleteError) {
+    return Response.json({ error: memberDeleteError.message }, { status: 500 });
+  }
+
+  const remainingCompanyIds = targetCompanyIds.filter((id) => !sharedCompanyIds.includes(id));
+  const fullyPurged = remainingCompanyIds.length === 0;
+
+  if (fullyPurged) {
+    // user_role_assignments / user_work_schedules / user_dashboard_layouts
+    // cascade off user_profiles.id. Cleaning the profile frees those rows
+    // before we drop the auth identity.
+    const { error: profileDeleteError } = await service
+      .from("user_profiles")
+      .delete()
+      .eq("auth_user_id", targetAuthUserId);
+    if (profileDeleteError) {
+      return Response.json({ error: profileDeleteError.message }, { status: 500 });
+    }
+
+    const { error: authDeleteError } = await service.auth.admin.deleteUser(targetAuthUserId);
+    if (authDeleteError) {
+      return Response.json({ error: authDeleteError.message }, { status: 500 });
+    }
+  }
+
+  for (const companyId of sharedCompanyIds) {
+    await logCompanyAuditAction(
+      auth.user!.id,
+      companyId,
+      fullyPurged ? "user.delete" : "user.remove_from_company",
+      "user",
+      targetAuthUserId,
+    );
+  }
+
+  return Response.json({ success: true, fullyPurged });
+}

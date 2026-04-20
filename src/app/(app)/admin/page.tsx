@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { UserProfile, USER_ROLE_OPTIONS, UserRole, CompanyRole, UserRoleAssignment } from "@/lib/types";
 import {
-  getUserProfiles, createUserProfile, updateUserProfile, deleteUserProfile,
+  getUserProfiles, createUserProfile, updateUserProfile,
   getUserWorkSchedules, replaceUserWorkSchedules,
   getCompanyRoles, createCompanyRole, updateCompanyRole, deleteCompanyRole,
   getUserRoleAssignments, assignRoleToUser, removeRoleFromUser,
@@ -223,11 +223,19 @@ export default function AdminPage() {
     await loadData();
   }
 
-  async function handleDelete(id: string) {
-    if (confirm(t("admin.confirmDeleteUser"))) {
-      await deleteUserProfile(id);
-      await loadData();
+  async function handleDelete(authUserId: string) {
+    if (!confirm(t("admin.confirmDeleteUser"))) return;
+    const res = await fetch("/api/admin/users", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ auth_user_id: authUserId }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      alert(body?.error || "Löschen fehlgeschlagen.");
+      return;
     }
+    await loadData();
   }
 
   async function openSchedule(user: UserProfile) {
@@ -639,7 +647,7 @@ export default function AdminPage() {
                             </button>
                           )}
                           <button onClick={() => startEditUser(u)} className="text-sm text-[var(--accent)] hover:brightness-110 mr-2">{t("common.edit")}</button>
-                          <button onClick={() => handleDelete(u.id)} className="text-sm text-rose-400 hover:text-rose-300">{t("common.delete")}</button>
+                          <button onClick={() => handleDelete(u.auth_user_id)} className="text-sm text-rose-400 hover:text-rose-300">{t("common.delete")}</button>
                         </>
                       )}
                     </td>
