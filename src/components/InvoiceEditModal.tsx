@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Quote, InvoiceItem, UNIT_OPTIONS } from "@/lib/types";
 import { calcItemTotal, calcTotals } from "@/lib/calc";
 import { formatCurrency } from "@/lib/format";
-import { createInvoice, updateQuote, getUserAccompanyingText } from "@/lib/db";
+import { createInvoice, updateQuote, getUserAccompanyingText, getQuoteItems } from "@/lib/db";
 import { useI18n } from "@/lib/i18n-context";
 
 type EditableItem = Omit<InvoiceItem, "id"> & { id?: string };
@@ -48,6 +48,7 @@ export default function InvoiceEditModal({
 }: InvoiceEditModalProps) {
   const { t } = useI18n();
   const [items, setItems] = useState<EditableItem[]>(() => buildItemsFromQuote(quote, partialFactor));
+  const [itemsLoading, setItemsLoading] = useState(false);
   const [taxRate, setTaxRate] = useState(quote.tax_rate);
   const [overallDiscountPercent, setOverallDiscountPercent] = useState(quote.overall_discount_percent);
   const [overallDiscountAmount, setOverallDiscountAmount] = useState(
@@ -64,6 +65,49 @@ export default function InvoiceEditModal({
       : quote.project_description || ""
   );
   const [submitting, setSubmitting] = useState(false);
+
+  // SCH-603 — defensive re-fetch of the quote's line items from the DB on
+  // mount. The modal initializes `items` from the `quote.items` prop, but if
+  // that came through empty (RLS/race-condition observed after the approval
+  // flow), the fresh fetch recovers the items so the user can edit them.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setItemsLoading(true);
+      try {
+        const fresh = await getQuoteItems(quote.id);
+        if (cancelled) return;
+        if (fresh.length > 0) {
+          const rebuilt = fresh.map((item) => {
+            const scaledUnitPrice = Math.round(item.unit_price * partialFactor * 100) / 100;
+            const scaledDiscountAmount = Math.round(item.discount_amount * partialFactor * 100) / 100;
+            return {
+              position: item.position,
+              description: item.description,
+              unit: item.unit,
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: scaledUnitPrice,
+              discount_percent: item.discount_percent,
+              discount_amount: scaledDiscountAmount,
+              total: calcItemTotal({
+                quantity: item.quantity,
+                unit_price: scaledUnitPrice,
+                discount_percent: item.discount_percent,
+                discount_amount: scaledDiscountAmount,
+              }),
+            } satisfies EditableItem;
+          });
+          setItems(rebuilt);
+        }
+      } finally {
+        if (!cancelled) setItemsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [quote.id, partialFactor]);
 
   const totals = calcTotals(items, taxRate, overallDiscountPercent, overallDiscountAmount);
 
@@ -197,6 +241,9 @@ export default function InvoiceEditModal({
               <label className="text-sm font-medium text-gray-400">{t("invoiceEdit.positions")}</label>
               <button onClick={addItem} className="text-xs text-[var(--accent)] hover:brightness-110">+ {t("invoiceEdit.addPosition")}</button>
             </div>
+            {itemsLoading && items.length === 0 && (
+              <div className="text-xs text-gray-500 italic py-2">Positionen werden geladen…</div>
+            )}
             <div className="space-y-2">
               {items.map((item, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-start bg-[var(--background)] rounded-lg p-3 border border-[var(--border)]">

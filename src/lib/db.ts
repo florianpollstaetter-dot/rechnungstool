@@ -519,13 +519,22 @@ export async function getQuote(id: string): Promise<Quote | undefined> {
     .single();
   if (!q) return undefined;
 
+  const items = await getQuoteItems(id);
+  return mapQuote(q, items);
+}
+
+// Fresh fetch of a quote's line items. Used by the invoice-edit modal to
+// guarantee items are present even if the parent-passed `quote.items` array
+// is stale/empty (SCH-603: modal was rendering empty after the quote-approval
+// flow, reportedly because `quote_items` came through without items for RLS
+// or race-condition reasons).
+export async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
   const { data: items } = await supabase()
     .from("quote_items")
     .select("*")
-    .eq("quote_id", id)
+    .eq("quote_id", quoteId)
     .order("position", { ascending: true });
-
-  return mapQuote(q, (items ?? []).map(mapQuoteItem));
+  return (items ?? []).map(mapQuoteItem);
 }
 
 export async function generateQuoteNumber(): Promise<string> {
