@@ -20,7 +20,15 @@ export async function POST(request: Request) {
   if (!item.receipt_file_path) return Response.json({ error: "No receipt file attached" }, { status: 400 });
 
   // Update status to analyzing
-  await supabase.from("expense_items").update({ analysis_status: "analyzing" }).eq("id", expenseItemId);
+  {
+    const { error: statusErr } = await supabase
+      .from("expense_items")
+      .update({ analysis_status: "analyzing" })
+      .eq("id", expenseItemId);
+    if (statusErr) {
+      return Response.json({ error: `Could not mark as analyzing: ${statusErr.message}` }, { status: 500 });
+    }
+  }
 
   try {
     // Download the file from storage
@@ -94,15 +102,19 @@ Antworte NUR mit dem JSON, kein anderer Text.`,
     if (!item.payment_method && parsed.payment_method) updates.payment_method = parsed.payment_method;
     if ((!item.category || item.category === "other") && parsed.category) updates.category = parsed.category;
 
-    await supabase.from("expense_items").update(updates).eq("id", expenseItemId);
+    const { error: saveErr } = await supabase.from("expense_items").update(updates).eq("id", expenseItemId);
+    if (saveErr) {
+      return Response.json({ error: `Analyse erkannt, konnte aber nicht gespeichert werden: ${saveErr.message}` }, { status: 500 });
+    }
 
     return Response.json({ success: true, data: parsed });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    await supabase.from("expense_items").update({
+    const { error: errorSaveErr } = await supabase.from("expense_items").update({
       analysis_status: "error",
       analysis_raw: { error: message },
     }).eq("id", expenseItemId);
+    if (errorSaveErr) console.error("analyze-expense: could not record error status:", errorSaveErr.message);
     return Response.json({ error: message }, { status: 500 });
   }
 }

@@ -107,8 +107,9 @@ export async function POST(request: Request) {
     return Response.json({ error: asstErr.message }, { status: 500 });
   }
 
-  // Update conversation pointer
-  await supabase
+  // Update conversation pointer — best-effort, log but don't fail the response
+  // since the assistant message was already stored successfully.
+  const { error: pointerErr } = await supabase
     .from("chat_conversations")
     .update({
       last_message_at: new Date().toISOString(),
@@ -116,6 +117,9 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", conversationId);
+  if (pointerErr) {
+    console.error("chat/messages: could not update conversation pointer:", pointerErr.message);
+  }
 
   return Response.json({
     conversationId,

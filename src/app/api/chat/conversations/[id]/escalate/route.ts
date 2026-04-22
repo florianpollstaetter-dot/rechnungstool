@@ -26,12 +26,17 @@ export async function POST(_request: Request, ctx: { params: Promise<{ id: strin
 
   if (updErr || !conv) return Response.json({ error: updErr?.message || "not found" }, { status: 404 });
 
-  await supabase.from("chat_messages").insert({
+  // Best-effort system notice. The conversation is already marked escalated,
+  // so log but don't fail the response if the notice row can't be inserted.
+  const { error: noticeErr } = await supabase.from("chat_messages").insert({
     conversation_id: id,
     role: "system",
     content: "Gespräch wurde an den Superadmin weitergeleitet. Du bekommst eine Antwort, sobald jemand verfügbar ist.",
     author_user_id: user.id,
   });
+  if (noticeErr) {
+    console.error("chat/escalate: could not insert system notice:", noticeErr.message);
+  }
 
   return Response.json({ conversation: conv });
 }

@@ -119,8 +119,8 @@ export async function POST(request: Request) {
         .select()
         .single();
 
-      if (dbError) {
-        console.error("DB error:", dbError);
+      if (dbError || !photoRow) {
+        console.error("DB error:", dbError ?? "insert returned no row");
         continue;
       }
 

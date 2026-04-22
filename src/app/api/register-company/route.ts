@@ -160,13 +160,14 @@ export async function POST(request: Request) {
     if (settingsError) throw settingsError;
 
     // 6. Create user profile
-    await supabase.from("user_profiles").insert({
+    const { error: profileError } = await supabase.from("user_profiles").insert({
       auth_user_id: userId,
       display_name: resolvedDisplayName,
       email,
       role: "admin",
       company_access: JSON.stringify([companySlug]),
     });
+    if (profileError) throw profileError;
 
     // 7. Set active company in user's app_metadata so JWT claims land on first sign-in
     await supabase.auth.admin.updateUserById(userId, {

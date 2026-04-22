@@ -1,4 +1,5 @@
 import { createClient } from "./supabase/client";
+import { requireRow, throwOnMutationError } from "./supabase/require-data";
 import {
   Customer,
   Invoice,
@@ -100,20 +101,18 @@ export async function getUserProfiles(): Promise<UserProfile[]> {
 }
 
 export async function createUserProfile(profile: Omit<UserProfile, "id" | "created_at">): Promise<UserProfile> {
-  const { data, error } = await supabase().from("user_profiles").insert({
+  const result = await supabase().from("user_profiles").insert({
     ...profile,
     company_access: JSON.stringify(profile.company_access),
   }).select().single();
-  if (error) throw new Error(`createUserProfile failed: ${error.message}`);
-  return mapUserProfile(data!);
+  return mapUserProfile(requireRow(result, "createUserProfile"));
 }
 
 export async function updateUserProfile(id: string, updates: Partial<UserProfile>): Promise<UserProfile> {
   const payload: Record<string, unknown> = { ...updates };
   if (updates.company_access) payload.company_access = JSON.stringify(updates.company_access);
-  const { data, error } = await supabase().from("user_profiles").update(payload).eq("id", id).select().single();
-  if (error) throw new Error(`updateUserProfile failed: ${error.message}`);
-  return mapUserProfile(data!);
+  const result = await supabase().from("user_profiles").update(payload).eq("id", id).select().single();
+  return mapUserProfile(requireRow(result, "updateUserProfile"));
 }
 
 export async function deleteUserProfile(id: string): Promise<void> {
@@ -154,13 +153,13 @@ export async function updateSettings(
   settings: Partial<CompanySettings>
 ): Promise<CompanySettings> {
   const companyId = getActiveCompanyId();
-  const { data } = await supabase()
+  const result = await supabase()
     .from("company_settings")
     .update(settings)
     .eq("company_id", companyId)
     .select()
     .single();
-  return data!;
+  return requireRow(result, "updateSettings") as CompanySettings;
 }
 
 // Customers
@@ -185,31 +184,29 @@ export async function getCustomer(
 export async function createCustomer(
   customer: Omit<Customer, "id" | "created_at">
 ): Promise<Customer> {
-  const { data, error } = await supabase()
+  const result = await supabase()
     .from("customers")
     .insert({ ...customer, company_id: getActiveCompanyId() })
     .select()
     .single();
-  if (error) throw new Error(`createCustomer failed: ${error.message}`);
-  return mapCustomer(data!);
+  return mapCustomer(requireRow(result, "createCustomer"));
 }
 
 export async function updateCustomer(
   id: string,
   updates: Partial<Customer>
 ): Promise<Customer> {
-  const { data, error } = await supabase()
+  const result = await supabase()
     .from("customers")
     .update(updates)
     .eq("id", id)
     .select()
     .single();
-  if (error) throw new Error(`updateCustomer failed: ${error.message}`);
-  return mapCustomer(data!);
+  return mapCustomer(requireRow(result, "updateCustomer"));
 }
 
 export async function deleteCustomer(id: string): Promise<void> {
-  await supabase().from("customers").delete().eq("id", id);
+  throwOnMutationError(await supabase().from("customers").delete().eq("id", id), "deleteCustomer");
 }
 
 // Products
@@ -229,29 +226,29 @@ export async function getActiveProducts(): Promise<Product[]> {
 export async function createProduct(
   product: Omit<Product, "id" | "created_at">
 ): Promise<Product> {
-  const { data } = await supabase()
+  const result = await supabase()
     .from("products")
     .insert({ ...product, company_id: getActiveCompanyId() })
     .select()
     .single();
-  return mapProduct(data!);
+  return mapProduct(requireRow(result, "createProduct"));
 }
 
 export async function updateProduct(
   id: string,
   updates: Partial<Product>
 ): Promise<Product> {
-  const { data } = await supabase()
+  const result = await supabase()
     .from("products")
     .update(updates)
     .eq("id", id)
     .select()
     .single();
-  return mapProduct(data!);
+  return mapProduct(requireRow(result, "updateProduct"));
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  await supabase().from("products").delete().eq("id", id);
+  throwOnMutationError(await supabase().from("products").delete().eq("id", id), "deleteProduct");
 }
 
 // SCH-526 — bulk insert helpers for sevDesk import. Skips rows whose
@@ -388,60 +385,27 @@ export async function createInvoice(
   const invoiceNumber = await generateInvoiceNumber();
   const { items, ...invoiceData } = invoice;
 
-  const { data: inv } = await supabase()
-    .from("invoices")
-    .insert({
-      ...invoiceData,
-      invoice_number: invoiceNumber,
-      company_id: getActiveCompanyId(),
-    })
-    .select()
-    .single();
+  const inv = requireRow<Record<string, unknown>>(
+    await supabase()
+      .from("invoices")
+      .insert({
+        ...invoiceData,
+        invoice_number: invoiceNumber,
+        company_id: getActiveCompanyId(),
+      })
+      .select()
+      .single(),
+    "createInvoice",
+  );
 
   if (items.length > 0) {
-    await supabase()
-      .from("invoice_items")
-      .insert(
-        items.map((item) => ({
-          invoice_id: inv!.id,
-          company_id: getActiveCompanyId(),
-          position: item.position,
-          description: item.description,
-          unit: item.unit || "Stueck",
-          product_id: item.product_id || null,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          discount_percent: item.discount_percent || 0,
-          discount_amount: item.discount_amount || 0,
-          tax_rate: item.tax_rate ?? null,
-          total: item.total,
-        }))
-      );
-  }
-
-  return mapInvoice(inv!, items);
-}
-
-export async function updateInvoice(
-  id: string,
-  data: Partial<Invoice>
-): Promise<Invoice> {
-  const { items, ...rest } = data;
-  const { data: inv } = await supabase()
-    .from("invoices")
-    .update(rest)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (items) {
-    await supabase().from("invoice_items").delete().eq("invoice_id", id);
-    if (items.length > 0) {
+    throwOnMutationError(
       await supabase()
         .from("invoice_items")
         .insert(
           items.map((item) => ({
-            invoice_id: id,
+            invoice_id: inv.id,
+            company_id: getActiveCompanyId(),
             position: item.position,
             description: item.description,
             unit: item.unit || "Stueck",
@@ -453,9 +417,57 @@ export async function updateInvoice(
             tax_rate: item.tax_rate ?? null,
             total: item.total,
           }))
-        );
+        ),
+      "createInvoice.items",
+    );
+  }
+
+  return mapInvoice(inv, items);
+}
+
+export async function updateInvoice(
+  id: string,
+  data: Partial<Invoice>
+): Promise<Invoice> {
+  const { items, ...rest } = data;
+  const inv = requireRow<Record<string, unknown>>(
+    await supabase()
+      .from("invoices")
+      .update(rest)
+      .eq("id", id)
+      .select()
+      .single(),
+    "updateInvoice",
+  );
+
+  if (items) {
+    throwOnMutationError(
+      await supabase().from("invoice_items").delete().eq("invoice_id", id),
+      "updateInvoice.items.delete",
+    );
+    if (items.length > 0) {
+      throwOnMutationError(
+        await supabase()
+          .from("invoice_items")
+          .insert(
+            items.map((item) => ({
+              invoice_id: id,
+              position: item.position,
+              description: item.description,
+              unit: item.unit || "Stueck",
+              product_id: item.product_id || null,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              discount_percent: item.discount_percent || 0,
+              discount_amount: item.discount_amount || 0,
+              tax_rate: item.tax_rate ?? null,
+              total: item.total,
+            }))
+          ),
+        "updateInvoice.items.insert",
+      );
     }
-    return mapInvoice(inv!, items);
+    return mapInvoice(inv, items);
   }
 
   const { data: currentItems } = await supabase()
@@ -464,7 +476,7 @@ export async function updateInvoice(
     .eq("invoice_id", id)
     .order("position", { ascending: true });
 
-  return mapInvoice(inv!, (currentItems ?? []).map(mapInvoiceItem));
+  return mapInvoice(inv, (currentItems ?? []).map(mapInvoiceItem));
 }
 
 export async function cancelInvoice(id: string): Promise<Invoice> {
@@ -472,7 +484,7 @@ export async function cancelInvoice(id: string): Promise<Invoice> {
 }
 
 export async function deleteInvoice(id: string): Promise<void> {
-  await supabase().from("invoices").delete().eq("id", id);
+  throwOnMutationError(await supabase().from("invoices").delete().eq("id", id), "deleteInvoice");
 }
 
 // Quotes
@@ -531,61 +543,27 @@ export async function createQuote(
   const quoteNumber = await generateQuoteNumber();
   const { items, ...quoteData } = quote;
 
-  const { data: q } = await supabase()
-    .from("quotes")
-    .insert({
-      ...quoteData,
-      quote_number: quoteNumber,
-      company_id: getActiveCompanyId(),
-    })
-    .select()
-    .single();
+  const q = requireRow<Record<string, unknown>>(
+    await supabase()
+      .from("quotes")
+      .insert({
+        ...quoteData,
+        quote_number: quoteNumber,
+        company_id: getActiveCompanyId(),
+      })
+      .select()
+      .single(),
+    "createQuote",
+  );
 
   if (items.length > 0) {
-    await supabase()
-      .from("quote_items")
-      .insert(
-        items.map((item) => ({
-          quote_id: q!.id,
-          company_id: getActiveCompanyId(),
-          position: item.position,
-          description: item.description,
-          unit: item.unit || "Stueck",
-          product_id: item.product_id || null,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          discount_percent: item.discount_percent || 0,
-          discount_amount: item.discount_amount || 0,
-          tax_rate: item.tax_rate ?? null,
-          total: item.total,
-          role_id: item.role_id || null,
-        }))
-      );
-  }
-
-  return mapQuote(q!, items);
-}
-
-export async function updateQuote(
-  id: string,
-  data: Partial<Quote>
-): Promise<Quote> {
-  const { items, ...rest } = data;
-  const { data: q } = await supabase()
-    .from("quotes")
-    .update(rest)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (items) {
-    await supabase().from("quote_items").delete().eq("quote_id", id);
-    if (items.length > 0) {
+    throwOnMutationError(
       await supabase()
         .from("quote_items")
         .insert(
           items.map((item) => ({
-            quote_id: id,
+            quote_id: q.id,
+            company_id: getActiveCompanyId(),
             position: item.position,
             description: item.description,
             unit: item.unit || "Stueck",
@@ -598,9 +576,58 @@ export async function updateQuote(
             total: item.total,
             role_id: item.role_id || null,
           }))
-        );
+        ),
+      "createQuote.items",
+    );
+  }
+
+  return mapQuote(q, items);
+}
+
+export async function updateQuote(
+  id: string,
+  data: Partial<Quote>
+): Promise<Quote> {
+  const { items, ...rest } = data;
+  const q = requireRow<Record<string, unknown>>(
+    await supabase()
+      .from("quotes")
+      .update(rest)
+      .eq("id", id)
+      .select()
+      .single(),
+    "updateQuote",
+  );
+
+  if (items) {
+    throwOnMutationError(
+      await supabase().from("quote_items").delete().eq("quote_id", id),
+      "updateQuote.items.delete",
+    );
+    if (items.length > 0) {
+      throwOnMutationError(
+        await supabase()
+          .from("quote_items")
+          .insert(
+            items.map((item) => ({
+              quote_id: id,
+              position: item.position,
+              description: item.description,
+              unit: item.unit || "Stueck",
+              product_id: item.product_id || null,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              discount_percent: item.discount_percent || 0,
+              discount_amount: item.discount_amount || 0,
+              tax_rate: item.tax_rate ?? null,
+              total: item.total,
+              role_id: item.role_id || null,
+            }))
+          ),
+        "updateQuote.items.insert",
+      );
     }
-    return mapQuote(q!, items);
+    return mapQuote(q, items);
   }
 
   const { data: currentItems } = await supabase()
@@ -609,11 +636,11 @@ export async function updateQuote(
     .eq("quote_id", id)
     .order("position", { ascending: true });
 
-  return mapQuote(q!, (currentItems ?? []).map(mapQuoteItem));
+  return mapQuote(q, (currentItems ?? []).map(mapQuoteItem));
 }
 
 export async function deleteQuote(id: string): Promise<void> {
-  await supabase().from("quotes").delete().eq("id", id);
+  throwOnMutationError(await supabase().from("quotes").delete().eq("id", id), "deleteQuote");
 }
 
 export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
@@ -676,12 +703,18 @@ export async function createExpenseReport(report: Omit<ExpenseReport, "id" | "cr
 }
 
 export async function updateExpenseReport(id: string, updates: Partial<ExpenseReport>): Promise<void> {
-  await supabase().from("expense_reports").update(updates).eq("id", id);
+  throwOnMutationError(await supabase().from("expense_reports").update(updates).eq("id", id), "updateExpenseReport");
 }
 
 export async function deleteExpenseReport(id: string): Promise<void> {
-  await supabase().from("expense_items").delete().eq("expense_report_id", id);
-  await supabase().from("expense_reports").delete().eq("id", id);
+  throwOnMutationError(
+    await supabase().from("expense_items").delete().eq("expense_report_id", id),
+    "deleteExpenseReport.items",
+  );
+  throwOnMutationError(
+    await supabase().from("expense_reports").delete().eq("id", id),
+    "deleteExpenseReport",
+  );
 }
 
 // Expense Items
@@ -698,7 +731,7 @@ export async function createExpenseItem(item: Omit<ExpenseItem, "id" | "created_
 }
 
 export async function updateExpenseItem(id: string, updates: Partial<ExpenseItem>): Promise<void> {
-  await supabase().from("expense_items").update(updates).eq("id", id);
+  throwOnMutationError(await supabase().from("expense_items").update(updates).eq("id", id), "updateExpenseItem");
 }
 
 export async function deleteExpenseItem(id: string): Promise<void> {
@@ -706,7 +739,7 @@ export async function deleteExpenseItem(id: string): Promise<void> {
   if (data?.receipt_file_path) {
     await supabase().storage.from("receipts").remove([data.receipt_file_path]);
   }
-  await supabase().from("expense_items").delete().eq("id", id);
+  throwOnMutationError(await supabase().from("expense_items").delete().eq("id", id), "deleteExpenseItem");
 }
 
 // Time Entries
@@ -723,17 +756,16 @@ export async function getActiveTimer(userId: string): Promise<TimeEntry | null> 
 }
 
 export async function createTimeEntry(entry: Omit<TimeEntry, "id" | "created_at">): Promise<TimeEntry> {
-  const { data, error } = await supabase().from("time_entries").insert({ ...entry, company_id: getActiveCompanyId() }).select().single();
-  if (error) throw new Error(`createTimeEntry failed: ${error.message}`);
-  return data as unknown as TimeEntry;
+  const result = await supabase().from("time_entries").insert({ ...entry, company_id: getActiveCompanyId() }).select().single();
+  return requireRow(result, "createTimeEntry") as unknown as TimeEntry;
 }
 
 export async function updateTimeEntry(id: string, updates: Partial<TimeEntry>): Promise<void> {
-  await supabase().from("time_entries").update(updates).eq("id", id);
+  throwOnMutationError(await supabase().from("time_entries").update(updates).eq("id", id), "updateTimeEntry");
 }
 
 export async function deleteTimeEntry(id: string): Promise<void> {
-  await supabase().from("time_entries").delete().eq("id", id);
+  throwOnMutationError(await supabase().from("time_entries").delete().eq("id", id), "deleteTimeEntry");
 }
 
 // User Work Schedules (per-user weekly pensum — SCH-369)
@@ -757,7 +789,7 @@ export async function getCurrentUserWorkSchedules(): Promise<UserWorkSchedule[]>
 export async function upsertUserWorkSchedule(
   schedule: Omit<UserWorkSchedule, "id" | "created_at" | "updated_at">
 ): Promise<UserWorkSchedule> {
-  const { data } = await supabase()
+  const result = await supabase()
     .from("user_work_schedules")
     .upsert(
       { ...schedule, updated_at: new Date().toISOString() },
@@ -765,7 +797,7 @@ export async function upsertUserWorkSchedule(
     )
     .select()
     .single();
-  return mapUserWorkSchedule(data!);
+  return mapUserWorkSchedule(requireRow(result, "upsertUserWorkSchedule"));
 }
 
 export async function deleteUserWorkSchedule(userId: string, weekday: number): Promise<void> {
@@ -856,24 +888,22 @@ export async function getProjectByQuoteId(quoteId: string): Promise<Project | nu
 export async function createProject(
   project: Omit<Project, "id" | "company_id" | "created_at" | "updated_at">
 ): Promise<Project> {
-  const { data, error } = await supabase()
+  const result = await supabase()
     .from("projects")
     .insert({ ...project, company_id: getActiveCompanyId() })
     .select()
     .single();
-  if (error) throw new Error(error.message);
-  return mapProject(data!);
+  return mapProject(requireRow(result, "createProject"));
 }
 
 export async function updateProject(id: string, updates: Partial<Project>): Promise<Project> {
-  const { data, error } = await supabase()
+  const result = await supabase()
     .from("projects")
     .update(updates)
     .eq("id", id)
     .select()
     .single();
-  if (error) throw new Error(error.message);
-  return mapProject(data!);
+  return mapProject(requireRow(result, "updateProject"));
 }
 
 export async function deleteProject(id: string): Promise<void> {
@@ -901,24 +931,22 @@ export async function getTask(id: string): Promise<Task | null> {
 export async function createTask(
   task: Omit<Task, "id" | "company_id" | "created_at" | "updated_at">
 ): Promise<Task> {
-  const { data, error } = await supabase()
+  const result = await supabase()
     .from("tasks")
     .insert({ ...task, company_id: getActiveCompanyId() })
     .select()
     .single();
-  if (error) throw new Error(error.message);
-  return mapTask(data!);
+  return mapTask(requireRow(result, "createTask"));
 }
 
 export async function updateTask(id: string, updates: Partial<Task>): Promise<Task> {
-  const { data, error } = await supabase()
+  const result = await supabase()
     .from("tasks")
     .update(updates)
     .eq("id", id)
     .select()
     .single();
-  if (error) throw new Error(error.message);
-  return mapTask(data!);
+  return mapTask(requireRow(result, "updateTask"));
 }
 
 export async function deleteTask(id: string): Promise<void> {
@@ -1001,7 +1029,7 @@ export async function upsertUserDashboardLayout(
   layoutJson: unknown,
   dashboardKey: string = DEFAULT_DASHBOARD_KEY
 ): Promise<UserDashboardLayout> {
-  const { data, error } = await supabase()
+  const result = await supabase()
     .from("user_dashboard_layouts")
     .upsert(
       {
@@ -1015,20 +1043,22 @@ export async function upsertUserDashboardLayout(
     )
     .select()
     .single();
-  if (error) throw new Error(error.message);
-  return mapUserDashboardLayout(data!);
+  return mapUserDashboardLayout(requireRow(result, "upsertUserDashboardLayout"));
 }
 
 export async function deleteUserDashboardLayout(
   userId: string,
   dashboardKey: string = DEFAULT_DASHBOARD_KEY
 ): Promise<void> {
-  await supabase()
-    .from("user_dashboard_layouts")
-    .delete()
-    .eq("company_id", getActiveCompanyId())
-    .eq("user_id", userId)
-    .eq("dashboard_key", dashboardKey);
+  throwOnMutationError(
+    await supabase()
+      .from("user_dashboard_layouts")
+      .delete()
+      .eq("company_id", getActiveCompanyId())
+      .eq("user_id", userId)
+      .eq("dashboard_key", dashboardKey),
+    "deleteUserDashboardLayout",
+  );
 }
 
 // Company Roles (SCH-366 — Custom-Rollen-System) -----------------------------
@@ -1055,36 +1085,37 @@ export async function getCompanyRole(id: string): Promise<CompanyRole | null> {
 export async function createCompanyRole(
   role: Pick<CompanyRole, "name" | "description" | "color">
 ): Promise<CompanyRole> {
-  const { data, error } = await supabase()
+  const result = await supabase()
     .from("company_roles")
     .insert({ ...role, company_id: getActiveCompanyId() })
     .select()
     .single();
-  if (error) throw new Error(error.message);
-  return mapCompanyRole(data!);
+  return mapCompanyRole(requireRow(result, "createCompanyRole"));
 }
 
 export async function updateCompanyRole(
   id: string,
   updates: Partial<Pick<CompanyRole, "name" | "description" | "color">>
 ): Promise<CompanyRole> {
-  const { data, error } = await supabase()
+  const result = await supabase()
     .from("company_roles")
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq("id", id)
     .eq("company_id", getActiveCompanyId())
     .select()
     .single();
-  if (error) throw new Error(error.message);
-  return mapCompanyRole(data!);
+  return mapCompanyRole(requireRow(result, "updateCompanyRole"));
 }
 
 export async function deleteCompanyRole(id: string): Promise<void> {
-  await supabase()
-    .from("company_roles")
-    .delete()
-    .eq("id", id)
-    .eq("company_id", getActiveCompanyId());
+  throwOnMutationError(
+    await supabase()
+      .from("company_roles")
+      .delete()
+      .eq("id", id)
+      .eq("company_id", getActiveCompanyId()),
+    "deleteCompanyRole",
+  );
 }
 
 // User ↔ Role assignments ----------------------------------------------------
@@ -1104,7 +1135,7 @@ export async function assignRoleToUser(
   userId: string,
   roleId: string
 ): Promise<UserRoleAssignment> {
-  const { data, error } = await supabase()
+  const result = await supabase()
     .from("user_role_assignments")
     .upsert(
       { company_id: getActiveCompanyId(), user_id: userId, role_id: roleId },
@@ -1112,19 +1143,21 @@ export async function assignRoleToUser(
     )
     .select()
     .single();
-  if (error) throw new Error(error.message);
-  return mapUserRoleAssignment(data!);
+  return mapUserRoleAssignment(requireRow(result, "assignRoleToUser"));
 }
 
 export async function removeRoleFromUser(
   userId: string,
   roleId: string
 ): Promise<void> {
-  await supabase()
-    .from("user_role_assignments")
-    .delete()
-    .eq("user_id", userId)
-    .eq("role_id", roleId);
+  throwOnMutationError(
+    await supabase()
+      .from("user_role_assignments")
+      .delete()
+      .eq("user_id", userId)
+      .eq("role_id", roleId),
+    "removeRoleFromUser",
+  );
 }
 
 /** Alle User die eine bestimmte Rolle haben — für Auto-Suggestion. */
@@ -1166,7 +1199,7 @@ export async function getSmartInsightsConfig(): Promise<SmartInsightsConfig> {
 export async function upsertSmartInsightsConfig(
   config: Partial<Omit<SmartInsightsConfig, "id" | "company_id" | "created_at" | "updated_at">>
 ): Promise<SmartInsightsConfig> {
-  const { data, error } = await supabase()
+  const result = await supabase()
     .from("smart_insights_config")
     .upsert(
       {
@@ -1178,8 +1211,7 @@ export async function upsertSmartInsightsConfig(
     )
     .select()
     .single();
-  if (error) throw new Error(error.message);
-  return mapSmartInsightsConfig(data!);
+  return mapSmartInsightsConfig(requireRow(result, "upsertSmartInsightsConfig"));
 }
 
 // Bank Statements
@@ -1189,13 +1221,19 @@ export async function getBankStatements(): Promise<BankStatement[]> {
 }
 
 export async function createBankStatement(stmt: Omit<BankStatement, "id" | "created_at" | "updated_at">): Promise<BankStatement> {
-  const { data } = await supabase().from("bank_statements").insert({ ...stmt, company_id: getActiveCompanyId() }).select().single();
-  return mapBankStatement(data!);
+  const result = await supabase().from("bank_statements").insert({ ...stmt, company_id: getActiveCompanyId() }).select().single();
+  return mapBankStatement(requireRow(result, "createBankStatement"));
 }
 
 export async function deleteBankStatement(id: string): Promise<void> {
-  await supabase().from("bank_transactions").delete().eq("statement_id", id);
-  await supabase().from("bank_statements").delete().eq("id", id);
+  throwOnMutationError(
+    await supabase().from("bank_transactions").delete().eq("statement_id", id),
+    "deleteBankStatement.transactions",
+  );
+  throwOnMutationError(
+    await supabase().from("bank_statements").delete().eq("id", id),
+    "deleteBankStatement",
+  );
 }
 
 export async function getTransactions(statementId?: string): Promise<BankTransaction[]> {
@@ -1206,13 +1244,13 @@ export async function getTransactions(statementId?: string): Promise<BankTransac
 }
 
 export async function createTransaction(tx: Omit<BankTransaction, "id" | "created_at" | "updated_at">): Promise<BankTransaction> {
-  const { data } = await supabase().from("bank_transactions").insert({ ...tx, company_id: getActiveCompanyId() }).select().single();
-  return mapBankTransaction(data!);
+  const result = await supabase().from("bank_transactions").insert({ ...tx, company_id: getActiveCompanyId() }).select().single();
+  return mapBankTransaction(requireRow(result, "createTransaction"));
 }
 
 export async function updateTransaction(id: string, updates: Partial<BankTransaction>): Promise<BankTransaction> {
-  const { data } = await supabase().from("bank_transactions").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).select().single();
-  return mapBankTransaction(data!);
+  const result = await supabase().from("bank_transactions").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+  return mapBankTransaction(requireRow(result, "updateTransaction"));
 }
 
 // Receipts
@@ -1227,13 +1265,13 @@ export async function getReceipt(id: string): Promise<Receipt | undefined> {
 }
 
 export async function createReceipt(receipt: Omit<Receipt, "id" | "created_at" | "updated_at">): Promise<Receipt> {
-  const { data } = await supabase().from("receipts").insert({ ...receipt, company_id: getActiveCompanyId() }).select().single();
-  return mapReceipt(data!);
+  const result = await supabase().from("receipts").insert({ ...receipt, company_id: getActiveCompanyId() }).select().single();
+  return mapReceipt(requireRow(result, "createReceipt"));
 }
 
 export async function updateReceipt(id: string, updates: Partial<Receipt>): Promise<Receipt> {
-  const { data } = await supabase().from("receipts").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).select().single();
-  return mapReceipt(data!);
+  const result = await supabase().from("receipts").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+  return mapReceipt(requireRow(result, "updateReceipt"));
 }
 
 export async function deleteReceipt(id: string): Promise<void> {
@@ -1241,7 +1279,7 @@ export async function deleteReceipt(id: string): Promise<void> {
   if (receipt) {
     await supabase().storage.from("receipts").remove([receipt.file_path]);
   }
-  await supabase().from("receipts").delete().eq("id", id);
+  throwOnMutationError(await supabase().from("receipts").delete().eq("id", id), "deleteReceipt");
 }
 
 export async function uploadReceiptFile(file: File): Promise<{ path: string }> {
@@ -1273,16 +1311,16 @@ export async function getTemplate(id: string): Promise<Template | undefined> {
 export async function createTemplate(
   template: Omit<Template, "id" | "created_at">
 ): Promise<Template> {
-  const { data } = await supabase()
+  const result = await supabase()
     .from("templates")
     .insert({ ...template, items: JSON.stringify(template.items), company_id: getActiveCompanyId() })
     .select()
     .single();
-  return mapTemplate(data!);
+  return mapTemplate(requireRow(result, "createTemplate"));
 }
 
 export async function deleteTemplate(id: string): Promise<void> {
-  await supabase().from("templates").delete().eq("id", id);
+  throwOnMutationError(await supabase().from("templates").delete().eq("id", id), "deleteTemplate");
 }
 
 // Fixed Costs
@@ -1302,29 +1340,29 @@ export async function getActiveFixedCosts(): Promise<FixedCost[]> {
 export async function createFixedCost(
   cost: Omit<FixedCost, "id" | "created_at" | "updated_at">
 ): Promise<FixedCost> {
-  const { data } = await supabase()
+  const result = await supabase()
     .from("fixed_costs")
     .insert({ ...cost, company_id: getActiveCompanyId() })
     .select()
     .single();
-  return mapFixedCost(data!);
+  return mapFixedCost(requireRow(result, "createFixedCost"));
 }
 
 export async function updateFixedCost(
   id: string,
   updates: Partial<FixedCost>
 ): Promise<FixedCost> {
-  const { data } = await supabase()
+  const result = await supabase()
     .from("fixed_costs")
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select()
     .single();
-  return mapFixedCost(data!);
+  return mapFixedCost(requireRow(result, "updateFixedCost"));
 }
 
 export async function deleteFixedCost(id: string): Promise<void> {
-  await supabase().from("fixed_costs").delete().eq("id", id);
+  throwOnMutationError(await supabase().from("fixed_costs").delete().eq("id", id), "deleteFixedCost");
 }
 
 // Mappers
@@ -1836,7 +1874,10 @@ export async function deleteDesignPhoto(id: string): Promise<void> {
   if (data) {
     await supabase().storage.from("design-photos").remove([data.file_path as string]);
   }
-  await supabase().from("quote_design_photos").delete().eq("id", id);
+  throwOnMutationError(
+    await supabase().from("quote_design_photos").delete().eq("id", id),
+    "deleteDesignPhoto",
+  );
 }
 
 export function getDesignPhotoUrl(path: string): string {
@@ -1870,10 +1911,10 @@ export async function upsertDesignSelection(
   if (aiPayload !== undefined) {
     row.ai_generated_payload = aiPayload;
   }
-  const { data } = await supabase()
+  const result = await supabase()
     .from("quote_design_selections")
     .upsert(row, { onConflict: "quote_id" })
     .select()
     .single();
-  return mapDesignSelection(data!);
+  return mapDesignSelection(requireRow(result, "upsertDesignSelection"));
 }
