@@ -2,8 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Invoice, Quote, Customer, CompanySettings, EInvoiceFormat } from "@/lib/types";
-import { updateInvoice } from "@/lib/db";
+import { updateInvoice, getSettings } from "@/lib/db";
 import { useCompany } from "@/lib/company-context";
+import EInvoiceValidationModal from "@/components/EInvoiceValidationModal";
+
+interface ValidationIssue {
+  code: string;
+  rule: string;
+  path: string;
+  message: string;
+  severity: "error" | "warning";
+}
 
 interface Props {
   invoice?: Invoice;
@@ -21,6 +30,9 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
   const [eInvoiceLoading, setEInvoiceLoading] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationIssue[] | null>(null);
+  const [validationSettings, setValidationSettings] = useState<CompanySettings>(settings);
+  const pendingFormatRef = useRef<Exclude<EInvoiceFormat, "none"> | null>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
 
   const eFormat = invoice?.e_invoice_format;
@@ -40,15 +52,16 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
     return () => document.removeEventListener("mousedown", close);
   }, [createMenuOpen]);
 
-  async function generateBlob(): Promise<{ blob: Blob; filename: string } | null> {
+  async function generateBlob(overrideSettings?: CompanySettings): Promise<{ blob: Blob; filename: string } | null> {
     const { pdf } = await import("@react-pdf/renderer");
 
+    const src = overrideSettings ?? settings;
     // Build absolute logo URL, handle empty/missing logo gracefully
-    let logoUrl = settings.logo_url;
+    let logoUrl = src.logo_url;
     if (logoUrl && !logoUrl.startsWith("http")) {
       logoUrl = `${window.location.origin}${logoUrl}`;
     }
-    const absSettings = { ...settings, logo_url: logoUrl || "" };
+    const absSettings = { ...src, logo_url: logoUrl || "" };
 
     if (invoice) {
       const { default: InvoicePDF } = await import("@/components/InvoicePDF");
@@ -135,7 +148,18 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
     return data.error || "Generation failed";
   }
 
-  async function runEInvoiceDownload(format: Exclude<EInvoiceFormat, "none">) {
+  // Open the completion popup whenever the validator flagged any seller-side
+  // (BT-27/31/35/37/40/84) field. Buyer or invoice-row errors still go to the
+  // fallback inline message — those aren't fixable from this button.
+  function hasSellerFixableErrors(errs: ValidationIssue[] | undefined): boolean {
+    if (!errs?.length) return false;
+    return errs.some((e) => e.path?.startsWith("settings."));
+  }
+
+  async function runEInvoiceDownload(
+    format: Exclude<EInvoiceFormat, "none">,
+    overrideSettings?: CompanySettings,
+  ) {
     if (!invoice) return;
     if (format === "xrechnung") {
       const res = await fetch("/api/einvoice/generate", {
@@ -144,12 +168,20 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
         body: JSON.stringify({ invoiceId: invoice.id, companyId: company.id }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(formatValidationMessage(data));
+      if (!res.ok) {
+        if (hasSellerFixableErrors(data.validation?.errors)) {
+          pendingFormatRef.current = format;
+          setValidationSettings(overrideSettings ?? settings);
+          setValidationErrors(data.validation.errors);
+          return;
+        }
+        throw new Error(formatValidationMessage(data));
+      }
 
       const blob = new Blob([data.xml], { type: "application/xml" });
       triggerDownload(blob, `XRechnung_${invoice.invoice_number.replace(/\s/g, "_")}.xml`);
     } else {
-      const pdfResult = await generateBlob();
+      const pdfResult = await generateBlob(overrideSettings);
       if (!pdfResult) throw new Error("PDF generation failed");
 
       const pdfArrayBuffer = await pdfResult.blob.arrayBuffer();
@@ -163,11 +195,41 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
         body: JSON.stringify({ invoiceId: invoice.id, companyId: company.id, pdfBase64 }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(formatValidationMessage(data));
+      if (!res.ok) {
+        if (hasSellerFixableErrors(data.validation?.errors)) {
+          pendingFormatRef.current = format;
+          setValidationSettings(overrideSettings ?? settings);
+          setValidationErrors(data.validation.errors);
+          return;
+        }
+        throw new Error(formatValidationMessage(data));
+      }
 
       const zugferdBytes = Uint8Array.from(atob(data.pdf), (c) => c.charCodeAt(0));
       const blob = new Blob([zugferdBytes], { type: "application/pdf" });
       triggerDownload(blob, `ZUGFeRD_${invoice.invoice_number.replace(/\s/g, "_")}.pdf`);
+    }
+  }
+
+  async function handleValidationSaved() {
+    const format = pendingFormatRef.current;
+    setValidationErrors(null);
+    pendingFormatRef.current = null;
+    if (!format) return;
+    setEInvoiceLoading(true);
+    setError(null);
+    try {
+      // Settings were updated by the modal; pull a fresh copy so the ZUGFeRD
+      // PDF uses the same values that EN-16931 validation will run against.
+      const fresh = await getSettings();
+      // Tell the parent to reload so the rest of the UI shows the new data.
+      onInvoiceUpdated?.();
+      await runEInvoiceDownload(format, fresh);
+    } catch (err) {
+      console.error("E-Rechnung retry failed:", err);
+      setError(`E-Rechnung fehlgeschlagen: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setEInvoiceLoading(false);
     }
   }
 
@@ -252,6 +314,17 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
         )}
       </div>
       {error && <pre className="text-xs text-rose-400 max-w-md text-right whitespace-pre-wrap">{error}</pre>}
+      {validationErrors && (
+        <EInvoiceValidationModal
+          errors={validationErrors}
+          settings={validationSettings}
+          onSaved={handleValidationSaved}
+          onClose={() => {
+            setValidationErrors(null);
+            pendingFormatRef.current = null;
+          }}
+        />
+      )}
     </div>
   );
 }
