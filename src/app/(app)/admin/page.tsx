@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { UserProfile, USER_ROLE_OPTIONS, UserRole, CompanyRole, UserRoleAssignment } from "@/lib/types";
 import {
-  getUserProfiles, createUserProfile, updateUserProfile,
+  getUserProfilesForMyCompanies, updateUserProfile,
   getUserWorkSchedules, replaceUserWorkSchedules,
   getCompanyRoles, createCompanyRole, updateCompanyRole, deleteCompanyRole,
   getUserRoleAssignments, assignRoleToUser, removeRoleFromUser,
@@ -121,7 +121,7 @@ export default function AdminPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const profiles = await getUserProfiles();
+      const profiles = await getUserProfilesForMyCompanies();
       setUsers(profiles);
       const myProfile = profiles.find((p) => p.auth_user_id === user.id);
       setCurrentUserRole(myProfile?.role || "admin"); // first user is admin
@@ -173,24 +173,16 @@ export default function AdminPage() {
       const res = await fetch("/api/create-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email, password: form.password }),
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+          display_name: form.display_name,
+          role: form.role,
+          company_access: form.company_access,
+        }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Benutzer konnte nicht erstellt werden");
-
-      await createUserProfile({
-        auth_user_id: result.userId,
-        display_name: form.display_name,
-        email: form.email,
-        role: form.role,
-        job_title: "",
-        iban: "",
-        address: "",
-        company_access: form.company_access,
-        accompanying_text_de: "",
-        accompanying_text_en: "",
-        greeting_tone: "motivating",
-      });
 
       setForm({ email: "", password: "", display_name: "", role: "employee", company_access: ["vrthefans"], default_language: "de" });
       setShowForm(false);

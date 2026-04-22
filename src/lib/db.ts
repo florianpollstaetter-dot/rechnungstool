@@ -100,6 +100,44 @@ export async function getUserProfiles(): Promise<UserProfile[]> {
   return (data ?? []).map(mapUserProfile);
 }
 
+// SCH-583 — defense-in-depth against cross-tenant user listing. RLS on
+// user_profiles (post SCH-558) already scopes reads to same-company members,
+// but callers in admin contexts should ALSO filter explicitly in code so a
+// future RLS regression doesn't silently leak rows. Fetches the caller's
+// company_members first, then pulls user_profiles whose auth_user_id is in
+// company_members for any of those companies.
+export async function getUserProfilesForMyCompanies(): Promise<UserProfile[]> {
+  const {
+    data: { user },
+  } = await supabase().auth.getUser();
+  if (!user) return [];
+
+  const { data: myMemberships } = await supabase()
+    .from("company_members")
+    .select("company_id")
+    .eq("user_id", user.id);
+
+  const myCompanyIds = (myMemberships ?? []).map((m) => m.company_id as string);
+  if (myCompanyIds.length === 0) return [];
+
+  const { data: sameCompanyMembers } = await supabase()
+    .from("company_members")
+    .select("user_id")
+    .in("company_id", myCompanyIds);
+
+  const authUserIds = Array.from(
+    new Set((sameCompanyMembers ?? []).map((m) => m.user_id as string)),
+  );
+  if (authUserIds.length === 0) return [];
+
+  const { data } = await supabase()
+    .from("user_profiles")
+    .select("*")
+    .in("auth_user_id", authUserIds)
+    .order("created_at", { ascending: true });
+  return (data ?? []).map(mapUserProfile);
+}
+
 export async function createUserProfile(profile: Omit<UserProfile, "id" | "created_at">): Promise<UserProfile> {
   const result = await supabase().from("user_profiles").insert({
     ...profile,
