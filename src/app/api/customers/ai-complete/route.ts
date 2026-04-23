@@ -9,8 +9,19 @@
 //   Input: ~600-1000 Tokens
 //   Output: ~400-800 Tokens
 //   → ca. $0.002-0.006 pro Aufruf
+//
+// SCH-600 Phase-5 Security: gated behind an authenticated session so an
+// anonymous caller can't drain the Claude budget.
+
+import { createClient as createServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
+  const ssr = await createServerClient();
+  const { data: { user } } = await ssr.auth.getUser();
+  if (!user) {
+    return Response.json({ error: "Nicht authentifiziert" }, { status: 401 });
+  }
+
   const body = (await request.json().catch(() => null)) as {
     name?: string;
   } | null;
