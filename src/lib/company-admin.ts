@@ -59,12 +59,31 @@ export async function logCompanyAuditAction(
   });
 }
 
-// Readable temp password: 4 blocks of 4 lowercase + digit chars separated by '-'.
+// Readable temp password: 6 blocks of 4 lowercase + digit chars separated by '-'.
 // Avoids look-alike characters (0/O, 1/l/I) so it can be read aloud or typed.
+//
+// SCH-600 Phase-5: extended from 16 to 24 characters (31-char alphabet ->
+// log2(31^24) ≈ 119 bits of entropy, up from ~79) and added rejection
+// sampling so `b % 31` doesn't skew the distribution toward characters at
+// the start of the alphabet. Admin temp passwords are a privilege-
+// escalation target, so the extra entropy matters.
 export function generateTempPassword(): string {
   const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]);
-  return `${chars.slice(0, 4).join("")}-${chars.slice(4, 8).join("")}-${chars.slice(8, 12).join("")}-${chars.slice(12, 16).join("")}`;
+  const len = alphabet.length; // 31
+  // Largest multiple of `len` that fits in a uint8 — byte values at or above
+  // this cause modular bias, so we resample those.
+  const threshold = Math.floor(256 / len) * len; // 248
+  const out: string[] = [];
+  const scratch = new Uint8Array(4);
+  while (out.length < 24) {
+    crypto.getRandomValues(scratch);
+    for (const b of scratch) {
+      if (b >= threshold) continue;
+      out.push(alphabet[b % len]);
+      if (out.length === 24) break;
+    }
+  }
+  const blocks: string[] = [];
+  for (let i = 0; i < 24; i += 4) blocks.push(out.slice(i, i + 4).join(""));
+  return blocks.join("-");
 }

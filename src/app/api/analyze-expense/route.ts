@@ -1,5 +1,6 @@
 import { callClaude, calculateCostEUR } from "@/lib/ai-client";
 import { requireCompanyMembership } from "@/lib/api-auth";
+import { logAndSanitize } from "@/lib/api-errors";
 
 export async function POST(request: Request) {
   const { expenseItemId, companyId } = await request.json();
@@ -109,12 +110,12 @@ Antworte NUR mit dem JSON, kein anderer Text.`,
 
     return Response.json({ success: true, data: parsed });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const safeMessage = logAndSanitize("analyze-expense", err, "Spesen-Analyse fehlgeschlagen.");
     const { error: errorSaveErr } = await supabase.from("expense_items").update({
       analysis_status: "error",
-      analysis_raw: { error: message },
+      analysis_raw: { error: safeMessage },
     }).eq("id", expenseItemId);
     if (errorSaveErr) console.error("analyze-expense: could not record error status:", errorSaveErr.message);
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json({ error: safeMessage }, { status: 500 });
   }
 }

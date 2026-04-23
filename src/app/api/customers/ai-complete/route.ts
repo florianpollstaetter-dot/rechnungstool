@@ -15,6 +15,7 @@
 
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { fetchWithTimeout, isFetchTimeout } from "@/lib/fetch-with-timeout";
+import { logAndSanitize } from "@/lib/api-errors";
 
 export async function POST(request: Request) {
   const ssr = await createServerClient();
@@ -155,7 +156,9 @@ Antworte NUR mit folgendem JSON, kein anderer Text:
         { status: 504 },
       );
     }
-    const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json(
+      { error: logAndSanitize("customers/ai-complete", err, "AI-Recherche fehlgeschlagen.") },
+      { status: 500 },
+    );
   }
 }
