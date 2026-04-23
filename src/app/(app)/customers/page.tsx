@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Customer } from "@/lib/types";
 import {
   getCustomers,
@@ -10,6 +11,7 @@ import {
 } from "@/lib/db";
 import { useI18n } from "@/lib/i18n-context";
 import SevDeskImportModal from "@/components/SevDeskImportModal";
+import { customerEInvoiceReadiness } from "@/lib/einvoice/customer-ready";
 
 const emptyCustomer = {
   name: "",
@@ -26,6 +28,7 @@ const emptyCustomer = {
 
 export default function CustomersPage() {
   const { t } = useI18n();
+  const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -410,6 +413,9 @@ export default function CustomersPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 {t("common.email")}
               </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase" title={t("customers.eInvoiceReadyHeaderTitle")}>
+                {t("customers.eInvoiceReadyHeader")}
+              </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                 {t("common.actions")}
               </th>
@@ -418,47 +424,69 @@ export default function CustomersPage() {
           <tbody className="divide-y divide-[var(--border)]">
             {customers.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                   {t("customers.noCustomers")}
                 </td>
               </tr>
             )}
-            {customers.map((c) => (
-              <tr key={c.id} className="hover:bg-[var(--surface-hover)] transition cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest('button, a, input, select')) return; window.location.href = `/customers/${c.id}`; }}>
-                <td className="px-6 py-4">
-                  <div className="font-medium text-[var(--text-primary)]">
-                    {c.company || c.name}
-                  </div>
-                  {c.company && (
-                    <div className="text-sm text-gray-500">{c.name}</div>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-400">
-                  {c.address}, {c.zip} {c.city}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-400">
-                  {c.uid_number}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-400">
-                  {c.email}
-                  {c.phone && <div>{c.phone}</div>}
-                </td>
-                <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    onClick={() => handleEdit(c)}
-                    className="text-sm text-[var(--accent)] hover:brightness-110 mr-3"
-                  >
-                    {t("common.edit")}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(c.id)}
-                    className="text-sm text-rose-400 hover:text-rose-300"
-                  >
-                    {t("common.delete")}
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {customers.map((c) => {
+              const readiness = customerEInvoiceReadiness(c);
+              return (
+                <tr key={c.id} className="hover:bg-[var(--surface-hover)] transition cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest('button, a, input, select')) return; router.push(`/customers/${c.id}`); }}>
+                  <td className="px-6 py-4">
+                    <div className="font-medium text-[var(--text-primary)]">
+                      {c.company || c.name}
+                    </div>
+                    {c.company && (
+                      <div className="text-sm text-gray-500">{c.name}</div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-400">
+                    {c.address}, {c.zip} {c.city}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-400">
+                    {c.uid_number}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-400">
+                    {c.email}
+                    {c.phone && <div>{c.phone}</div>}
+                  </td>
+                  <td className="px-3 py-4 text-center">
+                    {readiness.ready ? (
+                      <span
+                        title={t("customers.eInvoiceReadyTooltipOk")}
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-400"
+                        aria-label={t("customers.eInvoiceReadyTooltipOk")}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                      </span>
+                    ) : (
+                      <span
+                        title={`${t("customers.eInvoiceReadyTooltipMissing")}: ${readiness.missing.join(", ")}`}
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500/15 text-rose-400"
+                        aria-label={`${t("customers.eInvoiceReadyTooltipMissing")}: ${readiness.missing.join(", ")}`}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => router.push(`/invoices?customerId=${c.id}`)}
+                      className="text-sm text-[var(--accent)] hover:brightness-110 mr-3"
+                    >
+                      {t("customers.showInvoices")}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(c.id)}
+                      className="text-sm text-rose-400 hover:text-rose-300"
+                    >
+                      {t("common.delete")}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -53,6 +53,7 @@ function InvoicesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialFilter = searchParams.get("filter") || "alle";
+  const customerFilter = searchParams.get("customerId") || "";
   const [activeFilter, setActiveFilter] = useState(initialFilter);
   const [searchQuery, setSearchQuery] = useState("");
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
@@ -308,6 +309,7 @@ function InvoicesPage() {
 
   // Filter logic
   const filteredInvoices = invoices
+    .filter((inv) => (customerFilter ? inv.customer_id === customerFilter : true))
     .filter((inv) => {
       if (activeFilter === "alle") return true;
       if (activeFilter === "offen") return inv.status === "offen" || inv.status === "teilbezahlt";
@@ -326,6 +328,8 @@ function InvoicesPage() {
     })
     .sort((a, b) => b.invoice_date.localeCompare(a.invoice_date) || b.invoice_number.localeCompare(a.invoice_number));
 
+  const customerFilterName = customerFilter ? getCustomerName(customerFilter) : "";
+
   if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
 
   return (
@@ -343,6 +347,18 @@ function InvoicesPage() {
           )}
         </div>
       </div>
+
+      {customerFilter && (
+        <div className="mb-3 inline-flex items-center gap-2 bg-[var(--surface-hover)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm">
+          <span className="text-[var(--text-muted)]">{t("invoices.filteredByCustomer")}:</span>
+          <span className="font-medium text-[var(--text-primary)]">{customerFilterName || customerFilter}</span>
+          <button
+            onClick={() => router.push("/invoices")}
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-base leading-none"
+            aria-label={t("common.cancel")}
+          >&times;</button>
+        </div>
+      )}
 
       {/* Filter tabs + search */}
       <div className="flex flex-col sm:flex-row gap-2 mb-4">
