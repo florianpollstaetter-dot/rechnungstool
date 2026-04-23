@@ -12,6 +12,7 @@ import { AppFooter } from "@/components/AppFooter";
 import { PaymentOverdueBanner } from "@/components/PaymentOverdueBanner";
 import { PasswordChangeGate } from "@/components/PasswordChangeGate";
 import { ChatWidget } from "@/components/ChatWidget";
+import CompanyBadge from "@/components/CompanyBadge";
 import type { TranslationKey } from "@/lib/translations/de";
 
 const GREETING_POOL_SIZE: Record<"motivating" | "challenging" | "sarcastic", number> = {
@@ -181,7 +182,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     disabled={switching}
                   >
                     {logoReady ? (
-                      <Image src={company.logo_url} alt={company.name} width={24} height={24} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+                      <CompanyBadge id={company.id} name={company.name} logoUrl={company.logo_url} size={24} />
                     ) : (
                       <span className="inline-block w-6 h-6 rounded" aria-hidden="true" />
                     )}
@@ -195,7 +196,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                           <button key={c.id} onClick={() => { void handleCompanySwitch(c.id); }}
                             disabled={switching}
                             className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--surface-hover)] transition flex items-center gap-2 disabled:opacity-60 ${company.id === c.id ? "text-[var(--brand-orange)]" : "text-[var(--text-secondary)]"}`}>
-                            <Image src={c.logo_url} alt={c.name} width={20} height={20} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+                            <CompanyBadge id={c.id} name={c.name} logoUrl={c.logo_url} size={20} />
                             {c.name}
                           </button>
                         ))}
@@ -206,7 +207,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               ) : (
                 <div className="flex items-center px-1.5">
                   {logoReady ? (
-                    <Image src={company.logo_url} alt={company.name} width={24} height={24} className="rounded" style={{ filter: "var(--logo-filter)" }} />
+                    <CompanyBadge id={company.id} name={company.name} logoUrl={company.logo_url} size={24} />
                   ) : (
                     <span className="inline-block w-6 h-6 rounded" aria-hidden="true" />
                   )}

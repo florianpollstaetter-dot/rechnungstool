@@ -218,9 +218,34 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
           dbCompanies = memberRows
             .map((row: Record<string, unknown>) => row.companies as Company | null)
             .filter((c: Company | null): c is Company => c !== null && c.status === "active");
+
+          // SCH-581 — `companies.logo_url` is stale (register-company seeds it
+          // to "" and never touches it again; the user edits the logo in
+          // `company_settings.logo_url` only). Overlay the real logo from
+          // company_settings so the header + switcher show the current asset.
+          if (dbCompanies.length > 0) {
+            const { data: settingsRows } = await supabase
+              .from("company_settings")
+              .select("company_id, logo_url")
+              .in(
+                "company_id",
+                dbCompanies.map((c) => c.id),
+              );
+            const logoByCompany = new Map<string, string>();
+            for (const row of settingsRows ?? []) {
+              const cid = row.company_id as string;
+              const url = (row.logo_url as string) || "";
+              if (cid && url) logoByCompany.set(cid, url);
+            }
+            dbCompanies = dbCompanies.map((c) => {
+              const overlay = logoByCompany.get(c.id);
+              return overlay ? { ...c, logo_url: overlay } : c;
+            });
+          }
         }
       } catch {
-        // company_members table may not exist yet (pre-migration) — fall through
+        // company_members / company_settings may not exist yet (pre-migration)
+        // — fall through to legacy company_access.
       }
 
       // SCH-546: read the *current* companyId via ref, not the stale closure.
