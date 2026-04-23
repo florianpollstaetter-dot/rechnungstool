@@ -13,6 +13,7 @@
 //   → ca. $0.003-0.008 pro Aufruf mit Web-Recherche
 
 import { createClient } from "@supabase/supabase-js";
+import { logAndSanitize } from "@/lib/api-errors";
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
@@ -206,7 +207,9 @@ Wichtig:
       },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json(
+      { error: logAndSanitize("company/setup-suggestions", err, "AI-Recherche fehlgeschlagen.") },
+      { status: 500 },
+    );
   }
 }

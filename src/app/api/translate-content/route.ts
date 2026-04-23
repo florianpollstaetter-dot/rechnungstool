@@ -7,6 +7,7 @@
 // Uses Claude (Bedrock if AWS creds, else direct Anthropic) via lib/ai-client.
 
 import { callClaude, calculateCostEUR } from "@/lib/ai-client";
+import { logAndSanitize } from "@/lib/api-errors";
 
 const SUPPORTED = ["de", "en", "fr", "es", "it", "tr", "pl", "ar"] as const;
 type Locale = (typeof SUPPORTED)[number];
@@ -107,7 +108,9 @@ ${targetLocales.map((l) => `  "${l}": "<translation in ${LANGUAGE_NAMES[l]}>"`).
       },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json(
+      { error: logAndSanitize("translate-content", err, "Übersetzung fehlgeschlagen.") },
+      { status: 500 },
+    );
   }
 }

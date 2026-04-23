@@ -5,6 +5,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { callClaudeChat, calculateCostEUR } from "@/lib/ai-client";
 import { CHAT_SYSTEM_PROMPT } from "@/lib/chat-prompt";
+import { logAndSanitize } from "@/lib/api-errors";
 
 const MAX_HISTORY = 30;
 
@@ -85,8 +86,8 @@ export async function POST(request: Request) {
     inputTokens = result.inputTokens;
     outputTokens = result.outputTokens;
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    assistantText = `⚠️ Der Assistent ist derzeit nicht erreichbar (${message}). Du kannst einen Superadmin anfordern.`;
+    const safeMessage = logAndSanitize("chat/messages", err, "nicht erreichbar");
+    assistantText = `⚠️ Der Assistent ist derzeit nicht erreichbar (${safeMessage}). Du kannst einen Superadmin anfordern.`;
   }
 
   const costEUR = calculateCostEUR(inputTokens, outputTokens);

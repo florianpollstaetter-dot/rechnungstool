@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { marked } from "marked";
 import DocxExportButton from "@/components/DocxExportButton";
 import { useCompany } from "@/lib/company-context";
+import { markdownToSafeHtml } from "@/lib/sanitize-markdown";
 
 interface DocumentData {
   id: string;
@@ -46,8 +46,7 @@ export default function DocumentViewerPage() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: DocumentData = await res.json();
         setDoc(data);
-        const html = await marked.parse(data.body, { async: false });
-        setHtmlBody(html as string);
+        setHtmlBody(markdownToSafeHtml(data.body));
       } catch {
         setNotFound(true);
       } finally {

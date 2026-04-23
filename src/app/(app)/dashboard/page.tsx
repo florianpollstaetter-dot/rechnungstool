@@ -9,6 +9,7 @@ import { SmartInsight, SmartInsightContext, buildSmartInsightRules, evaluateSmar
 import { getTipOfTheDay } from "@/lib/tips";
 import { getTimeReportEntries, periodPreset } from "@/lib/reports";
 import { useI18n } from "@/lib/i18n-context";
+import { sanitizeHtml } from "@/lib/sanitize-markdown";
 
 function getChuckNorrisFact(): string {
   const facts = [
@@ -276,7 +277,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <p className="text-xs text-gray-400 leading-relaxed"
-                       dangerouslySetInnerHTML={{ __html: insight.body.replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--text-primary)]">$1</strong>') }} />
+                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(insight.body.replace(/\*\*(.+?)\*\*/g, '<strong class="text-[var(--text-primary)]">$1</strong>')) }} />
                   </div>
                 );
               })}
