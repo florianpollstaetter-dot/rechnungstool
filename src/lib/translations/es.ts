@@ -364,6 +364,7 @@ const es: Record<string, string> = {
   "customers.aiConfidenceMedium": "media",
   "customers.aiConfidenceLow": "baja",
   "customers.aiSource": "Fuente",
+  "customers.aiSuggested": "IA",
   "customers.aiError": "Error en la investigacion con IA",
   "customers.aiNetworkError": "Error de red en la investigacion con IA",
   "customers.saveError": "Error al guardar el cliente",

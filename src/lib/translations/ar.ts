@@ -364,6 +364,7 @@ const ar: Record<string, string> = {
   "customers.aiConfidenceMedium": "متوسط",
   "customers.aiConfidenceLow": "منخفض",
   "customers.aiSource": "المصدر",
+  "customers.aiSuggested": "AI",
   "customers.aiError": "خطأ في بحث الذكاء الاصطناعي",
   "customers.aiNetworkError": "خطأ في الشبكة أثناء بحث الذكاء الاصطناعي",
   "customers.saveError": "فشل في حفظ العميل",

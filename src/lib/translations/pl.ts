@@ -364,6 +364,7 @@ const pl: Record<string, string> = {
   "customers.aiConfidenceMedium": "średnia",
   "customers.aiConfidenceLow": "niska",
   "customers.aiSource": "Źródło",
+  "customers.aiSuggested": "AI",
   "customers.aiError": "Błąd wyszukiwania AI",
   "customers.aiNetworkError": "Błąd sieci podczas wyszukiwania AI",
   "customers.saveError": "Błąd podczas zapisywania klienta",

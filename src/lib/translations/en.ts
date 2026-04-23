@@ -395,6 +395,7 @@ const en: Record<string, string> = {
   "customers.aiConfidenceMedium": "medium",
   "customers.aiConfidenceLow": "low",
   "customers.aiSource": "Source",
+  "customers.aiSuggested": "AI",
   "customers.aiError": "Error during AI research",
   "customers.aiNetworkError": "Network error during AI research",
   "customers.saveError": "Failed to save customer",

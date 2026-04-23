@@ -364,6 +364,7 @@ const tr: Record<string, string> = {
   "customers.aiConfidenceMedium": "orta",
   "customers.aiConfidenceLow": "düşük",
   "customers.aiSource": "Kaynak",
+  "customers.aiSuggested": "AI",
   "customers.aiError": "Yapay zeka araştırmasında hata",
   "customers.aiNetworkError": "Yapay zeka araştırmasında ağ hatası",
   "customers.saveError": "Müşteri kaydedilemedi",

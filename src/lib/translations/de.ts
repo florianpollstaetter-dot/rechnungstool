@@ -395,6 +395,7 @@ const de = {
   "customers.aiConfidenceMedium": "mittel",
   "customers.aiConfidenceLow": "niedrig",
   "customers.aiSource": "Quelle",
+  "customers.aiSuggested": "AI",
   "customers.aiError": "Fehler bei der AI-Recherche",
   "customers.aiNetworkError": "Netzwerkfehler bei der AI-Recherche",
   "customers.saveError": "Fehler beim Speichern des Kunden",

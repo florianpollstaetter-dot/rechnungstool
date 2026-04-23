@@ -39,6 +39,7 @@ export default function CustomersPage() {
     cost_eur?: number;
   } | null>(null);
   const [showAllFields, setShowAllFields] = useState(false);
+  const [aiFilledKeys, setAiFilledKeys] = useState<Set<keyof typeof emptyCustomer>>(new Set());
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -67,6 +68,7 @@ export default function CustomersPage() {
       setShowForm(false);
       setShowAllFields(false);
       setAiResult(null);
+      setAiFilledKeys(new Set());
     } catch (err) {
       setSaveError(
         err instanceof Error ? err.message : t("customers.saveError")
@@ -93,6 +95,7 @@ export default function CustomersPage() {
     setShowForm(true);
     setShowAllFields(true);
     setAiResult(null);
+    setAiFilledKeys(new Set());
   }
 
   async function handleDelete(id: string) {
@@ -118,17 +121,21 @@ export default function CustomersPage() {
       const data = await res.json();
 
       if (data.success && data.customer) {
-        // Only fill fields that are currently empty
+        // Only fill fields that are currently empty; remember which ones the
+        // AI actually touched so the UI can highlight them (SCH-579).
+        const filled = new Set<keyof typeof emptyCustomer>();
         setForm((prev) => {
           const updated = { ...prev };
           const keys = Object.keys(data.customer) as (keyof typeof emptyCustomer)[];
           for (const key of keys) {
             if (!updated[key] && data.customer[key]) {
               updated[key] = data.customer[key];
+              filled.add(key);
             }
           }
           return updated;
         });
+        setAiFilledKeys(filled);
         setShowAllFields(true);
         setAiResult({
           confidence: data.confidence,
@@ -164,6 +171,11 @@ export default function CustomersPage() {
     isNewCustomer && !showAllFields
       ? fields.filter((f) => f.key === "name" || f.key === "company")
       : fields;
+
+  // SCH-579 — offer the AI button whenever at least one field is empty.
+  // Hides on a fully-filled record so we don't waste Claude calls.
+  const hasEmptyFields = fields.some((f) => !form[f.key]?.toString().trim());
+  const canSearchAi = (form.name.trim() || form.company.trim()).length > 0;
 
   if (loading) {
     return (
@@ -213,27 +225,50 @@ export default function CustomersPage() {
             {editing ? t("customers.editCustomer") : t("customers.newCustomer")}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {visibleFields.map((f) => (
-              <div key={f.key}>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  {f.label}
-                </label>
-                <input
-                  type="text"
-                  value={form[f.key]}
-                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                  className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
-                />
-              </div>
-            ))}
+            {visibleFields.map((f) => {
+              const aiFilled = aiFilledKeys.has(f.key);
+              return (
+                <div key={f.key}>
+                  <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center gap-1.5">
+                    {f.label}
+                    {aiFilled && (
+                      <span className="text-[10px] font-semibold text-purple-400 bg-purple-500/15 px-1.5 py-0.5 rounded">
+                        {t("customers.aiSuggested")}
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={form[f.key]}
+                    onChange={(e) => {
+                      setForm({ ...form, [f.key]: e.target.value });
+                      // User touched an AI-filled field — clear the highlight
+                      // so the badge doesn't lie about where the value came from.
+                      if (aiFilled) {
+                        setAiFilledKeys((prev) => {
+                          const next = new Set(prev);
+                          next.delete(f.key);
+                          return next;
+                        });
+                      }
+                    }}
+                    className={`w-full bg-[var(--background)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent border ${
+                      aiFilled ? "border-purple-500/60" : "border-[var(--border)]"
+                    }`}
+                  />
+                </div>
+              );
+            })}
           </div>
 
-          {/* AI completion + expand controls for new customers */}
-          {isNewCustomer && !showAllFields && (
+          {/* AI completion — always available when at least name/company set and
+              some field is empty. New-customer mode also keeps the "fill manually"
+              shortcut for skipping research. */}
+          {(hasEmptyFields || isNewCustomer) && (
             <div className="flex items-center gap-3 mt-4">
               <button
                 onClick={handleAiComplete}
-                disabled={aiLoading || (!form.name.trim() && !form.company.trim())}
+                disabled={aiLoading || !canSearchAi}
                 className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-500 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {aiLoading ? (
@@ -275,12 +310,14 @@ export default function CustomersPage() {
                   </>
                 )}
               </button>
-              <button
-                onClick={() => setShowAllFields(true)}
-                className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition underline underline-offset-2"
-              >
-                {t("customers.fillManually")}
-              </button>
+              {isNewCustomer && !showAllFields && (
+                <button
+                  onClick={() => setShowAllFields(true)}
+                  className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition underline underline-offset-2"
+                >
+                  {t("customers.fillManually")}
+                </button>
+              )}
             </div>
           )}
 
@@ -346,6 +383,7 @@ export default function CustomersPage() {
                 setEditing(null);
                 setShowAllFields(false);
                 setAiResult(null);
+                setAiFilledKeys(new Set());
                 setSaveError(null);
               }}
               className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
