@@ -11,6 +11,7 @@
 // anonymous caller can't drain the Claude budget.
 
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { fetchWithTimeout, isFetchTimeout } from "@/lib/fetch-with-timeout";
 
 export async function POST(request: Request) {
   const ssr = await createServerClient();
@@ -84,7 +85,9 @@ Antworte NUR mit folgendem JSON, kein anderer Text:
 }`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetchWithTimeout(
+      "https://api.anthropic.com/v1/messages",
+      {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -103,7 +106,9 @@ Antworte NUR mit folgendem JSON, kein anderer Text:
         ],
         messages: [{ role: "user", content: prompt }],
       }),
-    });
+      },
+      60_000,
+    );
 
     if (!response.ok) {
       const err = await response.text();
@@ -153,6 +158,12 @@ Antworte NUR mit folgendem JSON, kein anderer Text:
       },
     });
   } catch (err) {
+    if (isFetchTimeout(err)) {
+      return Response.json(
+        { error: "AI-Anfrage Zeitüberschreitung — bitte erneut versuchen." },
+        { status: 504 },
+      );
+    }
     const message = err instanceof Error ? err.message : String(err);
     return Response.json({ error: message }, { status: 500 });
   }
