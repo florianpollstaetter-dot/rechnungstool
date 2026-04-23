@@ -1793,6 +1793,7 @@ function mapUserProfile(row: Record<string, unknown>): UserProfile {
       en: (row.accompanying_text_en as string) || "",
     }),
     greeting_tone: ((row.greeting_tone as UserProfile["greeting_tone"]) || "motivating"),
+    onboarding_completed_at: (row.onboarding_completed_at as string | null) ?? null,
     created_at: row.created_at as string,
   };
 }

@@ -11,6 +11,7 @@ import type { TranslationKey } from "@/lib/translations/de";
 import AiCompanySetup from "@/components/AiCompanySetup";
 import type { SuggestedCompanyData } from "@/components/AiCompanySetup";
 import SubscriptionSection from "@/components/SubscriptionSection";
+import OnboardingTour from "@/components/OnboardingTour";
 
 const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
 
@@ -57,6 +58,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { userRole, greetingTone, setGreetingTone } = useCompany();
   const { t, locale, setLocale } = useI18n();
+  const [replayTour, setReplayTour] = useState(false);
   const isAdmin = userRole === "admin";
   const isManager = userRole === "manager";
   const canManageCompany = isAdmin || isManager;
@@ -477,7 +479,18 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
+
+        <div className="mt-6 pt-4 border-t border-[var(--border)]">
+          <button
+            type="button"
+            onClick={() => setReplayTour(true)}
+            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline underline-offset-2 transition"
+          >
+            {t("settings.replayOnboardingTour")}
+          </button>
+        </div>
       </div>
+      {replayTour && <OnboardingTour forceOpen onClose={() => setReplayTour(false)} />}
 
       {/* 4. Passwort */}
       <form onSubmit={handlePasswordChange} className="mb-6 bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">

@@ -337,6 +337,9 @@ export interface UserProfile {
   accompanying_text_translations?: TranslationMap;
   // SCH-518 — navbar greeting tone; "off" hides the greeting.
   greeting_tone: GreetingTone;
+  // SCH-582 — first-login onboarding tour completion marker.
+  // NULL on fresh profiles; set to NOW() when the tour is finished or skipped.
+  onboarding_completed_at?: string | null;
   created_at: string;
 }
 

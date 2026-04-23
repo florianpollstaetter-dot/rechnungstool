@@ -13,6 +13,7 @@ import { PaymentOverdueBanner } from "@/components/PaymentOverdueBanner";
 import { PasswordChangeGate } from "@/components/PasswordChangeGate";
 import { ChatWidget } from "@/components/ChatWidget";
 import CompanyBadge from "@/components/CompanyBadge";
+import OnboardingTour from "@/components/OnboardingTour";
 import type { TranslationKey } from "@/lib/translations/de";
 
 const GREETING_POOL_SIZE: Record<"motivating" | "challenging" | "sarcastic", number> = {
@@ -322,6 +323,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
       <AppFooter />
       <ChatWidget />
+      <OnboardingTour />
     </>
   );
 }
