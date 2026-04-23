@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { logAndSanitize } from "@/lib/api-errors";
 
 export async function POST(request: Request) {
   const { email, password, displayName, companyName, companySlug } = await request.json();
@@ -176,12 +177,11 @@ export async function POST(request: Request) {
 
     return Response.json({ userId, companyId: companySlug });
   } catch (err) {
-    console.error("register-company error:", err);
     await rollback();
     return Response.json(
       {
         error: "company_setup_failed",
-        message: err instanceof Error ? err.message : "Unternehmens-Erstellung fehlgeschlagen.",
+        message: logAndSanitize("register-company", err, "Unternehmens-Erstellung fehlgeschlagen."),
       },
       { status: 500 },
     );

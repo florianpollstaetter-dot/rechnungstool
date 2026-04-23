@@ -3,6 +3,7 @@ import { generateUblXml } from "@/lib/einvoice/ubl-xml";
 import { embedZugferdXml } from "@/lib/einvoice/zugferd-embed";
 import { validateEInvoice } from "@/lib/einvoice/validator";
 import { requireCompanyMembership } from "@/lib/api-auth";
+import { logAndSanitize } from "@/lib/api-errors";
 
 /**
  * POST /api/einvoice/generate
@@ -104,9 +105,8 @@ export async function POST(request: Request) {
 
     return Response.json({ xml, format: "zugferd", validation });
   } catch (err) {
-    console.error("E-Rechnung generation failed:", err);
     return Response.json(
-      { error: `Generation failed: ${err instanceof Error ? err.message : String(err)}` },
+      { error: logAndSanitize("einvoice/generate", err, "E-Rechnung-Generierung fehlgeschlagen.") },
       { status: 500 }
     );
   }

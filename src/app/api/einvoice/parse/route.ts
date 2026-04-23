@@ -1,4 +1,5 @@
 import { parseEInvoiceXml, extractXmlFromPdf } from "@/lib/einvoice/parser";
+import { logAndSanitize } from "@/lib/api-errors";
 
 /**
  * POST /api/einvoice/parse
@@ -34,9 +35,8 @@ export async function POST(request: Request) {
     const parsed = parseEInvoiceXml(xmlContent);
     return Response.json(parsed);
   } catch (err) {
-    console.error("E-Rechnung parse failed:", err);
     return Response.json(
-      { error: `Parsing fehlgeschlagen: ${err instanceof Error ? err.message : String(err)}` },
+      { error: logAndSanitize("einvoice/parse", err, "E-Rechnung-Parsing fehlgeschlagen.") },
       { status: 500 }
     );
   }

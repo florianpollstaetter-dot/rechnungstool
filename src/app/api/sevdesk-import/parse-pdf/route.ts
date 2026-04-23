@@ -7,6 +7,7 @@
 // warns the user about this before they get here.
 
 import { callClaude, calculateCostEUR } from "@/lib/ai-client";
+import { logAndSanitize } from "@/lib/api-errors";
 
 const PRODUCTS_PROMPT = `Du erhältst den PDF-Export "Artikelübersicht" aus sevDesk.
 Er enthält eine Tabelle mit den Spalten:
@@ -85,7 +86,9 @@ export async function POST(request: Request) {
     const costEUR = calculateCostEUR(inputTokens, outputTokens);
     return Response.json({ success: true, rows, cost_eur: costEUR });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json(
+      { error: logAndSanitize("sevdesk-import/parse-pdf", err, "PDF-Import fehlgeschlagen.") },
+      { status: 500 },
+    );
   }
 }
