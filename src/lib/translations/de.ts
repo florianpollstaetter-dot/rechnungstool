@@ -333,6 +333,13 @@ const de = {
   "quoteNew.notes": "Anmerkungen",
   "quoteNew.submit": "Angebot erstellen",
   "quoteNew.submitting": "Wird erstellt...",
+  "quoteNew.setupGate.title": "Erst dein Unternehmen einrichten",
+  "quoteNew.setupGate.body": "Bevor du dein erstes Angebot erstellst, lass uns kurz dein Unternehmen einrichten — damit auf dem PDF dein Logo, deine Adresse und deine Beschreibungen stehen statt der Demo-Daten.",
+  "quoteNew.setupGate.bullet1": "Logo + Firmendaten zentral hinterlegen",
+  "quoteNew.setupGate.bullet2": "KI füllt Industrie, Beschreibung und typische Leistungen für dich vor",
+  "quoteNew.setupGate.bullet3": "Dauert ca. 2 Minuten — du kannst alles später noch editieren",
+  "quoteNew.setupGate.openWizard": "Setup-Assistent öffnen",
+  "quoteNew.setupGate.proceed": "Trotzdem fortfahren",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "Zurück zu Angeboten",

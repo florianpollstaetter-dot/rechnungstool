@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Customer, QuoteItem, Product, UNIT_OPTIONS, Language, DisplayMode, CompanyRole } from "@/lib/types";
+import { Customer, QuoteItem, Product, UNIT_OPTIONS, Language, DisplayMode, CompanyRole, CompanySettings } from "@/lib/types";
 import { getCustomers, getSettings, getActiveProducts, createQuote, getTemplate, getCompanyRoles } from "@/lib/db";
 import { useAutosave } from "@/lib/use-autosave";
 import { addDays, formatCurrency } from "@/lib/format";
 import { calcItemTotal, calcTotals } from "@/lib/calc";
 import { useI18n } from "@/lib/i18n-context";
+import { useCompany } from "@/lib/company-context";
+import QuoteNewSetupGate from "@/components/QuoteNewSetupGate";
 
 type ItemRow = Omit<QuoteItem, "id">;
 
@@ -24,6 +26,8 @@ function NewQuotePage() {
   const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { company } = useCompany();
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [roles, setRoles] = useState<CompanyRole[]>([]);
@@ -63,6 +67,7 @@ function NewQuotePage() {
     setCustomers(cust);
     setProducts(prods);
     setRoles(rolesData);
+    setCompanySettings(settings);
     setTaxRate(settings.default_tax_rate);
 
     const templateId = searchParams.get("template");
@@ -144,6 +149,7 @@ function NewQuotePage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-6">{t("quoteNew.title")}</h1>
+      <QuoteNewSetupGate settings={companySettings} companyId={company?.id ?? null}>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <h2 className="text-lg font-semibold mb-4">{t("quoteNew.details")}</h2>
@@ -289,6 +295,7 @@ function NewQuotePage() {
           <button type="button" onClick={() => router.push("/quotes")} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition">{t("common.cancel")}</button>
         </div>
       </form>
+      </QuoteNewSetupGate>
     </div>
   );
 }
