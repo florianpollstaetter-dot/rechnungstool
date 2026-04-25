@@ -75,6 +75,11 @@ const de = {
   "nav.groupAdmin": "Verwaltung",
   "nav.groupSystem": "System",
   "nav.groupCompany": "Unternehmen",
+  "nav.sectionAccounting": "Accounting",
+  "nav.sectionTimeTracking": "Time Tracking",
+  "nav.sectionAdmin": "Admin & Settings",
+  "nav.openSidebar": "Menü öffnen",
+  "nav.closeSidebar": "Menü schließen",
 
   // ── Greetings ──
   "greetings.0": "Du rockst das, {name}!",

@@ -75,6 +75,11 @@ const en: Record<string, string> = {
   "nav.groupAdmin": "Administration",
   "nav.groupSystem": "System",
   "nav.groupCompany": "Company",
+  "nav.sectionAccounting": "Accounting",
+  "nav.sectionTimeTracking": "Time Tracking",
+  "nav.sectionAdmin": "Admin & Settings",
+  "nav.openSidebar": "Open menu",
+  "nav.closeSidebar": "Close menu",
 
   // ── Greetings ──
   "greetings.0": "You're rocking it, {name}!",

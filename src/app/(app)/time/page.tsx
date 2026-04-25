@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { TimeEntry, Quote, UserWorkSchedule } from "@/lib/types";
 import { getTimeEntries, getActiveTimer, createTimeEntry, updateTimeEntry, deleteTimeEntry, getQuotes, getCurrentUserName, getCurrentUserWorkSchedules } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
@@ -53,8 +54,23 @@ function getProjectColor(project: string, allProjects: string[]): string {
 type PickerTab = "allgemein" | "projekte" | "other";
 
 export default function TimePage() {
+  return (
+    <Suspense fallback={<div className="py-12 text-center text-[var(--text-secondary)]">…</div>}>
+      <TimePageInner />
+    </Suspense>
+  );
+}
+
+function TimePageInner() {
   const { t } = useI18n();
   const { userName } = useCompany();
+  const searchParams = useSearchParams();
+  const initialView = (() => {
+    const v = searchParams.get("view");
+    if (v === "calendar") return "calendar" as const;
+    if (v === "analytics" || v === "auswertung") return "auswertung" as const;
+    return "list" as const;
+  })();
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [activeTimer, setActiveTimerState] = useState<TimeEntry | null>(null);
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -69,9 +85,16 @@ export default function TimePage() {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set([new Date().toISOString().split("T")[0]]));
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ project_label: "", description: "", duration_minutes: 0 });
-  const [viewMode, setViewMode] = useState<"list" | "calendar" | "auswertung">("list");
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "auswertung">(initialView);
   const [workSchedule, setWorkSchedule] = useState<UserWorkSchedule[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const v = searchParams.get("view");
+    if (v === "calendar") setViewMode("calendar");
+    else if (v === "analytics" || v === "auswertung") setViewMode("auswertung");
+    else if (v === "list") setViewMode("list");
+  }, [searchParams]);
 
   const loadData = useCallback(async () => {
     const supabase = createClient();
