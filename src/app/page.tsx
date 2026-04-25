@@ -122,6 +122,9 @@ export default async function LandingPage() {
           </ul>
           <div className={styles.navRight}>
             <LandingHeaderLogin />
+            <Link href="/login" className={styles.navLogin}>
+              Anmelden
+            </Link>
             <Link href="/register" className={styles.navCta}>
               Kostenlos starten
             </Link>

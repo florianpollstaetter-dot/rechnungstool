@@ -775,7 +775,7 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
                             : "hover:bg-[var(--surface-hover)]"
                         }`}
                       >
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
                             checked={selectedProducts.has(i)}

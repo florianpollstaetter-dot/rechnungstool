@@ -129,7 +129,7 @@ export default function TimePage() {
       await createTimeEntry({
         company_id: "", user_id: uid, user_name: userName || getCurrentUserName(),
         quote_id: q?.id || null, project_label: label, description: "",
-        start_time: now.toISOString(), end_time: null, duration_minutes: 0, billable: true, hourly_rate: 0,
+        start_time: now.toISOString(), end_time: null, duration_minutes: 0, billable: !!q, hourly_rate: 0,
         entry_type: "work",
       });
     } catch (err) {
@@ -227,7 +227,7 @@ export default function TimePage() {
         company_id: "", user_id: uid, user_name: userName || getCurrentUserName(),
         quote_id: r.quote_id, project_label: r.project_label, description: r.description,
         start_time: r.start.toISOString(), end_time: r.end.toISOString(), duration_minutes: duration,
-        billable: true, hourly_rate: 0, entry_type: "work",
+        billable: !!r.quote_id, hourly_rate: 0, entry_type: "work",
       });
     } catch (err) {
       console.error("[Zeiterfassung] handleCalendarCreate failed:", err);

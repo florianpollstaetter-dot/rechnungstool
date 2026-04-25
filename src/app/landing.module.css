@@ -150,6 +150,24 @@
   transform: translateY(-1px);
 }
 
+.navLogin {
+  display: none;
+  color: var(--text);
+  font-size: 14.5px;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: border-color 0.18s, background 0.18s, color 0.18s;
+}
+
+.navLogin:hover {
+  border-color: rgba(247, 144, 30, 0.55);
+  background: rgba(247, 144, 30, 0.08);
+  color: var(--orange);
+}
+
 /* ─── HERO ──────────────────────────────── */
 .hero {
   min-height: 100vh;
@@ -1930,6 +1948,9 @@
   .inlineLogin {
     display: none;
   }
+  .navLogin {
+    display: inline-block;
+  }
   .navLinks {
     gap: 20px;
   }
@@ -1985,6 +2006,10 @@
   }
   .navCta {
     padding: 8px 14px;
+    font-size: 13px;
+  }
+  .navLogin {
+    padding: 8px 12px;
     font-size: 13px;
   }
   .pricingCard {
