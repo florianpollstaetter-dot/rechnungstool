@@ -8,10 +8,49 @@ import LandingInlineLogin from "./LandingInlineLogin";
 import LandingFeaturesGrid, { type LandingFeature } from "./LandingFeaturesGrid";
 import LandingPricingSection from "./LandingPricingSection";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://orange-octo.com";
+
 export const metadata = {
   title: "Orange Octo — Buchhaltung, die sich selbst erledigt",
   description:
     "KI-Belegerfassung, EU-konforme E-Rechnung und Zeiterfassung in einer Plattform. 14 Tage kostenlos testen.",
+  alternates: { canonical: SITE_URL },
+  openGraph: {
+    type: "website",
+    locale: "de_AT",
+    url: SITE_URL,
+    siteName: "Orange Octo",
+    title: "Orange Octo — Buchhaltung, die sich selbst erledigt",
+    description:
+      "KI-Belegerfassung, EU-konforme E-Rechnung und Zeiterfassung in einer Plattform. 14 Tage kostenlos testen.",
+    images: [{ url: "/brand/octo-logo-full-white.png", width: 1200, height: 630, alt: "Orange Octo" }],
+  },
+};
+
+const ORGANIZATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Orange Octo",
+  url: SITE_URL,
+  logo: `${SITE_URL}/brand/octo-logo-full-white.png`,
+  sameAs: [SITE_URL],
+};
+
+const SOFTWARE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Orange Octo",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  url: SITE_URL,
+  description:
+    "KI-gestützte Buchhaltungs-SaaS für Selbstständige und kleine Unternehmen: Rechnungen, Angebote, Belege, Zeiterfassung, E-Rechnung (EN-16931).",
+  offers: {
+    "@type": "Offer",
+    priceCurrency: "EUR",
+    availability: "https://schema.org/InStock",
+  },
+  inLanguage: ["de", "en"],
 };
 
 export default async function LandingPage() {
@@ -92,6 +131,14 @@ export default async function LandingPage() {
 
   return (
     <div className={styles.root}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_JSON_LD) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(SOFTWARE_JSON_LD) }}
+      />
       <link
         href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap"
         rel="stylesheet"

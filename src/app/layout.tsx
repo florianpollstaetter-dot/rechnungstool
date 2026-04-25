@@ -12,10 +12,75 @@ const geist = Geist({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://orange-octo.com";
+const SITE_TITLE = "Orange Octo — KI-gestützte Buchhaltung für Selbstständige";
+const SITE_DESCRIPTION =
+  "Rechnungen, Angebote, Belege und Zeiterfassung in einer einfachen App. KI-vorausgefüllte Felder, E-Rechnung (EN-16931), Made in Austria.";
+
 export const metadata: Metadata = {
-  title: "Orange Octo — easy accounting",
-  description: "Rechnungen, Angebote, Belege und Zeiterfassung — einfach und schnell.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_TITLE,
+    template: "%s · Orange Octo",
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: "Orange Octo",
+  keywords: [
+    "Buchhaltung",
+    "Rechnung",
+    "Angebot",
+    "Zeiterfassung",
+    "Spesen",
+    "E-Rechnung",
+    "EN-16931",
+    "Selbstständige",
+    "Freelancer",
+    "Österreich",
+    "Austria",
+    "SaaS",
+    "Accounting",
+    "Invoicing",
+  ],
+  authors: [{ name: "Orange Octo" }],
+  creator: "Orange Octo",
+  publisher: "Orange Octo",
   manifest: "/manifest.json",
+  alternates: {
+    canonical: SITE_URL,
+  },
+  openGraph: {
+    type: "website",
+    locale: "de_AT",
+    url: SITE_URL,
+    siteName: "Orange Octo",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [
+      {
+        url: "/brand/octo-logo-full-white.png",
+        width: 1200,
+        height: 630,
+        alt: "Orange Octo — KI-gestützte Buchhaltung",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/brand/octo-logo-full-white.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
