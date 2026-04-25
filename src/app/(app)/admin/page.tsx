@@ -23,7 +23,9 @@ type ScheduleDraftRow = {
   enabled: boolean;
 };
 
-type AdminTab = "users" | "roles";
+import UserDiagnoseTab from "./UserDiagnoseTab";
+
+type AdminTab = "users" | "roles" | "diagnose";
 
 function minutesFromTimes(start: string, end: string): number {
   if (!start || !end) return 0;
@@ -467,7 +469,19 @@ export default function AdminPage() {
         >
           {t("admin.tabRoles")}
         </button>
+        <button
+          onClick={() => setActiveTab("diagnose")}
+          className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
+            activeTab === "diagnose"
+              ? "border-[var(--accent)] text-[var(--accent)]"
+              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          }`}
+        >
+          User-Diagnose
+        </button>
       </div>
+
+      {activeTab === "diagnose" && <UserDiagnoseTab />}
 
       {/* ==================== USERS TAB ==================== */}
       {activeTab === "users" && (
