@@ -81,6 +81,24 @@ const de = {
   "nav.openSidebar": "Menü öffnen",
   "nav.closeSidebar": "Menü schließen",
 
+  // ── Cookie banner (DSGVO/EU consent) ──
+  "cookie.bannerTitle": "Octo loves cookies. Magst du auch?",
+  "cookie.bannerBody": "Wir nutzen Cookies, damit Orange Octo zuverlässig funktioniert und damit wir verstehen, wie der Service genutzt wird. Du entscheidest, was wir setzen dürfen.",
+  "cookie.acceptAll": "Alle akzeptieren",
+  "cookie.rejectAll": "Nur notwendige",
+  "cookie.customize": "Einstellen",
+  "cookie.save": "Auswahl speichern",
+  "cookie.privacyLink": "Datenschutz",
+  "cookie.imprintLink": "Impressum",
+  "cookie.settingsTitle": "Cookie-Einstellungen",
+  "cookie.settingsBody": "Wähle aus, welche Cookie-Kategorien Orange Octo nutzen darf. Notwendige Cookies werden immer gesetzt – ohne sie funktioniert die App nicht.",
+  "cookie.catEssential": "Notwendig",
+  "cookie.catEssentialDesc": "Login, Sicherheits-Token, Tenant-Auswahl, Sprache. Diese Cookies sind Voraussetzung für die App.",
+  "cookie.catAnalytics": "Analyse",
+  "cookie.catAnalyticsDesc": "Anonyme Nutzungsstatistiken, damit wir Octo verbessern können (keine personenbezogene Profilbildung).",
+  "cookie.catMarketing": "Marketing",
+  "cookie.catMarketingDesc": "Personalisierte Hinweise auf neue Features oder Aktionen – wirklich nur, wenn du das möchtest.",
+
   // ── Greetings ──
   "greetings.0": "Du rockst das, {name}!",
   "greetings.1": "Schön, dass du da bist, {name}!",

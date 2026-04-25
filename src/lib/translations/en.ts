@@ -81,6 +81,24 @@ const en: Record<string, string> = {
   "nav.openSidebar": "Open menu",
   "nav.closeSidebar": "Close menu",
 
+  // ── Cookie banner (GDPR/EU consent) ──
+  "cookie.bannerTitle": "Octo loves cookies. Do you?",
+  "cookie.bannerBody": "We use cookies so Orange Octo works reliably and so we can see how the service is used. You decide which ones we may set.",
+  "cookie.acceptAll": "Accept all",
+  "cookie.rejectAll": "Essential only",
+  "cookie.customize": "Customize",
+  "cookie.save": "Save choices",
+  "cookie.privacyLink": "Privacy",
+  "cookie.imprintLink": "Imprint",
+  "cookie.settingsTitle": "Cookie settings",
+  "cookie.settingsBody": "Choose which cookie categories Orange Octo may use. Essential cookies are always set — the app cannot run without them.",
+  "cookie.catEssential": "Essential",
+  "cookie.catEssentialDesc": "Login, security tokens, tenant selection, language. Required for the app to function.",
+  "cookie.catAnalytics": "Analytics",
+  "cookie.catAnalyticsDesc": "Anonymous usage statistics so we can improve Octo (no personal profiling).",
+  "cookie.catMarketing": "Marketing",
+  "cookie.catMarketingDesc": "Personalized hints about new features or offers — only if you want them.",
+
   // ── Greetings ──
   "greetings.0": "You're rocking it, {name}!",
   "greetings.1": "Great to see you, {name}!",
