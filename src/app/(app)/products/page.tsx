@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/format";
 import { useI18n } from "@/lib/i18n-context";
 import { CONTENT_LOCALES } from "@/lib/i18n-content";
 import SevDeskImportModal from "@/components/SevDeskImportModal";
+import AngeboteTabBar from "@/components/AngeboteTabBar";
 
 // SCH-447 — Extra locales beyond the first-class de/en inputs. Rendered in a collapsible panel.
 const EXTRA_LOCALES: ContentLocale[] = ["fr", "es", "it", "tr", "pl", "ar"];
@@ -220,6 +221,7 @@ export default function ProductsPage() {
 
   return (
     <div>
+      <AngeboteTabBar />
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("products.title")}</h1>
         <div className="flex gap-2">

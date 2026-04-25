@@ -11,6 +11,7 @@ import {
 } from "@/lib/db";
 import { useI18n } from "@/lib/i18n-context";
 import SevDeskImportModal from "@/components/SevDeskImportModal";
+import AngeboteTabBar from "@/components/AngeboteTabBar";
 import { customerEInvoiceReadiness } from "@/lib/einvoice/customer-ready";
 
 const emptyCustomer = {
@@ -190,6 +191,7 @@ export default function CustomersPage() {
 
   return (
     <div>
+      <AngeboteTabBar />
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("customers.title")}</h1>
         <div className="flex gap-2">

@@ -136,6 +136,30 @@ function TimePageInner() {
   entries.forEach((e) => { projectFreq.set(e.project_label, (projectFreq.get(e.project_label) || 0) + 1); });
   const allProjectLabels = Array.from(new Set(entries.map((e) => e.project_label))).sort((a, b) => (projectFreq.get(b) || 0) - (projectFreq.get(a) || 0));
 
+  // SCH-819 Bug 2 — freeform project labels (Pitch, HR, IT, etc.) used in past
+  // entries that are not linked to a quote and aren't predefined Allgemein/Other items.
+  const quoteLabels = new Set(quotes.map((q) => q.project_description || q.quote_number));
+  const reservedLabels = new Set<string>([
+    ...GENERAL_ITEM_KEYS.map((i) => i.value),
+    ...OTHER_ITEM_KEYS.map((i) => i.value),
+    "Pause",
+  ]);
+  const customProjectLabels = Array.from(
+    new Set(
+      entries
+        .filter((e) => e.entry_type === "work" && e.project_label)
+        .map((e) => e.project_label)
+        .filter((l) => !quoteLabels.has(l) && !reservedLabels.has(l)),
+    ),
+  ).sort((a, b) => (projectFreq.get(b) || 0) - (projectFreq.get(a) || 0));
+
+  async function handleNewProject() {
+    const label = window.prompt(t("time.newProjectPrompt"));
+    if (label && label.trim()) {
+      await handleStart(label.trim());
+    }
+  }
+
   async function handleStart(label: string) {
     if (!label) return;
     const uid = await resolveUserId();
@@ -422,17 +446,30 @@ function TimePageInner() {
                   >{t(item.key)}</button>
                 ))}
                 {pickerTab === "projekte" && (
-                  quotes.length > 0 ? quotes
-                    .sort((a, b) => (projectFreq.get(b.project_description || b.quote_number) || 0) - (projectFreq.get(a.project_description || a.quote_number) || 0))
-                    .map((q) => {
-                      const label = q.project_description || q.quote_number;
-                      return (
-                        <button key={q.id} onClick={() => handleStart(label)}
-                          className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
-                        >{label}</button>
-                      );
-                    })
-                  : <p className="text-xs text-[var(--text-muted)]">{t("time.noQuotes")}</p>
+                  <>
+                    {quotes
+                      .slice()
+                      .sort((a, b) => (projectFreq.get(b.project_description || b.quote_number) || 0) - (projectFreq.get(a.project_description || a.quote_number) || 0))
+                      .map((q) => {
+                        const label = q.project_description || q.quote_number;
+                        return (
+                          <button key={q.id} onClick={() => handleStart(label)}
+                            className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
+                          >{label}</button>
+                        );
+                      })}
+                    {customProjectLabels.map((label) => (
+                      <button key={label} onClick={() => handleStart(label)}
+                        className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
+                      >{label}</button>
+                    ))}
+                    <button onClick={handleNewProject}
+                      className="px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--brand-orange)] hover:text-[var(--brand-orange)] transition"
+                    >{t("time.newProjectButton")}</button>
+                    {quotes.length === 0 && customProjectLabels.length === 0 && (
+                      <p className="w-full text-xs text-[var(--text-muted)] mt-1">{t("time.noProjects")}</p>
+                    )}
+                  </>
                 )}
                 {pickerTab === "other" && OTHER_ITEM_KEYS.map((item) => (
                   <button key={item.value} onClick={() => handleStart(item.value)}
@@ -481,17 +518,30 @@ function TimePageInner() {
                 >{t(item.key)}</button>
               ))}
               {pickerTab === "projekte" && (
-                quotes.length > 0 ? quotes
-                  .sort((a, b) => (projectFreq.get(b.project_description || b.quote_number) || 0) - (projectFreq.get(a.project_description || a.quote_number) || 0))
-                  .map((q) => {
-                    const label = q.project_description || q.quote_number;
-                    return (
-                      <button key={q.id} onClick={() => handleStart(label)}
-                        className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
-                      >{label}</button>
-                    );
-                  })
-                : <p className="text-xs text-[var(--text-muted)]">{t("time.noQuotes")}</p>
+                <>
+                  {quotes
+                    .slice()
+                    .sort((a, b) => (projectFreq.get(b.project_description || b.quote_number) || 0) - (projectFreq.get(a.project_description || a.quote_number) || 0))
+                    .map((q) => {
+                      const label = q.project_description || q.quote_number;
+                      return (
+                        <button key={q.id} onClick={() => handleStart(label)}
+                          className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
+                        >{label}</button>
+                      );
+                    })}
+                  {customProjectLabels.map((label) => (
+                    <button key={label} onClick={() => handleStart(label)}
+                      className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
+                    >{label}</button>
+                  ))}
+                  <button onClick={handleNewProject}
+                    className="px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--brand-orange)] hover:text-[var(--brand-orange)] transition"
+                  >{t("time.newProjectButton")}</button>
+                  {quotes.length === 0 && customProjectLabels.length === 0 && (
+                    <p className="w-full text-xs text-[var(--text-muted)] mt-1">{t("time.noProjects")}</p>
+                  )}
+                </>
               )}
               {pickerTab === "other" && OTHER_ITEM_KEYS.map((item) => (
                 <button key={item.value} onClick={() => handleStart(item.value)}

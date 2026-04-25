@@ -9,6 +9,7 @@ import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
 import QuoteDesignWindow from "@/components/QuoteDesignWindow";
 import QuoteStatusPicker from "@/components/QuoteStatusPicker";
+import AngeboteTabBar from "@/components/AngeboteTabBar";
 import { useI18n } from "@/lib/i18n-context";
 import { useCompany } from "@/lib/company-context";
 
@@ -135,6 +136,7 @@ export default function QuotesPage() {
 
   return (
     <div>
+      <AngeboteTabBar />
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("quotes.title")}</h1>
         <div className="flex gap-2">
