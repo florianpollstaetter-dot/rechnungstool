@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Unbounded } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
 import { CompanyProvider } from "@/lib/company-context";
@@ -10,6 +10,17 @@ import CookieBanner from "@/components/CookieBanner";
 const geist = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+});
+
+// SCH-819 Phase 3 — Florian: "Hervorhebungen auf Font 'Bounded Black' umstellen".
+// Next.js' next/font/google exposes Unbounded (Google Fonts ID `Unbounded`); the
+// 900 cut is the "Black" weight. Exposed via a CSS variable so the marketing
+// landing's CSS module can opt in for headlines.
+const bounded = Unbounded({
+  variable: "--font-bounded",
+  subsets: ["latin"],
+  weight: ["900"],
+  display: "swap",
 });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://orange-octo.com";
@@ -97,7 +108,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={`${geist.variable} h-full antialiased`}>
+    <html lang="de" className={`${geist.variable} ${bounded.variable} h-full antialiased`}>
       <head>
         <meta name="theme-color" content="#f97316" />
         <link rel="apple-touch-icon" href="/brand/octo-icon-orange.png" />

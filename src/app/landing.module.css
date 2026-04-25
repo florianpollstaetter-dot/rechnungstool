@@ -32,7 +32,12 @@
 .root h3,
 .navLogoText,
 .pricingHeadline {
-  font-family: "Syne", sans-serif;
+  /* SCH-819 Phase 3 — Florian: Hervorhebungen auf Font "Bounded Black" umstellen.
+     Falls back to Syne (the previous landing headline font) and finally a
+     generic sans-serif if the Google font fails to load. */
+  font-family: var(--font-bounded), "Syne", sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.02em;
 }
 
 .container {
