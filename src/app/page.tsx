@@ -148,16 +148,13 @@ export default async function LandingPage() {
         <div className={styles.navInner}>
           <Link href="/" className={styles.navLogo} aria-label="Orange Octo Startseite">
             <Image
-              src="/brand/octo-icon-orange.png"
+              src="/brand/octo-logo-full-white.png"
               alt="Orange Octo"
-              width={72}
+              width={216}
               height={72}
               priority
-              className={styles.navLogoIcon}
+              className={styles.navLogoFull}
             />
-            <span className={styles.navLogoWord}>
-              Orange<span>Octo</span>
-            </span>
           </Link>
           <ul className={styles.navLinks}>
             <li>
@@ -357,10 +354,7 @@ export default async function LandingPage() {
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <Link href="/" className={styles.footerLogo} aria-label="Orange Octo Startseite">
-            <Image src="/brand/octo-icon-orange.png" alt="Orange Octo" width={40} height={40} />
-            <span className={styles.footerLogoWord}>
-              Orange<span>Octo</span>
-            </span>
+            <Image src="/brand/octo-logo-full-white.png" alt="Orange Octo" width={144} height={48} />
           </Link>
 
           <div className={styles.footerLinks}>

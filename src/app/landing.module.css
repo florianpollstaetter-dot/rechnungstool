@@ -80,6 +80,13 @@
   display: block;
 }
 
+.navLogoFull {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
 .navLogoWord {
   font-family: "Syne", sans-serif;
   font-size: 22px;
@@ -997,9 +1004,9 @@
 }
 
 .footerLogo img {
-  height: 26px;
+  height: 32px;
   width: auto;
-  opacity: 0.7;
+  opacity: 0.85;
 }
 
 .footerLinks {
@@ -1997,6 +2004,9 @@
   .navLogoIcon {
     height: 48px;
     width: 48px;
+  }
+  .navLogoFull {
+    height: 40px;
   }
   .navLogoWord {
     font-size: 17px;
