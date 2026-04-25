@@ -12,6 +12,7 @@ import AiCompanySetup from "@/components/AiCompanySetup";
 import type { SuggestedCompanyData } from "@/components/AiCompanySetup";
 import SubscriptionSection from "@/components/SubscriptionSection";
 import OnboardingTour from "@/components/OnboardingTour";
+import UserWorkScheduleSection from "@/components/UserWorkScheduleSection";
 
 const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
 
@@ -519,6 +520,11 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* SCH-819 — Arbeitszeitmodell (per-user). */}
+      <div className="mb-6">
+        <UserWorkScheduleSection />
+      </div>
 
       {/* 4. Unternehmensdaten + company form (company type, bank, payment terms, accompanying text) */}
       {(canManageCompany || canWriteInvoices) && (

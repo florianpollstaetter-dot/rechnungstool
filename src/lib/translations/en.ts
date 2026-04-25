@@ -99,6 +99,11 @@ const en: Record<string, string> = {
   "cookie.catMarketing": "Marketing",
   "cookie.catMarketingDesc": "Personalized hints about new features or offers — only if you want them.",
 
+  // ── Settings: work schedule ──
+  "settings.workScheduleTitle": "Work schedule",
+  "settings.workScheduleHint": "Set which days you work and your daily target. Used as the target in time tracking.",
+  "common.notSignedIn": "Not signed in.",
+
   // ── Greetings ──
   "greetings.0": "You're rocking it, {name}!",
   "greetings.1": "Great to see you, {name}!",

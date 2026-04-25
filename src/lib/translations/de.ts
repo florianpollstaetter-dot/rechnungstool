@@ -99,6 +99,11 @@ const de = {
   "cookie.catMarketing": "Marketing",
   "cookie.catMarketingDesc": "Personalisierte Hinweise auf neue Features oder Aktionen – wirklich nur, wenn du das möchtest.",
 
+  // ── Settings: Arbeitszeitmodelle ──
+  "settings.workScheduleTitle": "Arbeitszeitmodell",
+  "settings.workScheduleHint": "Lege fest, an welchen Tagen du arbeitest und wie hoch dein Tagespensum ist. Wird in der Zeiterfassung als Soll genutzt.",
+  "common.notSignedIn": "Nicht angemeldet.",
+
   // ── Greetings ──
   "greetings.0": "Du rockst das, {name}!",
   "greetings.1": "Schön, dass du da bist, {name}!",
