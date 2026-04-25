@@ -8,7 +8,7 @@
 // bulk insert runs; import diffs against existing external_ref so re-runs
 // don't duplicate.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n-context";
 import {
   SevDeskKind,
@@ -234,6 +234,16 @@ export default function SevDeskImportModal({ kind, onClose, onImported }: Props)
 
 function IdleView({ kind, onFile, error }: { kind: SevDeskKind; onFile: (f: File) => void; error: string | null }) {
   const { t } = useI18n();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  const onDrop = (e: React.DragEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) onFile(f);
+  };
+
   return (
     <div className="space-y-5">
       <div className="text-sm text-[var(--text-secondary)] space-y-2">
@@ -244,19 +254,30 @@ function IdleView({ kind, onFile, error }: { kind: SevDeskKind; onFile: (f: File
         <p className="text-xs text-amber-400">{t("sevdesk.csvPreferred")}</p>
       </div>
 
-      <label className="block border-2 border-dashed border-[var(--border)] rounded-xl p-8 text-center cursor-pointer hover:bg-[var(--surface-hover)] transition">
-        <input
-          type="file"
-          accept=".csv,.pdf,text/csv,application/pdf"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) onFile(f);
-          }}
-        />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={onDrop}
+        className={`w-full block border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition ${
+          dragOver ? "border-[var(--accent)] bg-[var(--surface-hover)]" : "border-[var(--border)] hover:bg-[var(--surface-hover)]"
+        }`}
+      >
         <div className="text-[var(--text-primary)] font-medium">{t("sevdesk.dropHere")}</div>
         <div className="text-xs text-gray-500 mt-1">{t("sevdesk.supportedFormats")}</div>
-      </label>
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv,.pdf,text/csv,application/pdf"
+        className="sr-only"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onFile(f);
+          e.target.value = "";
+        }}
+      />
 
       {error && <div className="px-3 py-2 rounded-lg text-sm bg-rose-500/10 text-rose-400">{error}</div>}
     </div>
