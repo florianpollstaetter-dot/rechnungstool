@@ -590,15 +590,18 @@ export default function SettingsPage() {
         </div>
         )}
 
-        {/* AI Company Setup — admin only, positioned right after Unternehmensdaten */}
+        {/* AI Company Setup — admin only, positioned right after Unternehmensdaten.
+            id="ai-setup" supports the /settings#ai-setup deep link from QuoteNewSetupGate. */}
         {isAdmin && (
-          <AiCompanySetup
-            companyName={settings.company_name}
-            industry={settings.industry}
-            website={settings.website}
-            description={settings.description}
-            onCompanyDataFilled={handleAiCompanyDataFilled}
-          />
+          <div id="ai-setup" className="scroll-mt-20">
+            <AiCompanySetup
+              companyName={settings.company_name}
+              industry={settings.industry}
+              website={settings.website}
+              description={settings.description}
+              onCompanyDataFilled={handleAiCompanyDataFilled}
+            />
+          </div>
         )}
 
         {canManageCompany && (

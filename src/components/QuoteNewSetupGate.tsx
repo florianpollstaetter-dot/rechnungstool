@@ -84,7 +84,7 @@ export default function QuoteNewSetupGate({ settings, companyId, children }: Quo
       </ul>
       <div className="flex flex-col sm:flex-row gap-3">
         <Link
-          href="/settings?focus=ai-setup"
+          href="/settings#ai-setup"
           className="bg-[var(--accent)] text-black px-5 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition text-center"
         >
           {t("quoteNew.setupGate.openWizard")}
