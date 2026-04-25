@@ -59,13 +59,39 @@ export async function POST(request: Request) {
 
   const service = createServiceClient();
 
+  // SCH-829: pre-flight orphan detection. If the email exists in auth.users
+  // already, only allow the create flow to proceed if there is no associated
+  // user_profile — otherwise the email is genuinely taken. If we detect an
+  // orphan (auth row but no profile), surface a clearly-marked error so the
+  // admin can resolve it via the User-Diagnose tool instead of seeing the raw
+  // "already registered" message and getting stuck.
+  const { data: existingProfile } = await service
+    .from("user_profiles")
+    .select("auth_user_id")
+    .eq("email", email)
+    .maybeSingle();
+
   const { data: createdUser, error: createErr } = await service.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
   });
   if (createErr) {
-    return Response.json({ error: createErr.message }, { status: 400 });
+    const msg = createErr.message || "";
+    const looksLikeCollision = /already|registered|exists/i.test(msg);
+    if (looksLikeCollision && !existingProfile) {
+      return Response.json(
+        {
+          error: "orphan_detected",
+          message:
+            "Für diese E-Mail existiert bereits ein verwaister Auth-Eintrag ohne User-Profil. " +
+            "Bitte über Admin → User-Diagnose aufräumen und erneut versuchen.",
+          email,
+        },
+        { status: 409 },
+      );
+    }
+    return Response.json({ error: msg }, { status: 400 });
   }
   const authUserId = createdUser?.user?.id;
   if (!authUserId) {
@@ -79,38 +105,60 @@ export async function POST(request: Request) {
     await service.auth.admin.deleteUser(authUserId!).catch(() => undefined);
   }
 
-  const { error: profileErr } = await service.from("user_profiles").insert({
-    auth_user_id: authUserId,
-    display_name,
-    email,
-    role,
-    company_access: JSON.stringify(companyIds),
-  });
-  if (profileErr) {
-    await rollbackAuth();
-    return Response.json({ error: `Profil konnte nicht angelegt werden: ${profileErr.message}` }, {
-      status: 500,
+  // SCH-829: wrap the post-createUser flow in a unified try/catch. The previous
+  // version only rolled back on the specific PostgREST error paths it knew
+  // about; an unexpected throw (network blip, JSON parse, deploy mid-request)
+  // would leave the freshly-created auth.users row orphaned. This catch is the
+  // safety net that triggered the h.weiss@lolaxmedia.com incident.
+  try {
+    const { error: profileErr } = await service.from("user_profiles").insert({
+      auth_user_id: authUserId,
+      display_name,
+      email,
+      role,
+      company_access: JSON.stringify(companyIds),
     });
-  }
+    if (profileErr) {
+      await rollbackAuth();
+      return Response.json(
+        { error: `Profil konnte nicht angelegt werden: ${profileErr.message}` },
+        { status: 500 },
+      );
+    }
 
-  const memberRows = companyIds.map((companyId) => ({
-    user_id: authUserId,
-    company_id: companyId,
-    role: role === "admin" ? "admin" : "member",
-  }));
-  const { error: membersErr } = await service.from("company_members").insert(memberRows);
-  if (membersErr) {
-    // Profile already created; best-effort rollback of both rows.
-    await service.from("user_profiles").delete().eq("auth_user_id", authUserId);
+    const memberRows = companyIds.map((companyId) => ({
+      user_id: authUserId,
+      company_id: companyId,
+      role: role === "admin" ? "admin" : "member",
+    }));
+    const { error: membersErr } = await service.from("company_members").insert(memberRows);
+    if (membersErr) {
+      await service.from("user_profiles").delete().eq("auth_user_id", authUserId);
+      await rollbackAuth();
+      return Response.json(
+        { error: `Firmen-Zuordnung fehlgeschlagen: ${membersErr.message}` },
+        { status: 500 },
+      );
+    }
+
+    return Response.json({
+      userId: authUserId,
+      companyIds,
+    });
+  } catch (err) {
+    // Unknown failure after auth.users was created — best-effort cleanup of
+    // both downstream rows and the auth row, in that order.
+    await service
+      .from("user_profiles")
+      .delete()
+      .eq("auth_user_id", authUserId)
+      .then(() => undefined, () => undefined);
     await rollbackAuth();
+    const message = err instanceof Error ? err.message : "Unbekannter Fehler";
+    console.error("create-user: unexpected failure after auth.users insert", err);
     return Response.json(
-      { error: `Firmen-Zuordnung fehlgeschlagen: ${membersErr.message}` },
+      { error: `Anlage abgebrochen, Auth-Eintrag wurde zurückgerollt: ${message}` },
       { status: 500 },
     );
   }
-
-  return Response.json({
-    userId: authUserId,
-    companyIds,
-  });
 }
