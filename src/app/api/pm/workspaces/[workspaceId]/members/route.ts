@@ -8,6 +8,7 @@
 // hint — Phase 2 adds magic-link signup invites.
 
 import { requirePmSession, pmServiceClient } from "@/lib/pm/auth";
+import { listWorkspaceMembers } from "@/lib/pm/members";
 
 const VALID_ROLES = new Set(["admin", "member", "guest"]);
 
@@ -19,56 +20,11 @@ export async function GET(
   if (session instanceof Response) return session;
 
   const { workspaceId } = await params;
-
-  const membersRes = await session.sb
-    .schema("pm")
-    .from("workspace_members")
-    .select("workspace_id, user_id, role, invited_by, created_at")
-    .eq("workspace_id", workspaceId)
-    .order("created_at", { ascending: true });
-
-  if (membersRes.error) {
-    return Response.json({ error: membersRes.error.message }, { status: 500 });
+  const result = await listWorkspaceMembers(session.sb, workspaceId);
+  if ("error" in result) {
+    return Response.json({ error: result.error }, { status: result.status });
   }
-
-  const rows = membersRes.data ?? [];
-  if (rows.length === 0) {
-    return Response.json({ members: [] });
-  }
-
-  // Resolve display info via service-role auth.admin (RLS-bypass is fine: we
-  // only return rows for users that already pass the membership filter above).
-  const service = pmServiceClient();
-  if (service instanceof Response) return service;
-
-  const userIds = Array.from(new Set(rows.map((r) => r.user_id)));
-  const { data: profileRows } = await service
-    .from("user_profiles")
-    .select("auth_user_id, display_name, email")
-    .in("auth_user_id", userIds);
-
-  const profiles = new Map<string, { display_name: string; email: string }>();
-  (profileRows ?? []).forEach((p: { auth_user_id: string; display_name: string | null; email: string | null }) => {
-    profiles.set(p.auth_user_id, {
-      display_name: p.display_name ?? "",
-      email: p.email ?? "",
-    });
-  });
-
-  const members = rows.map((r) => {
-    const p = profiles.get(r.user_id);
-    return {
-      workspace_id: r.workspace_id,
-      user_id: r.user_id,
-      role: r.role,
-      invited_by: r.invited_by,
-      created_at: r.created_at,
-      display_name: p?.display_name ?? "",
-      email: p?.email ?? "",
-    };
-  });
-
-  return Response.json({ members });
+  return Response.json({ members: result.members });
 }
 
 export async function POST(
