@@ -1,18 +1,19 @@
 "use client";
 
 // SCH-569: subscription management UI — embedded in /settings, admin only.
+// SCH-889: active-plan badge + per-card Upgrade/Downgrade/Verwalten copy.
 //
 // Shows current status (trial countdown / paid / cancelled / overdue),
-// a monthly/yearly toggle + three plan cards, and two actions:
-//   - "Upgrade" per plan → POST /api/stripe/checkout → redirect
-//   - "Manage subscription" → POST /api/stripe/portal → redirect
-//
-// Plan features/prices come from PLANS so this stays single-source with the
-// Stripe setup script.
+// a monthly/yearly toggle + three plan cards. Per card the CTA depends on
+// whether that card is the company's currently active plan (Verwalten →
+// Stripe portal), is more expensive (Upgrade), or is cheaper (Downgrade).
+// Cards on the active plan also show an "Aktueller Plan"-Badge and a
+// highlighted border so the user can see at a glance where they are.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCompany } from "@/lib/company-context";
 import { PLANS, type PlanInterval, type PlanKey } from "@/lib/plans";
+import { getActivePlanIndex, getCardCta } from "@/lib/subscription-cta";
 
 function euro(cents: number): string {
   return `€${(cents / 100).toLocaleString("de-AT", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
@@ -27,16 +28,58 @@ function daysUntil(iso: string | null | undefined): number | null {
 
 export default function SubscriptionSection() {
   const { company, userRole } = useCompany();
-  const [interval, setInterval] = useState<PlanInterval>("month");
+  const [billingInterval, setBillingInterval] = useState<PlanInterval>(
+    (company.subscription_interval as PlanInterval | null | undefined) === "year" ? "year" : "month",
+  );
   const [pendingPlan, setPendingPlan] = useState<PlanKey | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (userRole !== "admin") return null;
+  const syncedRef = useRef(false);
 
   const status = company.subscription_status ?? "paid";
   const trialDays = daysUntil(company.trial_ends_at ?? null);
   const hasActiveStripeSub = status === "paid" || status === "outstanding";
+  const activePlanKey = (company.subscription_plan ?? null) as PlanKey | null;
+  const activePlanIdx = getActivePlanIndex(activePlanKey);
+
+  // SCH-889: reconcile the row with Stripe in two cases — (a) the user just
+  // returned from a successful checkout (?subscription=success) and the
+  // webhook may not have landed yet, and (b) a legacy customer whose row
+  // predates SCH-889 (active sub but no subscription_plan column value).
+  useEffect(() => {
+    if (userRole !== "admin") return;
+    if (syncedRef.current) return;
+
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const justCheckedOut = params?.get("subscription") === "success";
+    const legacyUnsynced = hasActiveStripeSub && !activePlanKey;
+    if (!justCheckedOut && !legacyUnsynced) return;
+
+    syncedRef.current = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/stripe/sync", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ companyId: company.id }),
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { plan?: string | null };
+        // Reload only if the sync produced a state change OR the user just
+        // came back from checkout (which always wants to drop the query
+        // param). The plan-key check on the legacy path prevents a reload
+        // loop when Stripe also has no record for the customer.
+        if (justCheckedOut || (legacyUnsynced && data.plan)) {
+          window.location.replace("/settings");
+        }
+      } catch {
+        // network glitch — leave the existing UI as-is, user can retry by
+        // refreshing the page.
+      }
+    })();
+  }, [activePlanKey, company.id, hasActiveStripeSub, userRole]);
+
+  if (userRole !== "admin") return null;
 
   async function handleUpgrade(planKey: PlanKey) {
     setPendingPlan(planKey);
@@ -45,7 +88,7 @@ export default function SubscriptionSection() {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ companyId: company.id, planKey, interval }),
+        body: JSON.stringify({ companyId: company.id, planKey, interval: billingInterval }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) {
@@ -104,18 +147,18 @@ export default function SubscriptionSection() {
       <div className="inline-flex rounded-lg overflow-hidden border border-[var(--border)] mb-4">
         <button
           type="button"
-          onClick={() => setInterval("month")}
+          onClick={() => setBillingInterval("month")}
           className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-            interval === "month" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"
+            billingInterval === "month" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"
           }`}
         >
           Monatlich
         </button>
         <button
           type="button"
-          onClick={() => setInterval("year")}
+          onClick={() => setBillingInterval("year")}
           className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-            interval === "year" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"
+            billingInterval === "year" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"
           }`}
         >
           Jährlich <span className="text-xs opacity-75">— 25% sparen</span>
@@ -123,13 +166,26 @@ export default function SubscriptionSection() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {PLANS.map((plan) => {
-          const shown = interval === "month" ? plan.monthlyCents : plan.yearlyAsMonthlyCents;
+        {PLANS.map((plan, idx) => {
+          const shown = billingInterval === "month" ? plan.monthlyCents : plan.yearlyAsMonthlyCents;
+          const cta = getCardCta(activePlanIdx, idx, hasActiveStripeSub);
+          const cardClass = cta.isActive
+            ? "rounded-xl border-2 border-[var(--accent)] p-4 flex flex-col relative shadow-[0_0_0_1px_var(--accent)]"
+            : "rounded-xl border border-[var(--border)] p-4 flex flex-col relative";
+          const buttonClass = cta.isActive
+            ? "w-full bg-transparent text-[var(--text-primary)] border border-[var(--accent)] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[var(--surface-hover)] disabled:opacity-50 transition"
+            : "w-full bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition";
+          const isPending = pendingPlan === plan.key || (cta.action === "manage" && portalLoading);
+          const onClick = cta.action === "manage"
+            ? handleManage
+            : () => handleUpgrade(plan.key as PlanKey);
           return (
-            <div
-              key={plan.key}
-              className="rounded-xl border border-[var(--border)] p-4 flex flex-col"
-            >
+            <div key={plan.key} className={cardClass}>
+              {cta.isActive && (
+                <span className="absolute -top-2 right-3 bg-[var(--accent)] text-black text-xs font-semibold px-2 py-0.5 rounded-full">
+                  ✓ Aktueller Plan
+                </span>
+              )}
               <div className="mb-3">
                 <h3 className="text-base font-semibold text-[var(--text-primary)]">{plan.name}</h3>
                 <p className="text-xs text-[var(--text-muted)] mt-0.5">{plan.tagline}</p>
@@ -137,7 +193,7 @@ export default function SubscriptionSection() {
               <div className="mb-3">
                 <span className="text-2xl font-bold text-[var(--text-primary)]">{euro(shown)}</span>
                 <span className="text-sm text-[var(--text-muted)]"> / Monat</span>
-                {interval === "year" && (
+                {billingInterval === "year" && (
                   <p className="text-xs text-[var(--text-muted)] mt-1">
                     {euro(plan.yearlyCents)} jährlich
                   </p>
@@ -153,11 +209,11 @@ export default function SubscriptionSection() {
               </ul>
               <button
                 type="button"
-                onClick={() => handleUpgrade(plan.key as PlanKey)}
-                disabled={pendingPlan !== null}
-                className="w-full bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition"
+                onClick={onClick}
+                disabled={pendingPlan !== null || (cta.action === "manage" && portalLoading)}
+                className={buttonClass}
               >
-                {pendingPlan === plan.key ? "..." : hasActiveStripeSub ? "Plan wechseln" : "Upgraden"}
+                {isPending ? "..." : cta.label}
               </button>
             </div>
           );
