@@ -18,6 +18,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
+import { parseStripeLookupKey } from "@/lib/stripe-lookup-key";
 
 export const runtime = "nodejs"; // stripe sdk + crypto need node, not edge
 
@@ -109,11 +110,15 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
 async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
   const companyId = await resolveCompanyIdFromSubscription(sub);
   if (!companyId) return;
+  // SCH-889: clear the active plan/interval so the UI stops showing
+  // "Aktueller Plan"-Badge after a cancellation.
   await service()
     .from("companies")
     .update({
       subscription_status: "cancelled",
       stripe_subscription_id: sub.id,
+      subscription_plan: null,
+      subscription_interval: null,
     })
     .eq("id", companyId);
 }
@@ -154,6 +159,21 @@ async function syncSubscription(companyId: string, sub: Stripe.Subscription) {
   };
   if (nextStatus) update.subscription_status = nextStatus;
   if (periodEnd) update.next_payment_due_at = new Date(periodEnd * 1000).toISOString();
+
+  // SCH-889: derive plan + interval. Prefer the price's lookup_key (ground
+  // truth from Stripe — survives plan changes via the customer portal where
+  // subscription metadata may go stale) and fall back to the metadata we
+  // stamped at checkout.
+  const lookupKey = firstItem?.price?.lookup_key ?? null;
+  const fromLookup = parseStripeLookupKey(lookupKey);
+  const metaPlan = sub.metadata?.plan_key ?? null;
+  const metaInterval = sub.metadata?.interval ?? null;
+  const plan = fromLookup?.plan
+    ?? (metaPlan === "starter" || metaPlan === "business" || metaPlan === "pro" ? metaPlan : null);
+  const interval = fromLookup?.interval
+    ?? (metaInterval === "month" || metaInterval === "year" ? metaInterval : null);
+  if (plan) update.subscription_plan = plan;
+  if (interval) update.subscription_interval = interval;
 
   await service().from("companies").update(update).eq("id", companyId);
 }

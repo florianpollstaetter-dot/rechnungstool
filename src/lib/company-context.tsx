@@ -18,6 +18,10 @@ export interface Company {
   next_payment_due_at?: string | null;
   /** SCH-486: ISO timestamp when the 30-day free trial ends */
   trial_ends_at?: string | null;
+  /** SCH-889: active Stripe plan key (starter|business|pro) — null until first paid sub */
+  subscription_plan?: string | null;
+  /** SCH-889: active billing interval (month|year) — null until first paid sub */
+  subscription_interval?: string | null;
 }
 
 /** Hardcoded fallback — used only while the DB query is in flight or if it fails. */
@@ -211,7 +215,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       try {
         const { data: memberRows } = await supabase
           .from("company_members")
-          .select("company_id, companies(id, name, slug, logo_url, plan, status, subscription_status, is_free, next_payment_due_at, trial_ends_at)")
+          .select("company_id, companies(id, name, slug, logo_url, plan, status, subscription_status, is_free, next_payment_due_at, trial_ends_at, subscription_plan, subscription_interval)")
           .eq("user_id", user.id);
 
         if (memberRows && memberRows.length > 0) {
