@@ -28,9 +28,10 @@ export default function AgbPage() {
         denen vom Anbieter ein Zugang eingerichtet wurde (nachfolgend „Nutzer&ldquo;).
       </p>
       <p>
-        1.2 Die Anwendung ist primär für den internen, konzerninternen bzw.
+        1.2 Die Anwendung steht sowohl für den internen, konzerninternen bzw.
         auftragsbezogenen Einsatz durch den Anbieter und von ihm autorisierte
-        Dritte bestimmt. Eine öffentliche Registrierung ist nicht vorgesehen.
+        Dritte als auch für eine öffentliche Registrierung durch
+        Endkund:innen, Selbständige und Unternehmen zur Verfügung.
       </p>
       <p>
         1.3 Entgegenstehende, ergänzende oder abweichende Bedingungen des
@@ -58,6 +59,13 @@ export default function AgbPage() {
         2.3 Der Anbieter ist berechtigt, Zugänge jederzeit zu deaktivieren oder
         zurückzuziehen, insbesondere bei Verstößen gegen diese AGB, bei
         Missbrauchsverdacht oder aus betrieblichen/rechtlichen Gründen.
+      </p>
+      <p>
+        2.4 <strong>Trial-Phase und Bewerbungsdaten.</strong> Der Anbieter kann
+        Interessenten unverbindliche Test-Zugänge gewähren. Beendet der
+        Interessent den Test, werden personenbezogene Daten innerhalb von
+        90 Tagen gelöscht, soweit keine gesetzliche Aufbewahrungspflicht oder
+        fortbestehende Geschäftsbeziehung entgegensteht.
       </p>
 
       <h2>3. Leistungsumfang</h2>

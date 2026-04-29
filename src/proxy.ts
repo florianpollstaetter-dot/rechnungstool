@@ -30,12 +30,18 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const PUBLIC_PATHS = ["/impressum", "/agb", "/datenschutz"];
+  // SCH-910 — SEO/indexing files MUST resolve without auth-redirect.
+  // Without this whitelist /robots.txt and /sitemap.xml return 307 → /login,
+  // which blocks Google/Bing crawling.
+  const SEO_PATHS = ["/robots.txt", "/sitemap.xml"];
   const path = request.nextUrl.pathname;
   const isPublic =
     path === "/" ||
     path.startsWith("/login") ||
     path.startsWith("/register") ||
     path.startsWith("/api/") ||
+    path.startsWith("/.well-known/") ||
+    SEO_PATHS.includes(path) ||
     PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
   if (!user && !isPublic) {

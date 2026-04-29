@@ -139,8 +139,12 @@ export default function DatenschutzPage() {
           gewünschten Dienst — <strong>keine Einwilligung erforderlich</strong>).
         </li>
         <li>
-          <strong>Tracking, Werbung, Analyse-Cookies:</strong> werden{" "}
-          <strong>nicht</strong> eingesetzt.
+          <strong>Tracking, Werbung, Analyse-Cookies:</strong> Wir setzen
+          Marketing- und Analyse-Cookies (z.B. LinkedIn Insight Tag, Google
+          Ads Conversion Tracking) ausschließlich nach Ihrer ausdrücklichen
+          Einwilligung über unser Cookie-Banner ein (Art. 6 Abs. 1 lit. a
+          DSGVO, § 165 Abs. 3 TKG 2021). Sie können Ihre Einwilligung
+          jederzeit mit Wirkung für die Zukunft widerrufen.
         </li>
         <li>
           <strong>Speicherdauer:</strong> Session- bzw. Login-Dauer;
@@ -167,6 +171,19 @@ export default function DatenschutzPage() {
           Sicherheitsvorfällen länger bis zur Aufklärung.
         </li>
       </ul>
+
+      <h3>2.6 Verarbeitung von Interessenten- und Lead-Daten</h3>
+      <p>
+        Wir verarbeiten Kontaktdaten von Unternehmen und Funktionspostfächern
+        (z.B. <code>info@</code>, <code>office@</code>) zum Zweck der
+        Geschäftsanbahnung auf Grundlage unseres berechtigten Interesses
+        (Art. 6 Abs. 1 lit. f DSGVO). Daten stammen aus öffentlich
+        zugänglichen Quellen (Unternehmens-Websites, Handelsregister,
+        B2B-Verzeichnisse). Sie können der Verarbeitung jederzeit unter{" "}
+        <a href={`mailto:${L.dsbEmail}`}>{L.dsbEmail}</a> widersprechen.
+        Erfolgt kein Geschäftsabschluss, werden die Daten nach maximal
+        12 Monaten gelöscht.
+      </p>
 
       <h2>3. Empfänger und Auftragsverarbeiter</h2>
       <p>
