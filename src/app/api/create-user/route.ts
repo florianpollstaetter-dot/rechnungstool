@@ -1,5 +1,11 @@
 import { requireCompanyAdmin } from "@/lib/company-admin";
 import { createServiceClient } from "@/lib/operator";
+import {
+  DEFAULT_MEMBER_PERMISSIONS,
+  FULL_MEMBER_PERMISSIONS,
+  normalizeMemberPermissions,
+  type MemberPermissions,
+} from "@/lib/permissions";
 
 // SCH-583 — admin-gated user creation + company binding.
 // Previously this endpoint was unauthenticated: any caller could POST
@@ -11,6 +17,13 @@ import { createServiceClient } from "@/lib/operator";
 // 3. Do the whole flow server-side (auth user + user_profile + company_members
 //    inserts) so the client can't lie about company assignment.
 //
+// SCH-918 K2-γ — extends to capture:
+//   * `permissions`: 9-key JSONB written into company_members.permissions for
+//     each company in `company_access`. Owner/admin role gets FULL regardless;
+//     `member` rows get exactly what the admin checked.
+//   * `anchor_company_id`: the new MA's home company (G5). Must be one of the
+//     companies the admin can grant access to.
+//
 // Rollback order on failure: if user_profile or company_members insert fails,
 // we delete the freshly-created auth user so the admin can retry without
 // email collisions piling up.
@@ -20,6 +33,9 @@ type RequestBody = {
   display_name?: string;
   role?: string;
   company_access?: string[];
+  // SCH-918 K2-γ
+  permissions?: Partial<MemberPermissions>;
+  anchor_company_id?: string | null;
 };
 
 export async function POST(request: Request) {
@@ -56,6 +72,37 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  // SCH-918 — anchor_company_id (G5). Allowed to be null on creation; if
+  // provided it must be one of the granted companies AND in the admin's set.
+  const anchorRaw = body.anchor_company_id;
+  const anchorCompanyId =
+    typeof anchorRaw === "string" && anchorRaw.trim() !== "" ? anchorRaw : null;
+  if (anchorCompanyId && !companyIds.includes(anchorCompanyId)) {
+    return Response.json(
+      { error: `anchor_company_id ${anchorCompanyId} ist nicht in der Firmenliste.` },
+      { status: 400 },
+    );
+  }
+  if (anchorCompanyId && !auth.adminCompanyIds.includes(anchorCompanyId)) {
+    return Response.json(
+      { error: `Kein Admin-Zugriff auf Anker-Firma: ${anchorCompanyId}` },
+      { status: 403 },
+    );
+  }
+
+  // SCH-918 G2 — permissions JSONB. Owner/admin role gets FULL regardless of
+  // what the client sent (matches DB backfill). For `manager`/`accountant`
+  // legacy roles we also default to FULL because their static role table
+  // already grants those sections; for `employee`/`member` we apply exactly
+  // what the admin checked.
+  const isPrivilegedRole = role === "admin" || role === "owner";
+  const explicitPermissions = body.permissions
+    ? normalizeMemberPermissions(body.permissions)
+    : DEFAULT_MEMBER_PERMISSIONS;
+  const permissionsToWrite: MemberPermissions = isPrivilegedRole
+    ? FULL_MEMBER_PERMISSIONS
+    : explicitPermissions;
 
   const service = createServiceClient();
 
@@ -117,6 +164,8 @@ export async function POST(request: Request) {
       email,
       role,
       company_access: JSON.stringify(companyIds),
+      // SCH-918 G5
+      anchor_company_id: anchorCompanyId,
     });
     if (profileErr) {
       await rollbackAuth();
@@ -130,6 +179,10 @@ export async function POST(request: Request) {
       user_id: authUserId,
       company_id: companyId,
       role: role === "admin" ? "admin" : "member",
+      // SCH-918 G2 — same permissions JSONB across every company the admin
+      // grants in this single create. Per-company overrides happen later via
+      // the user-edit UI (separate ticket).
+      permissions: permissionsToWrite,
     }));
     const { error: membersErr } = await service.from("company_members").insert(memberRows);
     if (membersErr) {

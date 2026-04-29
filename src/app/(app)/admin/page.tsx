@@ -3,6 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { UserProfile, USER_ROLE_OPTIONS, UserRole, CompanyRole, UserRoleAssignment } from "@/lib/types";
 import {
+  DEFAULT_MEMBER_PERMISSIONS,
+  MEMBER_PERMISSION_KEYS,
+  type MemberPermissionKey,
+  type MemberPermissions,
+} from "@/lib/permissions";
+import {
   getUserProfilesForMyCompanies, updateUserProfile,
   getUserWorkSchedules, replaceUserWorkSchedules,
   getCompanyRoles, createCompanyRole, updateCompanyRole, deleteCompanyRole,
@@ -21,6 +27,21 @@ type ScheduleDraftRow = {
   daily_target_minutes: number;
   target_override: boolean; // user manually edited the pensum — stop auto-deriving
   enabled: boolean;
+  unpaid_break_minutes: number; // SCH-918 K2-G10
+};
+
+// SCH-918 K2-G2 — labels for the 9 granular permission keys; rendered as
+// checkboxes in the create-user form.
+const PERMISSION_LABELS: Record<MemberPermissionKey, string> = {
+  angebote: "Angebote",
+  rechnungen: "Rechnungen",
+  kunden: "Kunden",
+  produkte: "Produkte",
+  fixkosten: "Fixkosten",
+  belege: "Belege",
+  konto: "Konto",
+  export: "Export",
+  projekte_erstellen: "Projekte erstellen",
 };
 
 import UserDiagnoseTab from "./UserDiagnoseTab";
@@ -47,6 +68,7 @@ function emptyDraft(): ScheduleDraftRow[] {
       daily_target_minutes: isWeekday ? 450 : 0,
       target_override: false,
       enabled: isWeekday,
+      unpaid_break_minutes: 0,
     };
   });
 }
@@ -72,7 +94,18 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string>("user");
   const [currentAuthUserId, setCurrentAuthUserId] = useState<string | null>(null);
-  const [form, setForm] = useState({ email: "", password: "", display_name: "", role: "employee" as UserRole, company_access: ["vrthefans"] as string[], default_language: "de" as AppLocale });
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    display_name: "",
+    role: "employee" as UserRole,
+    company_access: ["vrthefans"] as string[],
+    default_language: "de" as AppLocale,
+    // SCH-918 K2-G5
+    anchor_company_id: "" as string,
+    // SCH-918 K2-G2
+    permissions: { ...DEFAULT_MEMBER_PERMISSIONS } as MemberPermissions,
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [editingUser, setEditingUser] = useState<string | null>(null);
@@ -181,12 +214,24 @@ export default function AdminPage() {
           display_name: form.display_name,
           role: form.role,
           company_access: form.company_access,
+          // SCH-918 K2-γ
+          anchor_company_id: form.anchor_company_id || null,
+          permissions: form.permissions,
         }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Benutzer konnte nicht erstellt werden");
 
-      setForm({ email: "", password: "", display_name: "", role: "employee", company_access: ["vrthefans"], default_language: "de" });
+      setForm({
+        email: "",
+        password: "",
+        display_name: "",
+        role: "employee",
+        company_access: ["vrthefans"],
+        default_language: "de",
+        anchor_company_id: "",
+        permissions: { ...DEFAULT_MEMBER_PERMISSIONS },
+      });
       setShowForm(false);
       await loadData();
     } catch (err) {
@@ -251,6 +296,7 @@ export default function AdminPage() {
             ? minutesFromTimes(row.start_time, row.end_time) !== row.daily_target_minutes
             : row.daily_target_minutes > 0,
           enabled: row.daily_target_minutes > 0 || !!(row.start_time && row.end_time),
+          unpaid_break_minutes: row.unpaid_break_minutes ?? 0,
         };
       });
       setScheduleDraft(draft);
@@ -299,6 +345,7 @@ export default function AdminPage() {
         start_time: row.enabled ? (row.start_time || null) : null,
         end_time: row.enabled ? (row.end_time || null) : null,
         daily_target_minutes: row.enabled ? row.daily_target_minutes : 0,
+        unpaid_break_minutes: row.enabled ? row.unpaid_break_minutes : 0,
       }));
       await replaceUserWorkSchedules(scheduleUser.id, payload);
       setScheduleSaved(true);
@@ -523,6 +570,7 @@ export default function AdminPage() {
                     ))}
                   </select>
                 </div>
+                {/* G6 — multi-company-access checkboxes (already existed, kept) */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-400 mb-2">{t("admin.companyAccess")}</label>
                   <div className="flex flex-wrap gap-3">
@@ -533,7 +581,9 @@ export default function AdminPage() {
                             const access = e.target.checked
                               ? [...form.company_access, c.id]
                               : form.company_access.filter((id) => id !== c.id);
-                            setForm({ ...form, company_access: access });
+                            // If the anchor was on a company we just removed, clear it.
+                            const nextAnchor = access.includes(form.anchor_company_id) ? form.anchor_company_id : "";
+                            setForm({ ...form, company_access: access, anchor_company_id: nextAnchor });
                           }}
                           className="rounded accent-[var(--accent)]"
                         />
@@ -541,6 +591,66 @@ export default function AdminPage() {
                       </label>
                     ))}
                   </div>
+                </div>
+
+                {/* SCH-918 K2-G5 — anchor company (single-select) */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    Arbeitgeber-Unternehmen (Anker)
+                  </label>
+                  <select
+                    value={form.anchor_company_id}
+                    onChange={(e) => setForm({ ...form, anchor_company_id: e.target.value })}
+                    className={inputClass}
+                  >
+                    <option value="">— bitte wählen —</option>
+                    {COMPANIES.filter((c) => form.company_access.includes(c.id)).map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                    In welchem Unternehmen der MA angestellt ist. Auswahl ist auf die oben gewählten Unternehmen beschränkt.
+                  </p>
+                </div>
+
+                {/* SCH-918 K2-G2 — granulare Permissions (greyed out for admin/manager/accountant; they get FULL automatically) */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Berechtigungen (Mitarbeiter)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {MEMBER_PERMISSION_KEYS.map((key) => {
+                      const isEmployee = form.role === "employee";
+                      const checked = isEmployee ? form.permissions[key] : true;
+                      return (
+                        <label
+                          key={key}
+                          className={`flex items-center gap-2 text-sm ${
+                            isEmployee
+                              ? "text-[var(--text-secondary)]"
+                              : "text-[var(--text-muted)] opacity-60"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={!isEmployee}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                permissions: { ...form.permissions, [key]: e.target.checked },
+                              })
+                            }
+                            className="rounded accent-[var(--accent)]"
+                          />
+                          {PERMISSION_LABELS[key]}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-[var(--text-muted)] mt-2">
+                    Dashboard, Spesen und Zeiterfassung sind immer aktiv. Admin/Geschäftsführer/Buchhalter erhalten automatisch alle Rechte.
+                  </p>
                 </div>
               </div>
               {error && <p className="text-sm text-rose-400 mt-3">{error}</p>}
@@ -991,6 +1101,7 @@ export default function AdminPage() {
                         <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleActive")}</th>
                         <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleFrom")}</th>
                         <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleTo")}</th>
+                        <th className="px-3 py-2 text-right font-medium">unbez. Pause</th>
                         <th className="px-3 py-2 text-right font-medium">{t("admin.scheduleDailyTarget")}</th>
                       </tr>
                     </thead>
@@ -1032,6 +1143,19 @@ export default function AdminPage() {
                                 <input
                                   type="number"
                                   min={0}
+                                  value={row.unpaid_break_minutes}
+                                  disabled={!row.enabled}
+                                  onChange={(e) => updateDraftRow(row.weekday, { unpaid_break_minutes: Math.max(0, Number(e.target.value) || 0) })}
+                                  className="bg-[var(--surface)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)] w-16 text-right disabled:opacity-50"
+                                />
+                                <span className="text-[10px] text-[var(--text-muted)] w-8">min</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <div className="inline-flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  min={0}
                                   value={row.daily_target_minutes}
                                   disabled={!row.enabled}
                                   onChange={(e) => updateDraftRow(row.weekday, { daily_target_minutes: Math.max(0, Number(e.target.value) || 0) })}
@@ -1058,7 +1182,7 @@ export default function AdminPage() {
                     </tbody>
                     <tfoot>
                       <tr className="bg-[var(--surface-hover)] text-xs">
-                        <td className="px-3 py-2 font-semibold text-[var(--text-secondary)]" colSpan={4}>{t("admin.scheduleWeeklyTotal")}</td>
+                        <td className="px-3 py-2 font-semibold text-[var(--text-secondary)]" colSpan={5}>{t("admin.scheduleWeeklyTotal")}</td>
                         <td className="px-3 py-2 text-right font-bold text-[var(--text-primary)]">
                           {formatMinutesAsHours(weekTotalMinutes)}
                         </td>

@@ -3,10 +3,11 @@
 // Tenant isolation is handled by RLS on `company_id`. Permissions narrow
 // further: which app sections a non-admin member can use within a tenant
 // they already belong to. Owner/admin role short-circuits all checks.
+//
+// This module is client-safe (pure types + helpers, no server imports).
+// Server-side `requireMemberPermission` lives in lib/permissions-server.ts.
 
-import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { createClient as createServerClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/operator";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const MEMBER_PERMISSION_KEYS = [
   "angebote",
@@ -90,12 +91,14 @@ export function hasMemberPermission(
   return membership.permissions[key] === true;
 }
 
+// Pure-data DB lookups — caller passes the SupabaseClient so these are usable
+// from both server (service-role) and client paths.
 export async function getMembership(
-  service: SupabaseClient,
+  client: SupabaseClient,
   userId: string,
   companyId: string,
 ): Promise<MembershipWithPermissions | null> {
-  const { data } = await service
+  const { data } = await client
     .from("company_members")
     .select("company_id, role, permissions")
     .eq("user_id", userId)
@@ -111,10 +114,10 @@ export async function getMembership(
 }
 
 export async function listMemberships(
-  service: SupabaseClient,
+  client: SupabaseClient,
   userId: string,
 ): Promise<MembershipWithPermissions[]> {
-  const { data } = await service
+  const { data } = await client
     .from("company_members")
     .select("company_id, role, permissions")
     .eq("user_id", userId);
@@ -127,32 +130,4 @@ export async function listMemberships(
       permissions: effectivePermissions(role, row.permissions),
     };
   });
-}
-
-export type RequirePermissionResult =
-  | { ok: false; error: string; status: number }
-  | { ok: true; user: User; service: SupabaseClient; membership: MembershipWithPermissions };
-
-// API helper: 401 if unauthenticated, 403 if not a member or missing the
-// permission. The `companyId` is the tenant the API call targets.
-export async function requireMemberPermission(
-  companyId: unknown,
-  key: MemberPermissionKey,
-): Promise<RequirePermissionResult> {
-  if (typeof companyId !== "string" || companyId.trim() === "") {
-    return { ok: false, error: "companyId required", status: 400 };
-  }
-  const ssr = await createServerClient();
-  const { data: { user } } = await ssr.auth.getUser();
-  if (!user) return { ok: false, error: "Nicht authentifiziert", status: 401 };
-
-  const service = createServiceClient();
-  const membership = await getMembership(service, user.id, companyId);
-  if (!membership) {
-    return { ok: false, error: "Kein Zugriff auf diese Firma", status: 403 };
-  }
-  if (!hasMemberPermission(membership, key)) {
-    return { ok: false, error: "Fehlende Berechtigung", status: 403 };
-  }
-  return { ok: true, user, service, membership };
 }

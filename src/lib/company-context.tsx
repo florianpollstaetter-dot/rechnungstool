@@ -62,6 +62,13 @@ export function daysOverdue(c: Company | null | undefined): number {
 }
 
 import type { GreetingTone } from "@/lib/types";
+import {
+  DEFAULT_MEMBER_PERMISSIONS,
+  FULL_MEMBER_PERMISSIONS,
+  effectivePermissions,
+  type CompanyMemberRole,
+  type MemberPermissions,
+} from "@/lib/permissions";
 
 interface CompanyContextType {
   company: Company;
@@ -77,6 +84,12 @@ interface CompanyContextType {
   isSuperadmin: boolean;
   isReadOnly: boolean;
   setCompanyId: (id: string) => void;
+  // SCH-918 K2-γ — granular per-feature permissions for the active company.
+  // For owner/admin/manager/accountant the role-based map still drives the
+  // sidebar; for `employee` role this JSONB controls which sections appear.
+  memberPermissions: MemberPermissions;
+  /** Company-member role string ('owner' | 'admin' | 'member'); independent of user_profiles.role. */
+  memberRole: CompanyMemberRole | null;
 }
 
 const CompanyContext = createContext<CompanyContextType>({
@@ -91,6 +104,8 @@ const CompanyContext = createContext<CompanyContextType>({
   isSuperadmin: false,
   isReadOnly: false,
   setCompanyId: () => {},
+  memberPermissions: DEFAULT_MEMBER_PERMISSIONS,
+  memberRole: null,
 });
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
@@ -116,6 +131,10 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [isSuperadmin, setIsSuperadmin] = useState(false);
   const [userName, setUserName] = useState("");
+  // SCH-918 — keyed by company_id; updated each time loadUserAccess runs.
+  const [membershipByCompany, setMembershipByCompany] = useState<
+    Record<string, { role: CompanyMemberRole; permissions: MemberPermissions }>
+  >({});
   const [greetingTone, setGreetingToneState] = useState<GreetingTone>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("greetingTone");
@@ -208,13 +227,28 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
       // Try to load companies from DB via company_members join
       let dbCompanies: Company[] = [];
+      // SCH-918 — collect (role, permissions JSONB) per company so the sidebar
+      // can gate sections without an extra query.
+      const newMembershipByCompany: Record<
+        string,
+        { role: CompanyMemberRole; permissions: MemberPermissions }
+      > = {};
       try {
         const { data: memberRows } = await supabase
           .from("company_members")
-          .select("company_id, companies(id, name, slug, logo_url, plan, status, subscription_status, is_free, next_payment_due_at, trial_ends_at)")
+          .select("company_id, role, permissions, companies(id, name, slug, logo_url, plan, status, subscription_status, is_free, next_payment_due_at, trial_ends_at)")
           .eq("user_id", user.id);
 
         if (memberRows && memberRows.length > 0) {
+          for (const row of memberRows as Array<Record<string, unknown>>) {
+            const cid = row.company_id as string | undefined;
+            if (!cid) continue;
+            const role = ((row.role as string | null) ?? "member") as CompanyMemberRole;
+            newMembershipByCompany[cid] = {
+              role,
+              permissions: effectivePermissions(role, row.permissions),
+            };
+          }
           dbCompanies = memberRows
             .map((row: Record<string, unknown>) => row.companies as Company | null)
             .filter((c: Company | null): c is Company => c !== null && c.status === "active");
@@ -301,6 +335,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         }
       }
       setRoleLoaded(true);
+      setMembershipByCompany(newMembershipByCompany);
 
       // SCH-525: make sure the JWT claim matches the company we just committed
       // to client state. Without this, RLS INSERT checks (e.g. AiCompanySetup
@@ -339,9 +374,21 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     || accessibleCompanies[0]
     || FALLBACK_COMPANIES[0];
   const isReadOnly = computeIsReadOnly(company);
+  // SCH-918 — derive active-company permissions/role from the membership map
+  // we collected on the last loadUserAccess. Admin/owner short-circuits to
+  // FULL inside effectivePermissions; employee role uses the JSONB content.
+  // Users without an active company_members row (e.g. legacy company_access
+  // path) get DEFAULT (all-false), which matches the safest fallback.
+  const activeMembership = membershipByCompany[company.id] ?? null;
+  const memberRole: CompanyMemberRole | null = activeMembership?.role ?? null;
+  const memberPermissions: MemberPermissions =
+    activeMembership?.permissions ??
+    (userRole === "admin" || userRole === "manager" || userRole === "accountant"
+      ? FULL_MEMBER_PERMISSIONS
+      : DEFAULT_MEMBER_PERMISSIONS);
 
   return (
-    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, greetingTone, setGreetingTone, roleLoaded, authed, isSuperadmin, isReadOnly, setCompanyId }}>
+    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, greetingTone, setGreetingTone, roleLoaded, authed, isSuperadmin, isReadOnly, setCompanyId, memberPermissions, memberRole }}>
       {children}
     </CompanyContext.Provider>
   );

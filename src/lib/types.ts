@@ -413,6 +413,9 @@ export interface UserWorkSchedule {
   start_time: string | null;
   end_time: string | null;
   daily_target_minutes: number;
+  // SCH-918 K2-G10 — unpaid break per day in minutes. Subtracted from the
+  // gross window when computing actual paid time. 0 = no break.
+  unpaid_break_minutes: number;
   created_at: string;
   updated_at: string;
 }

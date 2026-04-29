@@ -19,6 +19,8 @@ interface ScheduleDraftRow {
   daily_target_minutes: number;
   target_override: boolean;
   enabled: boolean;
+  // SCH-918 K2-G10 — unpaid break per day (minutes).
+  unpaid_break_minutes: number;
 }
 
 function minutesFromTimes(start: string, end: string): number {
@@ -40,6 +42,7 @@ function emptyDraft(): ScheduleDraftRow[] {
       daily_target_minutes: isWeekday ? 450 : 0,
       target_override: false,
       enabled: isWeekday,
+      unpaid_break_minutes: 0,
     };
   });
 }
@@ -95,6 +98,7 @@ export default function UserWorkScheduleSection() {
               ? minutesFromTimes(row.start_time, row.end_time) !== row.daily_target_minutes
               : row.daily_target_minutes > 0,
             enabled: row.daily_target_minutes > 0 || !!(row.start_time && row.end_time),
+            unpaid_break_minutes: row.unpaid_break_minutes ?? 0,
           };
         });
         setDraft(next);
@@ -148,6 +152,7 @@ export default function UserWorkScheduleSection() {
         start_time: row.enabled ? (row.start_time || null) : null,
         end_time: row.enabled ? (row.end_time || null) : null,
         daily_target_minutes: row.enabled ? row.daily_target_minutes : 0,
+        unpaid_break_minutes: row.enabled ? row.unpaid_break_minutes : 0,
       }));
       await replaceUserWorkSchedules(userId, payload);
       setSaved(true);
@@ -184,6 +189,7 @@ export default function UserWorkScheduleSection() {
                   <th className="px-1 sm:px-3 py-2 text-left font-medium">{t("admin.scheduleActive")}</th>
                   <th className="px-1.5 sm:px-3 py-2 text-left font-medium">{t("admin.scheduleFrom")}</th>
                   <th className="px-1.5 sm:px-3 py-2 text-left font-medium">{t("admin.scheduleTo")}</th>
+                  <th className="px-1.5 sm:px-3 py-2 text-right font-medium">unbez. Pause</th>
                   <th className="px-1.5 sm:px-3 py-2 text-right font-medium">{t("admin.scheduleDailyTarget")}</th>
                 </tr>
               </thead>
@@ -229,6 +235,23 @@ export default function UserWorkScheduleSection() {
                           <input
                             type="number"
                             min={0}
+                            value={row.unpaid_break_minutes}
+                            disabled={!row.enabled}
+                            onChange={(e) =>
+                              updateRow(row.weekday, {
+                                unpaid_break_minutes: Math.max(0, Number(e.target.value) || 0),
+                              })
+                            }
+                            className="bg-[var(--surface)] border border-[var(--border)] rounded px-1 sm:px-2 py-1 text-xs text-[var(--text-primary)] w-12 sm:w-16 text-right disabled:opacity-50"
+                          />
+                          <span className="hidden sm:inline text-[10px] text-[var(--text-muted)] w-8">min</span>
+                        </div>
+                      </td>
+                      <td className="px-1.5 sm:px-3 py-2 text-right">
+                        <div className="inline-flex items-center gap-1">
+                          <input
+                            type="number"
+                            min={0}
                             value={row.daily_target_minutes}
                             disabled={!row.enabled}
                             onChange={(e) =>
@@ -266,7 +289,7 @@ export default function UserWorkScheduleSection() {
               </tbody>
               <tfoot>
                 <tr className="bg-[var(--surface-hover)] text-xs">
-                  <td className="px-1.5 sm:px-3 py-2 font-semibold text-[var(--text-secondary)]" colSpan={4}>
+                  <td className="px-1.5 sm:px-3 py-2 font-semibold text-[var(--text-secondary)]" colSpan={5}>
                     {t("admin.scheduleWeeklyTotal")}
                   </td>
                   <td className="px-1.5 sm:px-3 py-2 text-right font-bold text-[var(--text-primary)]">

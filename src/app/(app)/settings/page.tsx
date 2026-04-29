@@ -522,10 +522,15 @@ export default function SettingsPage() {
         </div>
       </form>
 
-      {/* SCH-819 — Arbeitszeitmodell (per-user). */}
-      <div className="mb-6">
-        <UserWorkScheduleSection />
-      </div>
+      {/* SCH-819 — Arbeitszeitmodell (per-user).
+          SCH-918 K2-G9 — admin-only. RLS now also rejects non-admin writes
+          (20260429143000_sch918_zeitmodell_admin_only.sql); MA see their
+          schedule read-only inside /time/settings. */}
+      {isAdmin && (
+        <div className="mb-6">
+          <UserWorkScheduleSection />
+        </div>
+      )}
 
       {/* SCH-921 K2-J1 — Admin-managed Allgemein/Sonstiges labels. */}
       {isAdmin && <GeneralCategoriesSection />}

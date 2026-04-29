@@ -904,7 +904,13 @@ export async function deleteUserWorkSchedule(userId: string, weekday: number): P
 // leave the user with a half-applied schedule.
 export async function replaceUserWorkSchedules(
   userId: string,
-  rows: Array<Omit<UserWorkSchedule, "id" | "user_id" | "created_at" | "updated_at">>
+  // SCH-918 K2-G10 — unpaid_break_minutes added to UserWorkSchedule but legacy
+  // call sites don't pass it; relax to Partial so we can roll out the column
+  // without touching every caller in one push.
+  rows: Array<
+    Omit<UserWorkSchedule, "id" | "user_id" | "created_at" | "updated_at" | "unpaid_break_minutes">
+    & { unpaid_break_minutes?: number }
+  >
 ): Promise<UserWorkSchedule[]> {
   // Lazy import keeps work-schedule.ts free of supabase deps.
   const { validateScheduleRow, isEmptyRow } = await import("./work-schedule");
@@ -2002,6 +2008,8 @@ function mapUserWorkSchedule(row: Record<string, unknown>): UserWorkSchedule {
     start_time: trim(row.start_time),
     end_time: trim(row.end_time),
     daily_target_minutes: Number(row.daily_target_minutes ?? 0),
+    // SCH-918 K2-G10 — column added in 20260429142000_sch918_work_schedules_unpaid_break.sql
+    unpaid_break_minutes: Number(row.unpaid_break_minutes ?? 0),
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

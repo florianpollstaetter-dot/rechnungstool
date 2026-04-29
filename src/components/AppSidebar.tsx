@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useCompany } from "@/lib/company-context";
 import { useI18n } from "@/lib/i18n-context";
 import { ROLE_PERMISSIONS, AppSection, UserRole } from "@/lib/types";
+import type { MemberPermissions } from "@/lib/permissions";
 import CompanyBadge from "@/components/CompanyBadge";
 import type { TranslationKey } from "@/lib/translations/de";
 
@@ -125,12 +126,47 @@ const TIME_ITEMS: NavLeaf[] = [
   { href: "/time?view=analytics", labelKey: "time.analytics", icon: "analytics", section: "time" },
 ];
 
+// SCH-918 K2-γ G2/G3/G4 — for `employee` role we gate sections via the
+// per-company JSONB permissions instead of the static role table. Sections
+// listed in ALWAYS_ON (dashboard / expenses / time) stay visible regardless
+// (G3). Other sections map 1:1 to JSONB keys.
+const SECTION_TO_PERMISSION_KEY: Partial<Record<AppSection, keyof MemberPermissions>> = {
+  quotes: "angebote",
+  invoices: "rechnungen",
+  customers: "kunden",
+  products: "produkte",
+  "fixed-costs": "fixkosten",
+  receipts: "belege",
+  bank: "konto",
+  export: "export",
+};
+
+function isAccountingItemVisible(
+  item: NavLeaf,
+  userRole: UserRole,
+  memberPermissions: MemberPermissions,
+): boolean {
+  if (!item.section) return true;
+  // SCH-918 G3 — dashboard/expenses always on for everyone.
+  if (item.section === "dashboard" || item.section === "expenses") return true;
+
+  if (userRole === "employee") {
+    const permKey = SECTION_TO_PERMISSION_KEY[item.section];
+    if (!permKey) return false;
+    return memberPermissions[permKey] === true;
+  }
+
+  // Non-employee roles keep the static role table.
+  const permissions = ROLE_PERMISSIONS[userRole] || ROLE_PERMISSIONS.employee;
+  return permissions.includes(item.section);
+}
+
 export default function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { t } = useI18n();
-  const { company, accessibleCompanies, userName, userRole, roleLoaded, isSuperadmin, greetingTone, setCompanyId } = useCompany();
+  const { company, accessibleCompanies, userName, userRole, roleLoaded, isSuperadmin, greetingTone, setCompanyId, memberPermissions } = useCompany();
   const greeting = useMemo(() => {
     if (greetingTone === "off") return "";
     const size = GREETING_POOL_SIZE[greetingTone];
@@ -138,13 +174,16 @@ export default function AppSidebar() {
     const idx = dayOfEpoch() % size;
     return t(`${prefix}.${idx}` as TranslationKey, { name: "{name}" });
   }, [greetingTone, t]);
-  const permissions = roleLoaded
-    ? (ROLE_PERMISSIONS[userRole as UserRole] || ROLE_PERMISSIONS.employee)
-    : [];
 
-  const accountingItems = ACCOUNTING_ITEMS.filter((i) => !i.section || permissions.includes(i.section));
-  const timeAllowed = permissions.includes("time");
-  const adminAllowed = permissions.includes("admin");
+  const role = roleLoaded ? ((userRole as UserRole) || "employee") : "employee";
+  const accountingItems = roleLoaded
+    ? ACCOUNTING_ITEMS.filter((i) => isAccountingItemVisible(i, role, memberPermissions))
+    : [];
+  // Time tracking is always on for every authenticated user (G3).
+  const timeAllowed = roleLoaded;
+  // Admin section visibility tracks the static role table — only `admin` user
+  // role sees it (matches the existing logic before SCH-918).
+  const adminAllowed = roleLoaded && (ROLE_PERMISSIONS[role] || []).includes("admin");
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);

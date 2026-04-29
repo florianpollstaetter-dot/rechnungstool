@@ -185,9 +185,12 @@ export interface ScheduleRowInput {
   start_time: string | null;
   end_time: string | null;
   daily_target_minutes: number;
+  // SCH-918 K2-G10 — optional on input; CHECK >= 0 enforced by DB.
+  unpaid_break_minutes?: number;
 }
 
 export type ScheduleValidationError =
+  | "negative_break"
   | "weekday_out_of_range"
   | "negative_target"
   | "end_before_or_equal_start"
@@ -217,6 +220,12 @@ export function validateScheduleRow(row: ScheduleRowInput): ScheduleValidationEr
   }
   if ((start === null) !== (end === null)) {
     errors.push("missing_one_time");
+  }
+  if (
+    row.unpaid_break_minutes !== undefined &&
+    (!Number.isFinite(row.unpaid_break_minutes) || row.unpaid_break_minutes < 0)
+  ) {
+    errors.push("negative_break");
   }
   return errors;
 }
