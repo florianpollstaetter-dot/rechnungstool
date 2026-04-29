@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n-context";
@@ -41,9 +42,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
       <div className="max-w-sm w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Orange Octo</h1>
-          <p className="text-sm text-gray-500 mt-1">easy accounting</p>
+        <div className="flex flex-col items-center mb-8">
+          {/* SCH-915 K2-A1/A2/A3 — orangeocto lockup; orange octopus stays
+              orange across all themes, wordmark uses Syne with tight gap. */}
+          <div className="flex items-center gap-1.5">
+            <Image src="/brand/octo-icon-orange.png" alt="" width={48} height={48} className="h-12 w-12" priority />
+            <span className="brand-wordmark text-2xl">orange<span>octo</span></span>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">easy accounting</p>
         </div>
 
         <form

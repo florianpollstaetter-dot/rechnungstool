@@ -40,21 +40,13 @@ export default function OperatorLayout({ children }: { children: React.ReactNode
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-14">
             <div className="flex items-center gap-3">
-              <Link href="/operator" className="flex items-center gap-2 shrink-0" title="Operator Console">
+              <Link href="/operator" className="flex items-center gap-1.5 shrink-0" title="Operator Console">
                 <Image
                   src="/brand/octo-icon-orange.png"
-                  alt="Orange Octo"
+                  alt=""
                   width={32}
                   height={32}
-                  className="brand-logo-dark h-8 w-8"
-                  priority
-                />
-                <Image
-                  src="/brand/octo-icon-black.png"
-                  alt="Orange Octo"
-                  width={32}
-                  height={32}
-                  className="brand-logo-light h-8 w-8"
+                  className="h-8 w-8"
                   priority
                 />
               </Link>

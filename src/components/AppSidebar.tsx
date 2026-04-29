@@ -4,7 +4,7 @@
 // Accounting / Time Tracking / Admin sections; logo top-left; bottom-left
 // houses Settings, Operator (superadmin), Logout.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -14,6 +14,25 @@ import { useI18n } from "@/lib/i18n-context";
 import { ROLE_PERMISSIONS, AppSection, UserRole } from "@/lib/types";
 import CompanyBadge from "@/components/CompanyBadge";
 import type { TranslationKey } from "@/lib/translations/de";
+
+// SCH-915 K2-C1 — daily-rotating greeting rendered directly under the sidebar
+// logo. Pool sizes match `(app)/layout.tsx`; the previous implementation lived
+// outside the sidebar in the main column.
+const GREETING_POOL_SIZE: Record<"motivating" | "challenging" | "sarcastic", number> = {
+  motivating: 25,
+  challenging: 10,
+  sarcastic: 10,
+};
+const GREETING_KEY_PREFIX: Record<"motivating" | "challenging" | "sarcastic", string> = {
+  motivating: "greetings",
+  challenging: "greetingsChallenging",
+  sarcastic: "greetingsSarcastic",
+};
+function dayOfEpoch(): number {
+  const now = new Date();
+  const utcMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.floor(utcMs / 86_400_000);
+}
 
 type IconKey =
   | "dashboard" | "quotes" | "invoices" | "fixedCosts" | "receipts" | "bank"
@@ -111,7 +130,14 @@ export default function AppSidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { t } = useI18n();
-  const { company, accessibleCompanies, userName, userRole, roleLoaded, isSuperadmin, setCompanyId } = useCompany();
+  const { company, accessibleCompanies, userName, userRole, roleLoaded, isSuperadmin, greetingTone, setCompanyId } = useCompany();
+  const greeting = useMemo(() => {
+    if (greetingTone === "off") return "";
+    const size = GREETING_POOL_SIZE[greetingTone];
+    const prefix = GREETING_KEY_PREFIX[greetingTone];
+    const idx = dayOfEpoch() % size;
+    return t(`${prefix}.${idx}` as TranslationKey, { name: "{name}" });
+  }, [greetingTone, t]);
   const permissions = roleLoaded
     ? (ROLE_PERMISSIONS[userRole as UserRole] || ROLE_PERMISSIONS.employee)
     : [];
@@ -166,33 +192,37 @@ export default function AppSidebar() {
 
   const navContent = (
     <>
-      {/* Logo */}
-      <Link
-        href="/dashboard"
-        className="flex items-center gap-2 px-4 py-4 shrink-0"
-        title="Orange Octo"
-        onClick={() => setMobileOpen(false)}
-      >
-        <Image
-          src="/brand/octo-icon-orange.png"
-          alt="Orange Octo"
-          width={40}
-          height={40}
-          className="brand-logo-dark h-10 w-10"
-          priority
-        />
-        <Image
-          src="/brand/octo-icon-black.png"
-          alt="Orange Octo"
-          width={40}
-          height={40}
-          className="brand-logo-light h-10 w-10"
-          priority
-        />
-        <span className="text-sm font-semibold tracking-tight text-[var(--text-primary)]">
-          Orange<span className="text-[var(--brand-orange)]">Octo</span>
-        </span>
-      </Link>
+      {/* SCH-915 K2-A1/A2/A3/C1 — orangeocto wordmark + daily greeting.
+          Always uses the orange octopus (no theme swap), Syne font, and a
+          tightened gap so the word sits close to the icon. The greeting
+          renders directly below the lockup; previously it lived outside the
+          sidebar in (app)/layout.tsx. */}
+      <div className="px-4 pt-4 pb-3 shrink-0">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-1.5"
+          title="orangeocto"
+          aria-label="orangeocto"
+          onClick={() => setMobileOpen(false)}
+        >
+          <Image
+            src="/brand/octo-icon-orange.png"
+            alt=""
+            width={40}
+            height={40}
+            className="h-10 w-10"
+            priority
+          />
+          <span className="brand-wordmark text-base">
+            orange<span>octo</span>
+          </span>
+        </Link>
+        {userName && greeting && (
+          <p className="mt-2 text-xs italic text-[var(--text-muted)]">
+            {greeting.replace("{name}", userName)}
+          </p>
+        )}
+      </div>
 
       <nav className="flex-1 overflow-y-auto px-2 pb-4" aria-label="Hauptnavigation">
         {/* Accounting */}
@@ -368,10 +398,9 @@ export default function AppSidebar() {
     <>
       {/* Mobile top bar with menu button */}
       <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between bg-[var(--surface)] border-b border-[var(--border)] px-4 h-14">
-        <Link href="/dashboard" className="flex items-center gap-2" title="Orange Octo">
-          <Image src="/brand/octo-icon-orange.png" alt="Orange Octo" width={32} height={32} className="brand-logo-dark h-8 w-8" priority />
-          <Image src="/brand/octo-icon-black.png" alt="Orange Octo" width={32} height={32} className="brand-logo-light h-8 w-8" priority />
-          <span className="text-sm font-semibold text-[var(--text-primary)]">Orange<span className="text-[var(--brand-orange)]">Octo</span></span>
+        <Link href="/dashboard" className="flex items-center gap-1.5" title="orangeocto" aria-label="orangeocto">
+          <Image src="/brand/octo-icon-orange.png" alt="" width={32} height={32} className="h-8 w-8" priority />
+          <span className="brand-wordmark text-sm">orange<span>octo</span></span>
         </Link>
         <button
           type="button"

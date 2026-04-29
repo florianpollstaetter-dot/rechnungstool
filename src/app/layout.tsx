@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Unbounded } from "next/font/google";
+import { Geist, Unbounded, Syne } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
 import { CompanyProvider } from "@/lib/company-context";
@@ -20,6 +20,15 @@ const bounded = Unbounded({
   variable: "--font-bounded",
   subsets: ["latin"],
   weight: ["900"],
+  display: "swap",
+});
+
+// SCH-915 K2-A1 — Syne is the brand wordmark face used across all
+// "orangeocto" lockups (sidebar, mobile header, legal pages, register, login).
+const syne = Syne({
+  variable: "--font-syne",
+  subsets: ["latin"],
+  weight: ["700", "800"],
   display: "swap",
 });
 
@@ -121,7 +130,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={`${geist.variable} ${bounded.variable} h-full antialiased`}>
+    <html lang="de" className={`${geist.variable} ${bounded.variable} ${syne.variable} h-full antialiased`}>
       <head>
         <link rel="apple-touch-icon" href="/brand/octo-icon-orange.png" />
       </head>

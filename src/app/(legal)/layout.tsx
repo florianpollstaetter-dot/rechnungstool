@@ -7,10 +7,9 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
     <>
       <nav className="bg-[var(--surface)] border-b border-[var(--border)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2 shrink-0" title="Orange Octo">
-            <Image src="/brand/octo-icon-orange.png" alt="Orange Octo" width={32} height={32} className="brand-logo-dark h-8 w-8" />
-            <Image src="/brand/octo-icon-black.png" alt="Orange Octo" width={32} height={32} className="brand-logo-light h-8 w-8" />
-            <span className="text-sm font-semibold text-[var(--text-primary)] hidden sm:inline">Orange Octo</span>
+          <Link href="/" className="flex items-center gap-1.5 shrink-0" title="orangeocto" aria-label="orangeocto">
+            <Image src="/brand/octo-icon-orange.png" alt="" width={32} height={32} className="h-8 w-8" />
+            <span className="brand-wordmark text-sm hidden sm:inline">orange<span>octo</span></span>
           </Link>
           <div className="ml-auto flex items-center gap-3 text-xs">
             <Link href="/impressum" className="text-[var(--text-secondary)] hover:text-[var(--brand-orange)] transition-colors">Impressum</Link>

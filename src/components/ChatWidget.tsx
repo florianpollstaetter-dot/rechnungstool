@@ -181,7 +181,7 @@ export function ChatWidget() {
                 O
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold text-[var(--text-primary)] truncate">Orange Octo Hilfe</div>
+                <div className="text-xs font-semibold text-[var(--text-primary)] truncate">orangeocto Hilfe</div>
                 <div className="text-[10px] text-[var(--text-muted)] truncate">
                   {conversationStatus === "escalated"
                     ? "Weitergeleitet — Superadmin antwortet"

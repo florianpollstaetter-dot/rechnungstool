@@ -103,17 +103,17 @@ export default function RegisterPage() {
 
       <header className={styles.header}>
         <div className={styles.headerInner}>
-          <Link href="/" className={styles.logo} aria-label="Orange Octo Startseite">
+          <Link href="/" className={styles.logo} aria-label="orangeocto Startseite">
             <Image
               src="/brand/octo-icon-orange.png"
-              alt="Orange Octo"
+              alt=""
               width={56}
               height={56}
               priority
               className={styles.logoIcon}
             />
             <span className={styles.logoWord}>
-              Orange<span>Octo</span>
+              orange<span>octo</span>
             </span>
           </Link>
           <nav className={styles.headerLinks}>

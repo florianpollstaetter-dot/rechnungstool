@@ -69,13 +69,29 @@
   animation: tab-fade-slide 150ms ease-out both;
 }
 
-/* Brand-logo light/dark swap (driven by [data-theme] on <html>) */
+/* SCH-915 K2-A3/A4 — the orange octopus and the wordmark stay the same in
+   every theme. The legacy `.brand-logo-light` / `.brand-logo-dark` swap is
+   gone: only the orange icon variant is rendered, regardless of theme.
+   `.brand-logo-light` is kept (always hidden) so any legacy usage degrades
+   gracefully without showing two stacked icons. */
 .brand-logo-light { display: none; }
 .brand-logo-dark  { display: block; }
-[data-theme="light"] .brand-logo-light { display: block; }
-[data-theme="light"] .brand-logo-dark  { display: none; }
-[data-theme="sand"] .brand-logo-light { display: block; }
-[data-theme="sand"] .brand-logo-dark  { display: none; }
+
+/* SCH-915 K2-A1/A2 — the Syne-based wordmark used across all "orangeocto"
+   lockups. The leading "orange" inherits text color; the inner span carries
+   the brand-orange accent. Tracking is tightened so the word sits closer to
+   the octopus icon. */
+.brand-wordmark {
+  font-family: var(--font-syne), "Syne", system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  text-transform: lowercase;
+  line-height: 1;
+}
+.brand-wordmark > span {
+  color: var(--brand-orange);
+}
 
 /* Long-form legal copy */
 .prose-legal h1 {
