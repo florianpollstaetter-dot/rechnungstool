@@ -1086,7 +1086,7 @@ const en: Record<string, string> = {
   "register.passwordMismatch": "Passwords do not match.",
   "register.next": "Next",
   "register.enterCompanyName": "Please enter a company name.",
-  "register.emailExists": "This email is already registered.",
+  "register.emailExists": "This email address is already taken.",
   "register.slugTaken": "This company slug is already taken.",
   "register.registrationFailed": "Registration failed:",
   "register.registrationFailedGeneric": "Registration failed.",

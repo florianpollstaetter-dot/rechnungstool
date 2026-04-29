@@ -985,7 +985,7 @@ const ar: Record<string, string> = {
   "register.passwordMismatch": "كلمتا المرور غير متطابقتين.",
   "register.next": "التالي",
   "register.enterCompanyName": "يرجى إدخال اسم الشركة.",
-  "register.emailExists": "هذا البريد الإلكتروني مسجّل بالفعل.",
+  "register.emailExists": "عنوان البريد الإلكتروني هذا مستخدم بالفعل.",
   "register.registrationFailed": "فشل التسجيل:",
   "register.registrationFailedGeneric": "فشل التسجيل.",
   "register.companySetupFailed": "فشل إعداد الشركة",

@@ -985,7 +985,7 @@ const fr: Record<string, string> = {
   "register.passwordMismatch": "Les mots de passe ne correspondent pas.",
   "register.next": "Suivant",
   "register.enterCompanyName": "Veuillez saisir un nom d'entreprise.",
-  "register.emailExists": "Cette adresse e-mail est déjà enregistrée.",
+  "register.emailExists": "Cette adresse e-mail est déjà utilisée.",
   "register.registrationFailed": "Échec de l'inscription :",
   "register.registrationFailedGeneric": "Échec de l'inscription.",
   "register.companySetupFailed": "Échec de la configuration de l'entreprise",

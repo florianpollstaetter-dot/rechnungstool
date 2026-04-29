@@ -985,7 +985,7 @@ const tr: Record<string, string> = {
   "register.passwordMismatch": "Şifreler uyuşmuyor.",
   "register.next": "İleri",
   "register.enterCompanyName": "Lütfen bir şirket adı girin.",
-  "register.emailExists": "Bu e-posta zaten kayıtlı.",
+  "register.emailExists": "Bu e-posta adresi zaten kullanımda.",
   "register.registrationFailed": "Kayıt başarısız:",
   "register.registrationFailedGeneric": "Kayıt başarısız.",
   "register.companySetupFailed": "Şirket kurulumu başarısız",

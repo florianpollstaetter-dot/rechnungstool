@@ -1086,7 +1086,7 @@ const de = {
   "register.passwordMismatch": "Passwörter stimmen nicht überein.",
   "register.next": "Weiter",
   "register.enterCompanyName": "Bitte geben Sie einen Unternehmensnamen ein.",
-  "register.emailExists": "Diese E-Mail ist bereits registriert.",
+  "register.emailExists": "Diese Email-Adresse ist bereits vergeben.",
   "register.slugTaken": "Dieses Unternehmens-Kürzel ist bereits vergeben.",
   "register.registrationFailed": "Registrierung fehlgeschlagen:",
   "register.registrationFailedGeneric": "Registrierung fehlgeschlagen.",

@@ -985,7 +985,7 @@ const it: Record<string, string> = {
   "register.passwordMismatch": "Le password non corrispondono.",
   "register.next": "Avanti",
   "register.enterCompanyName": "Inserisci un nome aziendale.",
-  "register.emailExists": "Questa e-mail è già registrata.",
+  "register.emailExists": "Questo indirizzo e-mail è già in uso.",
   "register.registrationFailed": "Registrazione fallita:",
   "register.registrationFailedGeneric": "Registrazione fallita.",
   "register.companySetupFailed": "Configurazione aziendale fallita",

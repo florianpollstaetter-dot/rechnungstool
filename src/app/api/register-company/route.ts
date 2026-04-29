@@ -3,9 +3,9 @@ import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { logAndSanitize } from "@/lib/api-errors";
 
 export async function POST(request: Request) {
-  const { email, password, displayName, companyName, companySlug } = await request.json();
+  const { email: rawEmail, password, displayName, companyName, companySlug } = await request.json();
 
-  if (!email || !password || !companyName || !companySlug) {
+  if (!rawEmail || !password || !companyName || !companySlug) {
     return Response.json(
       { error: "missing_fields", message: "E-Mail, Passwort, Unternehmensname und Kürzel sind erforderlich." },
       { status: 400 },
@@ -28,6 +28,11 @@ export async function POST(request: Request) {
     );
   }
 
+  // SCH-928: normalize email — Supabase stores it lowercase, so all
+  // collision checks (and the `auth.admin.createUser` call below) must
+  // compare on the same canonical form.
+  const email = String(rawEmail).trim().toLowerCase();
+
   const supabase = createClient(supabaseUrl, serviceKey);
   const resolvedDisplayName = (displayName && String(displayName).trim()) || email.split("@")[0];
 
@@ -45,6 +50,24 @@ export async function POST(request: Request) {
     );
   }
 
+  // SCH-928: email-collision pre-check. The fast happy-path: if a
+  // user_profile already exists for this email the email is taken and
+  // we can reject without round-tripping through auth.admin.createUser.
+  // The createUser call below is the authoritative second guard for the
+  // rarer orphan case (auth.users row without a user_profile).
+  const { data: existingProfile } = await supabase
+    .from("user_profiles")
+    .select("auth_user_id")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (existingProfile) {
+    return Response.json(
+      { error: "email_exists", message: "Diese Email-Adresse ist bereits vergeben." },
+      { status: 409 },
+    );
+  }
+
   // 2. Create the auth user with email already confirmed — no email verification step
   //    needed because the account is bound to a trial company created in the same request.
   const { data: created, error: createUserError } = await supabase.auth.admin.createUser({
@@ -58,10 +81,18 @@ export async function POST(request: Request) {
   });
 
   if (createUserError || !created?.user) {
+    const code = createUserError?.code;
     const msg = createUserError?.message || "";
-    if (/already|registered|exists/i.test(msg)) {
+    // SCH-928: prefer the structured gotrue error code; fall back to
+    // message regex for older auth-js builds. Both `email_exists` and
+    // `user_already_exists` map to a duplicate-email collision.
+    const isCollision =
+      code === "email_exists" ||
+      code === "user_already_exists" ||
+      /already|registered|exists/i.test(msg);
+    if (isCollision) {
       return Response.json(
-        { error: "email_exists", message: "Diese E-Mail ist bereits registriert." },
+        { error: "email_exists", message: "Diese Email-Adresse ist bereits vergeben." },
         { status: 409 },
       );
     }
