@@ -10,11 +10,45 @@ import { calcItemTotal, calcTotals } from "@/lib/calc";
 import { useI18n } from "@/lib/i18n-context";
 import { useCompany } from "@/lib/company-context";
 import QuoteNewSetupGate from "@/components/QuoteNewSetupGate";
+import CustomerCreateModal from "@/components/CustomerCreateModal";
+import TravelDayModal, { SelectableItem } from "@/components/TravelDayModal";
 
-type ItemRow = Omit<QuoteItem, "id">;
+type ItemRow = Omit<QuoteItem, "id"> & { id?: string };
 
 function emptyItem(pos: number): ItemRow {
-  return { position: pos, description: "", unit: "Stueck", product_id: null, quantity: 1, unit_price: 0, discount_percent: 0, discount_amount: 0, total: 0, role_id: null };
+  return {
+    id: crypto.randomUUID(),
+    position: pos,
+    description: "",
+    unit: "Stueck",
+    product_id: null,
+    quantity: 1,
+    unit_price: 0,
+    discount_percent: 0,
+    discount_amount: 0,
+    total: 0,
+    role_id: null,
+    item_type: "item",
+    travel_day_config: null,
+  };
+}
+
+function emptySection(pos: number): ItemRow {
+  return {
+    id: crypto.randomUUID(),
+    position: pos,
+    description: "",
+    unit: "Stueck",
+    product_id: null,
+    quantity: 0,
+    unit_price: 0,
+    discount_percent: 0,
+    discount_amount: 0,
+    total: 0,
+    role_id: null,
+    item_type: "section",
+    travel_day_config: null,
+  };
 }
 
 export default function NewQuotePageWrapper() {
@@ -39,14 +73,20 @@ function NewQuotePage() {
   const [language, setLanguage] = useState<Language>("de");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("detailed");
   const [notes, setNotes] = useState("");
+  const [buyouts, setBuyouts] = useState("");
+  const [exportsAndDelivery, setExportsAndDelivery] = useState("");
+  const [assumptions, setAssumptions] = useState("");
   const [items, setItems] = useState<ItemRow[]>([emptyItem(1)]);
   const [overallDiscountPercent, setOverallDiscountPercent] = useState(0);
   const [overallDiscountAmount, setOverallDiscountAmount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [travelDayEditIdx, setTravelDayEditIdx] = useState<number | null>(null);
 
   const formData = useMemo(() => ({
     customerId, projectDescription, quoteDate, validDays, taxRate, language, displayMode, notes, items, overallDiscountPercent, overallDiscountAmount,
-  }), [customerId, projectDescription, quoteDate, validDays, taxRate, language, displayMode, notes, items, overallDiscountPercent, overallDiscountAmount]);
+    buyouts, exportsAndDelivery, assumptions,
+  }), [customerId, projectDescription, quoteDate, validDays, taxRate, language, displayMode, notes, items, overallDiscountPercent, overallDiscountAmount, buyouts, exportsAndDelivery, assumptions]);
 
   const { clearDraft } = useAutosave("new-quote", formData, (saved) => {
     if (saved.customerId) setCustomerId(saved.customerId);
@@ -60,6 +100,9 @@ function NewQuotePage() {
     if (saved.items?.length) setItems(saved.items);
     if (saved.overallDiscountPercent) setOverallDiscountPercent(saved.overallDiscountPercent);
     if (saved.overallDiscountAmount) setOverallDiscountAmount(saved.overallDiscountAmount);
+    if (saved.buyouts) setBuyouts(saved.buyouts);
+    if (saved.exportsAndDelivery) setExportsAndDelivery(saved.exportsAndDelivery);
+    if (saved.assumptions) setAssumptions(saved.assumptions);
   });
 
   const loadData = useCallback(async () => {
@@ -82,8 +125,19 @@ function NewQuotePage() {
         setOverallDiscountAmount(tpl.overall_discount_amount);
         if (tpl.customer_id) setCustomerId(tpl.customer_id);
         if (tpl.items.length > 0) {
-          setItems(tpl.items.map((i) => ({
-            ...i,
+          setItems(tpl.items.map((i, idx) => ({
+            id: crypto.randomUUID(),
+            position: idx + 1,
+            description: i.description,
+            unit: i.unit,
+            product_id: i.product_id,
+            quantity: i.quantity,
+            unit_price: i.unit_price,
+            discount_percent: i.discount_percent,
+            discount_amount: i.discount_amount,
+            role_id: null,
+            item_type: "item",
+            travel_day_config: null,
             total: (i.quantity * i.unit_price) - (i.discount_percent > 0 ? i.quantity * i.unit_price * i.discount_percent / 100 : i.discount_amount),
           })));
         }
@@ -111,15 +165,85 @@ function NewQuotePage() {
     }
   }
 
+  function reposition(rows: ItemRow[]): ItemRow[] {
+    return rows.map((row, i) => ({ ...row, position: i + 1 }));
+  }
+
   function addItem() { setItems([...items, emptyItem(items.length + 1)]); }
+  function addSection() { setItems([...items, emptySection(items.length + 1)]); }
+  function addTravelDay() {
+    const idx = items.length;
+    setItems([...items, {
+      id: crypto.randomUUID(),
+      position: idx + 1,
+      description: t("quoteNew.travelDayLabel"),
+      unit: "Tage",
+      product_id: null,
+      quantity: 1,
+      unit_price: 0,
+      discount_percent: 0,
+      discount_amount: 0,
+      total: 0,
+      role_id: null,
+      item_type: "travel_day",
+      travel_day_config: { referenced_item_ids: [], percent: 50 },
+    }]);
+    setTravelDayEditIdx(idx);
+  }
+
   function removeItem(index: number) {
-    const updated = items.filter((_, i) => i !== index);
-    updated.forEach((item, i) => (item.position = i + 1));
+    setItems(reposition(items.filter((_, i) => i !== index)));
+  }
+
+  function moveItem(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= items.length) return;
+    const updated = [...items];
+    [updated[index], updated[target]] = [updated[target], updated[index]];
+    setItems(reposition(updated));
+  }
+
+  function applyTravelDay(idx: number, referencedIds: string[], percent: number, computed: number) {
+    const updated = [...items];
+    const row = updated[idx];
+    updated[idx] = {
+      ...row,
+      unit_price: computed,
+      quantity: 1,
+      total: computed,
+      item_type: "travel_day",
+      travel_day_config: { referenced_item_ids: referencedIds, percent },
+    };
+    setItems(updated);
+  }
+
+  function recalcTravelDay(idx: number) {
+    const row = items[idx];
+    if (!row.travel_day_config) return;
+    const cfg = row.travel_day_config;
+    const sum = items
+      .filter((i) => cfg.referenced_item_ids.includes(i.id || ""))
+      .reduce((acc, i) => acc + i.unit_price, 0);
+    const computed = Math.round(sum * (cfg.percent / 100) * 100) / 100;
+    const updated = [...items];
+    updated[idx] = { ...row, unit_price: computed, quantity: 1, total: computed };
     setItems(updated);
   }
 
   const validUntil = addDays(quoteDate, validDays);
   const { subtotal, taxAmount, total } = calcTotals(items, taxRate, overallDiscountPercent, overallDiscountAmount);
+
+  const selectableForTravelDay: SelectableItem[] = useMemo(
+    () => items
+      .filter((i) => i.item_type === "item")
+      .map((i) => ({
+        id: i.id || "",
+        position: i.position,
+        description: i.description,
+        unit_price: i.unit_price,
+      })),
+    [items],
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -130,7 +254,11 @@ function NewQuotePage() {
         project_description: projectDescription,
         quote_date: quoteDate,
         valid_until: validUntil,
-        items: items.map((item) => ({ ...item, id: crypto.randomUUID(), total: calcItemTotal(item) })),
+        items: items.map((item) => ({
+          ...item,
+          id: item.id || crypto.randomUUID(),
+          total: item.item_type === "section" ? 0 : calcItemTotal(item),
+        })),
         subtotal, tax_rate: taxRate, tax_amount: taxAmount, total,
         overall_discount_percent: overallDiscountPercent,
         overall_discount_amount: overallDiscountAmount,
@@ -140,10 +268,18 @@ function NewQuotePage() {
         display_mode: displayMode,
         converted_invoice_id: null,
         created_by: null,
+        buyouts: buyouts || null,
+        exports_and_delivery: exportsAndDelivery || null,
+        assumptions: assumptions || null,
       });
       clearDraft();
       router.push("/quotes");
     } finally { setSubmitting(false); }
+  }
+
+  function handleCustomerCreated(c: Customer) {
+    setCustomers((prev) => [...prev, c]);
+    setCustomerId(c.id);
   }
 
   return (
@@ -156,10 +292,20 @@ function NewQuotePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.customer")}</label>
-              <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} required className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
-                <option value="">{t("quoteNew.selectCustomer")}</option>
-                {customers.map((c) => (<option key={c.id} value={c.id}>{c.company || c.name}</option>))}
-              </select>
+              <div className="flex gap-2">
+                <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} required className="flex-1 bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent">
+                  <option value="">{t("quoteNew.selectCustomer")}</option>
+                  {customers.map((c) => (<option key={c.id} value={c.id}>{c.company || c.name}</option>))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomerModal(true)}
+                  className="bg-[var(--accent)] text-black px-3 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition whitespace-nowrap"
+                  title={t("quoteNew.newCustomerButton")}
+                >
+                  {t("quoteNew.newCustomerButton")}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.projectDescription")}</label>
@@ -201,7 +347,11 @@ function NewQuotePage() {
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">{t("quoteNew.items")}</h2>
-            <button type="button" onClick={addItem} className="text-sm text-[var(--accent)] hover:brightness-110 font-medium">{t("quoteNew.addItem")}</button>
+            <div className="flex gap-2">
+              <button type="button" onClick={addItem} className="text-sm text-[var(--accent)] hover:brightness-110 font-medium">{t("quoteNew.addItem")}</button>
+              <button type="button" onClick={addSection} className="text-sm text-[var(--accent)] hover:brightness-110 font-medium">{t("quoteNew.addSection")}</button>
+              <button type="button" onClick={addTravelDay} className="text-sm text-[var(--accent)] hover:brightness-110 font-medium">{t("quoteNew.addTravelDay")}</button>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full">
@@ -216,40 +366,86 @@ function NewQuotePage() {
                   <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-20">{t("quoteNew.discountPercent")}</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase py-2 w-36">{t("quoteNew.role")}</th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase py-2 w-28">{t("quoteNew.amount")}</th>
-                  <th className="w-10"></th>
+                  <th className="w-20"></th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, idx) => (
-                  <tr key={idx} className="border-b border-[var(--border)]">
-                    <td className="py-2 text-sm text-gray-500">{item.position}</td>
-                    <td className="py-2">
-                      <select value={item.product_id || ""} onChange={(e) => e.target.value ? selectProduct(idx, e.target.value) : updateItem(idx, "product_id", null)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
-                        <option value="">{t("quoteNew.selectProduct")}</option>
-                        {products.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
-                      </select>
-                    </td>
-                    <td className="py-2"><input type="text" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" required /></td>
-                    <td className="py-2">
-                      <select value={item.unit} onChange={(e) => updateItem(idx, "unit", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
-                        {UNIT_OPTIONS.map((u) => (<option key={u.value} value={u.value}>{u.label}</option>))}
-                      </select>
-                    </td>
-                    <td className="py-2"><input type="number" value={item.quantity} onChange={(e) => updateItem(idx, "quantity", Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateItem(idx, "quantity", v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black" min={1} step="1" required /></td>
-                    <td className="py-2"><input type="number" value={item.unit_price} onChange={(e) => updateItem(idx, "unit_price", Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateItem(idx, "unit_price", v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} required /></td>
-                    <td className="py-2"><input type="number" value={item.discount_percent} onChange={(e) => updateItem(idx, "discount_percent", Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateItem(idx, "discount_percent", v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} max={100} /></td>
-                    <td className="py-2">
-                      <select value={item.role_id || ""} onChange={(e) => updateItem(idx, "role_id", e.target.value || null)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
-                        <option value="">{t("quoteNew.noRole")}</option>
-                        {roles.map((r) => (<option key={r.id} value={r.id}>{r.name}</option>))}
-                      </select>
-                    </td>
-                    <td className="py-2 text-sm text-right font-medium text-[var(--text-primary)]">{formatCurrency(calcItemTotal(item))}</td>
-                    <td className="py-2 text-center">
-                      {items.length > 1 && (<button type="button" onClick={() => removeItem(idx)} className="text-rose-400 hover:text-rose-300 text-sm">X</button>)}
-                    </td>
-                  </tr>
-                ))}
+                {items.map((item, idx) => {
+                  const isSection = item.item_type === "section";
+                  const isTravelDay = item.item_type === "travel_day";
+                  return (
+                    <tr key={item.id ?? idx} className={`border-b border-[var(--border)] ${isSection ? "bg-[var(--surface-hover)]" : ""}`}>
+                      <td className="py-2 text-sm text-gray-500">{item.position}</td>
+                      {isSection ? (
+                        <td className="py-2" colSpan={7}>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs uppercase tracking-wide text-[var(--accent)] font-semibold whitespace-nowrap">
+                              {t("quoteNew.sectionTag")}
+                            </span>
+                            <input
+                              type="text"
+                              value={item.description}
+                              onChange={(e) => updateItem(idx, "description", e.target.value)}
+                              placeholder={t("quoteNew.sectionPlaceholder")}
+                              className="flex-1 bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                              required
+                            />
+                          </div>
+                        </td>
+                      ) : (
+                        <>
+                          <td className="py-2">
+                            {isTravelDay ? (
+                              <span className="text-xs uppercase tracking-wide text-[var(--accent)] font-semibold">
+                                {t("quoteNew.travelDayTag")}
+                              </span>
+                            ) : (
+                              <select value={item.product_id || ""} onChange={(e) => e.target.value ? selectProduct(idx, e.target.value) : updateItem(idx, "product_id", null)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                                <option value="">{t("quoteNew.selectProduct")}</option>
+                                {products.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                              </select>
+                            )}
+                          </td>
+                          <td className="py-2"><input type="text" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" required /></td>
+                          <td className="py-2">
+                            <select value={item.unit} onChange={(e) => updateItem(idx, "unit", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" disabled={isTravelDay}>
+                              {UNIT_OPTIONS.map((u) => (<option key={u.value} value={u.value}>{u.label}</option>))}
+                            </select>
+                          </td>
+                          <td className="py-2"><input type="number" value={item.quantity} onChange={(e) => updateItem(idx, "quantity", Number(e.target.value))} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black" min={isTravelDay ? 1 : 1} step="1" required disabled={isTravelDay} /></td>
+                          <td className="py-2"><input type="number" value={item.unit_price} onChange={(e) => updateItem(idx, "unit_price", Number(e.target.value))} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} required readOnly={isTravelDay} /></td>
+                          <td className="py-2"><input type="number" value={item.discount_percent} onChange={(e) => updateItem(idx, "discount_percent", Number(e.target.value))} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} max={100} disabled={isTravelDay} /></td>
+                          <td className="py-2">
+                            <select value={item.role_id || ""} onChange={(e) => updateItem(idx, "role_id", e.target.value || null)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" disabled={isTravelDay}>
+                              <option value="">{t("quoteNew.noRole")}</option>
+                              {roles.map((r) => (<option key={r.id} value={r.id}>{r.name}</option>))}
+                            </select>
+                          </td>
+                        </>
+                      )}
+                      {!isSection && (
+                        <td className="py-2 text-sm text-right font-medium text-[var(--text-primary)]">
+                          {formatCurrency(calcItemTotal(item))}
+                        </td>
+                      )}
+                      <td className="py-2 text-center">
+                        <div className="flex items-center justify-end gap-1">
+                          <button type="button" onClick={() => moveItem(idx, -1)} disabled={idx === 0} className="text-gray-500 hover:text-[var(--accent)] disabled:opacity-30 px-1" title={t("quoteNew.moveUp")}>↑</button>
+                          <button type="button" onClick={() => moveItem(idx, 1)} disabled={idx === items.length - 1} className="text-gray-500 hover:text-[var(--accent)] disabled:opacity-30 px-1" title={t("quoteNew.moveDown")}>↓</button>
+                          {isTravelDay && (
+                            <button type="button" onClick={() => setTravelDayEditIdx(idx)} className="text-[var(--accent)] hover:brightness-110 text-xs px-1" title={t("quoteNew.travelDayConfigure")}>{t("quoteNew.travelDayConfigureShort")}</button>
+                          )}
+                          {isTravelDay && (
+                            <button type="button" onClick={() => recalcTravelDay(idx)} className="text-[var(--accent)] hover:brightness-110 text-xs px-1" title={t("quoteNew.travelDayRecalc")}>↻</button>
+                          )}
+                          {items.length > 1 && (
+                            <button type="button" onClick={() => removeItem(idx)} className="text-rose-400 hover:text-rose-300 text-sm px-1">X</button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -258,11 +454,11 @@ function NewQuotePage() {
             <div className="grid grid-cols-2 gap-4 max-w-md ml-auto">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">{t("quoteNew.overallDiscountPercent")}</label>
-                <input type="number" value={overallDiscountPercent} onChange={(e) => setOverallDiscountPercent(Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) setOverallDiscountPercent(v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} max={100} />
+                <input type="number" value={overallDiscountPercent} onChange={(e) => setOverallDiscountPercent(Number(e.target.value))} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} max={100} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">{t("quoteNew.overallDiscountAmount")}</label>
-                <input type="number" value={overallDiscountAmount} onChange={(e) => setOverallDiscountAmount(Number(e.target.value))} onBlur={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) setOverallDiscountAmount(v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} />
+                <input type="number" value={overallDiscountAmount} onChange={(e) => setOverallDiscountAmount(Number(e.target.value))} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} />
               </div>
             </div>
           </div>
@@ -283,9 +479,23 @@ function NewQuotePage() {
           </div>
         </div>
 
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6">
-          <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.notes")}</label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.notes")}</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.buyouts")}</label>
+            <textarea value={buyouts} onChange={(e) => setBuyouts(e.target.value)} placeholder={t("quoteNew.buyoutsHint")} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.exportsAndDelivery")}</label>
+            <textarea value={exportsAndDelivery} onChange={(e) => setExportsAndDelivery(e.target.value)} placeholder={t("quoteNew.exportsAndDeliveryHint")} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.assumptions")}</label>
+            <textarea value={assumptions} onChange={(e) => setAssumptions(e.target.value)} placeholder={t("quoteNew.assumptionsHint")} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
+          </div>
         </div>
 
         <div className="flex gap-3">
@@ -296,6 +506,23 @@ function NewQuotePage() {
         </div>
       </form>
       </QuoteNewSetupGate>
+
+      {showCustomerModal && (
+        <CustomerCreateModal
+          onClose={() => setShowCustomerModal(false)}
+          onCreated={handleCustomerCreated}
+        />
+      )}
+
+      {travelDayEditIdx !== null && items[travelDayEditIdx] && (
+        <TravelDayModal
+          items={selectableForTravelDay}
+          initialSelected={items[travelDayEditIdx].travel_day_config?.referenced_item_ids ?? []}
+          initialPercent={items[travelDayEditIdx].travel_day_config?.percent ?? 50}
+          onClose={() => setTravelDayEditIdx(null)}
+          onConfirm={(ids, pct, computed) => applyTravelDay(travelDayEditIdx, ids, pct, computed)}
+        />
+      )}
     </div>
   );
 }

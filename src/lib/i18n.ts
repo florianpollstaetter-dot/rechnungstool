@@ -50,6 +50,10 @@ const translations = {
   investmentOverview: { de: "Investitionsuebersicht", en: "Investment Overview" },
   totalGross: { de: "GESAMT BRUTTO", en: "TOTAL GROSS" },
   validityNote: { de: "Dieses Angebot ist gültig bis {date}. Bei Fragen stehen wir Ihnen gerne zur Verfuegung.", en: "This quote is valid until {date}. Please don\u2019t hesitate to contact us with any questions." },
+  // SCH-924 K2-θ — quote-level clauses on the pricing page
+  buyouts: { de: "BUYOUTS", en: "BUYOUTS" },
+  exportsAndDelivery: { de: "EXPORTS & LIEFERUNG", en: "EXPORTS & DELIVERY" },
+  assumptions: { de: "ANNAHMEN", en: "ASSUMPTIONS" },
   closingText: { de: "Lassen Sie uns gemeinsam\nGrossartiges schaffen.", en: "Let\u2019s create something\namazing together." },
   kleinunternehmerExemptionNote: {
     de: "Umsatzsteuerbefreit gemaess § 6 Abs. 1 Z 27 UStG (Kleinunternehmerregelung).",

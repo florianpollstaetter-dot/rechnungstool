@@ -617,6 +617,9 @@ export async function createQuote(
         .from("quote_items")
         .insert(
           items.map((item) => ({
+            // SCH-924 K2-θ — preserve client-side ids so travel-day rows can
+            // resolve their referenced items in the PDF breakdown.
+            id: item.id || undefined,
             quote_id: q.id,
             company_id: getActiveCompanyId(),
             position: item.position,
@@ -630,6 +633,8 @@ export async function createQuote(
             tax_rate: item.tax_rate ?? null,
             total: item.total,
             role_id: item.role_id || null,
+            item_type: item.item_type || "item",
+            travel_day_config: item.travel_day_config ?? null,
           }))
         ),
       "createQuote.items",
@@ -681,6 +686,9 @@ export async function updateQuote(
           .from("quote_items")
           .insert(
             items.map((item) => ({
+              // SCH-924 K2-θ — preserve client-side ids so travel-day
+              // referenced_item_ids stay valid across saves.
+              id: item.id || undefined,
               quote_id: id,
               position: item.position,
               description: item.description,
@@ -693,6 +701,8 @@ export async function updateQuote(
               tax_rate: item.tax_rate ?? null,
               total: item.total,
               role_id: item.role_id || null,
+              item_type: item.item_type || "item",
+              travel_day_config: item.travel_day_config ?? null,
             }))
           ),
         "updateQuote.items.insert",
@@ -724,18 +734,23 @@ export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
     invoice_date: new Date().toISOString().split("T")[0],
     delivery_date: new Date().toISOString().split("T")[0],
     due_date: new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0],
-    items: quote.items.map((item) => ({
-      id: crypto.randomUUID(),
-      position: item.position,
-      description: item.description,
-      unit: item.unit,
-      product_id: item.product_id,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      discount_percent: item.discount_percent,
-      discount_amount: item.discount_amount,
-      total: item.total,
-    })),
+    // SCH-924 K2-θ — drop section rows when converting to an invoice; they
+    // are heading-only and have no price. Travel-day rows carry a pre-
+    // computed unit_price so they convert cleanly as normal priced lines.
+    items: quote.items
+      .filter((item) => item.item_type !== "section")
+      .map((item, idx) => ({
+        id: crypto.randomUUID(),
+        position: idx + 1,
+        description: item.description,
+        unit: item.unit,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        discount_percent: item.discount_percent,
+        discount_amount: item.discount_amount,
+        total: item.total,
+      })),
     subtotal: quote.subtotal,
     tax_rate: quote.tax_rate,
     tax_amount: quote.tax_amount,
@@ -1636,6 +1651,8 @@ function mapInvoice(
 }
 
 function mapQuoteItem(row: Record<string, unknown>): QuoteItem {
+  const itemType = (row.item_type as string) || "item";
+  const travelCfg = row.travel_day_config;
   return {
     id: row.id as string,
     position: Number(row.position),
@@ -1649,6 +1666,12 @@ function mapQuoteItem(row: Record<string, unknown>): QuoteItem {
     tax_rate: row.tax_rate === null || row.tax_rate === undefined ? undefined : Number(row.tax_rate),
     total: Number(row.total),
     role_id: (row.role_id as string) || null,
+    item_type: (itemType === "section" || itemType === "travel_day" || itemType === "item")
+      ? (itemType as QuoteItem["item_type"])
+      : "item",
+    travel_day_config: travelCfg
+      ? (travelCfg as QuoteItem["travel_day_config"])
+      : null,
   };
 }
 
@@ -1677,6 +1700,9 @@ function mapQuote(
     converted_invoice_id: (row.converted_invoice_id as string) || null,
     created_by: (row.created_by as string) || null,
     created_at: row.created_at as string,
+    buyouts: (row.buyouts as string) || null,
+    exports_and_delivery: (row.exports_and_delivery as string) || null,
+    assumptions: (row.assumptions as string) || null,
   };
 }
 
@@ -1796,6 +1822,7 @@ function mapProject(row: Record<string, unknown>): Project {
     status: (row.status as ProjectStatus) || "active",
     quote_id: (row.quote_id as string) || null,
     budget_hours: row.budget_hours != null ? Number(row.budget_hours) : null,
+    is_billable: row.is_billable == null ? true : Boolean(row.is_billable),
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

@@ -125,6 +125,13 @@ const s = StyleSheet.create({
   totalLabel: { fontSize: 11, fontWeight: 700, color: cl.white },
   totalValue: { fontSize: 11, fontWeight: 700, color: cl.white },
   validityBox: { marginTop: 20, borderLeftWidth: 3, borderLeftColor: cl.accent, backgroundColor: cl.grayLight, padding: 12, fontSize: 8.5, color: cl.grayDark },
+  // SCH-924 K2-θ
+  sectionRow: { backgroundColor: cl.grayLight, borderLeftWidth: 3, borderLeftColor: cl.accent, paddingVertical: 8, paddingHorizontal: 10, marginTop: 4 },
+  sectionRowText: { fontSize: 10, fontWeight: 700, color: cl.black, textTransform: "uppercase", letterSpacing: 0.5 },
+  travelDayBreakdown: { backgroundColor: "#FFF8E8", borderLeftWidth: 3, borderLeftColor: cl.accent, paddingVertical: 4, paddingHorizontal: 10, fontSize: 8, color: cl.grayDark, fontStyle: "italic" },
+  clauseBlock: { marginTop: 14, borderLeftWidth: 3, borderLeftColor: cl.accent, backgroundColor: cl.grayLight, padding: 12 },
+  clauseLabel: { fontSize: 8, color: cl.accent, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4, fontWeight: 600 },
+  clauseBody: { fontSize: 9, color: cl.grayDark, lineHeight: 1.6 },
 
   // Closing
   closingPage: { backgroundColor: cl.black, justifyContent: "center", alignItems: "center", padding: 60 },
@@ -235,14 +242,23 @@ export default function QuotePDF({ quote, customer, settings, references }: Prop
           <Text style={s.sectionLabel}>{t("serviceScope", lang)}</Text>
           <Text style={[s.sectionTitle, { fontSize: 22 }]}>{quote.project_description || t("projectServices", lang)}</Text>
           {quote.notes && <Text style={[s.bodyText, { marginBottom: 20 }]}>{quote.notes}</Text>}
-          {quote.items.map((item, idx) => (
-            <View key={idx} style={s.serviceItem}>
-              <Text style={s.serviceName}>{item.description}</Text>
-              <Text style={s.serviceDetail}>
-                {item.quantity} {unitLabel(item.unit, lang)} x {fmtEuro(item.unit_price)}
-              </Text>
-            </View>
-          ))}
+          {quote.items.map((item, idx) => {
+            if (item.item_type === "section") {
+              return (
+                <View key={idx} style={[s.sectionRow, { marginTop: 10, marginBottom: 6 }]}>
+                  <Text style={s.sectionRowText}>{item.description}</Text>
+                </View>
+              );
+            }
+            return (
+              <View key={idx} style={s.serviceItem}>
+                <Text style={s.serviceName}>{item.description}</Text>
+                <Text style={s.serviceDetail}>
+                  {item.quantity} {unitLabel(item.unit, lang)} x {fmtEuro(item.unit_price)}
+                </Text>
+              </View>
+            );
+          })}
         </Page>
       )}
 
@@ -264,45 +280,68 @@ export default function QuotePDF({ quote, customer, settings, references }: Prop
           <Text style={[s.tableHeaderText, s.colPrice]}>{t("price", lang)}</Text>
           <Text style={[s.tableHeaderText, s.colTotal]}>{t("amount", lang)}</Text>
         </View>
-        {quote.items.map((item, idx) => (
-          <View key={idx}>
-            <View style={[s.tableRow, idx % 2 === 1 ? s.tableRowEven : {}]}>
-              <Text style={[s.cellNormal, s.colPos]}>{item.position}</Text>
-              <Text style={[s.cellBold, s.colDesc]}>{item.description}</Text>
-              <Text style={[s.cellNormal, s.colUnit]}>{unitLabel(item.unit, lang)}</Text>
-              <Text style={[s.cellNormal, s.colQty]}>{item.quantity}</Text>
-              <Text style={[s.cellNormal, s.colPrice]}>{fmtEuro(item.unit_price)}</Text>
-              <Text style={[s.cellNormal, s.colTotal]}>{fmtEuro(item.total)}</Text>
-            </View>
-            {(item.discount_percent > 0 || item.discount_amount > 0) && (
-              <View style={[s.tableRow, s.discountRow]}>
-                <Text style={[s.cellNormal, s.colPos]}></Text>
-                <Text style={[{ color: cl.accent, fontSize: 9 }, s.colDesc]}>
-                  {item.discount_percent > 0 ? `${t("discount", lang)} (${item.discount_percent}%)` : t("discount", lang)}
-                </Text>
-                <Text style={[s.cellNormal, s.colUnit]}></Text>
-                <Text style={[s.cellNormal, s.colQty]}></Text>
-                <Text style={[s.cellNormal, s.colPrice]}></Text>
-                <Text style={[{ color: cl.accent, fontSize: 9 }, s.colTotal]}>
-                  {item.discount_percent > 0
-                    ? fmtEuro(-(item.quantity * item.unit_price * item.discount_percent / 100))
-                    : fmtEuro(-item.discount_amount)}
-                </Text>
+        {quote.items.map((item, idx) => {
+          if (item.item_type === "section") {
+            return (
+              <View key={idx} style={s.sectionRow}>
+                <Text style={s.sectionRowText}>{item.description}</Text>
               </View>
-            )}
-          </View>
-        ))}
+            );
+          }
+          const isTravelDay = item.item_type === "travel_day";
+          const travelRefs = isTravelDay && item.travel_day_config
+            ? quote.items.filter((other) =>
+                item.travel_day_config?.referenced_item_ids.includes(other.id),
+              )
+            : [];
+          return (
+            <View key={idx}>
+              <View style={[s.tableRow, idx % 2 === 1 ? s.tableRowEven : {}]}>
+                <Text style={[s.cellNormal, s.colPos]}>{item.position}</Text>
+                <Text style={[s.cellBold, s.colDesc]}>{item.description}</Text>
+                <Text style={[s.cellNormal, s.colUnit]}>{unitLabel(item.unit, lang)}</Text>
+                <Text style={[s.cellNormal, s.colQty]}>{item.quantity}</Text>
+                <Text style={[s.cellNormal, s.colPrice]}>{fmtEuro(item.unit_price)}</Text>
+                <Text style={[s.cellNormal, s.colTotal]}>{fmtEuro(item.total)}</Text>
+              </View>
+              {isTravelDay && travelRefs.length > 0 && (
+                <View style={s.travelDayBreakdown}>
+                  <Text>
+                    {item.travel_day_config?.percent ?? 50}% {"\u00d7 "}
+                    {travelRefs.map((r) => `${r.description} (${fmtEuro(r.unit_price)})`).join(" + ")}
+                  </Text>
+                </View>
+              )}
+              {(item.discount_percent > 0 || item.discount_amount > 0) && (
+                <View style={[s.tableRow, s.discountRow]}>
+                  <Text style={[s.cellNormal, s.colPos]}></Text>
+                  <Text style={[{ color: cl.accent, fontSize: 9 }, s.colDesc]}>
+                    {item.discount_percent > 0 ? `${t("discount", lang)} (${item.discount_percent}%)` : t("discount", lang)}
+                  </Text>
+                  <Text style={[s.cellNormal, s.colUnit]}></Text>
+                  <Text style={[s.cellNormal, s.colQty]}></Text>
+                  <Text style={[s.cellNormal, s.colPrice]}></Text>
+                  <Text style={[{ color: cl.accent, fontSize: 9 }, s.colTotal]}>
+                    {item.discount_percent > 0
+                      ? fmtEuro(-(item.quantity * item.unit_price * item.discount_percent / 100))
+                      : fmtEuro(-item.discount_amount)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          );
+        })}
 
         <View style={s.summaryBox}>
           <View style={s.summaryRow}>
             <Text style={s.summaryLabel}>{t("net", lang)}</Text>
-            <Text style={s.summaryValue}>{fmtEuro(quote.items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0))}</Text>
+            <Text style={s.summaryValue}>{fmtEuro(quote.items.filter((i) => i.item_type !== "section").reduce((sum, i) => sum + i.quantity * i.unit_price, 0))}</Text>
           </View>
           {hasDiscounts && (
             <View style={s.summaryRow}>
               <Text style={[s.summaryLabel, { color: cl.accent }]}>{t("discount", lang)}</Text>
               <Text style={[s.summaryValue, { color: cl.accent }]}>
-                {fmtEuro(-(quote.items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0) - quote.subtotal))}
+                {fmtEuro(-(quote.items.filter((i) => i.item_type !== "section").reduce((sum, i) => sum + i.quantity * i.unit_price, 0) - quote.subtotal))}
               </Text>
             </View>
           )}
@@ -327,6 +366,25 @@ export default function QuotePDF({ quote, customer, settings, references }: Prop
             {t("validityNote", lang).replace("{date}", fmtDate(quote.valid_until))}
           </Text>
         </View>
+
+        {quote.buyouts && (
+          <View style={s.clauseBlock}>
+            <Text style={s.clauseLabel}>{t("buyouts", lang)}</Text>
+            <Text style={s.clauseBody}>{quote.buyouts}</Text>
+          </View>
+        )}
+        {quote.exports_and_delivery && (
+          <View style={s.clauseBlock}>
+            <Text style={s.clauseLabel}>{t("exportsAndDelivery", lang)}</Text>
+            <Text style={s.clauseBody}>{quote.exports_and_delivery}</Text>
+          </View>
+        )}
+        {quote.assumptions && (
+          <View style={s.clauseBlock}>
+            <Text style={s.clauseLabel}>{t("assumptions", lang)}</Text>
+            <Text style={s.clauseBody}>{quote.assumptions}</Text>
+          </View>
+        )}
       </Page>
 
       {/* Closing / CTA (detailed only) */}

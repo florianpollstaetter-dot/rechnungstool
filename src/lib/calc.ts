@@ -4,6 +4,7 @@ export interface CalcItem {
   discount_percent: number;
   discount_amount: number;
   tax_rate?: number;
+  item_type?: "item" | "section" | "travel_day";
 }
 
 export interface TaxBreakdownEntry {
@@ -17,6 +18,8 @@ function round2(n: number): number {
 }
 
 export function calcItemTotal(item: CalcItem): number {
+  // SCH-924 K2-θ — section rows are headings only and never contribute to totals.
+  if (item.item_type === "section") return 0;
   let lineTotal = item.quantity * item.unit_price;
   if (item.discount_percent > 0) {
     lineTotal -= lineTotal * (item.discount_percent / 100);

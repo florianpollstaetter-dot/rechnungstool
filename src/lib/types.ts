@@ -111,6 +111,13 @@ export interface Invoice {
   created_at: string;
 }
 
+export type QuoteItemType = "item" | "section" | "travel_day";
+
+export interface TravelDayConfig {
+  referenced_item_ids: string[];
+  percent: number;
+}
+
 export interface QuoteItem {
   id: string;
   position: number;
@@ -124,6 +131,8 @@ export interface QuoteItem {
   tax_rate?: number;
   total: number;
   role_id?: string | null;
+  item_type?: QuoteItemType;
+  travel_day_config?: TravelDayConfig | null;
 }
 
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "expired";
@@ -151,6 +160,9 @@ export interface Quote {
   converted_invoice_id: string | null;
   created_by: string | null;
   created_at: string;
+  buyouts?: string | null;
+  exports_and_delivery?: string | null;
+  assumptions?: string | null;
 }
 
 export type CompanyType =
@@ -446,6 +458,8 @@ export interface Project {
   status: ProjectStatus;
   quote_id: string | null;
   budget_hours?: number | null;
+  /** SCH-921 K2-J3 — false = internal-only project (no client billing). */
+  is_billable?: boolean;
   created_at: string;
   updated_at: string;
 }

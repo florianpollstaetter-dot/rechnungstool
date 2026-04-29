@@ -22,6 +22,7 @@ type QuoteItemRow = {
   description: string | null;
   unit: string | null;
   quantity: number | null;
+  item_type: string | null;
 };
 
 export async function POST(request: Request) {
@@ -106,13 +107,15 @@ export async function POST(request: Request) {
   // 4. Tasks aus Quote-Positionen anlegen.
   const itemsRes = await sb
     .from("quote_items")
-    .select("position, description, unit, quantity")
+    .select("position, description, unit, quantity, item_type")
     .eq("quote_id", quoteId)
     .order("position", { ascending: true });
   if (itemsRes.error) {
     return Response.json({ error: itemsRes.error.message }, { status: 500 });
   }
-  const items = (itemsRes.data ?? []) as QuoteItemRow[];
+  // SCH-924 K2-θ — section rows are headings only, never become tasks.
+  const items = (itemsRes.data ?? [])
+    .filter((row) => (row as QuoteItemRow).item_type !== "section") as QuoteItemRow[];
 
   if (items.length > 0) {
     const tasksIns = await sb.from("tasks").insert(

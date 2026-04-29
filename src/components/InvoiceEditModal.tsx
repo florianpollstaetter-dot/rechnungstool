@@ -77,8 +77,11 @@ export default function InvoiceEditModal({
       try {
         const fresh = await getQuoteItems(quote.id);
         if (cancelled) return;
-        if (fresh.length > 0) {
-          const rebuilt = fresh.map((item) => {
+        // SCH-924 K2-θ — section rows are heading-only and have no price;
+        // they should never become invoice lines.
+        const priced = fresh.filter((i) => i.item_type !== "section");
+        if (priced.length > 0) {
+          const rebuilt = priced.map((item) => {
             const scaledUnitPrice = Math.round(item.unit_price * partialFactor * 100) / 100;
             const scaledDiscountAmount = Math.round(item.discount_amount * partialFactor * 100) / 100;
             return {

@@ -41,7 +41,11 @@ export default function QuoteApprovalPopup({
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  const totalHours = quote.items.reduce((sum, item) => {
+  // SCH-924 K2-θ — section rows are headings only and never produce tasks
+  // or hours, so skip them everywhere in the approval flow.
+  const taskItems = quote.items.filter((i) => i.item_type !== "section");
+
+  const totalHours = taskItems.reduce((sum, item) => {
     if (item.unit === "Stunden" && item.quantity > 0) return sum + item.quantity;
     return sum;
   }, 0);
@@ -51,7 +55,7 @@ export default function QuoteApprovalPopup({
     try {
       const [profiles, ...roleSuggestions] = await Promise.all([
         getUserProfiles(),
-        ...quote.items.map((item) =>
+        ...taskItems.map((item) =>
           item.role_id
             ? getUsersWithRole(item.role_id)
             : Promise.resolve([])
@@ -59,7 +63,7 @@ export default function QuoteApprovalPopup({
       ]);
       setAllUsers(profiles);
       setAssignments(
-        quote.items.map((item, idx) => {
+        taskItems.map((item, idx) => {
           const role = item.role_id
             ? roles.find((r) => r.id === item.role_id) ?? null
             : null;
@@ -76,7 +80,7 @@ export default function QuoteApprovalPopup({
     } finally {
       setLoading(false);
     }
-  }, [quote.items, roles]);
+  }, [taskItems, roles]);
 
   useEffect(() => {
     if (step === "assign") {
