@@ -1,5 +1,7 @@
 import { requireCompanyAdmin } from "@/lib/company-admin";
 import { createServiceClient } from "@/lib/operator";
+import { sendEmail, isEmailConfigured } from "@/lib/email";
+import { buildWelcomeEmployeeEmail } from "@/lib/emails/welcome-employee";
 import {
   DEFAULT_MEMBER_PERMISSIONS,
   FULL_MEMBER_PERMISSIONS,
@@ -255,9 +257,47 @@ export async function POST(request: Request) {
       );
     }
 
+    // SCH-918 K3-V2 — Welcome email to the new MA. Best-effort: a Resend
+    // failure must NOT roll back the user creation (admin can always
+    // resend via the temp-password action). Locale comes from the
+    // Accept-Language header in a future iteration; default to German
+    // because the OO admin UI is German-first.
+    let welcomeEmail: { sent: boolean; reason?: string; message?: string } = {
+      sent: false,
+      reason: "skipped_no_email_config",
+    };
+    if (isEmailConfigured()) {
+      const origin =
+        request.headers.get("origin") ||
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        "https://orange-octo.com";
+      const loginUrl = `${origin}/login`;
+      // Pull a company name for the From-line. We already have
+      // companyIds[0]; admin's anchor company is the most relevant fallback.
+      const { data: companyRow } = await service
+        .from("companies")
+        .select("name")
+        .eq("id", anchorCompanyId ?? companyIds[0])
+        .maybeSingle();
+      const companyName = (companyRow?.name as string | undefined) || "Orange Octo";
+      const payload = buildWelcomeEmployeeEmail({
+        to: email,
+        displayName: display_name,
+        tempPassword: password,
+        companyName,
+        loginUrl,
+        locale: "de",
+      });
+      const result = await sendEmail(payload);
+      welcomeEmail = result.sent
+        ? { sent: true }
+        : { sent: false, reason: result.reason, message: result.reason === "error" ? result.message : undefined };
+    }
+
     return Response.json({
       userId: authUserId,
       companyIds,
+      welcome_email: welcomeEmail,
     });
   } catch (err) {
     // Unknown failure after auth.users was created — best-effort cleanup of
