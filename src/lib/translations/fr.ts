@@ -401,6 +401,7 @@ const fr: Record<string, string> = {
   "customers.aiNetworkError": "Erreur réseau lors de la recherche IA",
   "customers.saveError": "Erreur lors de l'enregistrement du client",
   "customers.notFound": "Client introuvable.",
+  "customers.search": "Rechercher par nom, société, n° TVA, e-mail...",
 
   // ── Customer Detail ──
   "customerDetail.backToCustomers": "Retour aux clients",
@@ -434,6 +435,7 @@ const fr: Record<string, string> = {
   "products.translateWithAi": "Traduction IA",
   "products.translating": "Traduction en cours...",
   "products.translateNeedsSource": "Veuillez d'abord saisir le nom ou la description (DE ou EN).",
+  "products.search": "Rechercher par nom ou description...",
 
   // ── Fixed Costs ──
   "fixedCosts.title": "Charges fixes",

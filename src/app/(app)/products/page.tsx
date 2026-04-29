@@ -13,12 +13,13 @@ import AngeboteTabBar from "@/components/AngeboteTabBar";
 const EXTRA_LOCALES: ContentLocale[] = ["fr", "es", "it", "tr", "pl", "ar"];
 
 export default function ProductsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [products, setProducts] = useState<Product[]>([]);
   const [roles, setRoles] = useState<CompanyRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
@@ -215,6 +216,28 @@ export default function ProductsPage() {
     await updateProduct(product.id, { active: !product.active });
     await loadData();
   }
+
+  // Locale-aware so ä/ö/ü sort under a/o/u in DE etc., not as ASCII outliers.
+  const collator = new Intl.Collator(locale, { sensitivity: "base", numeric: true });
+  const sq = searchQuery.trim().toLowerCase();
+  const visibleProducts = products
+    .filter((p) => {
+      if (!sq) return true;
+      if ((p.name || "").toLowerCase().includes(sq)) return true;
+      if ((p.description || "").toLowerCase().includes(sq)) return true;
+      if ((p.name_en || "").toLowerCase().includes(sq)) return true;
+      if ((p.description_en || "").toLowerCase().includes(sq)) return true;
+      const nameTr = p.name_translations || {};
+      const descTr = p.description_translations || {};
+      for (const v of Object.values(nameTr)) {
+        if (v && v.toLowerCase().includes(sq)) return true;
+      }
+      for (const v of Object.values(descTr)) {
+        if (v && v.toLowerCase().includes(sq)) return true;
+      }
+      return false;
+    })
+    .sort((a, b) => collator.compare(a.name || "", b.name || ""));
 
   if (loading) {
     return (
@@ -447,6 +470,16 @@ export default function ProductsPage() {
         </form>
       )}
 
+      <div className="mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("products.search")}
+          className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full sm:w-80"
+        />
+      </div>
+
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
@@ -462,14 +495,14 @@ export default function ProductsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
-            {products.length === 0 && (
+            {visibleProducts.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                   {t("products.noProducts")}
                 </td>
               </tr>
             )}
-            {products.map((p) => (
+            {visibleProducts.map((p) => (
               <tr key={p.id} className={`hover:bg-[var(--surface-hover)] transition ${!p.active ? "opacity-50" : ""}`}>
                 <td className="px-6 py-4">
                   <div className="font-medium text-[var(--text-primary)]">{p.name}</div>

@@ -401,6 +401,7 @@ const ar: Record<string, string> = {
   "customers.aiNetworkError": "خطأ في الشبكة أثناء بحث الذكاء الاصطناعي",
   "customers.saveError": "فشل في حفظ العميل",
   "customers.notFound": "لم يتم العثور على العميل.",
+  "customers.search": "ابحث بالاسم أو الشركة أو الرقم الضريبي أو البريد...",
 
   // ── Customer Detail ──
   "customerDetail.backToCustomers": "العودة إلى العملاء",
@@ -434,6 +435,7 @@ const ar: Record<string, string> = {
   "products.translateWithAi": "ترجمة بالذكاء الاصطناعي",
   "products.translating": "جارٍ الترجمة...",
   "products.translateNeedsSource": "يرجى إدخال الاسم أو الوصف (DE أو EN) أولاً.",
+  "products.search": "ابحث بالاسم أو الوصف...",
 
   // ── Fixed Costs ──
   "fixedCosts.title": "التكاليف الثابتة",

@@ -28,7 +28,7 @@ const emptyCustomer = {
 };
 
 export default function CustomersPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
@@ -36,6 +36,7 @@ export default function CustomersPage() {
   const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState(emptyCustomer);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<{
     confidence?: string;
@@ -180,6 +181,22 @@ export default function CustomersPage() {
   // Hides on a fully-filled record so we don't waste Claude calls.
   const hasEmptyFields = fields.some((f) => !form[f.key]?.toString().trim());
   const canSearchAi = (form.name.trim() || form.company.trim()).length > 0;
+
+  // Locale-aware so ä/ö/ü sort under a/o/u in DE etc., not as ASCII outliers.
+  const collator = new Intl.Collator(locale, { sensitivity: "base", numeric: true });
+  const sq = searchQuery.trim().toLowerCase();
+  const visibleCustomers = customers
+    .filter((c) => {
+      if (!sq) return true;
+      return (
+        c.name.toLowerCase().includes(sq) ||
+        c.company.toLowerCase().includes(sq) ||
+        (c.uid_number || "").toLowerCase().includes(sq) ||
+        (c.email || "").toLowerCase().includes(sq) ||
+        (c.phone || "").toLowerCase().includes(sq)
+      );
+    })
+    .sort((a, b) => collator.compare(a.company || a.name, b.company || b.name));
 
   if (loading) {
     return (
@@ -399,6 +416,16 @@ export default function CustomersPage() {
         </div>
       )}
 
+      <div className="mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("customers.search")}
+          className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full sm:w-80"
+        />
+      </div>
+
       <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-x-auto">
         <table className="min-w-full divide-y divide-[var(--border)]">
           <thead className="bg-[var(--background)]">
@@ -424,14 +451,14 @@ export default function CustomersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
-            {customers.length === 0 && (
+            {visibleCustomers.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                   {t("customers.noCustomers")}
                 </td>
               </tr>
             )}
-            {customers.map((c) => {
+            {visibleCustomers.map((c) => {
               const readiness = customerEInvoiceReadiness(c);
               return (
                 <tr key={c.id} className="hover:bg-[var(--surface-hover)] transition cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest('button, a, input, select')) return; router.push(`/customers/${c.id}`); }}>

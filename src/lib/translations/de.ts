@@ -467,6 +467,7 @@ const de = {
   "customers.aiNetworkError": "Netzwerkfehler bei der AI-Recherche",
   "customers.saveError": "Fehler beim Speichern des Kunden",
   "customers.notFound": "Kunde nicht gefunden.",
+  "customers.search": "Suche nach Name, Unternehmen, UID, E-Mail...",
 
   // ── Customer Detail ──
   "customerDetail.backToCustomers": "Zurück zu Kunden",
@@ -500,6 +501,7 @@ const de = {
   "products.translateWithAi": "KI-Übersetzung",
   "products.translating": "Übersetze...",
   "products.translateNeedsSource": "Bitte zuerst Name oder Beschreibung (DE oder EN) eingeben.",
+  "products.search": "Suche nach Name oder Beschreibung...",
 
   // ── Fixed Costs ──
   "fixedCosts.title": "Fixkosten",

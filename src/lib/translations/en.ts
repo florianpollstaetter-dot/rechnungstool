@@ -467,6 +467,7 @@ const en: Record<string, string> = {
   "customers.aiNetworkError": "Network error during AI research",
   "customers.saveError": "Failed to save customer",
   "customers.notFound": "Customer not found.",
+  "customers.search": "Search by name, company, VAT ID, email...",
 
   // ── Customer Detail ──
   "customerDetail.backToCustomers": "Back to customers",
@@ -500,6 +501,7 @@ const en: Record<string, string> = {
   "products.translateWithAi": "AI translate",
   "products.translating": "Translating...",
   "products.translateNeedsSource": "Please enter name or description (DE or EN) first.",
+  "products.search": "Search by name or description...",
 
   // ── Fixed Costs ──
   "fixedCosts.title": "Fixed costs",

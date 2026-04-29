@@ -401,6 +401,7 @@ const tr: Record<string, string> = {
   "customers.aiNetworkError": "Yapay zeka araştırmasında ağ hatası",
   "customers.saveError": "Müşteri kaydedilemedi",
   "customers.notFound": "Müşteri bulunamadı.",
+  "customers.search": "Ad, şirket, vergi no, e-posta ile ara...",
 
   // ── Customer Detail ──
   "customerDetail.backToCustomers": "Müşterilere Dön",
@@ -434,6 +435,7 @@ const tr: Record<string, string> = {
   "products.translateWithAi": "YZ ile çevir",
   "products.translating": "Çevriliyor...",
   "products.translateNeedsSource": "Önce ad veya açıklama (DE veya EN) girin.",
+  "products.search": "Ad veya açıklama ile ara...",
 
   // ── Fixed Costs ──
   "fixedCosts.title": "Sabit Giderler",
