@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getUserWorkSchedules, replaceUserWorkSchedules } from "@/lib/db";
+import { getUserProfile, getUserWorkSchedules, replaceUserWorkSchedules } from "@/lib/db";
 import { useI18n } from "@/lib/i18n-context";
 import type { TranslationKey } from "@/lib/translations/de";
 
@@ -70,8 +70,17 @@ export default function UserWorkScheduleSection() {
           setLoading(false);
           return;
         }
-        setUserId(user.id);
-        const existing = await getUserWorkSchedules(user.id);
+        // SCH-914 — user_work_schedules.user_id references user_profiles.id,
+        // NOT auth.users.id. The RLS policy joins through user_profiles too,
+        // so passing the raw auth uid silently produced an empty load and a
+        // rejected save.
+        const profile = await getUserProfile(user.id);
+        if (!profile || cancelled) {
+          setLoading(false);
+          return;
+        }
+        setUserId(profile.id);
+        const existing = await getUserWorkSchedules(profile.id);
         if (cancelled) return;
         const next = emptyDraft();
         existing.forEach((row) => {

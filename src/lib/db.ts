@@ -191,10 +191,15 @@ export async function updateSettings(
   settings: Partial<CompanySettings>
 ): Promise<CompanySettings> {
   const companyId = getActiveCompanyId();
+  // SCH-914 — match RLS USING clause (`id = active_company_id()`) on the
+  // primary key, not the legacy `company_id` column. The two are equal in
+  // every row post-SCH-505 backfill, but filtering on `id` removes the
+  // last divergence between the WHERE and the row-level policy and avoids
+  // silent "no row updated" failures.
   const result = await supabase()
     .from("company_settings")
     .update(settings)
-    .eq("company_id", companyId)
+    .eq("id", companyId)
     .select()
     .single();
   return requireRow(result, "updateSettings") as CompanySettings;
