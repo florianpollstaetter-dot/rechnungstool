@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
   // SCH-910 — SEO/indexing files MUST resolve without auth-redirect.
   // Without this whitelist /robots.txt and /sitemap.xml return 307 → /login,
   // which blocks Google/Bing crawling.
-  const SEO_PATHS = ["/robots.txt", "/sitemap.xml"];
+  const SEO_PATHS = ["/robots.txt", "/sitemap.xml", "/marketing-briefing.html"];
   const path = request.nextUrl.pathname;
   const isPublic =
     path === "/" ||
