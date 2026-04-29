@@ -75,9 +75,9 @@ const de = {
   "nav.groupAdmin": "Verwaltung",
   "nav.groupSystem": "System",
   "nav.groupCompany": "Unternehmen",
-  "nav.sectionAccounting": "Accounting",
-  "nav.sectionTimeTracking": "Time Tracking",
-  "nav.sectionAdmin": "Admin & Settings",
+  "nav.sectionAccounting": "Buchhaltung",
+  "nav.sectionTimeTracking": "Zeiterfassung",
+  "nav.sectionAdmin": "Admin & Einstellungen",
   "nav.openSidebar": "Menü öffnen",
   "nav.closeSidebar": "Menü schließen",
 
