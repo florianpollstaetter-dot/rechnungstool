@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Customer, QuoteItem, Product, UNIT_OPTIONS, Language, DisplayMode, CompanyRole, CompanySettings } from "@/lib/types";
-import { getCustomers, getSettings, getActiveProducts, createQuote, getTemplate, getCompanyRoles } from "@/lib/db";
+import { getCustomers, getSettings, getActiveProducts, createQuote, updateQuote, getQuote, getTemplate, getCompanyRoles } from "@/lib/db";
 import { useAutosave } from "@/lib/use-autosave";
+import { useDraftQuoteAutosave } from "@/lib/use-draft-quote-autosave";
 import { addDays, formatCurrency } from "@/lib/format";
 import { calcItemTotal, calcTotals } from "@/lib/calc";
 import { useI18n } from "@/lib/i18n-context";
@@ -12,6 +13,8 @@ import { useCompany } from "@/lib/company-context";
 import QuoteNewSetupGate from "@/components/QuoteNewSetupGate";
 import CustomerCreateModal from "@/components/CustomerCreateModal";
 import TravelDayModal, { SelectableItem } from "@/components/TravelDayModal";
+import ProductCombobox from "@/components/ProductCombobox";
+import ProductCreateModal from "@/components/ProductCreateModal";
 
 type ItemRow = Omit<QuoteItem, "id"> & { id?: string };
 
@@ -83,6 +86,16 @@ function NewQuotePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [travelDayEditIdx, setTravelDayEditIdx] = useState<number | null>(null);
+  // SCH-929 P2.1 — when the user types a product name that doesn't match any
+  // existing product, ProductCombobox surfaces a "+ Neues Produkt anlegen"
+  // option that opens this modal. We track which row triggered it so the
+  // newly created product gets selected on that exact row.
+  const [productCreate, setProductCreate] = useState<{ idx: number; initialName: string } | null>(null);
+  // SCH-929 P2.3 — id of the DB-persisted draft. Once the autosave hook
+  // creates the row, this id is reused for every subsequent update so we
+  // never duplicate a draft, and Submit promotes the existing draft instead
+  // of creating a second quote.
+  const [draftId, setDraftId] = useState<string | null>(null);
 
   const formData = useMemo(() => ({
     customerId, projectDescription, quoteDate, validDays, taxRate, language, displayMode, notes, items, overallDiscountPercent, overallDiscountAmount,
@@ -140,6 +153,48 @@ function NewQuotePage() {
             item_type: "item",
             travel_day_config: null,
             total: (i.quantity * i.unit_price) - (i.discount_percent > 0 ? i.quantity * i.unit_price * i.discount_percent / 100 : i.discount_amount),
+          })));
+        }
+      }
+    }
+
+    // SCH-929 P2.3 — reopen an existing draft. The list page links to
+    // /quotes/new?draftId=<id> for status=draft rows; load the row, hydrate
+    // every editor field, and remember the id so the autosave hook updates
+    // in place rather than spawning a duplicate.
+    const draftIdParam = searchParams.get("draftId");
+    if (draftIdParam) {
+      const q = await getQuote(draftIdParam);
+      if (q && q.status === "draft") {
+        setDraftId(q.id);
+        setCustomerId(q.customer_id);
+        setProjectDescription(q.project_description);
+        setQuoteDate(q.quote_date);
+        setTaxRate(q.tax_rate);
+        setLanguage(q.language);
+        setDisplayMode(q.display_mode);
+        setNotes(q.notes);
+        setOverallDiscountPercent(q.overall_discount_percent);
+        setOverallDiscountAmount(q.overall_discount_amount);
+        setBuyouts(q.buyouts ?? "");
+        setExportsAndDelivery(q.exports_and_delivery ?? "");
+        setAssumptions(q.assumptions ?? "");
+        if (q.items.length > 0) {
+          setItems(q.items.map((i, idx) => ({
+            id: i.id || crypto.randomUUID(),
+            position: idx + 1,
+            description: i.description,
+            unit: i.unit,
+            product_id: i.product_id ?? null,
+            quantity: i.quantity,
+            unit_price: i.unit_price,
+            discount_percent: i.discount_percent,
+            discount_amount: i.discount_amount,
+            tax_rate: i.tax_rate,
+            total: i.total,
+            role_id: i.role_id ?? null,
+            item_type: i.item_type ?? "item",
+            travel_day_config: i.travel_day_config ?? null,
           })));
         }
       }
@@ -246,34 +301,66 @@ function NewQuotePage() {
     [items],
   );
 
+  // SCH-929 P2.3 — minimum bar for autosave: customer is selected and at
+  // least one item has a non-empty service description. createQuote requires
+  // customer_id (FK), so we wait until that exists. Avoids spawning an empty
+  // draft the moment the page loads.
+  const hasMeaningfulDraft = !!customerId && items.some((i) => i.description.trim().length > 0);
+
+  const buildDraftPayload = useCallback(() => ({
+    customer_id: customerId,
+    project_description: projectDescription,
+    quote_date: quoteDate,
+    valid_until: validUntil,
+    items: items.map((item) => ({
+      ...item,
+      id: item.id || crypto.randomUUID(),
+      total: item.item_type === "section" ? 0 : calcItemTotal(item),
+    })),
+    subtotal,
+    tax_rate: taxRate,
+    tax_amount: taxAmount,
+    total,
+    overall_discount_percent: overallDiscountPercent,
+    overall_discount_amount: overallDiscountAmount,
+    status: "draft" as const,
+    notes,
+    language,
+    display_mode: displayMode,
+    converted_invoice_id: null,
+    created_by: null,
+    buyouts: buyouts || null,
+    exports_and_delivery: exportsAndDelivery || null,
+    assumptions: assumptions || null,
+  }), [
+    customerId, projectDescription, quoteDate, validUntil, items,
+    subtotal, taxRate, taxAmount, total,
+    overallDiscountPercent, overallDiscountAmount,
+    notes, language, displayMode,
+    buyouts, exportsAndDelivery, assumptions,
+  ]);
+
+  useDraftQuoteAutosave({
+    draftId,
+    enabled: hasMeaningfulDraft,
+    buildPayload: buildDraftPayload,
+    onSaved: setDraftId,
+  });
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
     setSubmitting(true);
     try {
-      await createQuote({
-        customer_id: customerId,
-        project_description: projectDescription,
-        quote_date: quoteDate,
-        valid_until: validUntil,
-        items: items.map((item) => ({
-          ...item,
-          id: item.id || crypto.randomUUID(),
-          total: item.item_type === "section" ? 0 : calcItemTotal(item),
-        })),
-        subtotal, tax_rate: taxRate, tax_amount: taxAmount, total,
-        overall_discount_percent: overallDiscountPercent,
-        overall_discount_amount: overallDiscountAmount,
-        status: "draft",
-        notes,
-        language,
-        display_mode: displayMode,
-        converted_invoice_id: null,
-        created_by: null,
-        buyouts: buyouts || null,
-        exports_and_delivery: exportsAndDelivery || null,
-        assumptions: assumptions || null,
-      });
+      const payload = buildDraftPayload();
+      // SCH-929 P2.3 — if autosave already promoted this editor to a real
+      // draft row, update that row instead of creating a duplicate quote
+      // (which would also burn a fresh quote_number).
+      if (draftId) {
+        await updateQuote(draftId, payload);
+      } else {
+        await createQuote(payload);
+      }
       clearDraft();
       router.push("/quotes");
     } catch (err) {
@@ -424,10 +511,18 @@ function NewQuotePage() {
                                 {t("quoteNew.travelDayTag")}
                               </span>
                             ) : (
-                              <select value={item.product_id || ""} onChange={(e) => e.target.value ? selectProduct(idx, e.target.value) : updateItem(idx, "product_id", null)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
-                                <option value="">{t("quoteNew.selectProduct")}</option>
-                                {products.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
-                              </select>
+                              <ProductCombobox
+                                products={products}
+                                selectedId={item.product_id ?? null}
+                                onSelect={(id) =>
+                                  id
+                                    ? selectProduct(idx, id)
+                                    : updateItem(idx, "product_id", null)
+                                }
+                                onRequestCreate={(initialName) =>
+                                  setProductCreate({ idx, initialName })
+                                }
+                              />
                             )}
                           </td>
                           <td className="py-2"><input type="text" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" required /></td>
@@ -532,6 +627,28 @@ function NewQuotePage() {
           initialPercent={items[travelDayEditIdx].travel_day_config?.percent ?? 50}
           onClose={() => setTravelDayEditIdx(null)}
           onConfirm={(ids, pct, computed) => applyTravelDay(travelDayEditIdx, ids, pct, computed)}
+        />
+      )}
+
+      {productCreate && (
+        <ProductCreateModal
+          initialName={productCreate.initialName}
+          onClose={() => setProductCreate(null)}
+          onCreated={(p) => {
+            const targetIdx = productCreate.idx;
+            setProducts((prev) => [...prev, p]);
+            const updated = [...items];
+            updated[targetIdx] = {
+              ...updated[targetIdx],
+              product_id: p.id,
+              description: p.name,
+              unit: p.unit,
+              unit_price: p.unit_price,
+              role_id: p.role_id || null,
+              total: calcItemTotal({ ...updated[targetIdx], unit_price: p.unit_price }),
+            };
+            setItems(updated);
+          }}
         />
       )}
     </div>

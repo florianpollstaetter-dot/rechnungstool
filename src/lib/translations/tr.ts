@@ -263,6 +263,7 @@ const tr: Record<string, string> = {
   "quotes.pdfDownload": "PDF İndir",
   "quotes.noQuotes": "Henüz teklif oluşturulmadı.",
   "quotes.confirmDelete": "Teklif gerçekten silinsin mi?",
+  "quotes.continueDraft": "Taslağı düzenlemeye devam et",
   "quotes.convertToInvoice": "Teklif faturaya dönüştürülsün mü?",
   "quotes.fromTemplate": "Şablondan Teklif",
   "quotes.fromTemplateBtn": "Şablondan",
@@ -331,6 +332,8 @@ const tr: Record<string, string> = {
   "quoteNew.submit": "Teklif Oluştur",
   "quoteNew.submitting": "Oluşturuluyor...",
   "quoteNew.submitError": "Teklif oluşturulamadı",
+  "quoteNew.comboboxEmpty": "Ürün bulunamadı",
+  "quoteNew.comboboxCreate": "Yeni ürün ekle: „{name}\"",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "Tekliflere Dön",

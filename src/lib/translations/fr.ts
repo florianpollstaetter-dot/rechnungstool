@@ -263,6 +263,7 @@ const fr: Record<string, string> = {
   "quotes.pdfDownload": "Télécharger PDF",
   "quotes.noQuotes": "Aucun devis créé pour le moment.",
   "quotes.confirmDelete": "Voulez-vous vraiment supprimer ce devis ?",
+  "quotes.continueDraft": "Continuer l'édition du brouillon",
   "quotes.convertToInvoice": "Convertir le devis en facture ?",
   "quotes.fromTemplate": "Devis à partir d'un modèle",
   "quotes.fromTemplateBtn": "À partir d'un modèle",
@@ -331,6 +332,8 @@ const fr: Record<string, string> = {
   "quoteNew.submit": "Créer le devis",
   "quoteNew.submitting": "Création en cours...",
   "quoteNew.submitError": "Impossible de créer le devis",
+  "quoteNew.comboboxEmpty": "Aucun produit trouvé",
+  "quoteNew.comboboxCreate": "Créer un nouveau produit : « {name} »",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "Retour aux devis",

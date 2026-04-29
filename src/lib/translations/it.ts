@@ -263,6 +263,7 @@ const it: Record<string, string> = {
   "quotes.pdfDownload": "Scarica PDF",
   "quotes.noQuotes": "Nessun preventivo ancora creato.",
   "quotes.confirmDelete": "Eliminare davvero il preventivo?",
+  "quotes.continueDraft": "Continua a modificare la bozza",
   "quotes.convertToInvoice": "Convertire il preventivo in fattura?",
   "quotes.fromTemplate": "Preventivo da modello",
   "quotes.fromTemplateBtn": "Da modello",
@@ -331,6 +332,8 @@ const it: Record<string, string> = {
   "quoteNew.submit": "Crea preventivo",
   "quoteNew.submitting": "Creazione in corso...",
   "quoteNew.submitError": "Impossibile creare il preventivo",
+  "quoteNew.comboboxEmpty": "Nessun prodotto trovato",
+  "quoteNew.comboboxCreate": "Crea nuovo prodotto: «{name}»",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "Torna ai preventivi",

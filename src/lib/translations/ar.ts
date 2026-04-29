@@ -263,6 +263,7 @@ const ar: Record<string, string> = {
   "quotes.pdfDownload": "تحميل PDF",
   "quotes.noQuotes": "لم يتم إنشاء عروض أسعار بعد.",
   "quotes.confirmDelete": "هل تريد حذف عرض السعر فعلًا؟",
+  "quotes.continueDraft": "متابعة تعديل المسودة",
   "quotes.convertToInvoice": "تحويل عرض السعر إلى فاتورة؟",
   "quotes.fromTemplate": "عرض سعر من قالب",
   "quotes.fromTemplateBtn": "من قالب",
@@ -331,6 +332,8 @@ const ar: Record<string, string> = {
   "quoteNew.submit": "إنشاء عرض السعر",
   "quoteNew.submitting": "جاري الإنشاء...",
   "quoteNew.submitError": "تعذر إنشاء عرض السعر",
+  "quoteNew.comboboxEmpty": "لا توجد منتجات",
+  "quoteNew.comboboxCreate": "إنشاء منتج جديد: «{name}»",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "العودة إلى عروض الأسعار",

@@ -263,6 +263,7 @@ const es: Record<string, string> = {
   "quotes.pdfDownload": "Descargar PDF",
   "quotes.noQuotes": "Aun no se han creado presupuestos.",
   "quotes.confirmDelete": "Eliminar presupuesto?",
+  "quotes.continueDraft": "Seguir editando borrador",
   "quotes.convertToInvoice": "Convertir presupuesto en factura?",
   "quotes.fromTemplate": "Presupuesto desde plantilla",
   "quotes.fromTemplateBtn": "Desde plantilla",
@@ -331,6 +332,8 @@ const es: Record<string, string> = {
   "quoteNew.submit": "Crear presupuesto",
   "quoteNew.submitting": "Creando...",
   "quoteNew.submitError": "No se pudo crear el presupuesto",
+  "quoteNew.comboboxEmpty": "No se encontraron productos",
+  "quoteNew.comboboxCreate": "Crear nuevo producto: «{name}»",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "Volver a presupuestos",

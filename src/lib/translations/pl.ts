@@ -263,6 +263,7 @@ const pl: Record<string, string> = {
   "quotes.pdfDownload": "Pobierz PDF",
   "quotes.noQuotes": "Nie utworzono jeszcze żadnych ofert.",
   "quotes.confirmDelete": "Czy na pewno usunąć ofertę?",
+  "quotes.continueDraft": "Kontynuuj edycję szkicu",
   "quotes.convertToInvoice": "Przekształcić ofertę na fakturę?",
   "quotes.fromTemplate": "Oferta z szablonu",
   "quotes.fromTemplateBtn": "Z szablonu",
@@ -331,6 +332,8 @@ const pl: Record<string, string> = {
   "quoteNew.submit": "Utwórz ofertę",
   "quoteNew.submitting": "Tworzenie...",
   "quoteNew.submitError": "Nie udało się utworzyć oferty",
+  "quoteNew.comboboxEmpty": "Nie znaleziono produktów",
+  "quoteNew.comboboxCreate": "Utwórz nowy produkt: „{name}\"",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "Powrót do ofert",
