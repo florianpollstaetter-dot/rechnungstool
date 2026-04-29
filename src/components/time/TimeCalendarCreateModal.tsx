@@ -33,7 +33,8 @@ interface Props {
   projectFreq: Map<string, number>;
   editData?: EditData;
   onCancel: () => void;
-  onSubmit: (result: ModalResult) => Promise<void>;
+  onSubmit: (result: ModalResult) => Promise<{ ok: boolean; error?: string }>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 function toInputTime(d: Date): string {
@@ -42,11 +43,17 @@ function toInputTime(d: Date): string {
   return `${h}:${m}`;
 }
 
-function applyInputTime(base: Date, hhmm: string): Date {
-  const [h, m] = hhmm.split(":").map(Number);
-  const next = new Date(base);
-  next.setHours(h, m, 0, 0);
-  return next;
+function toInputDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${da}`;
+}
+
+function combineDateTime(dateStr: string, hhmm: string): Date {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  const [h, mi] = hhmm.split(":").map(Number);
+  return new Date(y, (mo || 1) - 1, d || 1, h || 0, mi || 0, 0, 0);
 }
 
 function formatDuration(minutes: number): string {
@@ -56,7 +63,7 @@ function formatDuration(minutes: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, projectFreq, editData, onCancel, onSubmit }: Props) {
+export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, projectFreq, editData, onCancel, onSubmit, onDelete }: Props) {
   const isEdit = !!editData;
   const [start, setStart] = useState(editData?.start ?? initialStart);
   const [end, setEnd] = useState(editData?.end ?? initialEnd);
@@ -65,6 +72,8 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
   const [description, setDescription] = useState(editData?.description ?? "");
   const [pickerTab, setPickerTab] = useState<PickerTab>("projekte");
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
@@ -72,8 +81,43 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel]);
 
+  // SCH-920 K2-M3+M4 — when the user types an end-time that's earlier than
+  // start, treat it as crossing midnight and roll the end day forward by one.
+  // Cap at 24h so a typo doesn't create a multi-day mega-entry.
+  const startDateStr = toInputDate(start);
+  function setStartTime(hhmm: string) {
+    const next = combineDateTime(startDateStr, hhmm);
+    setStart(next);
+    // Keep end on or after start; if not, push end forward by 1 day (rollover).
+    if (end.getTime() <= next.getTime()) {
+      const e = new Date(next);
+      e.setMinutes(e.getMinutes() + Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000)));
+      setEnd(e);
+    }
+  }
+  function setEndTime(hhmm: string) {
+    // Compose end on the same date as start, then roll forward if needed so
+    // we always end strictly after start (over-midnight case).
+    let next = combineDateTime(startDateStr, hhmm);
+    if (next.getTime() <= start.getTime()) {
+      next = new Date(next.getTime() + 24 * 60 * 60 * 1000);
+    }
+    // Cap at 24h after start.
+    const cap = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+    if (next.getTime() > cap.getTime()) next = cap;
+    setEnd(next);
+  }
+  function setStartDate(dateStr: string) {
+    if (!dateStr) return;
+    const newStart = combineDateTime(dateStr, toInputTime(start));
+    const offset = end.getTime() - start.getTime();
+    setStart(newStart);
+    setEnd(new Date(newStart.getTime() + offset));
+  }
+
   const durationMinutes = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
-  const canSave = !!selectedLabel && durationMinutes > 0 && !submitting;
+  const crossesMidnight = start.getDate() !== end.getDate() || start.getMonth() !== end.getMonth() || start.getFullYear() !== end.getFullYear();
+  const canSave = !!selectedLabel && durationMinutes > 0 && durationMinutes <= 24 * 60 && !submitting;
 
   function pickGeneral(label: string) { setSelectedLabel(label); setSelectedQuoteId(null); }
   function pickOther(label: string) { setSelectedLabel(label); setSelectedQuoteId(null); }
@@ -86,10 +130,23 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
   async function handleSave() {
     if (!canSave) return;
     setSubmitting(true);
+    setSubmitError(null);
     try {
-      await onSubmit({ start, end, project_label: selectedLabel, quote_id: selectedQuoteId, description });
+      const result = await onSubmit({ start, end, project_label: selectedLabel, quote_id: selectedQuoteId, description });
+      if (!result.ok) setSubmitError(result.error ?? "Speichern nicht möglich");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!editData || !onDelete) return;
+    if (!window.confirm("Eintrag wirklich löschen?")) return;
+    setDeleting(true);
+    try {
+      await onDelete(editData.id);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -110,22 +167,35 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
         </div>
 
         <div className="px-5 py-4 space-y-4">
+          {/* SCH-920 K2-M3 — explicit date field so over-midnight entries can
+              be recorded without splitting them by hand */}
+          <div>
+            <label className="block text-[10px] uppercase tracking-wide text-[var(--text-muted)] mb-1">Datum</label>
+            <input
+              type="date"
+              value={startDateStr}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-orange)]"
+            />
+          </div>
           <div className="flex items-end gap-3">
             <div className="flex-1">
               <label className="block text-[10px] uppercase tracking-wide text-[var(--text-muted)] mb-1">Start</label>
               <input
                 type="time"
                 value={toInputTime(start)}
-                onChange={(e) => setStart(applyInputTime(start, e.target.value))}
+                onChange={(e) => setStartTime(e.target.value)}
                 className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-orange)]"
               />
             </div>
             <div className="flex-1">
-              <label className="block text-[10px] uppercase tracking-wide text-[var(--text-muted)] mb-1">Ende</label>
+              <label className="block text-[10px] uppercase tracking-wide text-[var(--text-muted)] mb-1">
+                Ende{crossesMidnight ? " (+1 Tag)" : ""}
+              </label>
               <input
                 type="time"
                 value={toInputTime(end)}
-                onChange={(e) => setEnd(applyInputTime(end, e.target.value))}
+                onChange={(e) => setEndTime(e.target.value)}
                 className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-orange)]"
               />
             </div>
@@ -133,6 +203,11 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
               {formatDuration(durationMinutes)}
             </div>
           </div>
+          {crossesMidnight && (
+            <p className="text-[10px] text-[var(--brand-orange)] -mt-2">
+              Eintrag läuft über Mitternacht — wird automatisch am {toInputDate(end)} fortgesetzt.
+            </p>
+          )}
 
           <div>
             <div className="flex gap-0.5 px-0.5 pb-1 border-b border-[var(--border)]">
@@ -187,16 +262,31 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-[var(--border)] flex justify-end gap-2">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
-          >Abbrechen</button>
-          <button
-            onClick={handleSave}
-            disabled={!canSave}
-            className="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-orange)] text-white hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >{isEdit ? "Ändern" : "Speichern"}</button>
+        {submitError && (
+          <div className="px-5 pb-2 -mt-2 text-[11px] text-rose-400">{submitError}</div>
+        )}
+        <div className="px-5 py-3 border-t border-[var(--border)] flex justify-between items-center gap-2">
+          {/* SCH-920 K3-Q2 — delete button for erroneous entries */}
+          <div>
+            {isEdit && onDelete && (
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-3 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 transition disabled:opacity-40"
+              >{deleting ? "…" : "Löschen"}</button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+            >Abbrechen</button>
+            <button
+              onClick={handleSave}
+              disabled={!canSave}
+              className="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-orange)] text-white hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >{isEdit ? "Ändern" : "Speichern"}</button>
+          </div>
         </div>
       </div>
     </div>

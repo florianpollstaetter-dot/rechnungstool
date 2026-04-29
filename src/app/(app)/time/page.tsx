@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { TimeEntry, Quote, UserWorkSchedule } from "@/lib/types";
 import { getTimeEntries, getActiveTimer, createTimeEntry, updateTimeEntry, deleteTimeEntry, getQuotes, getCurrentUserName, getCurrentUserWorkSchedules } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
@@ -65,12 +65,24 @@ function TimePageInner() {
   const { t } = useI18n();
   const { userName } = useCompany();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const initialView = (() => {
     const v = searchParams.get("view");
     if (v === "calendar") return "calendar" as const;
     if (v === "analytics" || v === "auswertung") return "auswertung" as const;
     return "list" as const;
   })();
+  // SCH-920 K2-K1 — keep ?view= in sync when the inline tabs change,
+  // so the sidebar highlight (driven by useSearchParams) stays correct.
+  function setViewModeAndUrl(next: "list" | "calendar" | "auswertung") {
+    setViewMode(next);
+    const view = next === "auswertung" ? "analytics" : next;
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    if (params.get("view") === view) return;
+    params.set("view", view);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [activeTimer, setActiveTimerState] = useState<TimeEntry | null>(null);
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -346,7 +358,7 @@ function TimePageInner() {
         type="button"
         role="tab"
         aria-selected={viewMode === "list"}
-        onClick={() => setViewMode("list")}
+        onClick={() => setViewModeAndUrl("list")}
         className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "list" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
         title={t("time.list")}
       >
@@ -360,7 +372,7 @@ function TimePageInner() {
         type="button"
         role="tab"
         aria-selected={viewMode === "calendar"}
-        onClick={() => setViewMode("calendar")}
+        onClick={() => setViewModeAndUrl("calendar")}
         className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "calendar" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
         title={t("time.calendar")}
       >
@@ -374,7 +386,7 @@ function TimePageInner() {
         type="button"
         role="tab"
         aria-selected={viewMode === "auswertung"}
-        onClick={() => setViewMode("auswertung")}
+        onClick={() => setViewModeAndUrl("auswertung")}
         className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "auswertung" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
         title={t("time.analytics")}
       >
@@ -396,7 +408,7 @@ function TimePageInner() {
         <div className="flex items-center gap-4">
           {/* Mini pie chart — clickable to analytics */}
           {todayByProject.size > 0 && todayMinutes > 0 && (
-            <button onClick={() => setViewMode("auswertung")} className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer" title="Auswertungen öffnen">
+            <button onClick={() => setViewModeAndUrl("auswertung")} className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer" title="Auswertungen öffnen">
               <svg width="40" height="40" viewBox="0 0 40 40">
                 {(() => {
                   let offset = 0;
@@ -572,8 +584,10 @@ function TimePageInner() {
           projectFreq={projectFreq}
           allProjectLabels={allProjectLabels}
           getProjectColor={getProjectColor}
+          schedule={workSchedule}
           onCreate={handleCalendarCreate}
           onEdit={handleCalendarEdit}
+          onDelete={async (id) => { await deleteTimeEntry(id); await loadData(); }}
         />
       )}
 

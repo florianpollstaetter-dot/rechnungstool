@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { TimeEntry, Quote } from "@/lib/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { TimeEntry, Quote, UserWorkSchedule } from "@/lib/types";
 import { TimeCalendarCreateModal, ModalResult, EditData } from "./TimeCalendarCreateModal";
 
 type ViewMode = "week" | "day";
@@ -13,17 +13,24 @@ interface Props {
   projectFreq: Map<string, number>;
   allProjectLabels: string[];
   getProjectColor: (label: string, all: string[]) => string;
+  schedule: UserWorkSchedule[];
   onCreate: (result: ModalResult) => Promise<void>;
   onEdit: (id: string, result: ModalResult) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
-const DAY_START_HOUR = 6;
-const DAY_END_HOUR = 22;
+// SCH-920 K2-M1 — full 24h grid so entries before 6:00 / after 22:00 are
+// visible. Default scroll position lands on 6:00 so the typical work day is
+// in view without forcing the user to scroll up.
+const DAY_START_HOUR = 0;
+const DAY_END_HOUR = 24;
+const DEFAULT_FOCUS_HOUR = 6;
 const SLOT_MINUTES = 15;
 const VISIBLE_HOURS = DAY_END_HOUR - DAY_START_HOUR;
 const VISIBLE_MINUTES = VISIBLE_HOURS * 60;
-const HOUR_HEIGHT_PX = 48;
+const HOUR_HEIGHT_PX = 36;
 const GRID_HEIGHT_PX = VISIBLE_HOURS * HOUR_HEIGHT_PX;
+const SCROLL_VIEWPORT_PX = 560; // visible window inside the scrollable grid
 const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 function startOfDay(d: Date): Date {
@@ -93,12 +100,15 @@ export function TimeCalendarView({
   projectFreq,
   allProjectLabels,
   getProjectColor,
+  schedule,
   onCreate,
   onEdit,
+  onDelete,
 }: Props) {
   const [mode, setMode] = useState<ViewMode>("week");
   const [anchor, setAnchor] = useState<Date>(() => startOfDay(new Date()));
   const gridRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const [dragState, setDragState] = useState<{
     dayIndex: number;
@@ -109,6 +119,25 @@ export function TimeCalendarView({
   const [modalInit, setModalInit] = useState<{ start: Date; end: Date } | null>(null);
   const [editInit, setEditInit] = useState<EditData | null>(null);
 
+  // SCH-920 K2-M2 — non-working days (no daily target) render with a muted
+  // overlay so the user can tell at a glance that a day sits outside their
+  // Arbeitszeitmodell. Weekday key matches user_work_schedules.weekday
+  // (0 = Monday … 6 = Sunday).
+  const workingWeekdays = useMemo(() => {
+    const set = new Set<number>();
+    schedule.forEach((s) => {
+      if (s.daily_target_minutes > 0 || (s.start_time && s.end_time)) set.add(s.weekday);
+    });
+    return set;
+  }, [schedule]);
+
+  // Auto-scroll the grid so the typical work-day start lands at the top of
+  // the viewport on first render and whenever the user clicks "Heute".
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollTop = DEFAULT_FOCUS_HOUR * HOUR_HEIGHT_PX;
+  }, []);
+
   // Check if a time range overlaps with any existing entry (optionally excluding one by id).
   function hasOverlap(start: Date, end: Date, excludeId?: string): boolean {
     return entries.some((e) => {
@@ -118,6 +147,12 @@ export function TimeCalendarView({
       const eEnd = new Date(e.end_time);
       return start < eEnd && end > eStart;
     });
+  }
+
+  // SCH-920 K2-M7 — overlap check for an arbitrary set of ranges (used by the
+  // midnight-rollover split path so both halves are validated together).
+  function hasOverlapAny(ranges: { start: Date; end: Date }[], excludeId?: string): boolean {
+    return ranges.some((r) => hasOverlap(r.start, r.end, excludeId));
   }
 
   const days = useMemo<Date[]>(() => {
@@ -183,18 +218,50 @@ export function TimeCalendarView({
     window.addEventListener("mouseup", onUp);
   }
 
-  async function handleModalSubmit(result: ModalResult) {
+  // SCH-920 K2-M4 — split a [start, end] range that crosses midnight into
+  // one entry per calendar day so the calendar grid (which buckets by start
+  // day) renders both halves correctly. Single-day ranges pass through.
+  function splitAtMidnight(start: Date, end: Date): { start: Date; end: Date }[] {
+    const parts: { start: Date; end: Date }[] = [];
+    let cursor = new Date(start);
+    while (cursor < end) {
+      const dayEnd = new Date(cursor);
+      dayEnd.setHours(24, 0, 0, 0); // start of next day
+      const segEnd = dayEnd < end ? dayEnd : end;
+      if (segEnd > cursor) parts.push({ start: cursor, end: segEnd });
+      cursor = dayEnd;
+    }
+    return parts.length > 0 ? parts : [{ start, end }];
+  }
+
+  async function handleModalSubmit(result: ModalResult): Promise<{ ok: boolean; error?: string }> {
+    const parts = splitAtMidnight(result.start, result.end);
     if (editInit) {
-      // Overlap check for edits (exclude the entry being edited)
-      if (hasOverlap(result.start, result.end, editInit.id)) return;
-      await onEdit(editInit.id, result);
+      // SCH-920 K2-M7 — overlap check for edits (exclude self) over all parts
+      if (hasOverlapAny(parts, editInit.id)) {
+        return { ok: false, error: "Konflikt: ein Eintrag überschneidet sich mit einem bestehenden." };
+      }
+      const [head, ...tail] = parts;
+      await onEdit(editInit.id, { ...result, start: head.start, end: head.end });
+      for (const p of tail) {
+        await onCreate({ ...result, start: p.start, end: p.end });
+      }
       setEditInit(null);
     } else {
-      // Overlap check for new entries
-      if (hasOverlap(result.start, result.end)) return;
-      await onCreate(result);
+      if (hasOverlapAny(parts)) {
+        return { ok: false, error: "Konflikt: ein Eintrag überschneidet sich mit einem bestehenden." };
+      }
+      for (const p of parts) {
+        await onCreate({ ...result, start: p.start, end: p.end });
+      }
       setModalInit(null);
     }
+    return { ok: true };
+  }
+
+  async function handleModalDelete(id: string) {
+    await onDelete(id);
+    setEditInit(null);
   }
 
   function handleModalCancel() {
@@ -223,7 +290,10 @@ export function TimeCalendarView({
     if (mode === "day") setAnchor((d) => addDays(d, 1));
     else setAnchor((d) => addDays(d, 7));
   }
-  function goToday() { setAnchor(startOfDay(new Date())); }
+  function goToday() {
+    setAnchor(startOfDay(new Date()));
+    if (scrollRef.current) scrollRef.current.scrollTop = DEFAULT_FOCUS_HOUR * HOUR_HEIGHT_PX;
+  }
 
   const now = new Date();
 
@@ -251,44 +321,61 @@ export function TimeCalendarView({
         </div>
       </div>
 
-      {/* Calendar grid */}
-      <div className="flex">
-        {/* Hour rail */}
-        <div className="w-12 shrink-0 border-r border-[var(--border)]">
-          <div className="h-8" />
-          <div className="relative" style={{ height: GRID_HEIGHT_PX }}>
-            {Array.from({ length: VISIBLE_HOURS + 1 }, (_, i) => (
-              <div
-                key={i}
-                className="absolute -translate-y-1/2 text-right w-full pr-1 text-[10px] text-[var(--text-muted)]"
-                style={{ top: i * HOUR_HEIGHT_PX }}
-              >
-                {String(DAY_START_HOUR + i).padStart(2, "0")}:00
-              </div>
-            ))}
+      {/* Calendar grid — SCH-920 K2-M1: scrollable so the full 0–24h day is
+          reachable. Default scroll lands on 6:00 so the work day is in view. */}
+      <div
+        ref={scrollRef}
+        className="overflow-y-auto overflow-x-auto"
+        style={{ maxHeight: SCROLL_VIEWPORT_PX }}
+      >
+        <div className="flex" style={{ minWidth: mode === "week" ? "700px" : "auto" }}>
+          {/* Hour rail */}
+          <div className="w-12 shrink-0 border-r border-[var(--border)] sticky left-0 z-10 bg-[var(--surface)]">
+            <div className="h-8 sticky top-0 bg-[var(--surface)] z-10" />
+            <div className="relative" style={{ height: GRID_HEIGHT_PX }}>
+              {Array.from({ length: VISIBLE_HOURS + 1 }, (_, i) => (
+                <div
+                  key={i}
+                  className="absolute -translate-y-1/2 text-right w-full pr-1 text-[10px] text-[var(--text-muted)]"
+                  style={{ top: i * HOUR_HEIGHT_PX }}
+                >
+                  {String(DAY_START_HOUR + i).padStart(2, "0")}:00
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Day columns */}
-        <div className="flex-1 overflow-x-auto">
-          <div className="flex min-w-full" style={{ minWidth: mode === "week" ? "700px" : "auto" }}>
+          {/* Day columns */}
+          <div className="flex flex-1">
             {days.map((day, dayIndex) => {
               const isToday = sameDay(day, new Date());
               const dayKey = startOfDay(day).toISOString();
               const dayEntries = entriesByDay.get(dayKey) || [];
+              const weekdayIdx = (day.getDay() + 6) % 7;
+              const isWorkingDay = workingWeekdays.size === 0 || workingWeekdays.has(weekdayIdx);
               return (
                 <div key={dayKey} className={`flex-1 min-w-[100px] border-r border-[var(--border)] last:border-r-0 ${isToday ? "bg-[var(--brand-orange-dim)]/30" : ""}`}>
-                  <div className="h-8 flex flex-col items-center justify-center border-b border-[var(--border)]">
-                    <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{WEEKDAY_LABELS[(day.getDay() + 6) % 7]}</span>
+                  <div className={`h-8 flex flex-col items-center justify-center border-b border-[var(--border)] sticky top-0 z-10 ${isToday ? "bg-[var(--brand-orange-dim)]/40" : "bg-[var(--surface)]"} ${!isWorkingDay ? "opacity-60" : ""}`}>
+                    <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{WEEKDAY_LABELS[weekdayIdx]}</span>
                     <span className={`text-xs font-semibold ${isToday ? "text-[var(--brand-orange)]" : "text-[var(--text-primary)]"}`}>{formatDayHeader(day)}</span>
                   </div>
 
                   <div
                     ref={(el) => { gridRefs.current.set(dayIndex, el); }}
                     onMouseDown={(e) => handleMouseDown(dayIndex, e)}
-                    className="relative select-none cursor-crosshair"
+                    className={`relative select-none cursor-crosshair ${!isWorkingDay ? "bg-[var(--background)]/50" : ""}`}
                     style={{ height: GRID_HEIGHT_PX }}
                   >
+                    {/* SCH-920 K2-M2 — diagonal hatch overlay marks days
+                        outside the user's work-time model */}
+                    {!isWorkingDay && (
+                      <div
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                          backgroundImage: "repeating-linear-gradient(45deg, rgba(150,150,150,0.06) 0 6px, transparent 6px 12px)",
+                        }}
+                      />
+                    )}
                     {/* Hour grid lines */}
                     {Array.from({ length: VISIBLE_HOURS }, (_, i) => (
                       <div
@@ -401,6 +488,7 @@ export function TimeCalendarView({
           editData={editInit ?? undefined}
           onCancel={handleModalCancel}
           onSubmit={handleModalSubmit}
+          onDelete={handleModalDelete}
         />
       )}
     </div>

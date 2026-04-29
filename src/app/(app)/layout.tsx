@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useCompany } from "@/lib/company-context";
 import { useI18n } from "@/lib/i18n-context";
 import { AppFooter } from "@/components/AppFooter";
@@ -45,7 +45,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <>
       <PasswordChangeGate />
       <PaymentOverdueBanner />
-      <AppSidebar />
+      {/* SCH-920 K2-K1 — AppSidebar uses useSearchParams() to keep the
+          /time?view=… highlight in sync with the URL. Wrap in Suspense so
+          static prerender can bail out gracefully on routes that don't have
+          their own search-param boundary. */}
+      <Suspense fallback={null}>
+        <AppSidebar />
+      </Suspense>
       <div className="lg:pl-60 flex flex-col min-h-screen">
         {userName && greeting && (
           <p className="hidden lg:block px-6 py-2 text-xs italic text-[var(--text-muted)] border-b border-[var(--border)]/50">

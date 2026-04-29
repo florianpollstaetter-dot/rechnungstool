@@ -262,9 +262,24 @@ export function TimeAnalyticsView({ entries, schedule }: TimeAnalyticsViewProps)
 
   // ---- NEW CHARTS DATA ----
 
+  // SCH-920 K2-L1 — Anchor the trend at the user's first time entry, so weeks
+  // before the user started tracking don't drag the cumulative down by the
+  // full weekly target each. Without this, a fresh user with a 40h/week model
+  // saw -40h, -80h, -120h cumulative bars across the chart and the "Trend"
+  // looked broken even though the model was set correctly.
+  const firstEntryKey = useMemo(() => {
+    if (workEntries.length === 0) return null;
+    let min = workEntries[0].start_time;
+    for (let i = 1; i < workEntries.length; i++) {
+      if (workEntries[i].start_time < min) min = workEntries[i].start_time;
+    }
+    return min.split("T")[0];
+  }, [workEntries]);
+
   // Hours per week trend (last 8 weeks)
   const weeklyTrend = useMemo(() => {
-    const weeks: { label: string; work: number; target: number }[] = [];
+    const weeks: { label: string; work: number; target: number; isCurrent: boolean; hasData: boolean }[] = [];
+    const todayDateKey = dateKey(now);
     for (let i = 7; i >= 0; i--) {
       const ref = new Date(now);
       ref.setDate(ref.getDate() - i * 7);
@@ -276,13 +291,24 @@ export function TimeAnalyticsView({ entries, schedule }: TimeAnalyticsViewProps)
       });
       const first = dateKey(days[0]);
       const last = dateKey(days[6]);
+      const isCurrent = i === 0;
       const work = workEntries.filter((e) => { const k = e.start_time.split("T")[0]; return k >= first && k <= last; }).reduce((s, e) => s + e.duration_minutes, 0);
+      // For the current week, only count target up to today so the saldo
+      // isn't artificially negative for the rest of the week.
       let target = 0;
-      days.forEach((d) => { target += dailyTargets.get(isoWeekday(d)) ?? 0; });
-      weeks.push({ label: `KW ${isoCalendarWeek(days[0])}`, work, target });
+      days.forEach((d) => {
+        const k = dateKey(d);
+        if (isCurrent && k > todayDateKey) return;
+        // Skip weekdays before the user's first ever time entry — counting
+        // those days would penalise the cumulative saldo for periods before
+        // the user even started tracking.
+        if (firstEntryKey && k < firstEntryKey) return;
+        target += dailyTargets.get(isoWeekday(d)) ?? 0;
+      });
+      weeks.push({ label: `KW ${isoCalendarWeek(days[0])}`, work, target, isCurrent, hasData: work > 0 || target > 0 });
     }
     return weeks;
-  }, [workEntries, dailyTargets, now]);
+  }, [workEntries, dailyTargets, now, firstEntryKey]);
 
   // Overtime trend (last 8 weeks, cumulative saldo)
   const overtimeTrend = useMemo(() => {
@@ -290,7 +316,7 @@ export function TimeAnalyticsView({ entries, schedule }: TimeAnalyticsViewProps)
     return weeklyTrend.map((w) => {
       const saldo = w.work - w.target;
       cumulative += saldo;
-      return { label: w.label, saldo, cumulative };
+      return { label: w.label, saldo, cumulative, hasData: w.hasData };
     });
   }, [weeklyTrend]);
 
@@ -698,7 +724,7 @@ export function TimeAnalyticsView({ entries, schedule }: TimeAnalyticsViewProps)
           })()}
         </div>
 
-        {/* NEW: Overtime trend (cumulative) */}
+        {/* NEW: Overtime trend (cumulative) — SCH-920 K2-L1 */}
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5">
           <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Überstunden-Trend</h2>
           {!hasSchedule ? (
@@ -707,34 +733,56 @@ export function TimeAnalyticsView({ entries, schedule }: TimeAnalyticsViewProps)
             const maxAbs = Math.max(...overtimeTrend.map((o) => Math.abs(o.cumulative)), 60);
             const chartH = 110;
             const midY = chartH / 2;
+            const labelRowH = 18;
+            const totalH = chartH + labelRowH;
             return (
-              <div className="relative" style={{ height: `${chartH + 30}px` }}>
-                {/* Zero line */}
-                <div className="absolute left-0 right-0 border-t border-[var(--text-muted)]/30" style={{ top: `${midY + 12}px` }}>
+              <div className="relative" style={{ height: `${totalH}px` }}>
+                {/* Zero line aligned with the bars' midline */}
+                <div className="absolute left-0 right-0 border-t border-[var(--text-muted)]/30" style={{ top: `${midY}px` }}>
                   <span className="absolute -top-3 left-0 text-[9px] text-[var(--text-muted)]">0h</span>
                 </div>
-                <div className="flex items-center gap-2 h-full pt-3">
+                <div className="absolute inset-0 flex gap-2">
                   {overtimeTrend.map((o, i) => {
-                    const barH = Math.max(2, (Math.abs(o.cumulative) / maxAbs) * (chartH / 2 - 5));
+                    const barH = o.hasData
+                      ? Math.max(2, (Math.abs(o.cumulative) / maxAbs) * (chartH / 2 - 5))
+                      : 0;
                     const isPositive = o.cumulative >= 0;
                     const isLast = i === overtimeTrend.length - 1;
                     return (
-                      <div key={o.label} className="flex-1 flex flex-col items-center relative" style={{ height: `${chartH}px` }} title={`${o.label}: Saldo ${formatSaldo(o.cumulative)}`}>
-                        {/* Label above/below bar */}
-                        <span className="text-[9px] font-medium absolute" style={{ top: isPositive ? `${midY - barH - 14}px` : `${midY + barH + 2}px`, color: isPositive ? "#10b981" : "#f43f5e" }}>
-                          {o.cumulative !== 0 ? formatSaldo(o.cumulative) : ""}
+                      <div key={o.label} className="flex-1 relative" title={`${o.label}: Saldo ${formatSaldo(o.cumulative)}`}>
+                        {/* Bar — anchored exactly to the zero line so positive
+                            bars grow up and negative bars grow down without a
+                            vertical offset */}
+                        {barH > 0 && (
+                          <div
+                            className="absolute left-0 right-0 rounded-md"
+                            style={{
+                              height: `${barH}px`,
+                              top: isPositive ? `${midY - barH}px` : `${midY}px`,
+                              backgroundColor: isLast ? "var(--brand-orange)" : isPositive ? "#10b981" : "#f43f5e",
+                              opacity: 0.85,
+                            }}
+                          />
+                        )}
+                        {/* Saldo label */}
+                        {o.hasData && o.cumulative !== 0 && (
+                          <span
+                            className="text-[9px] font-medium absolute left-0 right-0 text-center"
+                            style={{
+                              top: isPositive ? `${midY - barH - 14}px` : `${midY + barH + 2}px`,
+                              color: isPositive ? "#10b981" : "#f43f5e",
+                            }}
+                          >
+                            {formatSaldo(o.cumulative)}
+                          </span>
+                        )}
+                        {/* Week label pinned to the bottom row */}
+                        <span
+                          className={`text-[9px] absolute left-0 right-0 text-center ${isLast ? "text-[var(--brand-orange)] font-semibold" : "text-[var(--text-muted)]"}`}
+                          style={{ top: `${chartH + 2}px` }}
+                        >
+                          {o.label}
                         </span>
-                        {/* Bar */}
-                        <div
-                          className="w-full rounded-md absolute"
-                          style={{
-                            height: `${barH}px`,
-                            top: isPositive ? `${midY - barH}px` : `${midY}px`,
-                            backgroundColor: isLast ? "var(--brand-orange)" : isPositive ? "#10b981" : "#f43f5e",
-                            opacity: 0.85,
-                          }}
-                        />
-                        <span className={`text-[9px] absolute ${isLast ? "text-[var(--brand-orange)] font-semibold" : "text-[var(--text-muted)]"}`} style={{ bottom: "0" }}>{o.label}</span>
                       </div>
                     );
                   })}

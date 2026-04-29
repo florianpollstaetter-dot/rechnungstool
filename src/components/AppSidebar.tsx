@@ -7,7 +7,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useCompany } from "@/lib/company-context";
 import { useI18n } from "@/lib/i18n-context";
@@ -109,6 +109,7 @@ const TIME_ITEMS: NavLeaf[] = [
 export default function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { t } = useI18n();
   const { company, accessibleCompanies, userName, userRole, roleLoaded, isSuperadmin, setCompanyId } = useCompany();
   const permissions = roleLoaded
@@ -151,12 +152,15 @@ export default function AppSidebar() {
     return pathname.startsWith(item.href.split("?")[0]);
   }
 
+  // SCH-920 K2-K1 — useSearchParams subscribes to query-param changes so the
+  // active highlight follows /time?view=… as the user navigates. The previous
+  // implementation read window.location.search once on render, which left
+  // "Liste" highlighted even when the user was on calendar/analytics.
   function isTimeViewActive(href: string) {
-    const view = href.split("=")[1];
-    if (typeof window === "undefined") return false;
     if (!pathname.startsWith("/time")) return false;
-    const params = new URLSearchParams(window.location.search);
-    const current = params.get("view") || "list";
+    const view = href.split("=")[1];
+    const raw = searchParams?.get("view") || "list";
+    const current = raw === "analytics" || raw === "auswertung" ? "analytics" : raw === "calendar" ? "calendar" : "list";
     return current === view;
   }
 
