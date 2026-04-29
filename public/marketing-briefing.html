@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orange Octo — Marketing & Vertrieb · Entscheidungs-Briefing</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
+<style>
+  :root { --oo: #F7901E; --oo-dark: #C3700E; --ink: #1a1a1a; --muted: #6b7280; --bg: #fff; --soft: #FFF7EC; }
+  .reveal { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color: var(--ink); }
+  .reveal h1, .reveal h2, .reveal h3, .reveal h4 { font-family: inherit; text-transform: none; letter-spacing: -0.01em; color: var(--ink); margin-top: 0; }
+  .reveal h1 { font-size: 2.4em; font-weight: 700; }
+  .reveal h2 { font-size: 1.6em; font-weight: 700; border-bottom: 4px solid var(--oo); padding-bottom: 0.25em; margin-bottom: 0.7em; display: inline-block; }
+  .reveal h3 { font-size: 1.15em; font-weight: 600; color: var(--oo-dark); }
+  .reveal p, .reveal li { font-size: 0.65em; line-height: 1.45; }
+  .reveal table { font-size: 0.55em; border-collapse: collapse; margin: 0.5em 0; width: 100%; }
+  .reveal th, .reveal td { padding: 0.4em 0.6em; border-bottom: 1px solid #eee; text-align: left; vertical-align: top; }
+  .reveal th { background: var(--soft); font-weight: 600; }
+  .reveal tbody tr:hover { background: #fafafa; }
+  .reveal section { text-align: left; }
+  .reveal .center { text-align: center; }
+  .reveal blockquote { font-size: 0.65em; border-left: 4px solid var(--oo); padding: 0.5em 1em; background: var(--soft); margin: 0.5em 0; font-style: normal; }
+  .reveal code { background: #f3f4f6; padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.95em; }
+  .reveal kbd { background: var(--ink); color: white; padding: 0.15em 0.5em; border-radius: 4px; font-size: 0.8em; }
+  .pill { display: inline-block; padding: 0.15em 0.6em; border-radius: 999px; font-size: 0.55em; font-weight: 600; margin-right: 0.3em; }
+  .pill-orange { background: var(--oo); color: white; }
+  .pill-soft { background: var(--soft); color: var(--oo-dark); }
+  .pill-ok { background: #d1fae5; color: #065f46; }
+  .pill-warn { background: #fef3c7; color: #92400e; }
+  .pill-stop { background: #fee2e2; color: #991b1b; }
+  .pill-info { background: #dbeafe; color: #1e40af; }
+  .grid { display: grid; gap: 1em; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 0.8em 1em; box-shadow: 0 1px 2px rgba(0,0,0,0.04); font-size: 0.62em; }
+  .card.accent { border-left: 4px solid var(--oo); }
+  .card.warn { border-left: 4px solid #f59e0b; background: #fffbeb; }
+  .card.stop { border-left: 4px solid #dc2626; background: #fef2f2; }
+  .card.ok { border-left: 4px solid #16a34a; background: #f0fdf4; }
+  .card h4 { font-size: 0.95em; margin: 0 0 0.4em; }
+  .card p { font-size: 1em; margin: 0.2em 0; }
+  .hero { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; }
+  .hero h1 { font-size: 3.2em; margin-bottom: 0.2em; line-height: 1.05; }
+  .hero .sub { font-size: 1.1em; color: var(--muted); margin-bottom: 1.5em; }
+  .hero .meta { font-size: 0.55em; color: var(--muted); border-top: 2px solid var(--oo); padding-top: 1em; }
+  .octo-emoji { font-size: 4em; line-height: 1; margin-bottom: 0.3em; }
+  .decision-box { border: 3px solid var(--oo); border-radius: 12px; padding: 0.8em 1em; background: var(--soft); margin: 0.5em 0; font-size: 0.6em; }
+  .decision-box h4 { font-size: 1.1em; color: var(--oo-dark); margin: 0 0 0.4em; }
+  .number-big { font-size: 2.2em; font-weight: 800; color: var(--oo); line-height: 1; }
+  .footnote { font-size: 0.45em; color: var(--muted); margin-top: 1em; font-style: italic; }
+  .reveal .progress { color: var(--oo); }
+  .reveal .controls { color: var(--oo); }
+  .toc-list { font-size: 0.6em; }
+  .toc-list li { margin: 0.3em 0; }
+  .reveal section img { border: none; box-shadow: none; }
+  /* compact bullet lists */
+  .compact li { font-size: 0.6em; margin: 0.15em 0; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============ Slide 1: Title ============ -->
+<section>
+  <div class="hero">
+    <div class="octo-emoji">🐙</div>
+    <h1>Orange Octo</h1>
+    <div class="sub"><strong>Marketing &amp; Vertrieb</strong> · Entscheidungs-Briefing für den Vorstand</div>
+    <div class="meta">
+      Stand 2026-04-29 · Vorgelegt von CEO-Agent · Basis: SCH-884 + Subtasks 885 / 886 / 887 / 898<br>
+      <em>Diese Folie braucht von Florian 4 Entscheidungen — siehe Folie "Was du jetzt entscheiden musst"</em>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Slide 2: TL;DR ============ -->
+<section>
+  <h2>Executive Summary</h2>
+  <div class="grid grid-2">
+    <div class="card accent">
+      <h4>Wo wir stehen</h4>
+      <p>Strategie steht (Positionierung, USPs, Channels, KPIs). Drei P0-Site-Bugs blockieren den Start. Drei Phase-0-Hand-offs laufen bereits (Engineer / SEO / Editor).</p>
+    </div>
+    <div class="card accent">
+      <h4>Strategischer Pivot</h4>
+      <p>Google Ads Core-Keywords kosten <strong>€12–18 CPC</strong> in DACH (zu teuer). Strategie umgestellt auf <strong>AT-Long-Tail Exact-Match</strong> (€5–12 CPC, niedrige Competition).</p>
+    </div>
+    <div class="card warn">
+      <h4>3 Compliance-Funde</h4>
+      <p>StB-Affiliate-Rev-Share <strong>illegal</strong> (§9 BOStB) → Re-Design vor Phase 2. AGB §1.2 + DSE Zeile 142 widersprechen Trial-Funnel + Tracking → Engineer patcht in 1h.</p>
+    </div>
+    <div class="card ok">
+      <h4>Was du brauchst</h4>
+      <p>Nur 4 Entscheidungen (1 Approval offen, 1 Anwalt-Greenlight, 1 Domain-Defense, 1 Marken-Anmeldung optional). Nichts Operatives — alles strategisch.</p>
+    </div>
+  </div>
+  <p class="footnote">Vollständige Begründungen, Zahlen und Quellen auf den folgenden Folien.</p>
+</section>
+
+<!-- ============ Slide 3: Roadmap dieser Präsentation ============ -->
+<section>
+  <h2>Was du in den nächsten Folien siehst</h2>
+  <ol class="toc-list">
+    <li><strong>Positionierung &amp; USPs</strong> — wie Orange Octo am Markt steht</li>
+    <li><strong>Zielgruppen</strong> — drei DACH-Personas</li>
+    <li><strong>Wettbewerb</strong> — was sevDesk &amp; Co. machen, wo unsere Lücke ist</li>
+    <li><strong>Phasen-Plan 0 / 1 / 2</strong> — was wann passiert, mit Budget und KPIs</li>
+    <li><strong>Channel-Mix</strong> — pro Kanal: Owner-Agent, Budget, KPI, Kill-Kriterium</li>
+    <li><strong>Lead-Magnete &amp; Funnel</strong> — wie wir Trials gewinnen</li>
+    <li><strong>Agent-Automatisierung</strong> — was selbstständig läuft</li>
+    <li><strong>Compliance-Findings</strong> — was wir gefunden haben, was zu tun ist</li>
+    <li><strong>Budget-Szenarien</strong> — €500 / €2k / €5k pro Monat im Vergleich</li>
+    <li><strong>Was du jetzt entscheiden musst</strong> — die Decision-Folie</li>
+    <li><strong>Timeline</strong> — was wann live geht</li>
+  </ol>
+</section>
+
+<!-- ============ Slide 4: Positionierung ============ -->
+<section>
+  <h2>Positionierung &amp; USPs</h2>
+  <h3>Headline</h3>
+  <blockquote>„Buchhaltung, die sich selbst erledigt." <em>(bereits live, beibehalten)</em></blockquote>
+  <h3>Sub-Headline</h3>
+  <blockquote>„Belege scannen, Rechnungen schreiben, Steuer vorbereiten – dein KI-Buchhalter arbeitet, während du dein Geschäft führst."</blockquote>
+  <h3>Drei USPs</h3>
+  <table>
+    <thead><tr><th style="width:5%">#</th><th style="width:35%">USP</th><th style="width:60%">Beweis-Anker</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><strong>E-Rechnung aus der Box</strong></td><td>XRechnung 3.0 + ZUGFeRD 2.3 ab Tag 1, ohne Aufpreis. Pflicht für B2B ab 2025 (§27 UStG).</td></tr>
+      <tr><td>2</td><td><strong>Keine Buchhaltungs-Vorkenntnisse</strong></td><td>KI kategorisiert Belege automatisch, DATEV-Export für den Steuerberater auf Knopfdruck.</td></tr>
+      <tr><td>3</td><td><strong>Austrian-made, DSGVO-native</strong></td><td>Server in der EU, kein Umweg über US-Cloud. Trust-Signal für DACH-Buyer.</td></tr>
+    </tbody>
+  </table>
+  <h3>Differenzierung in einem Satz</h3>
+  <blockquote>sevDesk und lexoffice sind mächtige Buchhaltungs<em>lösungen für wachsende Teams</em> — Orange Octo ist das schlanke KI-Tool, das dem <strong>Selbstständigen und Kleinunternehmer</strong> die Buchführung <em>vollständig abnimmt</em>, ohne ihn mit Kontenrahmen und Buchungslogik zu konfrontieren.</blockquote>
+  <p class="footnote">Tone of Voice: Du, direkt, kompetent ohne Fachchinesisch, österreichisch-neutral, seriös genug für Steuerberater-Touchpoints.</p>
+</section>
+
+<!-- ============ Slide 5: Personas ============ -->
+<section>
+  <h2>Zielgruppen — drei Personas DACH</h2>
+  <div class="grid grid-3">
+    <div class="card">
+      <h4>A · Solo-Freelancer</h4>
+      <p><strong>Wer:</strong> Designer, Coach, IT-Consultant, Texter (DE/AT)</p>
+      <p><strong>Schmerz:</strong> 3+ Std/Woche für Buchhaltung; angst vor Steuerberater-Rechnung; Belege im Schuhkarton.</p>
+      <p><strong>Trigger:</strong> Quartal-Ende, USt-Voranmeldung, Steuerberater-Mahnung.</p>
+      <p><strong>Wo:</strong> Google Search, Reddit (DE), Steuer-Foren, YouTube-Tutorials.</p>
+    </div>
+    <div class="card">
+      <h4>B · §19 Kleinunternehmer</h4>
+      <p><strong>Wer:</strong> Etsy/Amazon-Verkäufer, Nebengewerbe, Photograph, kleine Handwerker (DE/AT).</p>
+      <p><strong>Schmerz:</strong> Verstehen die §-Regelung nicht; weiß nicht ob/wann zur Regelbesteuerung wechseln.</p>
+      <p><strong>Trigger:</strong> Umsatz-Schwelle nähert sich; XRechnung-Pflicht 2025.</p>
+      <p><strong>Wo:</strong> Google ("§19", "Kleinunternehmer"), Facebook-Gruppen, IHK-Newsletter.</p>
+    </div>
+    <div class="card">
+      <h4>C · Kleine GmbH (1–10 MA)</h4>
+      <p><strong>Wer:</strong> Dienstleister, Agentur, IT-Boutique (DE/AT).</p>
+      <p><strong>Schmerz:</strong> StB zu teuer / langsam; Kassenwesen + Rechnungen + DATEV-Schnittstelle in einem Tool wollen.</p>
+      <p><strong>Trigger:</strong> Wachstum; Steuerberater-Wechsel; Kosten-Reduzierung.</p>
+      <p><strong>Wo:</strong> LinkedIn (Geschäftsführer), Google, Vergleichsportale (Capterra, OMR), StB-Empfehlung.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Slide 6: Wettbewerb ============ -->
+<section>
+  <h2>Wettbewerb &amp; unsere Lücke</h2>
+  <table>
+    <thead><tr><th>Wettbewerber</th><th>Stärke</th><th>Preis</th><th>Schwäche / unsere Chance</th></tr></thead>
+    <tbody>
+      <tr><td><strong>sevDesk</strong></td><td>SEO-Marktführer DACH, dominiert Money-Keywords</td><td>ab €12,90/Mo</td><td>Funktions-überladen für Solos; technisch dicht</td></tr>
+      <tr><td><strong>lexoffice</strong></td><td>350K+ Kunden, Brand-Awareness DE</td><td>ab €13,90/Mo</td><td>Langweilig, kaum KI; teurer als wir</td></tr>
+      <tr><td><strong>FastBill</strong></td><td>Solides Mid-Market</td><td>ab €25/Mo</td><td>Keine starke Solo-/§19-Story</td></tr>
+      <tr><td><strong>Buchhaltungs&shy;Butler</strong></td><td>StB-affin</td><td>ab €19/Mo</td><td>Nische StB; nicht für Self-Service</td></tr>
+      <tr><td><strong>invoiz</strong></td><td>Solo-Fokus</td><td>kostenlos / Pro €9</td><td>Wenig Differenzierung; veraltetes UI</td></tr>
+    </tbody>
+  </table>
+  <h3>Unsere Lücke</h3>
+  <ul class="compact">
+    <li><strong>Solo + §19-Kleinunternehmer + AT-Markt</strong> — sevDesk + lexoffice optimieren für DE-Mittelstand. AT ist deutlich weniger umkämpft.</li>
+    <li><strong>KI-First-Erzählung</strong> — niemand erzählt aktuell „Buchhaltung erledigt sich selbst". Alle erzählen „wir machen Buchhaltung leichter".</li>
+    <li><strong>XRechnung-Compliance ab Tag 1</strong> — Pflicht ab 2025, viele Konkurrenten verkaufen es als Premium-Feature.</li>
+  </ul>
+</section>
+
+<!-- ============ Slide 7: Phasen-Plan ============ -->
+<section>
+  <h2>Phasen-Plan 0 / 1 / 2</h2>
+  <table>
+    <thead><tr><th>Phase</th><th>Tage</th><th>Fokus</th><th>Budget</th><th>Erwartung</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Phase 0</strong><br><span class="pill pill-soft">Foundation</span></td>
+        <td>0–14</td>
+        <td>CMP + Tracking + Site-Bugs fixen + Lead-Magnete + AT-SEO-Landingpages live + Listings (Capterra/OMR free)</td>
+        <td>€20–80/Mo (CMP-Fee)</td>
+        <td>Tracking-Coverage ≥95%, 3+ Listings live, organische Baseline messbar</td>
+      </tr>
+      <tr>
+        <td><strong>Phase 1</strong><br><span class="pill pill-orange">Paid Ramp</span></td>
+        <td>15–60</td>
+        <td>Google Ads <em>nur</em> AT-Long-Tail Exact-Match + Meta Retarget + Trial-Onboarding-Sequenz + erste Bewertungen sammeln</td>
+        <td>€800–1.300/Mo (lean) bzw. €2k/Mo (standard)</td>
+        <td>5–20 Trials/Mo aus Google Ads, 8–18 aus Meta Retarget, 3–8 Upgrades</td>
+      </tr>
+      <tr>
+        <td><strong>Phase 2</strong><br><span class="pill pill-info">Skalierung</span></td>
+        <td>61–90</td>
+        <td>DE-Long-Tail-Erweiterung + 4 Blogs/Mo + Influencer/Partnerships + (umgestaltetes) StB-Programm + LinkedIn-Test</td>
+        <td>€2k–5k/Mo</td>
+        <td>30–80 organische Trials/Mo, 10–25 je Influencer-Kooperation, Affiliate aktiv</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="footnote">Re-Allocation Reviews Tag 30 / 45 / 60 — Kanäle ohne KPI-Erfüllung werden gekillt, Budget verschiebt sich automatisch.</p>
+</section>
+
+<!-- ============ Slide 8: Channel-Mix Phase 1 (most important) ============ -->
+<section>
+  <h2>Channel-Mix Phase 1 (Tag 15–60)</h2>
+  <table>
+    <thead><tr><th>Kanal</th><th>Owner</th><th>Budget</th><th>KPI</th><th>Erw. Output</th><th>Kill nach 30T</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Google Ads</strong> AT-Long-Tail Exact</td>
+        <td>SEO/Growth</td>
+        <td>€500–800/Mo</td>
+        <td>CPC <€10, CVR >3%, CPT <€250</td>
+        <td>5–20 Trials/Mo</td>
+        <td>CPT >€350</td>
+      </tr>
+      <tr>
+        <td><strong>Meta Retarget</strong> (Site-Besucher >60s)</td>
+        <td>CMO + Designer</td>
+        <td>€300–500/Mo</td>
+        <td>CTR >0,8%, CPT <€60</td>
+        <td>8–18 Trials/Mo</td>
+        <td>CTR <0,8% → Creative-Swap</td>
+      </tr>
+      <tr>
+        <td><strong>Trial-Onboarding-Sequenz</strong> (E-Mail)</td>
+        <td>Editor</td>
+        <td>€0</td>
+        <td>Open >35%, Upgrade-CVR >8%</td>
+        <td>3–8 Upgrades/Mo</td>
+        <td>Open <20%</td>
+      </tr>
+      <tr>
+        <td><strong>OMR + Capterra Spotlight</strong></td>
+        <td>CMO</td>
+        <td>€200–400/Mo</td>
+        <td>CTR vom Listing, CPT <€80</td>
+        <td>5–15 Trials/Mo</td>
+        <td><5 Trials/Mo</td>
+      </tr>
+      <tr>
+        <td><strong>LinkedIn</strong></td>
+        <td colspan="5"><span class="pill pill-stop">NICHT Phase 1</span> — CPL €110–150 zu teuer für Personas A+B. Erst Phase 2 testen mit Persona C.</td>
+      </tr>
+    </tbody>
+  </table>
+  <blockquote><strong>Warum nur AT-Long-Tail?</strong> Google Ads Core-Keywords ("rechnungsprogramm", "buchhaltungssoftware") kosten in DACH €12–18 CPC. Bei 2–4% Trial-CVR ergibt das CPT €300–900. Bei einem LTV von €108 (Starter-Plan) ist das nicht profitabel. AT-Long-Tail (z.B. „rechnungsprogramm österreich kleinunternehmer", „§13b rechnung vorlage") kostet €5–12 CPC bei höherer Conversion-Wahrscheinlichkeit.</blockquote>
+</section>
+
+<!-- ============ Slide 9: Lead-Magnete & Funnel ============ -->
+<section>
+  <h2>Lead-Magnete &amp; Funnel</h2>
+  <div class="grid grid-3">
+    <div class="card">
+      <h4>LM-1 · Rechnungs&shy;vorlage-Generator</h4>
+      <p><strong>URL:</strong> <code>/rechnungsvorlage</code></p>
+      <p><strong>Format:</strong> interaktives Web-Tool, generiert §-konforme PDF</p>
+      <p><strong>Gate:</strong> E-Mail für Download</p>
+      <p><strong>SV:</strong> 50k+/Mo („rechnungsvorlage kostenlos")</p>
+      <p><strong>Audience:</strong> A + B</p>
+    </div>
+    <div class="card">
+      <h4>LM-2 · XRechnung-Pflicht 2025 Checkliste</h4>
+      <p><strong>URL:</strong> <code>/xrechnung-guide</code></p>
+      <p><strong>Format:</strong> 1-Pager PDF (3–4 Seiten)</p>
+      <p><strong>Gate:</strong> E-Mail</p>
+      <p><strong>Trigger:</strong> Compliance-Deadline 2025 treibt organische Suche</p>
+      <p><strong>Audience:</strong> B + C</p>
+    </div>
+    <div class="card">
+      <h4>LM-3 · §13b-Rechnung Guide</h4>
+      <p><strong>URL:</strong> <code>/13b-rechnung</code></p>
+      <p><strong>Format:</strong> SEO-Blog-Post + Vorlage-Download</p>
+      <p><strong>Gate:</strong> kein Gate (SEO-First, In-Content-CTA)</p>
+      <p><strong>Audience:</strong> Subunternehmer Bau / IT-Nearshore</p>
+    </div>
+  </div>
+  <h3>Funnel-Stages</h3>
+  <pre style="font-size: 0.55em; background: var(--soft); padding: 0.5em; border-radius: 8px;">
+TOFU (Awareness)
+  └─ Organic Search / Paid Search (AT Long-Tail) / Meta Social
+     └─ Landing Page mit Lead-Magnet-CTA
+        └─ MOFU (Consideration)
+           └─ Trial-Signup (kein CC) → 6-Mail-Onboarding-Sequenz
+              └─ BOFU (Conversion)
+                 └─ In-App Upgrade-Nudge + Mail Day 3 / 7 / 12
+                    └─ RETENTION
+                       └─ Feature-Adoption + DATEV-Export-Highlight
+  </pre>
+</section>
+
+<!-- ============ Slide 10: Agent-Automatisierung ============ -->
+<section>
+  <h2>Was läuft automatisch — Agent-Map</h2>
+  <table>
+    <thead><tr><th>Aufgabe</th><th>Owner-Agent</th><th>Cadence</th><th>Output</th></tr></thead>
+    <tbody>
+      <tr><td>Keyword-Rank-Tracking + Content-Brief</td><td>SEO/Growth</td><td>2× pro Woche</td><td>Issue mit Brief + Ranking-Delta-Report</td></tr>
+      <tr><td>Pillar/Cluster-Artikel schreiben</td><td>Editor</td><td>2 Artikel pro Woche</td><td>Markdown-Commit ins Repo + Veröffentlichung</td></tr>
+      <tr><td>Newsletter / Trial-Sequenz-Mails</td><td>Editor</td><td>wöchentlich</td><td>HTML-Mail in Brevo</td></tr>
+      <tr><td>Creative-Sets Meta + Display</td><td>Designer</td><td>monatlich</td><td>3–5 Bild-/Video-Varianten</td></tr>
+      <tr><td>Trial-Outreach / Sales-Aktivierung</td><td>Sales Agent</td><td>täglich</td><td>Outreach-Liste + Erfolgs-Bericht</td></tr>
+      <tr><td>Kanal-Performance-Review + Budget-Reallokation</td><td>CMO</td><td>monatlich</td><td>Report + Empfehlung</td></tr>
+      <tr><td>Wettbewerber-Sweep</td><td>Researcher</td><td>quartalsweise</td><td>Updated Market-Snapshot</td></tr>
+      <tr><td>KPI-Dashboard-Pull</td><td>Analyst</td><td>wöchentlich</td><td>Slack-Bericht + Anomalie-Alert</td></tr>
+    </tbody>
+  </table>
+  <p class="footnote">Diese Map wird Woche 2 als Paperclip-Routinen verdrahtet. Ergebnis: Marketing läuft als laufender Prozess, nicht als Einzelprojekt.</p>
+</section>
+
+<!-- ============ Slide 11: P0 Site-Bugs ============ -->
+<section>
+  <h2>3 P0-Bugs blockieren den Start</h2>
+  <p class="footnote">Diese drei Items werden gerade von Engineer in einem PR gefixt — geschätzte Gesamt-ETA: ~1 Stunde Arbeit, dann Vercel-Deploy.</p>
+  <div class="grid grid-3">
+    <div class="card stop">
+      <h4>1 · robots.txt + sitemap.xml broken</h4>
+      <p>Beide URLs antworten <code>HTTP 307 → /login</code>. Google + Bing können nicht crawlen. <strong>Indexierungs-Killer.</strong></p>
+      <p><em>Fix:</em> Next.js-Middleware-Whitelist + <code>app/robots.ts</code> + <code>app/sitemap.ts</code>.</p>
+    </div>
+    <div class="card stop">
+      <h4>2 · AGB §1.2 widerspricht Trial-Funnel</h4>
+      <p>Aktuelle AGB-Klausel schließt öffentliche Registrierung aus. Self-Service-Trial juristisch nicht abgedeckt.</p>
+      <p><em>Fix:</em> Klausel-Patch von Law Agent vorgegeben, 1:1 deployen.</p>
+    </div>
+    <div class="card stop">
+      <h4>3 · Datenschutzerklärung Zeile 142</h4>
+      <p>Sagt explizit „kein Tracking, keine Werbung". Damit darf <strong>kein einziger</strong> Conversion-Pixel oder Cookie-Banner laufen.</p>
+      <p><em>Fix:</em> Tracking-Hinweis + Cookie-Consent-Verweis von Law Agent vorgegeben.</p>
+    </div>
+  </div>
+  <blockquote>Ohne diese drei Fixes ist <strong>weder organischer Traffic noch jede Form von Paid-Marketing</strong> möglich. Engineer-Issue: <a href="#" style="color:var(--oo-dark)">SCH-910</a> (high-priority, ~1h).</blockquote>
+</section>
+
+<!-- ============ Slide 12: Compliance-Findings ============ -->
+<section>
+  <h2>Compliance-Findings vom Law Agent</h2>
+  <div class="grid grid-2">
+    <div class="card warn">
+      <h4><span class="pill pill-warn">⚠️ niedrig-mittel</span> Markenrecht „Orange Octo"</h4>
+      <p>„Orange Octo" als Wortmarke öffentlich nirgends auffindbar — aber „Octo"-Stamm im SaaS-Space stark belegt (Octobat = Konkurrent ⚠️, Octopus Deploy, OctoAI). Domain <code>orange-octo.com</code> ist unsere; <code>.de/.at/.eu</code> + <code>orangeocto.de/.eu</code> alle frei.</p>
+      <p><strong>Empfehlung:</strong> defensive Domain-Registrierung sofort (~€55/J), Marken-Recherche-Anwalt (<strong>€250–600</strong>) vor signifikantem Werbespend, optional EU-Wortmarke (<strong>~€2.000</strong>).</p>
+    </div>
+    <div class="card stop">
+      <h4><span class="pill pill-stop">❌ illegal</span> Steuerberater-Affiliate Phase 2</h4>
+      <p>Geplantes Rev-Share-Programm für Steuerberater verletzt §9 BOStB + §57a StBerG (StB dürfen keine Provisionen für Mandantenvermittlung annehmen). OLG Köln: Online-Vermittlungsprovision ist wettbewerbswidrig — wir würden uns selbst dem UWG §3a aussetzen.</p>
+      <p><strong>Re-Design:</strong> Reseller-Modell, Co-Marketing, oder StB-Endkunden-Rabatt. Kein Phase-0/1-Blocker, aber Phase 2 darf nicht starten ohne Re-Design.</p>
+    </div>
+    <div class="card warn">
+      <h4>Cold-E-Mail DACH</h4>
+      <p>Personalisierte Adressen brauchen Double-Opt-in. Funktionspostfächer (info@, kontakt@) + sachlicher Bezug + Opt-out reichen für §7 UWG. AT (TKG §174) noch strikter — Einwilligung fast immer Pflicht.</p>
+    </div>
+    <div class="card warn">
+      <h4>LinkedIn-Outreach</h4>
+      <p>Strikt manuell, <strong>keine Automation-Tools</strong> (Phantombuster, Dux-Soup, Expandi) — verletzt LinkedIn-AGB §8.2 → Account-Sperre. Beeinflusst die geplante Sales-Agent-Automation in Phase 2.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Slide 13: Budget-Szenarien ============ -->
+<section>
+  <h2>Budget-Szenarien — drei Optionen</h2>
+  <div class="grid grid-3">
+    <div class="card">
+      <h4>Lean</h4>
+      <p class="number-big">€500/Mo</p>
+      <p><strong>Was läuft:</strong> Phase 0 + sehr kleines Meta Retarget. Kein Google Ads (zu teuer für €500-Budget).</p>
+      <p><strong>Erwartung:</strong> 5–10 Trials/Mo, langsamer aber sicherer Aufbau.</p>
+      <p><strong>Wann:</strong> Wenn du erst Compliance-Setup absichern willst.</p>
+    </div>
+    <div class="card accent">
+      <h4>Standard <span class="pill pill-orange">EMPFOHLEN</span></h4>
+      <p class="number-big">€1.000–2.000/Mo</p>
+      <p><strong>Was läuft:</strong> Google AT-Long-Tail (€500–800) + Meta Retarget (€300–500) + Capterra Spotlight (€200–400). Lean-Start €1k/Mo, Eskalation auf €2k/Mo bei KPI-Erfüllung Tag 30.</p>
+      <p><strong>Erwartung:</strong> 15–35 Trials/Mo, 3–8 Upgrades.</p>
+      <p><strong>Wann:</strong> Sobald Phase 0 (CMP, Tracking, Site-Bugs) live ist.</p>
+    </div>
+    <div class="card">
+      <h4>Aggressiv</h4>
+      <p class="number-big">€5.000/Mo</p>
+      <p><strong>Was läuft:</strong> Standard + LinkedIn-Test für Persona C + DE-Long-Tail-Expansion + 1 Influencer-Kooperation.</p>
+      <p><strong>Erwartung:</strong> 50–100 Trials/Mo.</p>
+      <p><strong>Wann:</strong> Erst wenn Phase 1 KPIs treffen — Phase-2-Eskalation.</p>
+    </div>
+  </div>
+  <p class="footnote">Empfehlung: <strong>Lean-Start €1k/Mo ab Tag 15</strong>. Re-Allocation Review Tag 30 + 45. Bei KPI-Erfüllung Eskalation auf €2k/Mo. Phase 2 (€5k) erst nach 60 Tagen Daten.</p>
+</section>
+
+<!-- ============ Slide 14: DECISION SLIDE ============ -->
+<section data-background-color="#FFF7EC">
+  <h2>Was du jetzt entscheiden musst</h2>
+  <p style="font-size: 0.65em; color: var(--muted);">Vier Entscheidungen, drei davon können in einem Klick. Nichts blockiert sich gegenseitig — du kannst auch nur 1, 2 oder 3 jetzt machen.</p>
+
+  <div class="decision-box">
+    <h4>Entscheidung 1 · Marketing Phase 0–1 Greenlight <span class="pill pill-orange">Approval offen</span></h4>
+    <p><strong>Inhalt:</strong> Cookiebot-CMP (~€10/Mo) + Tracking-Stack (GA4 + Meta Pixel + PostHog, alle free) + Lean-Werbebudget €1.000/Mo ab Tag 15.</p>
+    <p><strong>Wo:</strong> Approval <code>55996f5d</code> auf SCH-884 — du kannst direkt im Approval-Modal entscheiden.</p>
+    <p><strong>Wenn approved:</strong> SEO/Growth installiert CMP + Tracking parallel zu Engineer-Fix → Phase 1 startet Tag 15.</p>
+  </div>
+
+  <div class="decision-box">
+    <h4>Entscheidung 2 · Marken-Recherche-Anwalt €250–600 <span class="pill pill-info">Comment auf SCH-884</span></h4>
+    <p><strong>Inhalt:</strong> Einmaliger Anwalts-Auftrag: formelle DPMA + Patentamt-AT + EUIPO-Identitäts-/Ähnlichkeits-Recherche für „Orange Octo". Empfohlen vor signifikantem Werbespend.</p>
+    <p><strong>Wo:</strong> Ja/Nein per Comment auf SCH-884 reicht — keine separate Approval nötig.</p>
+    <p><strong>Wenn ja:</strong> CEO koordiniert mit Anwalt-Pipeline auf SCH-860.</p>
+  </div>
+
+  <div class="decision-box">
+    <h4>Entscheidung 3 · Defensive Domain-Registrierung €55/J <span class="pill pill-soft">optional, kostengünstig</span></h4>
+    <p><strong>Inhalt:</strong> <code>orange-octo.de</code>, <code>orange-octo.at</code>, <code>orange-octo.eu</code>, <code>orangeocto.de</code>, <code>orangeocto.eu</code> sind alle frei. Wenn jemand sie schnappt = Squatting-Risiko.</p>
+    <p><strong>Wo:</strong> Browser-Aktion bei Porkbun. CEO kann nur als Bitte an Florian formulieren — Login-Flows sind für Agents geblockt.</p>
+    <p><strong>Wenn ja:</strong> CEO erstellt Browser-Action-Issue mit Link-Liste.</p>
+  </div>
+
+  <div class="decision-box">
+    <h4>Entscheidung 4 · EU-Wortmarke „Orange Octo" anmelden <span class="pill pill-soft">optional, Phase 2</span></h4>
+    <p><strong>Inhalt:</strong> EUIPO-Wortmarken-Anmeldung Klassen 9 / 35 / 42, ~€2.000 inkl. Anwalt. Schützt die Marke proaktiv im EU-Raum.</p>
+    <p><strong>Wann:</strong> Kann bis Phase 2 warten. Nicht blockierend.</p>
+    <p><strong>Wenn ja:</strong> CEO holt Angebot vom Anwalt + macht Approval-Request.</p>
+  </div>
+</section>
+
+<!-- ============ Slide 15: Timeline ============ -->
+<section>
+  <h2>Timeline — was wann live geht</h2>
+  <table>
+    <thead><tr><th>Wann</th><th>Was</th><th>Owner</th></tr></thead>
+    <tbody>
+      <tr><td>Tag 0 (heute)</td><td>Engineer P0-Fixes (robots/sitemap, AGB, DSE)</td><td>Engineer (~1h Arbeit)</td></tr>
+      <tr><td>Tag 0–2</td><td>Florian-Entscheidungen 1–4 (siehe Decision-Folie)</td><td>Florian</td></tr>
+      <tr><td>Tag 1–3</td><td>CMP + Tracking-Stack live (Cookiebot + GA4 + Meta Pixel + PostHog)</td><td>SEO/Growth</td></tr>
+      <tr><td>Tag 1–14</td><td>Editor schreibt erste 4 Pillar/Cluster-Artikel; Veröffentlichung sobald Engineer-Fix live</td><td>Editor</td></tr>
+      <tr><td>Tag 7–14</td><td>OMR + Capterra DE Listings live (kostenlos)</td><td>CMO + Researcher</td></tr>
+      <tr><td>Tag 14</td><td><strong>Phase 1 Paid-Ramp startet</strong> — Google Ads AT-Long-Tail + Meta Retarget</td><td>SEO/Growth + CMO</td></tr>
+      <tr><td>Tag 15–60</td><td>Wöchentliche KPI-Reviews, Editor 2 Artikel/Woche, Designer Creative-Sets</td><td>alle Agents</td></tr>
+      <tr><td>Tag 30</td><td>Re-Allocation Review #1 — Kanäle ohne KPI-Erfüllung killen</td><td>CMO</td></tr>
+      <tr><td>Tag 60</td><td>Phase 2 Decision — Skalierung auf €2k–5k/Mo Ja/Nein</td><td>CMO + CEO + Florian</td></tr>
+      <tr><td>Tag 90</td><td>Quartal-Review, Markenrecht-Status, StB-Programm-Re-Design-Pitch</td><td>CEO + Researcher</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ Slide 16: Wie es weitergeht / Closing ============ -->
+<section>
+  <h2>Wie es weitergeht</h2>
+  <ol class="compact">
+    <li><strong>Heute</strong> — Du entscheidest die 4 Punkte auf der Decision-Folie. Engineer fixt P0-Bugs parallel.</li>
+    <li><strong>Diese Woche</strong> — CMP + Tracking + Listings + erste Content-Artikel live. Phase 0 abgeschlossen.</li>
+    <li><strong>Tag 15</strong> — Phase 1 startet. Agents übernehmen den laufenden Betrieb (siehe Agent-Map-Folie). Du bekommst monatliche Reports + Budget-Reallokation-Vorschläge automatisch.</li>
+    <li><strong>Tag 60</strong> — Datenbasierte Phase-2-Entscheidung. Bis dahin keine weiteren großen Entscheidungen von dir nötig — die Routinen laufen.</li>
+  </ol>
+  <h3 style="margin-top: 1.5em;">Was diese Präsentation absichert</h3>
+  <ul class="compact">
+    <li>Du hast die Strategie + Begründung in einem Dokument.</li>
+    <li>Du siehst, was wir gefunden haben (3 Compliance-Funde, 3 P0-Bugs, CPC-Realität).</li>
+    <li>Du weißt, was du entscheiden musst — und was Phase 2 ist.</li>
+    <li>Du siehst, was nach den Entscheidungen automatisch passiert.</li>
+  </ul>
+  <blockquote style="margin-top: 1.5em;">Antworte auf SCH-884 mit deinen Entscheidungen — auch nur teilweise OK. Ich orchestriere den Rest.</blockquote>
+  <p class="footnote">Diese Präsentation ist eine Snapshot von 2026-04-29. Die laufenden Subtasks: <strong>SCH-910</strong> (Engineer P0), <strong>SCH-911</strong> (SEO Phase 0), <strong>SCH-912</strong> (Editor Content). Approval offen: <strong>55996f5d</strong>.</p>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'fade',
+    controls: true,
+    progress: true,
+    center: false,
+    width: 1280,
+    height: 800,
+    margin: 0.06,
+  });
+</script>
+</body>
+</html>
