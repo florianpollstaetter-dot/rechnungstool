@@ -111,6 +111,8 @@ export function TimeCalendarView({
   getProjectColor,
   schedule,
   generalCategories,
+  projects,
+  onProjectCreated,
   onCreate,
   onEdit,
   onDelete,
@@ -288,6 +290,7 @@ export function TimeCalendarView({
       end: new Date(e.end_time),
       project_label: e.project_label,
       quote_id: e.quote_id,
+      project_id: e.project_id ?? null,
       description: e.description,
     });
   }
@@ -496,6 +499,8 @@ export function TimeCalendarView({
           quotes={quotes}
           projectFreq={projectFreq}
           generalCategories={generalCategories}
+          projects={projects}
+          onProjectCreated={onProjectCreated}
           editData={editInit ?? undefined}
           onCancel={handleModalCancel}
           onSubmit={handleModalSubmit}

@@ -315,12 +315,17 @@ function TimePageInner() {
     const uid = await resolveUserId();
     if (!uid) { console.error("[Zeiterfassung] handleCalendarCreate: kein userId"); return; }
     const duration = Math.max(0, Math.round((r.end.getTime() - r.start.getTime()) / 60000));
+    // SCH-921 K3-Q1 — billable now also honours an internal project flag,
+    // so internal projects (intern/verrechenbar = false) don't leak into
+    // billable analytics even when no quote is linked.
+    const linkedProject = r.project_id ? projects.find((p) => p.id === r.project_id) : undefined;
+    const billable = !!r.quote_id || (linkedProject ? linkedProject.is_billable !== false : false);
     try {
       await createTimeEntry({
         company_id: "", user_id: uid, user_name: userName || getCurrentUserName(),
-        quote_id: r.quote_id, project_label: r.project_label, description: r.description,
+        quote_id: r.quote_id, project_id: r.project_id, project_label: r.project_label, description: r.description,
         start_time: r.start.toISOString(), end_time: r.end.toISOString(), duration_minutes: duration,
-        billable: !!r.quote_id, hourly_rate: 0, entry_type: "work",
+        billable, hourly_rate: 0, entry_type: "work",
       });
     } catch (err) {
       console.error("[Zeiterfassung] handleCalendarCreate failed:", err);
@@ -339,6 +344,7 @@ function TimePageInner() {
         duration_minutes: duration,
         project_label: r.project_label,
         quote_id: r.quote_id,
+        project_id: r.project_id,
         description: r.description,
       });
     } catch (err) {

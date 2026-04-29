@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Quote, GeneralCategory, DEFAULT_GENERAL_CATEGORIES } from "@/lib/types";
+import { Quote, GeneralCategory, DEFAULT_GENERAL_CATEGORIES, Project } from "@/lib/types";
 import { TabButton } from "@/components/TabButton";
+import NewProjectModal from "@/components/projects/NewProjectModal";
 
 type PickerTab = "allgemein" | "projekte" | "other";
 
@@ -11,6 +12,10 @@ export interface ModalResult {
   end: Date;
   project_label: string;
   quote_id: string | null;
+  /** SCH-921 K3-Q1 — set when the user picked a Project entity (manual or
+   *  quote-derived). Lets the time-entry insert populate `project_id` so
+   *  cumulative budget / smart insights see the new entry immediately. */
+  project_id: string | null;
   description: string;
 }
 
@@ -20,6 +25,7 @@ export interface EditData {
   end: Date;
   project_label: string;
   quote_id: string | null;
+  project_id?: string | null;
   description: string;
 }
 
@@ -31,6 +37,12 @@ interface Props {
   /** SCH-921 K2-J1 — admin-managed Allgemein/Sonstiges labels. Falls back to
    *  the hardcoded defaults when the company has no rows yet. */
   generalCategories?: GeneralCategory[];
+  /** SCH-921 K3-Q1 — known projects so the picker can list manually-created
+   *  ones and the inline-create flow can drop a fresh project into the list. */
+  projects?: Project[];
+  /** Called after the inline NewProjectModal saves a project so the parent
+   *  can merge it into its in-memory list without a full reload. */
+  onProjectCreated?: (project: Project) => void;
   editData?: EditData;
   onCancel: () => void;
   onSubmit: (result: ModalResult) => Promise<{ ok: boolean; error?: string }>;
@@ -63,7 +75,7 @@ function formatDuration(minutes: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, projectFreq, generalCategories, editData, onCancel, onSubmit, onDelete }: Props) {
+export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, projectFreq, generalCategories, projects, onProjectCreated, editData, onCancel, onSubmit, onDelete }: Props) {
   // SCH-921 K2-J1 — split admin-managed labels into the two picker tabs.
   // Empty/undefined input falls back to the hardcoded defaults so the modal
   // is never empty for tenants seeded before this migration.
@@ -82,11 +94,16 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
   const [end, setEnd] = useState(editData?.end ?? initialEnd);
   const [selectedLabel, setSelectedLabel] = useState(editData?.project_label ?? "");
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(editData?.quote_id ?? null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(editData?.project_id ?? null);
   const [description, setDescription] = useState(editData?.description ?? "");
   const [pickerTab, setPickerTab] = useState<PickerTab>("projekte");
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // SCH-921 K3-Q1 — inline new-project flow opens NewProjectModal on top of
+  // this modal. We keep the date/time/description state intact so the user
+  // can pick the just-created project and continue without re-entering data.
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
@@ -132,12 +149,21 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
   const crossesMidnight = start.getDate() !== end.getDate() || start.getMonth() !== end.getMonth() || start.getFullYear() !== end.getFullYear();
   const canSave = !!selectedLabel && durationMinutes > 0 && durationMinutes <= 24 * 60 && !submitting;
 
-  function pickGeneral(label: string) { setSelectedLabel(label); setSelectedQuoteId(null); }
-  function pickOther(label: string) { setSelectedLabel(label); setSelectedQuoteId(null); }
+  function pickGeneral(label: string) { setSelectedLabel(label); setSelectedQuoteId(null); setSelectedProjectId(null); }
+  function pickOther(label: string) { setSelectedLabel(label); setSelectedQuoteId(null); setSelectedProjectId(null); }
   function pickQuote(q: Quote) {
     const label = q.project_description || q.quote_number;
     setSelectedLabel(label);
     setSelectedQuoteId(q.id);
+    // If we already know the project for this quote, pre-fill so the entry
+    // gets a project_id even on the legacy `select by quote` path.
+    const linked = projects?.find((p) => p.quote_id === q.id);
+    setSelectedProjectId(linked?.id ?? null);
+  }
+  function pickProject(p: Project) {
+    setSelectedLabel(p.name);
+    setSelectedQuoteId(p.quote_id ?? null);
+    setSelectedProjectId(p.id);
   }
 
   async function handleSave() {
@@ -145,7 +171,7 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const result = await onSubmit({ start, end, project_label: selectedLabel, quote_id: selectedQuoteId, description });
+      const result = await onSubmit({ start, end, project_label: selectedLabel, quote_id: selectedQuoteId, project_id: selectedProjectId, description });
       if (!result.ok) setSubmitError(result.error ?? "Speichern nicht möglich");
     } finally {
       setSubmitting(false);
@@ -167,6 +193,16 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
     (projectFreq.get(b.project_description || b.quote_number) || 0) -
     (projectFreq.get(a.project_description || a.quote_number) || 0),
   );
+
+  // SCH-921 K3-Q1 — manual projects (no quote_id) that aren't already covered
+  // by a quote-button above. Sorted by frequency so heavily-used internal
+  // projects like "Recruiting" surface first.
+  const manualProjects = useMemo(() => {
+    if (!projects) return [];
+    return projects
+      .filter((p) => !p.quote_id && p.status !== "archived")
+      .sort((a, b) => (projectFreq.get(b.name) || 0) - (projectFreq.get(a.name) || 0));
+  }, [projects, projectFreq]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCancel}>
@@ -240,19 +276,42 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
                 <p className="text-xs text-[var(--text-muted)]">Keine Kategorien konfiguriert.</p>
               )}
               {pickerTab === "projekte" && (
-                sortedQuotes.length > 0
-                  ? sortedQuotes.map((q) => {
-                      const label = q.project_description || q.quote_number;
-                      const isActive = selectedLabel === label && selectedQuoteId === q.id;
-                      return (
-                        <button
-                          key={q.id}
-                          onClick={() => pickQuote(q)}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${isActive ? "bg-[var(--brand-orange)] text-white" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)]"}`}
-                        >{label}</button>
-                      );
-                    })
-                  : <p className="text-xs text-[var(--text-muted)]">Keine freigegebenen Angebote.</p>
+                <>
+                  {sortedQuotes.map((q) => {
+                    const label = q.project_description || q.quote_number;
+                    const isActive = selectedLabel === label && selectedQuoteId === q.id;
+                    return (
+                      <button
+                        key={q.id}
+                        onClick={() => pickQuote(q)}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${isActive ? "bg-[var(--brand-orange)] text-white" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)]"}`}
+                      >{label}</button>
+                    );
+                  })}
+                  {manualProjects.map((p) => {
+                    const isActive = selectedProjectId === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => pickProject(p)}
+                        title={p.is_billable === false ? "Internes Projekt" : "Verrechenbar"}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${isActive ? "bg-[var(--brand-orange)] text-white" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)]"}`}
+                      >
+                        {p.name}
+                        {p.is_billable === false && (
+                          <span className="ml-1 text-[9px] uppercase opacity-70">intern</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => setShowNewProjectModal(true)}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--brand-orange)] hover:text-[var(--brand-orange)] transition"
+                  >+ Neues Projekt</button>
+                  {sortedQuotes.length === 0 && manualProjects.length === 0 && (
+                    <p className="w-full text-xs text-[var(--text-muted)] mt-1">Noch keine Projekte — lege eines an.</p>
+                  )}
+                </>
               )}
               {pickerTab === "other" && sonstigesLabels.map((item) => (
                 <button
@@ -308,6 +367,19 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
           </div>
         </div>
       </div>
+
+      {showNewProjectModal && (
+        <NewProjectModal
+          quotes={quotes}
+          existingProjects={projects ?? []}
+          onCancel={() => setShowNewProjectModal(false)}
+          onCreated={(p) => {
+            onProjectCreated?.(p);
+            pickProject(p);
+            setShowNewProjectModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
