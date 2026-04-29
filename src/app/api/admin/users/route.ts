@@ -45,8 +45,85 @@ export async function PATCH(request: Request) {
   const companyRecord = Array.isArray(rawCompany) ? rawCompany[0] : rawCompany;
   const companyName = companyRecord?.name || "Orange Octo";
 
-  if (userAction !== "set_temp_password" && userAction !== "send_temp_password_email") {
+  if (
+    userAction !== "set_temp_password" &&
+    userAction !== "send_temp_password_email" &&
+    userAction !== "update_user"
+  ) {
     return Response.json({ error: "Unbekannte Aktion" }, { status: 400 });
+  }
+
+  // SCH-918 K3-V3 — Admin-Edit-Always: change email + profile fields on
+  // a target user from the same company. Email change is mirrored to
+  // auth.users so the user can keep logging in with the new address.
+  if (userAction === "update_user") {
+    const body = (await request
+      .clone()
+      .json()
+      .catch(() => null)) as
+      | {
+          email?: unknown;
+          display_name?: unknown;
+        }
+      | null;
+    const newEmail =
+      typeof body?.email === "string" && body.email.trim() ? body.email.trim().toLowerCase() : null;
+    const newDisplayName =
+      typeof body?.display_name === "string" && body.display_name.trim()
+        ? body.display_name.trim()
+        : null;
+
+    if (!newEmail && !newDisplayName) {
+      return Response.json(
+        { error: "Mindestens email oder display_name muss gesetzt sein" },
+        { status: 400 },
+      );
+    }
+    if (newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      return Response.json(
+        { error: "Ungültiges E-Mail-Format" },
+        { status: 400 },
+      );
+    }
+
+    // 1) Update Supabase Auth email FIRST. If this fails (e.g. duplicate),
+    //    bail out before touching the profile so the two stay consistent.
+    if (newEmail) {
+      const { error: authErr } = await service.auth.admin.updateUserById(targetAuthUserId, {
+        email: newEmail,
+        email_confirm: true,
+      });
+      if (authErr) {
+        const status = /already|exists|registered/i.test(authErr.message ?? "") ? 409 : 500;
+        return Response.json({ error: authErr.message }, { status });
+      }
+    }
+
+    // 2) Mirror onto user_profiles.
+    const profileUpdate: Record<string, unknown> = {};
+    if (newEmail) profileUpdate.email = newEmail;
+    if (newDisplayName) profileUpdate.display_name = newDisplayName;
+    const { error: profErr } = await service
+      .from("user_profiles")
+      .update(profileUpdate)
+      .eq("auth_user_id", targetAuthUserId);
+    if (profErr) {
+      return Response.json({ error: profErr.message }, { status: 500 });
+    }
+
+    await logCompanyAuditAction(
+      auth.user!.id,
+      companyId,
+      "user.update_profile",
+      "user",
+      targetAuthUserId,
+    );
+
+    return Response.json({
+      updated: true,
+      email_changed: !!newEmail,
+      display_name_changed: !!newDisplayName,
+    });
   }
 
   const tempPassword = generateTempPassword();
