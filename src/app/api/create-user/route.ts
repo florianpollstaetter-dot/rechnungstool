@@ -27,6 +27,44 @@ import {
 // Rollback order on failure: if user_profile or company_members insert fails,
 // we delete the freshly-created auth user so the admin can retry without
 // email collisions piling up.
+//
+// SCH-934 — auto-cleanup of pre-existing orphan auth.users rows. Florian hit
+// `orphan_detected` on a clean MA create because earlier failed signups left
+// half-state rows in auth.users (no user_profile) that the SCH-829 hardening
+// only flagged via an error message + manual User-Diagnose flow. We now treat
+// a true orphan (auth.users row + no user_profile) as a recoverable state:
+// drop the dangling auth row + any leftover memberships/role assignments,
+// then continue with createUser. Email is normalised to lowercase to match
+// Supabase's auth.users canonicalisation (same fix as register-company in
+// SCH-928), so a mixed-case admin entry can't sneak past the pre-flight.
+async function findOrphanAuthUserId(
+  service: ReturnType<typeof createServiceClient>,
+  email: string,
+): Promise<string | null> {
+  const target = email.toLowerCase();
+  for (let page = 1; page <= 50; page++) {
+    const { data, error } = await service.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const users = data?.users || [];
+    const hit = users.find((u) => (u.email || "").toLowerCase() === target);
+    if (hit) return hit.id;
+    if (users.length < 1000) return null;
+  }
+  return null;
+}
+
+async function cleanupOrphanAuthUser(
+  service: ReturnType<typeof createServiceClient>,
+  authUserId: string,
+) {
+  // Same delete order as user-diagnose: downstream rows first so the auth
+  // row remains as a marker if anything fails mid-flight.
+  await service.from("user_role_assignments").delete().eq("user_id", authUserId);
+  await service.from("company_members").delete().eq("user_id", authUserId);
+  await service.from("user_profiles").delete().eq("auth_user_id", authUserId);
+  await service.auth.admin.deleteUser(authUserId);
+}
+
 type RequestBody = {
   email?: string;
   password?: string;
@@ -43,7 +81,10 @@ export async function POST(request: Request) {
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
   const body = (await request.json().catch(() => ({}))) as RequestBody;
-  const email = body.email?.trim();
+  // SCH-934 — lowercase to match auth.users canonicalisation. Without this a
+  // mixed-case admin entry slips past the user_profiles pre-flight (text =,
+  // case-sensitive) and trips createUser's lowercase-collision instead.
+  const email = body.email?.trim().toLowerCase();
   const password = body.password;
   const display_name = body.display_name?.trim() || email || "";
   const role = body.role || "employee";
@@ -106,17 +147,36 @@ export async function POST(request: Request) {
 
   const service = createServiceClient();
 
-  // SCH-829: pre-flight orphan detection. If the email exists in auth.users
-  // already, only allow the create flow to proceed if there is no associated
-  // user_profile — otherwise the email is genuinely taken. If we detect an
-  // orphan (auth row but no profile), surface a clearly-marked error so the
-  // admin can resolve it via the User-Diagnose tool instead of seeing the raw
-  // "already registered" message and getting stuck.
+  // SCH-829 / SCH-934: pre-flight collision + orphan detection. If
+  // user_profiles already has the email it is a real collision — block.
+  // If only auth.users has the email (no user_profile), it's a leftover
+  // half-state from a previously aborted signup; SCH-934 recovers it
+  // automatically by hard-deleting the dangling auth row + any stray
+  // memberships/role assignments before re-running createUser. The admin
+  // gate already authorises this destructive recovery — the orphan has no
+  // login-capable profile so nothing of value is lost.
   const { data: existingProfile } = await service
     .from("user_profiles")
     .select("auth_user_id")
     .eq("email", email)
     .maybeSingle();
+  if (existingProfile) {
+    return Response.json(
+      { error: "email_exists", message: "Diese Email-Adresse ist bereits vergeben." },
+      { status: 409 },
+    );
+  }
+
+  try {
+    const orphanAuthId = await findOrphanAuthUserId(service, email);
+    if (orphanAuthId) {
+      await cleanupOrphanAuthUser(service, orphanAuthId);
+    }
+  } catch (err) {
+    console.error("create-user: orphan pre-cleanup failed", err);
+    // Fall through to createUser; if a true collision remains the
+    // structured error path below will surface it.
+  }
 
   const { data: createdUser, error: createErr } = await service.auth.admin.createUser({
     email,
@@ -125,16 +185,17 @@ export async function POST(request: Request) {
   });
   if (createErr) {
     const msg = createErr.message || "";
-    const looksLikeCollision = /already|registered|exists/i.test(msg);
-    if (looksLikeCollision && !existingProfile) {
+    const code = (createErr as { code?: string }).code;
+    const looksLikeCollision =
+      code === "email_exists" ||
+      code === "user_already_exists" ||
+      /already|registered|exists/i.test(msg);
+    if (looksLikeCollision) {
+      // After auto-cleanup this should mean a real collision arrived
+      // between the cleanup and createUser (extremely unlikely outside a
+      // races with a concurrent signup). Treat it as a genuine duplicate.
       return Response.json(
-        {
-          error: "orphan_detected",
-          message:
-            "Für diese E-Mail existiert bereits ein verwaister Auth-Eintrag ohne User-Profil. " +
-            "Bitte über Admin → User-Diagnose aufräumen und erneut versuchen.",
-          email,
-        },
+        { error: "email_exists", message: "Diese Email-Adresse ist bereits vergeben." },
         { status: 409 },
       );
     }
