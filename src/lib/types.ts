@@ -519,6 +519,39 @@ export const DEFAULT_SMART_INSIGHTS_CONFIG: Omit<SmartInsightsConfig, "id" | "co
   overtime_threshold_pct: 0.1,
 };
 
+// SCH-921 K2-J1 — Admin-managed labels for the Zeiterfassung "Allgemein" /
+// "Sonstiges" tabs. Replaces the hardcoded GENERAL_ITEMS / OTHER_ITEMS lists.
+export type GeneralCategoryGroup = "allgemein" | "sonstiges";
+
+export interface GeneralCategory {
+  id: string;
+  company_id: string;
+  label: string;
+  group_key: GeneralCategoryGroup;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Fallback labels used only when the company has no `general_categories`
+// rows yet (e.g. legacy companies migrated before the SCH-921 seed). Keeps
+// the modal usable even on a fresh tenant.
+export const DEFAULT_GENERAL_CATEGORIES: { label: string; group_key: GeneralCategoryGroup }[] = [
+  { label: "Daily", group_key: "allgemein" },
+  { label: "Weekly", group_key: "allgemein" },
+  { label: "Meeting Team", group_key: "allgemein" },
+  { label: "Meeting Agentur", group_key: "allgemein" },
+  { label: "Neues Projekt", group_key: "allgemein" },
+  { label: "Briefing", group_key: "allgemein" },
+  { label: "Administration", group_key: "allgemein" },
+  { label: "E-Mails", group_key: "allgemein" },
+  { label: "Weiterbildung", group_key: "sonstiges" },
+  { label: "Reise", group_key: "sonstiges" },
+  { label: "Krankheit", group_key: "sonstiges" },
+  { label: "Urlaub", group_key: "sonstiges" },
+  { label: "Sonstiges", group_key: "sonstiges" },
+];
+
 // SCH-366 Modul 1 — Dashboard-Layout-Persistenz pro User. Das layout_json
 // enthält das react-grid-layout-Objekt opak; die UI ist die einzige
 // Schreib-/Leseinstanz. dashboard_key erlaubt mehrere benannte Dashboards

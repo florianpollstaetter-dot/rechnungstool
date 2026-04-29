@@ -13,6 +13,7 @@ import type { SuggestedCompanyData } from "@/components/AiCompanySetup";
 import SubscriptionSection from "@/components/SubscriptionSection";
 import OnboardingTour from "@/components/OnboardingTour";
 import UserWorkScheduleSection from "@/components/UserWorkScheduleSection";
+import GeneralCategoriesSection from "@/components/GeneralCategoriesSection";
 
 const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent";
 
@@ -525,6 +526,9 @@ export default function SettingsPage() {
       <div className="mb-6">
         <UserWorkScheduleSection />
       </div>
+
+      {/* SCH-921 K2-J1 — Admin-managed Allgemein/Sonstiges labels. */}
+      {isAdmin && <GeneralCategoriesSection />}
 
       {/* 4. Unternehmensdaten + company form (company type, bank, payment terms, accompanying text) */}
       {(canManageCompany || canWriteInvoices) && (

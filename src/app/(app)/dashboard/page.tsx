@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Invoice, Customer, Quote, CompanySettings, FixedCost, Receipt, Project } from "@/lib/types";
-import { getInvoices, getCustomers, getQuotes, getSettings, getActiveFixedCosts, getReceipts, getSmartInsightsConfig, getProjects } from "@/lib/db";
+import { getInvoices, getCustomers, getQuotes, getSettings, getActiveFixedCosts, getReceipts, getSmartInsightsConfig, getProjects, getProjectLoggedMinutes } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import { SmartInsight, SmartInsightContext, buildSmartInsightRules, evaluateSmartInsights } from "@/lib/smart-insights";
 import { getTipOfTheDay } from "@/lib/tips";
@@ -76,9 +76,13 @@ export default function DashboardPage() {
 
       const thisWeek = periodPreset("this_week");
       const lastWeek = periodPreset("last_week");
-      const [currentEntries, priorEntries] = await Promise.all([
+      // SCH-921 K2-E1 — also fetch cumulative project minutes so the
+      // Budget-Überschreitungs-Insight compares against lifetime hours,
+      // not just this week. `getProjectLoggedMinutes` returns Map<projectId, minutes>.
+      const [currentEntries, priorEntries, cumulativeProjectMinutes] = await Promise.all([
         getTimeReportEntries({ startDate: thisWeek.startDate, endDate: thisWeek.endDate }),
         getTimeReportEntries({ startDate: lastWeek.startDate, endDate: lastWeek.endDate }),
+        getProjectLoggedMinutes(),
       ]);
 
       const projectBudgets = new Map<string, { budgetHours: number; name: string }>();
@@ -93,6 +97,7 @@ export default function DashboardPage() {
         priorEntries,
         periodLabel: thisWeek.label,
         projectBudgets: projectBudgets.size > 0 ? projectBudgets : undefined,
+        cumulativeProjectMinutes: cumulativeProjectMinutes.size > 0 ? cumulativeProjectMinutes : undefined,
       };
 
       setInsights(evaluateSmartInsights(ctx, rules));

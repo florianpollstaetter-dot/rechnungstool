@@ -2,8 +2,8 @@
 
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { TimeEntry, Quote, UserWorkSchedule } from "@/lib/types";
-import { getTimeEntries, getActiveTimer, createTimeEntry, updateTimeEntry, deleteTimeEntry, getQuotes, getCurrentUserName, getCurrentUserWorkSchedules } from "@/lib/db";
+import { TimeEntry, Quote, UserWorkSchedule, GeneralCategory } from "@/lib/types";
+import { getTimeEntries, getActiveTimer, createTimeEntry, updateTimeEntry, deleteTimeEntry, getQuotes, getCurrentUserName, getCurrentUserWorkSchedules, getGeneralCategories } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { useCompany } from "@/lib/company-context";
 import { createClient } from "@/lib/supabase/client";
@@ -99,6 +99,8 @@ function TimePageInner() {
   const [editForm, setEditForm] = useState({ project_label: "", description: "", duration_minutes: 0 });
   const [viewMode, setViewMode] = useState<"list" | "calendar" | "auswertung">(initialView);
   const [workSchedule, setWorkSchedule] = useState<UserWorkSchedule[]>([]);
+  // SCH-921 K2-J1 — admin-managed Allgemein/Sonstiges labels.
+  const [generalCategories, setGeneralCategories] = useState<GeneralCategory[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -113,11 +115,12 @@ function TimePageInner() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setUserId(user.id);
-    const [e, q, timer, sch] = await Promise.all([getTimeEntries(user.id), getQuotes(), getActiveTimer(user.id), getCurrentUserWorkSchedules()]);
+    const [e, q, timer, sch, cats] = await Promise.all([getTimeEntries(user.id), getQuotes(), getActiveTimer(user.id), getCurrentUserWorkSchedules(), getGeneralCategories()]);
     setEntries(e);
     setQuotes(q.filter((qt) => qt.status === "accepted" || qt.status === "sent"));
     setActiveTimerState(timer);
     setWorkSchedule(sch);
+    setGeneralCategories(cats);
     if (timer) { setSelectedProject(timer.project_label); setSavedDescription(timer.description || ""); }
     setLoading(false);
   }, []);
@@ -148,12 +151,26 @@ function TimePageInner() {
   entries.forEach((e) => { projectFreq.set(e.project_label, (projectFreq.get(e.project_label) || 0) + 1); });
   const allProjectLabels = Array.from(new Set(entries.map((e) => e.project_label))).sort((a, b) => (projectFreq.get(b) || 0) - (projectFreq.get(a) || 0));
 
+  // SCH-921 K2-J1 — choose between admin-managed labels and translated
+  // defaults for the Allgemein + Sonstiges quick-start buttons. The modal
+  // already does this internally via `generalCategories`; we mirror the same
+  // logic here so the inline list-view picker reflects admin changes.
+  const allgemeinItems = generalCategories.length > 0
+    ? generalCategories.filter((c) => c.group_key === "allgemein").map((c) => ({ value: c.label, label: c.label }))
+    : GENERAL_ITEM_KEYS.map((i) => ({ value: i.value, label: t(i.key) }));
+  const sonstigesItems = generalCategories.length > 0
+    ? generalCategories.filter((c) => c.group_key === "sonstiges").map((c) => ({ value: c.label, label: c.label }))
+    : OTHER_ITEM_KEYS.map((i) => ({ value: i.value, label: t(i.key) }));
+
   // SCH-819 Bug 2 — freeform project labels (Pitch, HR, IT, etc.) used in past
   // entries that are not linked to a quote and aren't predefined Allgemein/Other items.
+  // Reserved set covers both the legacy hardcoded values AND any current
+  // admin-managed labels so renames don't leak into the project list.
   const quoteLabels = new Set(quotes.map((q) => q.project_description || q.quote_number));
   const reservedLabels = new Set<string>([
     ...GENERAL_ITEM_KEYS.map((i) => i.value),
     ...OTHER_ITEM_KEYS.map((i) => i.value),
+    ...generalCategories.map((c) => c.label),
     "Pause",
   ]);
   const customProjectLabels = Array.from(
@@ -462,10 +479,10 @@ function TimePageInner() {
                 ))}
               </div>
               <div key={pickerTab} className="tab-content-enter flex flex-wrap gap-2 pt-3 pb-1">
-                {pickerTab === "allgemein" && GENERAL_ITEM_KEYS.map((item) => (
+                {pickerTab === "allgemein" && allgemeinItems.map((item) => (
                   <button key={item.value} onClick={() => handleStart(item.value)}
                     className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
-                  >{t(item.key)}</button>
+                  >{item.label}</button>
                 ))}
                 {pickerTab === "projekte" && (
                   <>
@@ -493,10 +510,10 @@ function TimePageInner() {
                     )}
                   </>
                 )}
-                {pickerTab === "other" && OTHER_ITEM_KEYS.map((item) => (
+                {pickerTab === "other" && sonstigesItems.map((item) => (
                   <button key={item.value} onClick={() => handleStart(item.value)}
                     className="px-3 py-2 text-xs font-medium rounded-lg bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)] transition"
-                  >{t(item.key)}</button>
+                  >{item.label}</button>
                 ))}
               </div>
             </div>
@@ -585,6 +602,7 @@ function TimePageInner() {
           allProjectLabels={allProjectLabels}
           getProjectColor={getProjectColor}
           schedule={workSchedule}
+          generalCategories={generalCategories}
           onCreate={handleCalendarCreate}
           onEdit={handleCalendarEdit}
           onDelete={async (id) => { await deleteTimeEntry(id); await loadData(); }}

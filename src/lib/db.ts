@@ -31,6 +31,9 @@ import {
   UserRoleAssignment,
   SmartInsightsConfig,
   DEFAULT_SMART_INSIGHTS_CONFIG,
+  GeneralCategory,
+  GeneralCategoryGroup,
+  DEFAULT_GENERAL_CATEGORIES,
   QuoteDesignPhoto,
   QuoteDesignSelection,
   QuoteDesignKey,
@@ -651,6 +654,22 @@ export async function updateQuote(
     "updateQuote",
   );
 
+  // SCH-921 K2-F1 — auto-create a Project when a quote transitions to
+  // "accepted" so it becomes immediately bookable in the time tracker.
+  // `createProjectFromQuote` is idempotent on quote_id, so calling it from
+  // every accept-path (popup, list status change, convertQuoteToInvoice)
+  // is safe. Failures are logged but do NOT roll back the status change —
+  // the quote was successfully accepted from the user's perspective and
+  // the project can be created later via the popup or API.
+  if (data.status === "accepted") {
+    try {
+      await createProjectFromQuote(id);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[SCH-921 K2-F1] Auto-create project failed:", err);
+    }
+  }
+
   if (items) {
     throwOnMutationError(
       await supabase().from("quote_items").delete().eq("quote_id", id),
@@ -1005,6 +1024,28 @@ export async function deleteTask(id: string): Promise<void> {
   await supabase().from("tasks").delete().eq("id", id);
 }
 
+// SCH-921 K2-E1 — Cumulative logged minutes per project for the active
+// company. Used by the budget-overshoot smart insight so it compares the
+// project's full lifetime against `projects.budget_hours`, not just the
+// current week. Aggregates client-side off a single SELECT to keep the
+// number of round-trips down; per-row cost is fine for a normal company
+// (usually a few thousand entries at most).
+export async function getProjectLoggedMinutes(): Promise<Map<string, number>> {
+  const { data, error } = await supabase()
+    .from("time_entries")
+    .select("project_id, duration_minutes")
+    .eq("company_id", getActiveCompanyId())
+    .eq("entry_type", "work")
+    .not("project_id", "is", null);
+  if (error) throw new Error(error.message);
+  const totals = new Map<string, number>();
+  for (const row of (data ?? []) as Array<{ project_id: string | null; duration_minutes: number | null }>) {
+    if (!row.project_id) continue;
+    totals.set(row.project_id, (totals.get(row.project_id) ?? 0) + (Number(row.duration_minutes) || 0));
+  }
+  return totals;
+}
+
 // Promote a Quote into a Project + Tasks (one per QuoteItem). Idempotent on
 // quote_id: if a project already exists for this quote, we return it without
 // re-inserting tasks. Safe to call from the UI on quote acceptance; the server
@@ -1227,6 +1268,77 @@ export async function getUsersWithRole(
       (row.user_profiles as Record<string, unknown>)?.display_name as string ??
       "",
   }));
+}
+
+// General Categories (SCH-921 K2-J1 — Admin-managed Allgemein/Sonstiges labels)
+
+export async function getGeneralCategories(): Promise<GeneralCategory[]> {
+  const { data } = await supabase()
+    .from("general_categories")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .order("group_key")
+    .order("sort_order")
+    .order("label");
+  const rows = (data ?? []).map(mapGeneralCategory);
+  // Fall back to the hardcoded defaults if the company has no rows yet —
+  // keeps the modal usable on legacy tenants that haven't been seeded by
+  // the SCH-921 migration.
+  if (rows.length === 0) {
+    return DEFAULT_GENERAL_CATEGORIES.map((c, i) => ({
+      id: `default:${c.group_key}:${c.label}`,
+      company_id: getActiveCompanyId(),
+      label: c.label,
+      group_key: c.group_key,
+      sort_order: (i + 1) * 10,
+      created_at: "",
+      updated_at: "",
+    }));
+  }
+  return rows;
+}
+
+export async function createGeneralCategory(
+  input: { label: string; group_key: GeneralCategoryGroup; sort_order?: number },
+): Promise<GeneralCategory> {
+  const result = await supabase()
+    .from("general_categories")
+    .insert({
+      company_id: getActiveCompanyId(),
+      label: input.label.trim(),
+      group_key: input.group_key,
+      sort_order: input.sort_order ?? 0,
+    })
+    .select()
+    .single();
+  return mapGeneralCategory(requireRow(result, "createGeneralCategory"));
+}
+
+export async function updateGeneralCategory(
+  id: string,
+  updates: Partial<Pick<GeneralCategory, "label" | "group_key" | "sort_order">>,
+): Promise<GeneralCategory> {
+  const patch: Record<string, unknown> = { ...updates };
+  if (typeof updates.label === "string") patch.label = updates.label.trim();
+  const result = await supabase()
+    .from("general_categories")
+    .update(patch)
+    .eq("id", id)
+    .eq("company_id", getActiveCompanyId())
+    .select()
+    .single();
+  return mapGeneralCategory(requireRow(result, "updateGeneralCategory"));
+}
+
+export async function deleteGeneralCategory(id: string): Promise<void> {
+  throwOnMutationError(
+    await supabase()
+      .from("general_categories")
+      .delete()
+      .eq("id", id)
+      .eq("company_id", getActiveCompanyId()),
+    "deleteGeneralCategory",
+  );
 }
 
 // Smart Insights Config (SCH-366 — Admin-konfigurierbare Schwellwerte) --------
@@ -1739,6 +1851,19 @@ function mapSmartInsightsConfig(row: Record<string, unknown>): SmartInsightsConf
     budget_overshoot_warn_pct: Number(row.budget_overshoot_warn_pct ?? DEFAULT_SMART_INSIGHTS_CONFIG.budget_overshoot_warn_pct),
     budget_overshoot_critical_pct: Number(row.budget_overshoot_critical_pct ?? DEFAULT_SMART_INSIGHTS_CONFIG.budget_overshoot_critical_pct),
     overtime_threshold_pct: Number(row.overtime_threshold_pct ?? DEFAULT_SMART_INSIGHTS_CONFIG.overtime_threshold_pct),
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+function mapGeneralCategory(row: Record<string, unknown>): GeneralCategory {
+  const group = row.group_key === "sonstiges" ? "sonstiges" : "allgemein";
+  return {
+    id: row.id as string,
+    company_id: row.company_id as string,
+    label: (row.label as string) || "",
+    group_key: group as GeneralCategoryGroup,
+    sort_order: Number(row.sort_order ?? 0),
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

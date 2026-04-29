@@ -49,6 +49,10 @@ export interface SmartInsightContext {
   periodLabel?: string;
   /** Projekt-Budgets: Map projectId → { budgetHours, projectName }. */
   projectBudgets?: Map<string, { budgetHours: number; name: string }>;
+  /** SCH-921 K2-E1 — kumulative gebuchte Minuten pro Projekt (Lifetime,
+   *  unabhängig von der aktuellen Periode). Wenn gesetzt, nutzt die
+   *  Budget-Überschreitungs-Rule diesen Wert anstelle von `currentEntries`. */
+  cumulativeProjectMinutes?: Map<string, number>;
   /** Soll-Stunden pro User im Zeitraum (aus user_work_schedules berechnet). */
   expectedHoursPerUser?: Map<string, { expectedHours: number; userName: string }>;
 }
@@ -225,27 +229,39 @@ export function budgetOvershootRule(
   const criticalPct = opts.criticalPct ?? DEFAULT_SMART_INSIGHTS_CONFIG.budget_overshoot_critical_pct;
   return {
     id: "budget-overshoot",
-    evaluate({ currentEntries, projectBudgets }) {
+    evaluate({ currentEntries, projectBudgets, cumulativeProjectMinutes }) {
       if (!projectBudgets || projectBudgets.size === 0) return [];
 
-      const byProject = new Map<string, number>();
-      for (const e of currentEntries) {
-        if (!e.project_id) continue;
-        byProject.set(e.project_id, (byProject.get(e.project_id) ?? 0) + (Number(e.duration_minutes) || 0));
+      // SCH-921 K2-E1 — prefer the lifetime-cumulative map when the caller
+      // provides it (dashboard now does), so projects that have already
+      // spent their full budget across many weeks still surface even when
+      // no time was logged this week. Fall back to deriving from the
+      // current period's entries to stay backwards-compatible with older
+      // callers.
+      const byProject = new Map<string, number>(cumulativeProjectMinutes ?? []);
+      if (!cumulativeProjectMinutes || cumulativeProjectMinutes.size === 0) {
+        for (const e of currentEntries) {
+          if (!e.project_id) continue;
+          byProject.set(e.project_id, (byProject.get(e.project_id) ?? 0) + (Number(e.duration_minutes) || 0));
+        }
       }
 
       const insights: SmartInsight[] = [];
       for (const [projectId, budget] of projectBudgets) {
         const loggedMinutes = byProject.get(projectId) ?? 0;
         const loggedHours = loggedMinutes / 60;
-        const ratio = loggedHours / budget.budgetHours;
+        const ratio = budget.budgetHours > 0 ? loggedHours / budget.budgetHours : 0;
         if (ratio < warnPct) continue;
 
-        const severity: InsightSeverity = ratio >= criticalPct ? "critical" : "warning";
+        const severity: InsightSeverity =
+          ratio >= 1 ? "critical" : ratio >= criticalPct ? "critical" : "warning";
+        const title = ratio >= 1
+          ? "Budget überschritten"
+          : severity === "critical" ? "Budget fast aufgebraucht" : "Budget-Warnung";
         insights.push({
           id: `budget-overshoot:${projectId}`,
           severity,
-          title: severity === "critical" ? "Budget fast aufgebraucht" : "Budget-Warnung",
+          title,
           body:
             `**${budget.name}**: ${formatHours(loggedMinutes)} von ` +
             `${budget.budgetHours.toFixed(1)}h Budget verbraucht (**${formatPct(ratio)}**).`,

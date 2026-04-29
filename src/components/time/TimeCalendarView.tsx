@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TimeEntry, Quote, UserWorkSchedule } from "@/lib/types";
+import { TimeEntry, Quote, UserWorkSchedule, GeneralCategory } from "@/lib/types";
 import { TimeCalendarCreateModal, ModalResult, EditData } from "./TimeCalendarCreateModal";
 
 type ViewMode = "week" | "day";
@@ -14,6 +14,9 @@ interface Props {
   allProjectLabels: string[];
   getProjectColor: (label: string, all: string[]) => string;
   schedule: UserWorkSchedule[];
+  /** SCH-921 K2-J1 — admin-managed Allgemein/Sonstiges labels passed
+   *  through to the create modal. */
+  generalCategories?: GeneralCategory[];
   onCreate: (result: ModalResult) => Promise<void>;
   onEdit: (id: string, result: ModalResult) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -101,6 +104,7 @@ export function TimeCalendarView({
   allProjectLabels,
   getProjectColor,
   schedule,
+  generalCategories,
   onCreate,
   onEdit,
   onDelete,
@@ -485,6 +489,7 @@ export function TimeCalendarView({
           initialEnd={editInit?.end ?? modalInit!.end}
           quotes={quotes}
           projectFreq={projectFreq}
+          generalCategories={generalCategories}
           editData={editInit ?? undefined}
           onCancel={handleModalCancel}
           onSubmit={handleModalSubmit}

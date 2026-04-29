@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Quote } from "@/lib/types";
+import { useEffect, useMemo, useState } from "react";
+import { Quote, GeneralCategory, DEFAULT_GENERAL_CATEGORIES } from "@/lib/types";
 import { TabButton } from "@/components/TabButton";
-
-const GENERAL_ITEMS = ["Daily", "Weekly", "Meeting Team", "Meeting Agentur", "Neues Projekt", "Briefing", "Administration", "E-Mails"];
-const OTHER_ITEMS = ["Weiterbildung", "Reise", "Krankheit", "Urlaub", "Sonstiges"];
 
 type PickerTab = "allgemein" | "projekte" | "other";
 
@@ -31,6 +28,9 @@ interface Props {
   initialEnd: Date;
   quotes: Quote[];
   projectFreq: Map<string, number>;
+  /** SCH-921 K2-J1 — admin-managed Allgemein/Sonstiges labels. Falls back to
+   *  the hardcoded defaults when the company has no rows yet. */
+  generalCategories?: GeneralCategory[];
   editData?: EditData;
   onCancel: () => void;
   onSubmit: (result: ModalResult) => Promise<{ ok: boolean; error?: string }>;
@@ -63,7 +63,20 @@ function formatDuration(minutes: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, projectFreq, editData, onCancel, onSubmit, onDelete }: Props) {
+export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, projectFreq, generalCategories, editData, onCancel, onSubmit, onDelete }: Props) {
+  // SCH-921 K2-J1 — split admin-managed labels into the two picker tabs.
+  // Empty/undefined input falls back to the hardcoded defaults so the modal
+  // is never empty for tenants seeded before this migration.
+  const { allgemeinLabels, sonstigesLabels } = useMemo(() => {
+    const source: { label: string; group_key: "allgemein" | "sonstiges" }[] =
+      generalCategories && generalCategories.length > 0
+        ? generalCategories.map((c) => ({ label: c.label, group_key: c.group_key }))
+        : DEFAULT_GENERAL_CATEGORIES;
+    return {
+      allgemeinLabels: source.filter((c) => c.group_key === "allgemein").map((c) => c.label),
+      sonstigesLabels: source.filter((c) => c.group_key === "sonstiges").map((c) => c.label),
+    };
+  }, [generalCategories]);
   const isEdit = !!editData;
   const [start, setStart] = useState(editData?.start ?? initialStart);
   const [end, setEnd] = useState(editData?.end ?? initialEnd);
@@ -216,13 +229,16 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
               ))}
             </div>
             <div key={pickerTab} className="tab-content-enter flex flex-wrap gap-2 pt-3 pb-1 max-h-36 overflow-y-auto">
-              {pickerTab === "allgemein" && GENERAL_ITEMS.map((item) => (
+              {pickerTab === "allgemein" && allgemeinLabels.map((item) => (
                 <button
                   key={item}
                   onClick={() => pickGeneral(item)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${selectedLabel === item ? "bg-[var(--brand-orange)] text-white" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)]"}`}
                 >{item}</button>
               ))}
+              {pickerTab === "allgemein" && allgemeinLabels.length === 0 && (
+                <p className="text-xs text-[var(--text-muted)]">Keine Kategorien konfiguriert.</p>
+              )}
               {pickerTab === "projekte" && (
                 sortedQuotes.length > 0
                   ? sortedQuotes.map((q) => {
@@ -238,13 +254,16 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
                     })
                   : <p className="text-xs text-[var(--text-muted)]">Keine freigegebenen Angebote.</p>
               )}
-              {pickerTab === "other" && OTHER_ITEMS.map((item) => (
+              {pickerTab === "other" && sonstigesLabels.map((item) => (
                 <button
                   key={item}
                   onClick={() => pickOther(item)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${selectedLabel === item ? "bg-[var(--brand-orange)] text-white" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)]"}`}
                 >{item}</button>
               ))}
+              {pickerTab === "other" && sonstigesLabels.length === 0 && (
+                <p className="text-xs text-[var(--text-muted)]">Keine Kategorien konfiguriert.</p>
+              )}
             </div>
           </div>
 
