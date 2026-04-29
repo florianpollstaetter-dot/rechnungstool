@@ -387,7 +387,7 @@ export default function AppSidebar() {
         {navContent}
       </aside>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — SCH-919 K2-O2: anchored to the right edge on mobile */}
       {mobileOpen && (
         <>
           <div
@@ -396,14 +396,14 @@ export default function AppSidebar() {
             aria-hidden="true"
           />
           <aside
-            className="lg:hidden fixed top-0 left-0 bottom-0 w-72 max-w-[85vw] bg-[var(--surface)] border-r border-[var(--border)] z-50 flex flex-col"
+            className="lg:hidden fixed top-0 right-0 bottom-0 w-72 max-w-[85vw] bg-[var(--surface)] border-l border-[var(--border)] z-50 flex flex-col"
             aria-label="Hauptnavigation"
           >
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
               aria-label={t("nav.closeSidebar")}
-              className="absolute top-3 right-3 text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 z-10"
+              className="absolute top-3 left-3 text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 z-10"
             >
               <Icon name="close" />
             </button>

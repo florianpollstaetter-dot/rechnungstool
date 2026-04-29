@@ -337,54 +337,61 @@ function TimePageInner() {
 
   if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
 
+  // SCH-919 K2-O4 — Sub-tabs (Liste / Kalender / Auswertung) render directly
+  // under the "Zeiterfassung" heading on mobile, and remain inline next to
+  // the heading on sm+ to keep the existing desktop layout.
+  const viewTabs = (
+    <div className="flex gap-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5" role="tablist" aria-label="Ansicht">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={viewMode === "list"}
+        onClick={() => setViewMode("list")}
+        className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "list" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+        title={t("time.list")}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+          <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+        </svg>
+        {t("time.list")}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={viewMode === "calendar"}
+        onClick={() => setViewMode("calendar")}
+        className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "calendar" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+        title={t("time.calendar")}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        {t("time.calendar")}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={viewMode === "auswertung"}
+        onClick={() => setViewMode("auswertung")}
+        className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "auswertung" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+        title={t("time.analytics")}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+        {t("time.analytics")}
+      </button>
+    </div>
+  );
+
   return (
     <div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-row justify-between items-start sm:items-center gap-3 mb-2 sm:mb-6">
+        <div className="flex items-center gap-3 min-w-0">
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("time.title")}</h1>
-          <div className="flex gap-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5" role="tablist" aria-label="Ansicht">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === "list"}
-              onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "list" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
-              title={t("time.list")}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
-                <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
-              </svg>
-              {t("time.list")}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === "calendar"}
-              onClick={() => setViewMode("calendar")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "calendar" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
-              title={t("time.calendar")}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              {t("time.calendar")}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewMode === "auswertung"}
-              onClick={() => setViewMode("auswertung")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "auswertung" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
-              title={t("time.analytics")}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
-              </svg>
-              {t("time.analytics")}
-            </button>
-          </div>
+          <div className="hidden sm:block">{viewTabs}</div>
         </div>
         <div className="flex items-center gap-4">
           {/* Mini pie chart — clickable to analytics */}
@@ -415,6 +422,9 @@ function TimePageInner() {
           </div>
         </div>
       </div>
+
+      {/* Mobile-only sub-tabs row, sits directly under the heading (K2-O4) */}
+      <div className="sm:hidden mb-6">{viewTabs}</div>
 
       {/* Timer widget */}
       <div className={`bg-[var(--surface)] rounded-xl border-2 ${activeTimer ? (activeTimer.entry_type === "pause" ? "border-amber-500" : "border-emerald-500") : "border-[var(--border)]"} p-5 mb-6 transition`}>

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Unbounded } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
@@ -102,6 +102,19 @@ export const metadata: Metadata = {
   },
 };
 
+// SCH-919 K2-O1 — explicit viewport export so iOS Safari uses device width.
+// `viewportFit: "cover"` lets us reach the safe-area edges (no white gutters
+// left/right per K2-O5). We deliberately do NOT set `maximumScale`/
+// `userScalable: false` — pinch-zoom must stay available for accessibility.
+// The auto-zoom-on-input issue is addressed by the 16px min font-size rule
+// in globals.css.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#f97316",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -110,7 +123,6 @@ export default function RootLayout({
   return (
     <html lang="de" className={`${geist.variable} ${bounded.variable} h-full antialiased`}>
       <head>
-        <meta name="theme-color" content="#f97316" />
         <link rel="apple-touch-icon" href="/brand/octo-icon-orange.png" />
       </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-geist-sans)]">

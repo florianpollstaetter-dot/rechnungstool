@@ -6,8 +6,9 @@
   --surface: #161923;
   --surface-hover: #1e2235;
   --border: #2a2f42;
-  --accent: #00d4ff;
-  --accent-dim: rgba(0, 212, 255, 0.15);
+  /* SCH-919 K2-N2 — orange replaces cyan as the primary accent in dark theme */
+  --accent: #F7901E;
+  --accent-dim: rgba(247, 144, 30, 0.15);
   --gold: #C9A84C;
   --brand-orange: #F7901E;
   --brand-orange-dim: rgba(247, 144, 30, 0.12);
@@ -25,8 +26,9 @@
   --surface: #ffffff;
   --surface-hover: #f0f1f5;
   --border: #d1d5db;
-  --accent: #0099cc;
-  --accent-dim: rgba(0, 153, 204, 0.1);
+  /* SCH-919 K2-N2 — orange replaces blue as the primary accent in light theme */
+  --accent: #E07810;
+  --accent-dim: rgba(224, 120, 16, 0.12);
   --gold: #b8942e;
   --brand-orange: #E07810;
   --brand-orange-dim: rgba(224, 120, 16, 0.10);
@@ -128,12 +130,21 @@
 }
 
 html {
-  scrollbar-gutter: stable;
+  /* SCH-919 K2-O5 — keep scrollbar-gutter on desktop only; on mobile the
+     reserved gutter shows as a blank stripe at the right edge. */
+  scrollbar-gutter: auto;
+}
+@media (min-width: 1024px) {
+  html { scrollbar-gutter: stable; }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  /* SCH-919 K2-O5 — never let an oversized child push the viewport off-screen.
+     `clip` (vs `hidden`) doesn't establish a new scroll container, so sticky
+     elements inside the body keep working. */
+  overflow-x: clip;
 }
 
 /* Hide number input spinners */
@@ -149,6 +160,33 @@ input[type="number"].no-spinners {
 /* Form inputs follow theme */
 input, select, textarea {
   color-scheme: var(--color-scheme);
+}
+
+/* SCH-919 K2-O1 — iOS Safari auto-zooms on focus when a keyboard-driven
+   input's font-size is < 16px. Bump the rendered font-size on small
+   viewports for typed-text inputs only. We deliberately skip number/time/
+   date so dense forms (e.g. Arbeitszeitmodell) keep their compact layout
+   — those types either open native pickers or stepper UIs on iOS. */
+@media (max-width: 767px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  input:not([type]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* SCH-919 K2-N1 — In sand theme the accent is brown (#6B5320). Buttons that
+   hard-code `text-black` next to `bg-[var(--accent)]` become unreadable. We
+   override just that combination so the brown buttons render with white
+   text without touching every component. */
+[data-theme="sand"] [class*="bg-[var(--accent)]"][class*="text-black"] {
+  color: #ffffff;
 }
 
 /* Custom scrollbar */

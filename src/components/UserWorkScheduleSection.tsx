@@ -174,15 +174,17 @@ export default function UserWorkScheduleSection() {
         <div className="py-8 text-center text-[var(--text-muted)] text-sm">{t("common.notSignedIn")}</div>
       ) : (
         <>
-          <div className="bg-[var(--background)] rounded-lg border border-[var(--border)] overflow-hidden overflow-x-auto">
+          {/* SCH-919 K2-O3 — mobile: short weekday + tighter padding/widths so
+              the row fits a 320px viewport without horizontal scroll. */}
+          <div className="bg-[var(--background)] rounded-lg border border-[var(--border)] overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[var(--surface-hover)] text-[10px] uppercase text-[var(--text-muted)]">
-                  <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleDay")}</th>
-                  <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleActive")}</th>
-                  <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleFrom")}</th>
-                  <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleTo")}</th>
-                  <th className="px-3 py-2 text-right font-medium">{t("admin.scheduleDailyTarget")}</th>
+                  <th className="px-1.5 sm:px-3 py-2 text-left font-medium">{t("admin.scheduleDay")}</th>
+                  <th className="px-1 sm:px-3 py-2 text-left font-medium">{t("admin.scheduleActive")}</th>
+                  <th className="px-1.5 sm:px-3 py-2 text-left font-medium">{t("admin.scheduleFrom")}</th>
+                  <th className="px-1.5 sm:px-3 py-2 text-left font-medium">{t("admin.scheduleTo")}</th>
+                  <th className="px-1.5 sm:px-3 py-2 text-right font-medium">{t("admin.scheduleDailyTarget")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -191,10 +193,11 @@ export default function UserWorkScheduleSection() {
                   const mismatch = row.enabled && row.target_override && derived > 0 && derived !== row.daily_target_minutes;
                   return (
                     <tr key={row.weekday} className={row.enabled ? "" : "opacity-40"}>
-                      <td className="px-3 py-2 font-medium text-[var(--text-primary)] w-28 whitespace-nowrap">
-                        {t(`weekday.long.${row.weekday}` as TranslationKey)}
+                      <td className="px-1.5 sm:px-3 py-2 font-medium text-[var(--text-primary)] whitespace-nowrap">
+                        <span className="sm:hidden">{t(`weekday.short.${row.weekday}` as TranslationKey)}</span>
+                        <span className="hidden sm:inline">{t(`weekday.long.${row.weekday}` as TranslationKey)}</span>
                       </td>
-                      <td className="px-3 py-2 w-16">
+                      <td className="px-1 sm:px-3 py-2 w-8 sm:w-16">
                         <input
                           type="checkbox"
                           checked={row.enabled}
@@ -203,25 +206,25 @@ export default function UserWorkScheduleSection() {
                           aria-label={t("admin.scheduleActive")}
                         />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-1.5 sm:px-3 py-2">
                         <input
                           type="time"
                           value={row.start_time}
                           disabled={!row.enabled}
                           onChange={(e) => updateRow(row.weekday, { start_time: e.target.value })}
-                          className="bg-[var(--surface)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)] w-28 disabled:opacity-50"
+                          className="bg-[var(--surface)] border border-[var(--border)] rounded px-1 sm:px-2 py-1 text-xs text-[var(--text-primary)] w-[5.25rem] sm:w-28 disabled:opacity-50"
                         />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-1.5 sm:px-3 py-2">
                         <input
                           type="time"
                           value={row.end_time}
                           disabled={!row.enabled}
                           onChange={(e) => updateRow(row.weekday, { end_time: e.target.value })}
-                          className="bg-[var(--surface)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)] w-28 disabled:opacity-50"
+                          className="bg-[var(--surface)] border border-[var(--border)] rounded px-1 sm:px-2 py-1 text-xs text-[var(--text-primary)] w-[5.25rem] sm:w-28 disabled:opacity-50"
                         />
                       </td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="px-1.5 sm:px-3 py-2 text-right">
                         <div className="inline-flex items-center gap-1">
                           <input
                             type="number"
@@ -233,9 +236,9 @@ export default function UserWorkScheduleSection() {
                                 daily_target_minutes: Math.max(0, Number(e.target.value) || 0),
                               })
                             }
-                            className="bg-[var(--surface)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)] w-20 text-right disabled:opacity-50"
+                            className="bg-[var(--surface)] border border-[var(--border)] rounded px-1 sm:px-2 py-1 text-xs text-[var(--text-primary)] w-14 sm:w-20 text-right disabled:opacity-50"
                           />
-                          <span className="text-[10px] text-[var(--text-muted)] w-8">min</span>
+                          <span className="hidden sm:inline text-[10px] text-[var(--text-muted)] w-8">min</span>
                         </div>
                         {row.enabled && (
                           <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
@@ -263,10 +266,10 @@ export default function UserWorkScheduleSection() {
               </tbody>
               <tfoot>
                 <tr className="bg-[var(--surface-hover)] text-xs">
-                  <td className="px-3 py-2 font-semibold text-[var(--text-secondary)]" colSpan={4}>
+                  <td className="px-1.5 sm:px-3 py-2 font-semibold text-[var(--text-secondary)]" colSpan={4}>
                     {t("admin.scheduleWeeklyTotal")}
                   </td>
-                  <td className="px-3 py-2 text-right font-bold text-[var(--text-primary)]">
+                  <td className="px-1.5 sm:px-3 py-2 text-right font-bold text-[var(--text-primary)]">
                     {formatMinutesAsHours(weekTotal)}
                   </td>
                 </tr>
