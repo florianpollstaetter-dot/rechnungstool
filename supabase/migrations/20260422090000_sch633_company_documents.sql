@@ -2,10 +2,17 @@
 -- storage for the multi-vertical platform rollout (piercing / tattoo / pet-groomer).
 -- Designer (SCH-631) shipped the viewer UI + DOCX-export button; this migration
 -- backs those endpoints.
+--
+-- SCH-914 follow-up (2026-04-29): the original migration declared
+-- `company_id UUID REFERENCES public.companies(id)`, but `companies.id` is TEXT
+-- (slug). The FK constraint failed at apply time and silently broke the auto-
+-- migration pipeline for every push since 2026-04-22 (5 consecutive workflow
+-- failures observed). Switching to TEXT matches the parent column and lets
+-- this migration apply cleanly together with sch582 + sch914 on the next push.
 
 CREATE TABLE IF NOT EXISTS public.company_documents (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+  company_id TEXT NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   key VARCHAR NOT NULL,
   title VARCHAR NOT NULL,
   body TEXT NOT NULL,
