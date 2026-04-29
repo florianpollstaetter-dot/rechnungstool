@@ -2,14 +2,16 @@
 
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { TimeEntry, Quote, UserWorkSchedule, GeneralCategory } from "@/lib/types";
-import { getTimeEntries, getActiveTimer, createTimeEntry, updateTimeEntry, deleteTimeEntry, getQuotes, getCurrentUserName, getCurrentUserWorkSchedules, getGeneralCategories } from "@/lib/db";
+import { TimeEntry, Quote, UserWorkSchedule, GeneralCategory, Project, UserProfile } from "@/lib/types";
+import { getTimeEntries, getActiveTimer, createTimeEntry, updateTimeEntry, deleteTimeEntry, getQuotes, getCurrentUserName, getCurrentUserWorkSchedules, getGeneralCategories, getProjects, getUserProfilesForMyCompanies } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { useCompany } from "@/lib/company-context";
 import { createClient } from "@/lib/supabase/client";
 import { TabButton } from "@/components/TabButton";
 import { TimeCalendarView } from "@/components/time/TimeCalendarView";
 import { TimeAnalyticsView } from "@/components/time/TimeAnalyticsView";
+import { TimeAbsencesView } from "@/components/time/TimeAbsencesView";
+import { TimeSettingsView } from "@/components/time/TimeSettingsView";
 import type { ModalResult } from "@/components/time/TimeCalendarCreateModal";
 import { useI18n } from "@/lib/i18n-context";
 
@@ -63,7 +65,8 @@ export default function TimePage() {
 
 function TimePageInner() {
   const { t } = useI18n();
-  const { userName } = useCompany();
+  const { userName, userRole } = useCompany();
+  const isAdmin = userRole === "admin";
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -71,11 +74,13 @@ function TimePageInner() {
     const v = searchParams.get("view");
     if (v === "calendar") return "calendar" as const;
     if (v === "analytics" || v === "auswertung") return "auswertung" as const;
+    if (v === "urlaub" || v === "absence") return "urlaub" as const;
+    if (v === "settings" || v === "einstellungen") return "settings" as const;
     return "list" as const;
   })();
   // SCH-920 K2-K1 — keep ?view= in sync when the inline tabs change,
   // so the sidebar highlight (driven by useSearchParams) stays correct.
-  function setViewModeAndUrl(next: "list" | "calendar" | "auswertung") {
+  function setViewModeAndUrl(next: "list" | "calendar" | "auswertung" | "urlaub" | "settings") {
     setViewMode(next);
     const view = next === "auswertung" ? "analytics" : next;
     const params = new URLSearchParams(searchParams?.toString() || "");
@@ -97,16 +102,22 @@ function TimePageInner() {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set([new Date().toISOString().split("T")[0]]));
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ project_label: "", description: "", duration_minutes: 0 });
-  const [viewMode, setViewMode] = useState<"list" | "calendar" | "auswertung">(initialView);
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "auswertung" | "urlaub" | "settings">(initialView);
   const [workSchedule, setWorkSchedule] = useState<UserWorkSchedule[]>([]);
+  // SCH-925 K2-ι — list of company users for the Urlaub picker + Settings table.
+  const [companyUsers, setCompanyUsers] = useState<UserProfile[]>([]);
   // SCH-921 K2-J1 — admin-managed Allgemein/Sonstiges labels.
   const [generalCategories, setGeneralCategories] = useState<GeneralCategory[]>([]);
+  // SCH-921 K3-Q1 — projects for inline new-project flow + quote-without-project filter.
+  const [projects, setProjects] = useState<Project[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const v = searchParams.get("view");
     if (v === "calendar") setViewMode("calendar");
     else if (v === "analytics" || v === "auswertung") setViewMode("auswertung");
+    else if (v === "urlaub" || v === "absence") setViewMode("urlaub");
+    else if (v === "settings" || v === "einstellungen") setViewMode("settings");
     else if (v === "list") setViewMode("list");
   }, [searchParams]);
 
@@ -115,12 +126,18 @@ function TimePageInner() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setUserId(user.id);
-    const [e, q, timer, sch, cats] = await Promise.all([getTimeEntries(user.id), getQuotes(), getActiveTimer(user.id), getCurrentUserWorkSchedules(), getGeneralCategories()]);
+    const [e, q, timer, sch, cats, prj, members] = await Promise.all([
+      getTimeEntries(user.id), getQuotes(), getActiveTimer(user.id),
+      getCurrentUserWorkSchedules(), getGeneralCategories(), getProjects(),
+      getUserProfilesForMyCompanies(),
+    ]);
     setEntries(e);
     setQuotes(q.filter((qt) => qt.status === "accepted" || qt.status === "sent"));
     setActiveTimerState(timer);
     setWorkSchedule(sch);
     setGeneralCategories(cats);
+    setProjects(prj);
+    setCompanyUsers(members);
     if (timer) { setSelectedProject(timer.project_label); setSavedDescription(timer.description || ""); }
     setLoading(false);
   }, []);
@@ -412,6 +429,38 @@ function TimePageInner() {
         </svg>
         {t("time.analytics")}
       </button>
+      {/* SCH-925 K2-ι Q3 — Urlaub/Abwesenheit */}
+      <button
+        type="button"
+        role="tab"
+        aria-selected={viewMode === "urlaub"}
+        onClick={() => setViewModeAndUrl("urlaub")}
+        className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "urlaub" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+        title={t("time.tabAbsences")}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2v3M5 12H2m20 0h-3M12 19v3M4.93 4.93l2.12 2.12m9.9 9.9l2.12 2.12M4.93 19.07l2.12-2.12m9.9-9.9l2.12-2.12" />
+          <circle cx="12" cy="12" r="4" />
+        </svg>
+        {t("time.tabAbsences")}
+      </button>
+      {/* SCH-925 K2-ι Q4 — admin-only Einstellungen */}
+      {isAdmin && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={viewMode === "settings"}
+          onClick={() => setViewModeAndUrl("settings")}
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${viewMode === "settings" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+          title={t("time.tabSettings")}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          {t("time.tabSettings")}
+        </button>
+      )}
     </div>
   );
 
@@ -455,7 +504,8 @@ function TimePageInner() {
       {/* Mobile-only sub-tabs row, sits directly under the heading (K2-O4) */}
       <div className="sm:hidden mb-6">{viewTabs}</div>
 
-      {/* Timer widget */}
+      {/* Timer widget — hidden on Urlaub/Settings tabs (no timer interaction there) */}
+      {viewMode !== "urlaub" && viewMode !== "settings" && (
       <div className={`bg-[var(--surface)] rounded-xl border-2 ${activeTimer ? (activeTimer.entry_type === "pause" ? "border-amber-500" : "border-emerald-500") : "border-[var(--border)]"} p-5 mb-6 transition`}>
         {activeTimer && activeTimer.entry_type === "pause" ? (
           <div>
@@ -591,6 +641,23 @@ function TimePageInner() {
           </div>
         )}
       </div>
+      )}
+
+      {/* SCH-925 K2-ι Q3 — Urlaub/Abwesenheit view */}
+      {viewMode === "urlaub" && (
+        <TimeAbsencesView
+          isAdmin={isAdmin}
+          currentUserId={userId}
+          users={companyUsers}
+          ownEntries={entries}
+          ownSchedule={workSchedule}
+        />
+      )}
+
+      {/* SCH-925 K2-ι Q4+Q5 — admin-only Einstellungen view */}
+      {viewMode === "settings" && (
+        <TimeSettingsView isAdmin={isAdmin} />
+      )}
 
       {/* Calendar view */}
       {viewMode === "calendar" && (
@@ -603,6 +670,8 @@ function TimePageInner() {
           getProjectColor={getProjectColor}
           schedule={workSchedule}
           generalCategories={generalCategories}
+          projects={projects}
+          onProjectCreated={(p) => setProjects((prev) => [p, ...prev.filter((x) => x.id !== p.id)])}
           onCreate={handleCalendarCreate}
           onEdit={handleCalendarEdit}
           onDelete={async (id) => { await deleteTimeEntry(id); await loadData(); }}

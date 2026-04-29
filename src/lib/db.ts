@@ -34,6 +34,9 @@ import {
   GeneralCategory,
   GeneralCategoryGroup,
   DEFAULT_GENERAL_CATEGORIES,
+  Absence,
+  AbsenceKind,
+  UserLeaveBalance,
   QuoteDesignPhoto,
   QuoteDesignSelection,
   QuoteDesignKey,
@@ -944,6 +947,84 @@ export async function replaceUserWorkSchedules(
 
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapUserWorkSchedule);
+}
+
+// Absences + Leave Balances (SCH-925 K2-ι) ---------------------------------
+export async function getAbsences(userId?: string): Promise<Absence[]> {
+  let query = supabase()
+    .from("absences")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .order("starts_on", { ascending: false });
+  if (userId) query = query.eq("user_id", userId);
+  const { data } = await query;
+  return (data ?? []).map(mapAbsence);
+}
+
+export async function createAbsence(
+  absence: Omit<Absence, "id" | "company_id" | "created_at" | "updated_at">
+): Promise<Absence> {
+  const result = await supabase()
+    .from("absences")
+    .insert({ ...absence, company_id: getActiveCompanyId() })
+    .select()
+    .single();
+  return mapAbsence(requireRow(result, "createAbsence"));
+}
+
+export async function updateAbsence(
+  id: string,
+  updates: Partial<Omit<Absence, "id" | "company_id" | "created_at" | "updated_at">>
+): Promise<Absence> {
+  const result = await supabase()
+    .from("absences")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+  return mapAbsence(requireRow(result, "updateAbsence"));
+}
+
+export async function deleteAbsence(id: string): Promise<void> {
+  throwOnMutationError(await supabase().from("absences").delete().eq("id", id), "deleteAbsence");
+}
+
+export async function getLeaveBalances(year?: number): Promise<UserLeaveBalance[]> {
+  let query = supabase()
+    .from("user_leave_balances")
+    .select("*")
+    .eq("company_id", getActiveCompanyId());
+  if (year !== undefined) query = query.eq("year", year);
+  const { data } = await query;
+  return (data ?? []).map(mapUserLeaveBalance);
+}
+
+export async function getUserLeaveBalance(
+  userId: string,
+  year: number
+): Promise<UserLeaveBalance | null> {
+  const { data } = await supabase()
+    .from("user_leave_balances")
+    .select("*")
+    .eq("company_id", getActiveCompanyId())
+    .eq("user_id", userId)
+    .eq("year", year)
+    .maybeSingle();
+  return data ? mapUserLeaveBalance(data) : null;
+}
+
+export async function upsertLeaveBalance(
+  balance: Omit<UserLeaveBalance, "id" | "company_id" | "created_at" | "updated_at">
+): Promise<UserLeaveBalance> {
+  const result = await supabase()
+    .from("user_leave_balances")
+    .upsert(
+      { ...balance, company_id: getActiveCompanyId() },
+      { onConflict: "user_id,year" }
+    )
+    .select()
+    .single();
+  return mapUserLeaveBalance(requireRow(result, "upsertLeaveBalance"));
 }
 
 // Projects (SCH-366 Modul 4) ------------------------------------------------
@@ -1921,6 +2002,40 @@ function mapUserWorkSchedule(row: Record<string, unknown>): UserWorkSchedule {
     start_time: trim(row.start_time),
     end_time: trim(row.end_time),
     daily_target_minutes: Number(row.daily_target_minutes ?? 0),
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+function mapAbsence(row: Record<string, unknown>): Absence {
+  const kind = row.kind as string;
+  const safeKind: AbsenceKind = kind === "comp_time" || kind === "sick" || kind === "other"
+    ? kind
+    : "vacation";
+  return {
+    id: row.id as string,
+    company_id: row.company_id as string,
+    user_id: row.user_id as string,
+    kind: safeKind,
+    starts_on: (row.starts_on as string) || "",
+    ends_on: (row.ends_on as string) || "",
+    working_days: Number(row.working_days ?? 0),
+    note: (row.note as string) || "",
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
+}
+
+function mapUserLeaveBalance(row: Record<string, unknown>): UserLeaveBalance {
+  return {
+    id: row.id as string,
+    company_id: row.company_id as string,
+    user_id: row.user_id as string,
+    year: Number(row.year ?? new Date().getFullYear()),
+    vacation_days_total: Number(row.vacation_days_total ?? 0),
+    vacation_days_carried: Number(row.vacation_days_carried ?? 0),
+    overtime_starting_minutes: Number(row.overtime_starting_minutes ?? 0),
+    note: (row.note as string) || "",
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

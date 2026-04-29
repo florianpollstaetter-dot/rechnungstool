@@ -439,6 +439,44 @@ export interface TimeEntry {
   created_at: string;
 }
 
+// SCH-925 K2-ι Q3 — vacation / comp-time / sick / other absences.
+export type AbsenceKind = "vacation" | "comp_time" | "sick" | "other";
+
+export const ABSENCE_KIND_OPTIONS: { value: AbsenceKind; labelKey: string }[] = [
+  { value: "vacation", labelKey: "time.absenceVacation" },
+  { value: "comp_time", labelKey: "time.absenceCompTime" },
+  { value: "sick", labelKey: "time.absenceSick" },
+  { value: "other", labelKey: "time.absenceOther" },
+];
+
+export interface Absence {
+  id: string;
+  company_id: string;
+  user_id: string;
+  kind: AbsenceKind;
+  starts_on: string; // YYYY-MM-DD
+  ends_on: string;   // YYYY-MM-DD
+  working_days: number;
+  note: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// SCH-925 K2-ι Q5 — per-user, per-year starting values for the
+// Resturlaub / ±Stunden-Karten in the Urlaub-Übersicht.
+export interface UserLeaveBalance {
+  id: string;
+  company_id: string;
+  user_id: string;
+  year: number;
+  vacation_days_total: number;
+  vacation_days_carried: number;
+  overtime_starting_minutes: number;
+  note: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // SCH-366 Modul 4 — Projekte & Aufgaben (neue Strukturebenen).
 
 export type ProjectStatus = "active" | "paused" | "completed" | "archived";

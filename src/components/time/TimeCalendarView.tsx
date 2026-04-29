@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TimeEntry, Quote, UserWorkSchedule, GeneralCategory } from "@/lib/types";
+import { TimeEntry, Quote, UserWorkSchedule, GeneralCategory, Project } from "@/lib/types";
 import { TimeCalendarCreateModal, ModalResult, EditData } from "./TimeCalendarCreateModal";
 
 type ViewMode = "week" | "day";
@@ -17,6 +17,12 @@ interface Props {
   /** SCH-921 K2-J1 — admin-managed Allgemein/Sonstiges labels passed
    *  through to the create modal. */
   generalCategories?: GeneralCategory[];
+  /** SCH-921 K3-Q1 — known projects so the create modal can offer existing
+   *  ones in addition to the inline-create flow. */
+  projects?: Project[];
+  /** Called when an inline new project is created — lets the parent merge
+   *  the new project into its in-memory list without a full reload. */
+  onProjectCreated?: (project: Project) => void;
   onCreate: (result: ModalResult) => Promise<void>;
   onEdit: (id: string, result: ModalResult) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
