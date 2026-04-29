@@ -330,6 +330,7 @@ const pl: Record<string, string> = {
   "quoteNew.assumptionsHint": "Wymagania, założenia, zależności",
   "quoteNew.submit": "Utwórz ofertę",
   "quoteNew.submitting": "Tworzenie...",
+  "quoteNew.submitError": "Nie udało się utworzyć oferty",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "Powrót do ofert",

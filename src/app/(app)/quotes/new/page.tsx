@@ -80,6 +80,7 @@ function NewQuotePage() {
   const [overallDiscountPercent, setOverallDiscountPercent] = useState(0);
   const [overallDiscountAmount, setOverallDiscountAmount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [travelDayEditIdx, setTravelDayEditIdx] = useState<number | null>(null);
 
@@ -247,6 +248,7 @@ function NewQuotePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitError(null);
     setSubmitting(true);
     try {
       await createQuote({
@@ -274,6 +276,11 @@ function NewQuotePage() {
       });
       clearDraft();
       router.push("/quotes");
+    } catch (err) {
+      // SCH-929 P1.1 — surface DB/RLS errors instead of swallowing them; the
+      // pre-fix UX showed a silent no-op when createQuote threw, which the
+      // board reported as "Submit-Button funktioniert nicht".
+      setSubmitError(err instanceof Error ? err.message : String(err));
     } finally { setSubmitting(false); }
   }
 
@@ -340,6 +347,23 @@ function NewQuotePage() {
                 <option value="detailed">{t("quoteNew.displayDetailed")}</option>
                 <option value="simple">{t("quoteNew.displaySimple")}</option>
               </select>
+            </div>
+          </div>
+
+          {/* SCH-929 P1.3 — Buyouts/Exports/Annahmen sit directly under
+              Sprache + Anzeige Modus per board request. */}
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.buyouts")}</label>
+              <textarea value={buyouts} onChange={(e) => setBuyouts(e.target.value)} placeholder={t("quoteNew.buyoutsHint")} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.exportsAndDelivery")}</label>
+              <textarea value={exportsAndDelivery} onChange={(e) => setExportsAndDelivery(e.target.value)} placeholder={t("quoteNew.exportsAndDeliveryHint")} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.assumptions")}</label>
+              <textarea value={assumptions} onChange={(e) => setAssumptions(e.target.value)} placeholder={t("quoteNew.assumptionsHint")} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
             </div>
           </div>
         </div>
@@ -412,7 +436,7 @@ function NewQuotePage() {
                               {UNIT_OPTIONS.map((u) => (<option key={u.value} value={u.value}>{u.label}</option>))}
                             </select>
                           </td>
-                          <td className="py-2"><input type="number" value={item.quantity} onChange={(e) => updateItem(idx, "quantity", Number(e.target.value))} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black" min={isTravelDay ? 1 : 1} step="1" required disabled={isTravelDay} /></td>
+                          <td className="py-2"><input type="number" value={item.quantity} onChange={(e) => updateItem(idx, "quantity", Number(e.target.value.replace(",", ".")))} onBlur={(e) => { const v = parseFloat(e.target.value.replace(",", ".")); if (!isNaN(v)) updateItem(idx, "quantity", v); }} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black" min={0} step="0.01" inputMode="decimal" required disabled={isTravelDay} /></td>
                           <td className="py-2"><input type="number" value={item.unit_price} onChange={(e) => updateItem(idx, "unit_price", Number(e.target.value))} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} required readOnly={isTravelDay} /></td>
                           <td className="py-2"><input type="number" value={item.discount_percent} onChange={(e) => updateItem(idx, "discount_percent", Number(e.target.value))} className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-black no-spinners" step="0.01" min={0} max={100} disabled={isTravelDay} /></td>
                           <td className="py-2">
@@ -479,24 +503,11 @@ function NewQuotePage() {
           </div>
         </div>
 
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.notes")}</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
+        {submitError && (
+          <div className="bg-rose-500/10 border border-rose-500/40 text-rose-400 rounded-lg px-4 py-3 text-sm">
+            {t("quoteNew.submitError")}: {submitError}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.buyouts")}</label>
-            <textarea value={buyouts} onChange={(e) => setBuyouts(e.target.value)} placeholder={t("quoteNew.buyoutsHint")} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.exportsAndDelivery")}</label>
-            <textarea value={exportsAndDelivery} onChange={(e) => setExportsAndDelivery(e.target.value)} placeholder={t("quoteNew.exportsAndDeliveryHint")} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">{t("quoteNew.assumptions")}</label>
-            <textarea value={assumptions} onChange={(e) => setAssumptions(e.target.value)} placeholder={t("quoteNew.assumptionsHint")} className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent" rows={3} />
-          </div>
-        </div>
+        )}
 
         <div className="flex gap-3">
           <button type="submit" disabled={submitting} className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">

@@ -330,6 +330,7 @@ const es: Record<string, string> = {
   "quoteNew.assumptionsHint": "Premisas, suposiciones, dependencias",
   "quoteNew.submit": "Crear presupuesto",
   "quoteNew.submitting": "Creando...",
+  "quoteNew.submitError": "No se pudo crear el presupuesto",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "Volver a presupuestos",

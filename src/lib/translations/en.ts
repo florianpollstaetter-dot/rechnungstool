@@ -358,6 +358,7 @@ const en: Record<string, string> = {
   "quoteNew.assumptionsHint": "Preconditions, assumptions, dependencies",
   "quoteNew.submit": "Create quote",
   "quoteNew.submitting": "Creating...",
+  "quoteNew.submitError": "Could not create quote",
   "quoteNew.setupGate.title": "Set up your company first",
   "quoteNew.setupGate.body": "Before you create your first quote, let's quickly set up your company — so the PDF carries your logo, address and descriptions instead of demo data.",
   "quoteNew.setupGate.bullet1": "Centralise logo and company details",

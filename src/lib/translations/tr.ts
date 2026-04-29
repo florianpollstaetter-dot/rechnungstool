@@ -330,6 +330,7 @@ const tr: Record<string, string> = {
   "quoteNew.assumptionsHint": "Önkoşullar, varsayımlar, bağımlılıklar",
   "quoteNew.submit": "Teklif Oluştur",
   "quoteNew.submitting": "Oluşturuluyor...",
+  "quoteNew.submitError": "Teklif oluşturulamadı",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "Tekliflere Dön",

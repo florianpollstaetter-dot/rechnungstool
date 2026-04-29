@@ -358,6 +358,7 @@ const de = {
   "quoteNew.assumptionsHint": "Voraussetzungen, Annahmen, Abhängigkeiten",
   "quoteNew.submit": "Angebot erstellen",
   "quoteNew.submitting": "Wird erstellt...",
+  "quoteNew.submitError": "Angebot konnte nicht erstellt werden",
   "quoteNew.setupGate.title": "Erst dein Unternehmen einrichten",
   "quoteNew.setupGate.body": "Bevor du dein erstes Angebot erstellst, lass uns kurz dein Unternehmen einrichten — damit auf dem PDF dein Logo, deine Adresse und deine Beschreibungen stehen statt der Demo-Daten.",
   "quoteNew.setupGate.bullet1": "Logo + Firmendaten zentral hinterlegen",

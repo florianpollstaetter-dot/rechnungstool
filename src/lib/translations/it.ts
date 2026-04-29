@@ -330,6 +330,7 @@ const it: Record<string, string> = {
   "quoteNew.assumptionsHint": "Premesse, assunzioni, dipendenze",
   "quoteNew.submit": "Crea preventivo",
   "quoteNew.submitting": "Creazione in corso...",
+  "quoteNew.submitError": "Impossibile creare il preventivo",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "Torna ai preventivi",

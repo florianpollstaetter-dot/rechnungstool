@@ -330,6 +330,7 @@ const fr: Record<string, string> = {
   "quoteNew.assumptionsHint": "Conditions, hypothèses, dépendances",
   "quoteNew.submit": "Créer le devis",
   "quoteNew.submitting": "Création en cours...",
+  "quoteNew.submitError": "Impossible de créer le devis",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "Retour aux devis",

@@ -330,6 +330,7 @@ const ar: Record<string, string> = {
   "quoteNew.assumptionsHint": "الشروط والافتراضات والتبعيات",
   "quoteNew.submit": "إنشاء عرض السعر",
   "quoteNew.submitting": "جاري الإنشاء...",
+  "quoteNew.submitError": "تعذر إنشاء عرض السعر",
 
   // ── Quote Detail ──
   "quoteDetail.backToQuotes": "العودة إلى عروض الأسعار",

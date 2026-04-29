@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Product, UNIT_OPTIONS, UnitType, CompanyRole, ContentLocale, TranslationMap } from "@/lib/types";
 import { getProducts, createProduct, updateProduct, deleteProduct, getCompanyRoles } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
@@ -37,6 +37,10 @@ export default function ProductsPage() {
   const [showTranslationsPanel, setShowTranslationsPanel] = useState(false);
   const [translatingLocale, setTranslatingLocale] = useState<ContentLocale | "all" | null>(null);
   const [translateError, setTranslateError] = useState<string | null>(null);
+  // SCH-929 P1.2 — board reported "Bearbeiten button doesn't work". The form
+  // renders above the product table so a click on a row far down the list
+  // appeared to do nothing. Scroll the form into view on edit.
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const loadData = useCallback(async () => {
     const [data, rolesData] = await Promise.all([getProducts(), getCompanyRoles()]);
@@ -89,6 +93,9 @@ export default function ProductsPage() {
     setTranslateError(null);
     setEditingId(product.id);
     setShowForm(true);
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   function buildTranslationsFromForm() {
@@ -249,7 +256,7 @@ export default function ProductsPage() {
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
+        <form ref={formRef} onSubmit={handleSubmit} className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6">
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
             {editingId ? t("products.editProduct") : t("products.newProduct")}
           </h2>
