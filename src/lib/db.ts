@@ -448,6 +448,7 @@ export async function createInvoice(
   );
 
   if (items.length > 0) {
+    const headerTaxRate = Number(inv.tax_rate ?? 20);
     throwOnMutationError(
       await supabase()
         .from("invoice_items")
@@ -463,7 +464,7 @@ export async function createInvoice(
             unit_price: item.unit_price,
             discount_percent: item.discount_percent || 0,
             discount_amount: item.discount_amount || 0,
-            tax_rate: item.tax_rate ?? null,
+            tax_rate: item.tax_rate ?? headerTaxRate,
             total: item.total,
           }))
         ),
@@ -495,6 +496,7 @@ export async function updateInvoice(
       "updateInvoice.items.delete",
     );
     if (items.length > 0) {
+      const headerTaxRate = Number(inv.tax_rate ?? 20);
       throwOnMutationError(
         await supabase()
           .from("invoice_items")
@@ -509,7 +511,7 @@ export async function updateInvoice(
               unit_price: item.unit_price,
               discount_percent: item.discount_percent || 0,
               discount_amount: item.discount_amount || 0,
-              tax_rate: item.tax_rate ?? null,
+              tax_rate: item.tax_rate ?? headerTaxRate,
               total: item.total,
             }))
           ),
@@ -615,6 +617,7 @@ export async function createQuote(
   );
 
   if (items.length > 0) {
+    const headerTaxRate = Number(q.tax_rate ?? 20);
     throwOnMutationError(
       await supabase()
         .from("quote_items")
@@ -633,7 +636,7 @@ export async function createQuote(
             unit_price: item.unit_price,
             discount_percent: item.discount_percent || 0,
             discount_amount: item.discount_amount || 0,
-            tax_rate: item.tax_rate ?? null,
+            tax_rate: item.tax_rate ?? headerTaxRate,
             total: item.total,
             role_id: item.role_id || null,
             item_type: item.item_type || "item",
@@ -684,6 +687,7 @@ export async function updateQuote(
       "updateQuote.items.delete",
     );
     if (items.length > 0) {
+      const headerTaxRate = Number(q.tax_rate ?? 20);
       throwOnMutationError(
         await supabase()
           .from("quote_items")
@@ -701,7 +705,7 @@ export async function updateQuote(
               unit_price: item.unit_price,
               discount_percent: item.discount_percent || 0,
               discount_amount: item.discount_amount || 0,
-              tax_rate: item.tax_rate ?? null,
+              tax_rate: item.tax_rate ?? headerTaxRate,
               total: item.total,
               role_id: item.role_id || null,
               item_type: item.item_type || "item",
