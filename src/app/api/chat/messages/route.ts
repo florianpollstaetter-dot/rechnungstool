@@ -4,8 +4,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { callClaudeChat, calculateCostEUR } from "@/lib/ai-client";
-import { CHAT_SYSTEM_PROMPT } from "@/lib/chat-prompt";
+import { buildChatSystemPrompt, type AppLocale } from "@/lib/chat-prompt";
 import { logAndSanitize } from "@/lib/api-errors";
+
+const SUPPORTED_LOCALES = new Set<AppLocale>(["de", "en", "fr", "es", "it", "tr", "pl", "ar"]);
 
 const MAX_HISTORY = 30;
 
@@ -18,23 +20,33 @@ export async function POST(request: Request) {
     conversationId?: string;
     companyId?: string;
     content?: string;
+    language?: string;
   } | null;
 
   const content = body?.content?.trim();
   const companyId = body?.companyId?.trim();
+  const requestedLang = (body?.language || "de") as AppLocale;
+  const language: AppLocale = SUPPORTED_LOCALES.has(requestedLang) ? requestedLang : "de";
   if (!content) return Response.json({ error: "content required" }, { status: 400 });
   if (!companyId) return Response.json({ error: "companyId required" }, { status: 400 });
 
-  // Get or create conversation
+  // Get or create conversation. SCH-961: when client sends a stale
+  // conversationId (company switched, conversation archived, RLS mismatch),
+  // soft-fallback to a fresh conversation instead of returning 404.
   let conversationId = body?.conversationId;
+  let conversationRecovered = false;
   if (conversationId) {
     const { data: conv } = await supabase
       .from("chat_conversations")
       .select("id, status")
       .eq("id", conversationId)
-      .single();
-    if (!conv) return Response.json({ error: "conversation not found" }, { status: 404 });
-  } else {
+      .maybeSingle();
+    if (!conv) {
+      conversationRecovered = true;
+      conversationId = undefined;
+    }
+  }
+  if (!conversationId) {
     const title = content.slice(0, 60);
     const { data: conv, error } = await supabase
       .from("chat_conversations")
@@ -45,6 +57,9 @@ export async function POST(request: Request) {
       return Response.json({ error: error?.message || "failed to create conversation" }, { status: 500 });
     }
     conversationId = conv.id;
+    if (conversationRecovered) {
+      console.log("chat.conversation_recovered", { user_id: user.id, company_id: companyId });
+    }
   }
 
   // Store user message
@@ -81,13 +96,13 @@ export async function POST(request: Request) {
   let inputTokens = 0;
   let outputTokens = 0;
   try {
-    const result = await callClaudeChat(llmMessages, CHAT_SYSTEM_PROMPT, 1024);
+    const result = await callClaudeChat(llmMessages, buildChatSystemPrompt(language), 1024);
     assistantText = result.text.trim();
     inputTokens = result.inputTokens;
     outputTokens = result.outputTokens;
   } catch (err) {
     const safeMessage = logAndSanitize("chat/messages", err, "nicht erreichbar");
-    assistantText = `⚠️ Der Assistent ist derzeit nicht erreichbar (${safeMessage}). Du kannst einen Superadmin anfordern.`;
+    assistantText = `⚠️ Der Assistent ist derzeit nicht erreichbar (${safeMessage}). Wenn das anhält, klick bitte auf „Bug melden" – wir kümmern uns drum.`;
   }
 
   const costEUR = calculateCostEUR(inputTokens, outputTokens);

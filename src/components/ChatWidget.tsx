@@ -5,11 +5,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCompany } from "@/lib/company-context";
+import { useI18n } from "@/lib/i18n-context";
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "superadmin" | "system";
   content: string;
+  metadata?: { kind?: string; issue_identifier?: string | null } | null;
   created_at: string;
 }
 
@@ -30,13 +32,14 @@ export function ChatWidget() {
   // independent auth subscription. Two subscriptions previously raced each
   // other during first-login, producing a visible mount/unmount flicker.
   const { company, roleLoaded, authed } = useCompany();
+  const { locale } = useI18n();
   const [open, setOpen] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationStatus, setConversationStatus] = useState<string>("active");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [escalating, setEscalating] = useState(false);
+  const [bugFormOpen, setBugFormOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -104,6 +107,7 @@ export function ChatWidget() {
           conversationId,
           companyId: company.id,
           content,
+          language: locale,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -128,18 +132,45 @@ export function ChatWidget() {
     } finally {
       setSending(false);
     }
-  }, [input, sending, conversationId, company.id, loadConversation]);
+  }, [input, sending, conversationId, company.id, locale, loadConversation]);
 
-  const escalate = useCallback(async () => {
-    if (!conversationId || escalating) return;
-    setEscalating(true);
-    try {
-      const res = await fetch(`/api/chat/conversations/${conversationId}/escalate`, { method: "POST" });
-      if (res.ok) await loadConversation(conversationId);
-    } finally {
-      setEscalating(false);
-    }
-  }, [conversationId, escalating, loadConversation]);
+  const submitBugReport = useCallback(
+    async (payload: { reproduce: string; expected: string; actual: string; browser: string }) => {
+      const res = await fetch("/api/chat/report-bug", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversation_id: conversationId,
+          reproduce_steps: payload.reproduce,
+          expected: payload.expected,
+          actual: payload.actual,
+          browser: payload.browser,
+        }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `report-bug HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      if (data.conversation_id && data.conversation_id !== conversationId) {
+        setConversationId(data.conversation_id);
+        localStorage.setItem(STORAGE_KEY_CONV, data.conversation_id);
+      }
+      await loadConversation(data.conversation_id || conversationId!);
+      setMessages((m) => [
+        ...m,
+        {
+          id: `bug-confirm-${Date.now()}`,
+          role: "assistant",
+          content: data.issue_identifier
+            ? `Danke! Bug gemeldet (${data.issue_identifier}). Du bekommst ein Update sobald es gefixt ist.`
+            : `Danke! Dein Bug-Report ist bei uns angekommen. Wir kümmern uns drum.`,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+    },
+    [conversationId, loadConversation],
+  );
 
   const startNew = useCallback(() => {
     setConversationId(null);
@@ -184,10 +215,10 @@ export function ChatWidget() {
                 <div className="text-xs font-semibold text-[var(--text-primary)] truncate">orangeocto Hilfe</div>
                 <div className="text-[10px] text-[var(--text-muted)] truncate">
                   {conversationStatus === "escalated"
-                    ? "Weitergeleitet — Superadmin antwortet"
+                    ? "Bug-Report aufgenommen — wir melden uns"
                     : conversationStatus === "resolved"
                     ? "Gelöst"
-                    : "AI-Assistent — bei Bedarf an Superadmin"}
+                    : "AI-Assistent — Bug? Klick „Bug melden“"}
                 </div>
               </div>
             </div>
@@ -247,17 +278,14 @@ export function ChatWidget() {
 
           {/* Footer */}
           <div className="border-t border-[var(--border)] p-2 bg-[var(--surface)]">
-            {conversationStatus !== "escalated" && conversationId && messages.length > 0 && (
-              <div className="flex justify-end mb-1">
-                <button
-                  onClick={escalate}
-                  disabled={escalating}
-                  className="text-[10px] text-rose-500 hover:text-rose-600 disabled:opacity-50"
-                >
-                  {escalating ? "Leite weiter..." : "Human anfordern"}
-                </button>
-              </div>
-            )}
+            <div className="flex justify-end mb-1">
+              <button
+                onClick={() => setBugFormOpen(true)}
+                className="text-[10px] text-rose-500 hover:text-rose-600"
+              >
+                Bug melden
+              </button>
+            </div>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -288,14 +316,134 @@ export function ChatWidget() {
               </button>
             </form>
           </div>
+          {bugFormOpen && (
+            <BugReportForm
+              onCancel={() => setBugFormOpen(false)}
+              onSubmit={async (payload) => {
+                await submitBugReport(payload);
+                setBugFormOpen(false);
+              }}
+            />
+          )}
         </div>
       )}
     </>
   );
 }
 
+function BugReportForm({
+  onCancel,
+  onSubmit,
+}: {
+  onCancel: () => void;
+  onSubmit: (p: { reproduce: string; expected: string; actual: string; browser: string }) => Promise<void>;
+}) {
+  const [reproduce, setReproduce] = useState("");
+  const [expected, setExpected] = useState("");
+  const [actual, setActual] = useState("");
+  const [browser, setBrowser] = useState(typeof navigator !== "undefined" ? navigator.userAgent : "");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (submitting) return;
+    setError(null);
+    if (!reproduce.trim() || !actual.trim()) {
+      setError("Bitte mindestens „Was passiert?“ und „Was war das Ergebnis?“ ausfüllen.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await onSubmit({ reproduce: reproduce.trim(), expected: expected.trim(), actual: actual.trim(), browser: browser.trim() });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Senden fehlgeschlagen.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="absolute inset-0 bg-[var(--surface)]/95 backdrop-blur-sm overflow-y-auto p-3 flex flex-col gap-2 text-xs z-10">
+      <div className="flex items-center justify-between">
+        <div className="font-semibold text-[var(--text-primary)]">Bug melden</div>
+        <button onClick={onCancel} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]" title="Abbrechen">
+          ✕
+        </button>
+      </div>
+      <p className="text-[10px] text-[var(--text-muted)]">Beschreibe kurz, was passiert ist. Wir legen automatisch ein Engineering-Ticket an.</p>
+      <label className="flex flex-col gap-1">
+        <span className="text-[10px] text-[var(--text-muted)]">Was hast du gemacht?</span>
+        <textarea
+          value={reproduce}
+          onChange={(e) => setReproduce(e.target.value)}
+          rows={2}
+          placeholder="z.B. Auf „Angebot speichern“ geklickt"
+          className="bg-[var(--surface-hover)] border border-[var(--border)] rounded-md px-2 py-1.5 focus:outline-none focus:border-rose-500"
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-[10px] text-[var(--text-muted)]">Was hast du erwartet? (optional)</span>
+        <textarea
+          value={expected}
+          onChange={(e) => setExpected(e.target.value)}
+          rows={2}
+          placeholder="z.B. Angebot wird gespeichert + erscheint in der Liste"
+          className="bg-[var(--surface-hover)] border border-[var(--border)] rounded-md px-2 py-1.5 focus:outline-none focus:border-rose-500"
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-[10px] text-[var(--text-muted)]">Was ist stattdessen passiert?</span>
+        <textarea
+          value={actual}
+          onChange={(e) => setActual(e.target.value)}
+          rows={2}
+          placeholder="z.B. Fehler-Popup „Speichern fehlgeschlagen“"
+          className="bg-[var(--surface-hover)] border border-[var(--border)] rounded-md px-2 py-1.5 focus:outline-none focus:border-rose-500"
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-[10px] text-[var(--text-muted)]">Browser / Gerät</span>
+        <input
+          value={browser}
+          onChange={(e) => setBrowser(e.target.value)}
+          className="bg-[var(--surface-hover)] border border-[var(--border)] rounded-md px-2 py-1 focus:outline-none focus:border-rose-500"
+        />
+      </label>
+      {error && <div className="text-[10px] text-rose-500">{error}</div>}
+      <div className="flex justify-end gap-2 mt-1">
+        <button
+          onClick={onCancel}
+          disabled={submitting}
+          className="text-[10px] px-2 py-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50"
+        >
+          Abbrechen
+        </button>
+        <button
+          onClick={submit}
+          disabled={submitting}
+          className="text-[10px] px-3 py-1 bg-rose-500 text-white rounded-md hover:bg-rose-600 disabled:opacity-50"
+        >
+          {submitting ? "Sende..." : "Bug absenden"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function MessageBubble({ message }: { message: ChatMessage }) {
   if (message.role === "system") {
+    if (message.metadata?.kind === "bug_report") {
+      return (
+        <div className="rounded-md border border-red-600/40 bg-red-600/5 text-[var(--text-primary)] px-2.5 py-1.5 text-[11px] flex items-center gap-2">
+          <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-red-600 text-white">BUG</span>
+          <span className="truncate">
+            {message.metadata.issue_identifier
+              ? `Bug gemeldet (${message.metadata.issue_identifier})`
+              : "Bug gemeldet"}
+          </span>
+        </div>
+      );
+    }
     return (
       <div className="text-[10px] text-[var(--text-muted)] text-center italic px-2 py-1">
         {message.content}

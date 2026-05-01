@@ -13,6 +13,7 @@ interface ConversationSummary {
   user_label: string;
   title: string | null;
   status: "active" | "escalated" | "resolved" | "closed";
+  is_bug_report?: boolean;
   escalated_at: string | null;
   last_message_at: string;
   last_message_role: string | null;
@@ -22,6 +23,7 @@ interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "superadmin" | "system";
   content: string;
+  metadata?: Record<string, unknown> | null;
   created_at: string;
   author_user_id: string | null;
 }
@@ -31,10 +33,11 @@ interface ConversationDetail extends ConversationSummary {
   created_at: string;
 }
 
-type StatusFilter = "escalated" | "all" | "active" | "resolved";
+type StatusFilter = "escalated" | "bugs" | "all" | "active" | "resolved";
 
 const FILTER_LABELS: Record<StatusFilter, string> = {
   escalated: "Weitergeleitet",
+  bugs: "Bugs",
   active: "Aktiv",
   resolved: "Gelöst",
   all: "Alle",
@@ -170,7 +173,10 @@ export default function OperatorChatInbox() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="text-xs font-semibold text-[var(--text-primary)] truncate">{c.title || "Gespräch"}</div>
-                      <StatusPill status={c.status} />
+                      <div className="flex items-center gap-1 shrink-0">
+                        {c.is_bug_report && <BugBadge />}
+                        <StatusPill status={c.status} />
+                      </div>
                     </div>
                     <div className="text-[10px] text-[var(--text-muted)] mt-0.5 truncate">
                       {c.company_name} · {c.user_label}
@@ -203,6 +209,7 @@ export default function OperatorChatInbox() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {detail.conversation.is_bug_report && <BugBadge />}
                   <StatusPill status={detail.conversation.status} />
                   {detail.conversation.status !== "resolved" && (
                     <button
@@ -254,6 +261,17 @@ export default function OperatorChatInbox() {
   );
 }
 
+function BugBadge() {
+  return (
+    <span
+      title="Bug-Report aus dem In-App-Chat"
+      className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded border bg-red-600 text-white border-red-700"
+    >
+      BUG
+    </span>
+  );
+}
+
 function StatusPill({ status }: { status: ConversationSummary["status"] }) {
   const map: Record<ConversationSummary["status"], { label: string; cls: string }> = {
     active: { label: "Aktiv", cls: "bg-blue-500/10 text-blue-500 border-blue-500/30" },
@@ -267,6 +285,52 @@ function StatusPill({ status }: { status: ConversationSummary["status"] }) {
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   if (message.role === "system") {
+    const meta = message.metadata as
+      | {
+          kind?: string;
+          issue_identifier?: string | null;
+          issue_link?: string | null;
+          reproduce_steps?: string | null;
+          expected?: string | null;
+          actual?: string | null;
+          browser?: string | null;
+        }
+      | null
+      | undefined;
+    if (meta?.kind === "bug_report") {
+      return (
+        <div className="rounded-md border border-red-600/40 bg-red-600/5 text-[var(--text-primary)] px-2.5 py-2 text-xs">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-red-600 text-white">BUG</span>
+            <span className="text-[10px] text-[var(--text-muted)]">{message.content}</span>
+            {meta.issue_link && meta.issue_identifier && (
+              <a
+                href={meta.issue_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] font-semibold text-red-500 hover:underline"
+              >
+                {meta.issue_identifier} →
+              </a>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-1 text-[11px] leading-snug">
+            {meta.reproduce_steps && (
+              <div><span className="font-semibold">Was passiert:</span> {meta.reproduce_steps}</div>
+            )}
+            {meta.expected && (
+              <div><span className="font-semibold">Erwartet:</span> {meta.expected}</div>
+            )}
+            {meta.actual && (
+              <div><span className="font-semibold">Stattdessen:</span> {meta.actual}</div>
+            )}
+            {meta.browser && (
+              <div className="text-[10px] text-[var(--text-muted)]">{meta.browser}</div>
+            )}
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="text-[10px] text-[var(--text-muted)] italic text-center px-2 py-1">{message.content}</div>
     );

@@ -8,15 +8,19 @@ export async function GET(request: Request) {
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
   const url = new URL(request.url);
-  const statusFilter = url.searchParams.get("status"); // "escalated" | "active" | "resolved" | null (all)
+  const statusFilter = url.searchParams.get("status"); // "escalated" | "active" | "resolved" | "bugs" | null (all)
 
   const service = createServiceClient();
   let query = service
     .from("chat_conversations")
-    .select("id, company_id, user_id, title, status, escalated_at, resolved_at, last_message_at, last_message_role, created_at")
+    .select("id, company_id, user_id, title, status, is_bug_report, escalated_at, resolved_at, last_message_at, last_message_role, created_at")
     .order("last_message_at", { ascending: false })
     .limit(100);
-  if (statusFilter) query = query.eq("status", statusFilter);
+  if (statusFilter === "bugs") {
+    query = query.eq("is_bug_report", true);
+  } else if (statusFilter) {
+    query = query.eq("status", statusFilter);
+  }
 
   const { data: conversations, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });

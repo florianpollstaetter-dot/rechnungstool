@@ -12,7 +12,7 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
 
   const { data: conv, error: convErr } = await service
     .from("chat_conversations")
-    .select("id, company_id, user_id, title, status, escalated_at, resolved_at, last_message_at, created_at")
+    .select("id, company_id, user_id, title, status, is_bug_report, escalated_at, resolved_at, last_message_at, created_at")
     .eq("id", id)
     .single();
   if (convErr || !conv) return Response.json({ error: "not found" }, { status: 404 });
