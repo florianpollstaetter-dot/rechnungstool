@@ -157,6 +157,8 @@ function NewInvoicePage() {
         accompanying_text: await getUserAccompanyingText(language),
         e_invoice_format: eInvoiceFormat,
         created_by: getCurrentUserName() || null,
+        source_quote_id: null,
+        percent_of_quote: null,
       });
       clearDraft();
       router.push("/invoices");

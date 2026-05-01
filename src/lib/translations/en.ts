@@ -5,6 +5,7 @@ const en: Record<string, string> = {
   "common.saving": "Saving...",
   "common.saved": "Saved!",
   "common.cancel": "Cancel",
+  "common.continue": "Continue",
   "common.delete": "Delete",
   "common.edit": "Edit",
   "common.create": "Create",
@@ -413,6 +414,15 @@ const en: Record<string, string> = {
   "quoteDetail.invoicedOf": "Invoiced: {invoiced} of {total}",
   "quoteDetail.openAmount": "Remaining: {amount}",
   "quoteDetail.fullyInvoiced": "Fully invoiced",
+  // SCH-959 — Final/Partial invoice chooser popup
+  "quoteDetail.createInvoice": "Create invoice",
+  "quoteDetail.createInvoiceTitle": "Create invoice",
+  "quoteDetail.finalInvoice": "Final invoice",
+  "quoteDetail.finalInvoiceHint": "Remaining {percent}% of the quote",
+  "quoteDetail.partialInvoiceHint": "Share of the quote in %",
+  "quoteDetail.maxAvailable": "Max {percent}%",
+  "quoteDetail.percentExceedsRemaining": "Only up to {percent}% is still available.",
+  "quoteDetail.invoicedPercentOf": "{invoiced}% already invoiced — {remaining}% remaining",
 
   // ── Invoice Edit Modal ──
   "invoiceEdit.titleFull": "Create invoice",

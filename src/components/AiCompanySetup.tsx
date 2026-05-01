@@ -971,9 +971,9 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
             });
             setSuggestions((prev) => {
               if (!prev) return prev;
-              const cd = { ...(prev.suggested_company_data || {}) } as SuggestedCompanyData;
+              const cd: SuggestedCompanyData = { ...(prev.suggested_company_data || {} as SuggestedCompanyData) };
               for (const [k, v] of Object.entries(values)) {
-                if (v?.trim()) (cd as Record<string, string | null>)[k] = v.trim();
+                if (v?.trim()) (cd as unknown as Record<string, string | null>)[k] = v.trim();
               }
               return { ...prev, suggested_company_data: cd };
             });

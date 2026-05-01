@@ -289,7 +289,12 @@ function InvoicesPage() {
       language: inv.language,
       accompanying_text: null,
       e_invoice_format: inv.e_invoice_format || "none",
-        created_by: null,
+      created_by: null,
+      // SCH-959 — Storno inherits the source-quote linkage from the original
+      // invoice with a *negative* percent so SUM(percent_of_quote) tracks the
+      // remaining quote percent correctly even if filters change later.
+      source_quote_id: inv.source_quote_id,
+      percent_of_quote: inv.percent_of_quote === null ? null : -inv.percent_of_quote,
     });
     await loadData();
   }

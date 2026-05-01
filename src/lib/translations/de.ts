@@ -5,6 +5,7 @@ const de = {
   "common.saving": "Speichern...",
   "common.saved": "Gespeichert!",
   "common.cancel": "Abbrechen",
+  "common.continue": "Weiter",
   "common.delete": "Löschen",
   "common.edit": "Bearbeiten",
   "common.create": "Erstellen",
@@ -413,6 +414,15 @@ const de = {
   "quoteDetail.invoicedOf": "Abgerechnet: {invoiced} von {total}",
   "quoteDetail.openAmount": "Offen: {amount}",
   "quoteDetail.fullyInvoiced": "Vollständig abgerechnet",
+  // SCH-959 — Schluss-/Teilrechnung-Popup
+  "quoteDetail.createInvoice": "Rechnung erstellen",
+  "quoteDetail.createInvoiceTitle": "Rechnung erstellen",
+  "quoteDetail.finalInvoice": "Schlussrechnung",
+  "quoteDetail.finalInvoiceHint": "Restliche {percent}% des Angebots",
+  "quoteDetail.partialInvoiceHint": "Anteil des Angebots in %",
+  "quoteDetail.maxAvailable": "Max. {percent}%",
+  "quoteDetail.percentExceedsRemaining": "Mehr als {percent}% sind nicht mehr verfügbar.",
+  "quoteDetail.invoicedPercentOf": "Bereits {invoiced}% abgerechnet — {remaining}% verbleibend",
 
   // ── Invoice Edit Modal ──
   "invoiceEdit.titleFull": "Rechnung erstellen",

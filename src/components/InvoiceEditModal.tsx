@@ -15,6 +15,12 @@ interface InvoiceEditModalProps {
   partialFactor?: number;
   partialLabel?: string;
   invoicedTotal?: number;
+  // SCH-959 K3-AB1 — exact percent (0–100) of the source quote this invoice
+  // represents. For mode="full" it is the *remaining* percent (i.e. the
+  // Schluss, not always 100% if there were earlier partials). For mode=
+  // "partial" it is the chosen percent (clamped against Restprozent
+  // before this modal opens).
+  percentOfQuote?: number;
   onClose: () => void;
   onCreated: (invoiceId: string) => void;
 }
@@ -43,6 +49,7 @@ export default function InvoiceEditModal({
   partialFactor = 1,
   partialLabel,
   invoicedTotal = 0,
+  percentOfQuote,
   onClose,
   onCreated,
 }: InvoiceEditModalProps) {
@@ -178,11 +185,15 @@ export default function InvoiceEditModal({
         status: "offen",
         paid_at: null,
         paid_amount: 0,
-        notes: `${notes}\n[source_quote:${quote.id}]`.trim(),
+        notes: notes.trim(),
         language: quote.language || "de",
         accompanying_text: await getUserAccompanyingText(quote.language || "de"),
         e_invoice_format: "none",
         created_by: null,
+        // SCH-959 — proper FK + percent tracking. Falls back to partialFactor
+        // when callers haven't migrated to the explicit prop yet.
+        source_quote_id: quote.id,
+        percent_of_quote: percentOfQuote ?? (mode === "full" ? 100 : Math.round(partialFactor * 10000) / 100),
       });
 
       if (mode === "full") {

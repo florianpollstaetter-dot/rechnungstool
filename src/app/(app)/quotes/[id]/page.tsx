@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Quote, Customer, CompanySettings, QuoteStatus, UNIT_OPTIONS, Language, DisplayMode, TemplateItem, CompanyRole, Invoice } from "@/lib/types";
+import { Quote, Customer, CompanySettings, QuoteStatus, Language, DisplayMode, TemplateItem, CompanyRole, Invoice, unitDisplayLabel } from "@/lib/types";
 import { getQuote, getCustomer, getSettings, updateQuote, createTemplate, getCompanyRoles, getInvoicesForQuote } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
@@ -24,15 +24,18 @@ export default function QuoteDetailPage() {
   const [roles, setRoles] = useState<CompanyRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
-  const [showPartialModal, setShowPartialModal] = useState(false);
+  // SCH-959 K3-AB1 — single "Rechnung erstellen" entry; the chooser modal
+  // picks Schluss vs. Teil and the percent input is clamped to Restprozent.
+  const [showInvoiceTypeModal, setShowInvoiceTypeModal] = useState(false);
+  const [invoiceChoice, setInvoiceChoice] = useState<"final" | "partial">("partial");
   const [showInvoiceEditModal, setShowInvoiceEditModal] = useState(false);
   const [invoiceEditMode, setInvoiceEditMode] = useState<"full" | "partial">("full");
   const [showApprovalPopup, setShowApprovalPopup] = useState(false);
   const [showDesignWindow, setShowDesignWindow] = useState(false);
-  const [partialMode, setPartialMode] = useState<"percent" | "amount">("percent");
-  const [partialValue, setPartialValue] = useState("30");
+  const [partialPercent, setPartialPercent] = useState("30");
   const [linkedInvoices, setLinkedInvoices] = useState<Invoice[]>([]);
   const [invoicedTotal, setInvoicedTotal] = useState(0);
+  const [invoicedPercent, setInvoicedPercent] = useState(0);
 
   const loadData = useCallback(async () => {
     const q = await getQuote(params.id as string);
@@ -45,6 +48,14 @@ export default function QuoteDetailPage() {
       const nonCancelled = invoices.filter((inv) => inv.status !== "storniert");
       setLinkedInvoices(nonCancelled);
       setInvoicedTotal(nonCancelled.reduce((sum, inv) => sum + inv.total, 0));
+      // SCH-959 — sum percent_of_quote from linked invoices. Legacy rows
+      // (NULL percent_of_quote) fall back to the total ratio so they still
+      // consume the right slice of the quote budget.
+      const percentSum = nonCancelled.reduce((sum, inv) => {
+        if (inv.percent_of_quote !== null) return sum + inv.percent_of_quote;
+        return sum + (q.total > 0 ? (inv.total / q.total) * 100 : 0);
+      }, 0);
+      setInvoicedPercent(Math.min(100, Math.max(0, percentSum)));
     }
     setLoading(false);
   }, [params.id]);
@@ -97,29 +108,37 @@ export default function QuoteDetailPage() {
     alert(t("quoteDetail.templateSaved", { name }));
   }
 
-  function handleOpenPartialEditModal() {
-    if (!quote) return;
-    const val = Number(partialValue) || 0;
-    if (val <= 0) return;
-    setInvoiceEditMode("partial");
-    setShowPartialModal(false);
+  // SCH-959 — Restprozent = 100 minus what's already invoiced. Each new
+  // partial/Schluss is clamped so SUM(percent_of_quote) cannot exceed 100.
+  const remainingPercent = Math.max(0, Math.round((100 - invoicedPercent) * 100) / 100);
+
+  function clampedPartialPercent(): number {
+    const raw = Number(partialPercent) || 0;
+    return Math.max(0, Math.min(raw, remainingPercent));
+  }
+
+  function getInvoicePercent(): number {
+    return invoiceChoice === "final" ? remainingPercent : clampedPartialPercent();
+  }
+
+  function getInvoiceFactor(): number {
+    return getInvoicePercent() / 100;
+  }
+
+  function getInvoiceLabel(): string {
+    return `${getInvoicePercent()}%`;
+  }
+
+  function handleProceedFromTypeModal() {
+    if (!quote || remainingPercent <= 0) return;
+    if (invoiceChoice === "partial" && clampedPartialPercent() <= 0) return;
+    setInvoiceEditMode(invoiceChoice === "final" ? "full" : "partial");
+    setShowInvoiceTypeModal(false);
     setShowInvoiceEditModal(true);
   }
 
-  function getPartialFactor(): number {
-    if (!quote) return 1;
-    const val = Number(partialValue) || 0;
-    const factor = partialMode === "percent" ? val / 100 : val / quote.total;
-    return Math.min(factor, 1);
-  }
-
-  function getPartialLabel(): string {
-    const val = Number(partialValue) || 0;
-    return partialMode === "percent" ? `${val}%` : formatCurrency(val);
-  }
-
   function getUnitLabel(unit: string) {
-    return UNIT_OPTIONS.find((u) => u.value === unit)?.label || unit;
+    return unitDisplayLabel(unit, quote?.language || "de");
   }
 
   const hasDiscounts = quote.items.some((i) => i.discount_percent > 0 || i.discount_amount > 0) ||
@@ -157,11 +176,22 @@ export default function QuoteDetailPage() {
           {quote.status !== "rejected" && (
             <button onClick={() => setShowApprovalPopup(true)} className="bg-amber-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-500 transition">{t("quoteDetail.release")}</button>
           )}
-          {quote.status === "accepted" && (
-            <>
-              <button onClick={() => setShowPartialModal(true)} className="bg-cyan-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-cyan-500 transition">{t("quoteDetail.partialInvoice")}</button>
-              <button onClick={() => { setInvoiceEditMode("full"); setShowInvoiceEditModal(true); }} className="bg-emerald-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">{t("quoteDetail.fullInvoice")}</button>
-            </>
+          {quote.status === "accepted" && remainingPercent > 0 && (
+            <button
+              onClick={() => {
+                setInvoiceChoice(invoicedPercent > 0 ? "partial" : "final");
+                setPartialPercent(String(Math.min(30, remainingPercent)));
+                setShowInvoiceTypeModal(true);
+              }}
+              className="bg-emerald-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition"
+            >
+              {t("quoteDetail.createInvoice")}
+            </button>
+          )}
+          {quote.status === "accepted" && remainingPercent <= 0 && (
+            <span className="text-sm text-emerald-400 px-3 py-2">
+              {t("quoteDetail.fullyInvoiced")}
+            </span>
           )}
           <button onClick={handleSaveAsTemplate} className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition" title={t("quoteDetail.template")}>
             {t("quoteDetail.template")}
@@ -301,70 +331,83 @@ export default function QuoteDetailPage() {
         />
       )}
 
-      {/* Partial Invoice Modal */}
-      {showPartialModal && quote && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowPartialModal(false)}>
+      {/* SCH-959 — Schluss-/Teilrechnung chooser. Single entry point;
+          Restprozent clamps the partial percent input. */}
+      {showInvoiceTypeModal && quote && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowInvoiceTypeModal(false)}>
           <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">{t("quoteDetail.createPartialInvoice")}</h2>
-            <p className="text-sm text-gray-400 mb-1">{t("quoteDetail.quoteLabel")} <span className="text-[var(--text-primary)] font-medium">{quote.quote_number}</span></p>
-            <p className="text-sm text-gray-400 mb-4">{t("quoteDetail.totalGross")} <span className="text-[var(--text-primary)] font-medium">{formatCurrency(quote.total)}</span></p>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-1">{t("quoteDetail.createInvoiceTitle")}</h2>
+            <p className="text-sm text-gray-400 mb-4">
+              {t("quoteDetail.quoteLabel")} <span className="text-[var(--text-primary)] font-medium">{quote.quote_number}</span>
+              <span className="mx-2 text-gray-600">·</span>
+              {t("quoteDetail.totalGross")} <span className="text-[var(--text-primary)] font-medium">{formatCurrency(quote.total)}</span>
+            </p>
 
-            <div className="flex gap-2 mb-4">
+            <div className="grid grid-cols-2 gap-2 mb-4">
               <button
-                onClick={() => { setPartialMode("percent"); setPartialValue("30"); }}
-                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition ${partialMode === "percent" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"}`}
+                onClick={() => setInvoiceChoice("final")}
+                className={`px-3 py-3 text-sm rounded-lg font-medium transition border text-left ${invoiceChoice === "final" ? "bg-emerald-600/20 border-emerald-500 text-emerald-200" : "bg-[var(--surface-hover)] border-[var(--border)] text-[var(--text-secondary)] hover:border-emerald-700"}`}
               >
-                {t("quoteDetail.percent")}
+                <div className="font-semibold">{t("quoteDetail.finalInvoice")}</div>
+                <div className="text-xs opacity-80 mt-0.5">{t("quoteDetail.finalInvoiceHint", { percent: remainingPercent })}</div>
               </button>
               <button
-                onClick={() => { setPartialMode("amount"); setPartialValue(String(Math.round(quote.total / 3 * 100) / 100)); }}
-                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition ${partialMode === "amount" ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"}`}
+                onClick={() => setInvoiceChoice("partial")}
+                className={`px-3 py-3 text-sm rounded-lg font-medium transition border text-left ${invoiceChoice === "partial" ? "bg-cyan-600/20 border-cyan-500 text-cyan-200" : "bg-[var(--surface-hover)] border-[var(--border)] text-[var(--text-secondary)] hover:border-cyan-700"}`}
               >
-                {t("quoteDetail.amount")}
+                <div className="font-semibold">{t("quoteDetail.partialInvoice")}</div>
+                <div className="text-xs opacity-80 mt-0.5">{t("quoteDetail.partialInvoiceHint")}</div>
               </button>
             </div>
 
-            <label className="block text-sm font-medium text-gray-400 mb-1">
-              {partialMode === "percent" ? t("quoteDetail.percentLabel") : t("quoteDetail.amountLabel")}
-            </label>
-            <input
-              type="number"
-              value={partialValue}
-              onChange={(e) => setPartialValue(e.target.value)}
-              step={partialMode === "percent" ? "1" : "0.01"}
-              min={0}
-              max={partialMode === "percent" ? 100 : undefined}
-              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] mb-2 no-spinners"
-              autoFocus
-            />
-
-            {Number(partialValue) > 0 && (
-              <p className="text-xs text-cyan-400 mb-2">
-                {t("quoteDetail.invoiceAmount")} {formatCurrency(
-                  partialMode === "percent"
-                    ? quote.total * Math.min(Number(partialValue), 100) / 100
-                    : Math.min(Number(partialValue), quote.total)
+            {invoiceChoice === "partial" && (
+              <>
+                <label className="block text-sm font-medium text-gray-400 mb-1">
+                  {t("quoteDetail.percentLabel")}
+                  <span className="ml-2 text-xs text-gray-500">{t("quoteDetail.maxAvailable", { percent: remainingPercent })}</span>
+                </label>
+                <input
+                  type="number"
+                  value={partialPercent}
+                  onChange={(e) => setPartialPercent(e.target.value)}
+                  step="1"
+                  min={0}
+                  max={remainingPercent}
+                  className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] mb-2 no-spinners"
+                  autoFocus
+                />
+                {Number(partialPercent) > remainingPercent && (
+                  <p className="text-xs text-rose-400 mb-2">
+                    {t("quoteDetail.percentExceedsRemaining", { percent: remainingPercent })}
+                  </p>
                 )}
-              </p>
+                {clampedPartialPercent() > 0 && (
+                  <p className="text-xs text-cyan-400 mb-2">
+                    {t("quoteDetail.invoiceAmount")} {formatCurrency(quote.total * clampedPartialPercent() / 100)}
+                  </p>
+                )}
+              </>
             )}
 
-            {invoicedTotal > 0 && (
+            {invoicedPercent > 0 && (
               <p className="text-xs text-gray-400 mb-2">
-                {t("quoteDetail.invoicedOf", { invoiced: formatCurrency(invoicedTotal), total: formatCurrency(quote.total) })}
-                {invoicedTotal < quote.total && <span className="text-cyan-400 ml-1">({t("quoteDetail.openAmount", { amount: formatCurrency(quote.total - invoicedTotal) })})</span>}
+                {t("quoteDetail.invoicedPercentOf", { invoiced: invoicedPercent.toFixed(2).replace(/\.?0+$/, ""), remaining: remainingPercent })}
               </p>
             )}
 
             <div className="flex gap-2 mt-4">
               <button
-                onClick={handleOpenPartialEditModal}
-                disabled={!partialValue || Number(partialValue) <= 0}
-                className="bg-cyan-600 text-[var(--text-primary)] px-6 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-500 transition disabled:opacity-50"
+                onClick={handleProceedFromTypeModal}
+                disabled={
+                  remainingPercent <= 0 ||
+                  (invoiceChoice === "partial" && (!partialPercent || clampedPartialPercent() <= 0))
+                }
+                className="bg-emerald-600 text-[var(--text-primary)] px-6 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition disabled:opacity-50"
               >
-                {t("quoteDetail.createPartialInvoice")}
+                {t("common.continue")}
               </button>
               <button
-                onClick={() => setShowPartialModal(false)}
+                onClick={() => setShowInvoiceTypeModal(false)}
                 className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
               >
                 {t("common.cancel")}
@@ -378,9 +421,10 @@ export default function QuoteDetailPage() {
         <InvoiceEditModal
           quote={quote}
           mode={invoiceEditMode}
-          partialFactor={invoiceEditMode === "partial" ? getPartialFactor() : 1}
-          partialLabel={invoiceEditMode === "partial" ? getPartialLabel() : undefined}
+          partialFactor={getInvoiceFactor()}
+          partialLabel={invoiceEditMode === "partial" ? getInvoiceLabel() : undefined}
           invoicedTotal={invoicedTotal}
+          percentOfQuote={getInvoicePercent()}
           onClose={() => setShowInvoiceEditModal(false)}
           onCreated={(invoiceId) => {
             setShowInvoiceEditModal(false);

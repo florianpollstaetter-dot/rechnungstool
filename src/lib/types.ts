@@ -37,6 +37,15 @@ export const UNIT_OPTIONS: { value: UnitType; label: string; label_en: string }[
   { value: "km", label: "km", label_en: "km" },
 ];
 
+// SCH-957 — Display token (e.g. "Stueck") translated to user-facing label
+// ("Stück" / "Pieces"). The DB / TS-Type keeps the ASCII token for UBL/CII
+// e-invoice mapping; UI + PDF must always go through this helper.
+export function unitDisplayLabel(unit: string, lang: Language = "de"): string {
+  const opt = UNIT_OPTIONS.find((u) => u.value === unit);
+  if (!opt) return unit;
+  return lang === "en" ? opt.label_en : opt.label;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -109,6 +118,8 @@ export interface Invoice {
   e_invoice_format: EInvoiceFormat;
   created_by: string | null;
   created_at: string;
+  source_quote_id: string | null;
+  percent_of_quote: number | null;
 }
 
 export type QuoteItemType = "item" | "section" | "travel_day";
