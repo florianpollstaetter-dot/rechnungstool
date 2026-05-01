@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Customer, QuoteItem, Product, UNIT_OPTIONS, Language, DisplayMode, CompanyRole, CompanySettings } from "@/lib/types";
+import { Customer, QuoteItem, Product, UNIT_OPTIONS, Language, DisplayMode, CompanyRole, CompanySettings, Quote } from "@/lib/types";
 import { getCustomers, getSettings, getActiveProducts, createQuote, updateQuote, getQuote, getTemplate, getCompanyRoles } from "@/lib/db";
 import { useAutosave } from "@/lib/use-autosave";
 import { useDraftQuoteAutosave } from "@/lib/use-draft-quote-autosave";
@@ -15,6 +15,7 @@ import CustomerCreateModal from "@/components/CustomerCreateModal";
 import TravelDayModal, { SelectableItem } from "@/components/TravelDayModal";
 import ProductCombobox from "@/components/ProductCombobox";
 import ProductCreateModal from "@/components/ProductCreateModal";
+import QuotePreviewModal from "@/components/QuotePreviewModal";
 
 type ItemRow = Omit<QuoteItem, "id"> & { id?: string };
 
@@ -96,6 +97,9 @@ function NewQuotePage() {
   // never duplicate a draft, and Submit promotes the existing draft instead
   // of creating a second quote.
   const [draftId, setDraftId] = useState<string | null>(null);
+  // SCH-956 K3-Y1 — fully persisted quote shown in the preview modal after
+  // submit. Closing the modal completes the flow and routes back to /quotes.
+  const [previewQuote, setPreviewQuote] = useState<Quote | null>(null);
 
   const formData = useMemo(() => ({
     customerId, projectDescription, quoteDate, validDays, taxRate, language, displayMode, notes, items, overallDiscountPercent, overallDiscountAmount,
@@ -356,19 +360,34 @@ function NewQuotePage() {
       // SCH-929 P2.3 — if autosave already promoted this editor to a real
       // draft row, update that row instead of creating a duplicate quote
       // (which would also burn a fresh quote_number).
+      let savedId: string;
       if (draftId) {
-        await updateQuote(draftId, payload);
+        const updated = await updateQuote(draftId, payload);
+        savedId = updated.id;
       } else {
-        await createQuote(payload);
+        const created = await createQuote(payload);
+        savedId = created.id;
       }
+      // SCH-956 K3-Y1 — re-fetch with items so the preview renders the
+      // exact persisted state (updateQuote returns header only).
+      const fullQuote = await getQuote(savedId);
       clearDraft();
-      router.push("/quotes");
+      if (fullQuote) {
+        setPreviewQuote(fullQuote);
+      } else {
+        router.push("/quotes");
+      }
     } catch (err) {
       // SCH-929 P1.1 — surface DB/RLS errors instead of swallowing them; the
       // pre-fix UX showed a silent no-op when createQuote threw, which the
       // board reported as "Submit-Button funktioniert nicht".
       setSubmitError(err instanceof Error ? err.message : String(err));
     } finally { setSubmitting(false); }
+  }
+
+  function handlePreviewClose() {
+    setPreviewQuote(null);
+    router.push("/quotes");
   }
 
   function handleCustomerCreated(c: Customer) {
@@ -651,6 +670,19 @@ function NewQuotePage() {
           }}
         />
       )}
+
+      {previewQuote && companySettings && (() => {
+        const previewCustomer = customers.find((c) => c.id === previewQuote.customer_id);
+        if (!previewCustomer) return null;
+        return (
+          <QuotePreviewModal
+            quote={previewQuote}
+            customer={previewCustomer}
+            settings={companySettings}
+            onClose={handlePreviewClose}
+          />
+        );
+      })()}
     </div>
   );
 }

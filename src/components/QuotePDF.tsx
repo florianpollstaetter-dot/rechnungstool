@@ -177,35 +177,10 @@ export default function QuotePDF({ quote, customer, settings, references }: Prop
         <Text style={s.coverCompany}>{settings.address}, {settings.zip} {settings.city}</Text>
       </Page>
 
-      {/* Page 2: About Us (detailed only) */}
-      {!isSimple && (
-        <Page size="A4" style={[s.contentPage, { fontFamily: "Inter" }]}>
-          <View style={s.goldBar} />
-          <View style={s.pageHeader}>
-            {settings.logo_url ? <Image src={settings.logo_url} style={s.pageHeaderLogo} /> : null}
-            <Text style={s.pageHeaderTitle}>{t("aboutUs", lang)}</Text>
-          </View>
-          <Text style={s.sectionLabel}>{t("aboutUs", lang)}</Text>
-          <Text style={s.sectionTitle}>VR the Fans {"\u2014"}{"\n"}{t("aboutUsTitle", lang)}</Text>
-          <Text style={s.bodyText}>{t("aboutUsBody", lang)}</Text>
-          <View style={s.statsRow}>
-            <View style={s.statCard}>
-              <Text style={s.statNumber}>50+</Text>
-              <Text style={s.statLabel}>{t("projects", lang)}</Text>
-            </View>
-            <View style={s.statCard}>
-              <Text style={s.statNumber}>Apple</Text>
-              <Text style={s.statLabel}>VISION PRO</Text>
-            </View>
-            <View style={s.statCard}>
-              <Text style={s.statNumber}>Wien</Text>
-              <Text style={s.statLabel}>{t("base", lang)}</Text>
-            </View>
-          </View>
-        </Page>
-      )}
+      {/* SCH-956 K3-AC1 — "Über uns" page entfernt; Detail-Layout startet
+          direkt mit Referenzen / Position-Liste nach dem Deckblatt. */}
 
-      {/* Page 3: References (detailed only) */}
+      {/* References (detailed only) */}
       {!isSimple && (
         <Page size="A4" style={[s.contentPage, { fontFamily: "Inter" }]}>
           <View style={s.goldBar} />
@@ -231,7 +206,7 @@ export default function QuotePDF({ quote, customer, settings, references }: Prop
         </Page>
       )}
 
-      {/* Page 4: Service Description (detailed only) */}
+      {/* Service Description (detailed only) */}
       {!isSimple && (
         <Page size="A4" style={[s.contentPage, { fontFamily: "Inter" }]}>
           <View style={s.goldBar} />
