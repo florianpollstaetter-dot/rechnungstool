@@ -10,6 +10,8 @@ import { getTipOfTheDay } from "@/lib/tips";
 import { getTimeReportEntries, periodPreset } from "@/lib/reports";
 import { useI18n } from "@/lib/i18n-context";
 import { sanitizeHtml } from "@/lib/sanitize-markdown";
+import { useCompany } from "@/lib/company-context";
+import type { MemberPermissionKey } from "@/lib/permissions";
 
 function getChuckNorrisFact(): string {
   const facts = [
@@ -35,6 +37,17 @@ function getChuckNorrisFact(): string {
 
 export default function DashboardPage() {
   const { t } = useI18n();
+  // SCH-918 K2-G4 — for the `employee` role we hide every dashboard surface
+  // (KPI cards, recent-list panels, quick-action buttons) whose corresponding
+  // permission is false. Owner/admin/manager/accountant short-circuit to FULL
+  // permissions inside CompanyContext, so they keep seeing everything.
+  const { userRole, memberPermissions, roleLoaded } = useCompany();
+  const canSee = (key: MemberPermissionKey | null): boolean => {
+    if (!roleLoaded) return false;
+    if (userRole !== "employee") return true;
+    if (!key) return true;
+    return memberPermissions[key] === true;
+  };
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -172,13 +185,25 @@ export default function DashboardPage() {
   const recentInvoices = [...invoices].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5);
   const recentQuotes = [...quotes].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5);
 
-  const cards = [
+  const cards: Array<{
+    key: string;
+    title: string;
+    href: string;
+    value: string;
+    subtitle: string;
+    borderColor: string;
+    iconBg: string;
+    iconColor: string;
+    icon: React.ReactNode;
+    permission: MemberPermissionKey | null;
+  }> = [
     {
       key: "monatsumsatz", title: t("dashboard.monthlyRevenue"), href: "/invoices?filter=bezahlt",
       value: formatCurrency(monthlyRevenueGross),
       subtitle: `${t("dashboard.annualRevenue")}: ${formatCurrency(totalRevenueGross)}`,
       borderColor: "border-emerald-500", iconBg: "bg-emerald-500/10", iconColor: "text-emerald-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
+      permission: "rechnungen",
     },
     {
       key: "offene_rechnungen", title: t("dashboard.openInvoices"), href: "/invoices?filter=offen",
@@ -186,6 +211,7 @@ export default function DashboardPage() {
       subtitle: `${openInvoices.length + partialInvoices.length} ${t("dashboard.openPartial")}`,
       borderColor: "border-amber-500", iconBg: "bg-amber-500/10", iconColor: "text-amber-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
+      permission: "rechnungen",
     },
     {
       key: "ueberfaellig", title: t("dashboard.overdue"), href: "/invoices?filter=ueberfaellig",
@@ -193,6 +219,7 @@ export default function DashboardPage() {
       subtitle: `${overdueInvoices.length} ${t("dashboard.overdue").toLowerCase()}`,
       borderColor: "border-rose-500", iconBg: "bg-rose-500/10", iconColor: "text-rose-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>,
+      permission: "rechnungen",
     },
     {
       key: "umsatzsteuer", title: t("dashboard.vatLabel"), href: "/invoices",
@@ -200,6 +227,7 @@ export default function DashboardPage() {
       subtitle: `${settings?.company_type === "gmbh" ? t("dashboard.accrualBasis") : t("dashboard.cashBasis")}`,
       borderColor: "border-orange-500", iconBg: "bg-orange-500/10", iconColor: "text-orange-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="m9 12 2 2 4-4" /></svg>,
+      permission: "rechnungen",
     },
     {
       key: "belege", title: t("dashboard.receiptsLabel"), href: "/receipts",
@@ -207,6 +235,7 @@ export default function DashboardPage() {
       subtitle: `${receipts.length} ${t("dashboard.receiptsLabel")} | ${t("common.total")}: ${formatCurrency(totalReceiptsGross)}`,
       borderColor: "border-violet-500", iconBg: "bg-violet-500/10", iconColor: "text-violet-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M14 8H8" /><path d="M16 12H8" /><path d="M13 16H8" /></svg>,
+      permission: "belege",
     },
     {
       key: "fixkosten", title: t("dashboard.fixedCostsLabel"), href: "/fixed-costs",
@@ -214,10 +243,17 @@ export default function DashboardPage() {
       subtitle: `${fixedCosts.length} ${t("common.active").toLowerCase()} / ${formatCurrency(monthlyFixedCosts * 12)} p.a.`,
       borderColor: "border-cyan-500", iconBg: "bg-cyan-500/10", iconColor: "text-cyan-400",
       icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>,
+      permission: "fixkosten",
     },
   ];
 
-  const visibleCards = cards.filter((card) => cardVisibility[card.key] !== false);
+  const visibleCards = cards.filter(
+    (card) => cardVisibility[card.key] !== false && canSee(card.permission),
+  );
+  const showRecentInvoices = cardVisibility.letzte_rechnungen !== false && canSee("rechnungen");
+  const showRecentQuotes = cardVisibility.letzte_angebote !== false && canSee("angebote");
+  const showNewQuoteButton = canSee("angebote");
+  const showNewInvoiceButton = canSee("rechnungen");
 
   if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
 
@@ -226,8 +262,12 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("nav.dashboard")}</h1>
         <div className="flex gap-2">
-          <Link href="/quotes/new" className="bg-[var(--border)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-[var(--surface-hover)] transition">{t("dashboard.newQuote")}</Link>
-          <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold hover:brightness-110 transition">{t("dashboard.newInvoice")}</Link>
+          {showNewQuoteButton && (
+            <Link href="/quotes/new" className="bg-[var(--border)] text-[var(--text-secondary)] px-3 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-[var(--surface-hover)] transition">{t("dashboard.newQuote")}</Link>
+          )}
+          {showNewInvoiceButton && (
+            <Link href="/invoices/new" className="bg-[var(--accent)] text-black px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold hover:brightness-110 transition">{t("dashboard.newInvoice")}</Link>
+          )}
         </div>
       </div>
 
@@ -291,10 +331,10 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {(cardVisibility.letzte_rechnungen !== false || cardVisibility.letzte_angebote !== false) && (
-      <div className={`grid grid-cols-1 ${cardVisibility.letzte_rechnungen !== false && cardVisibility.letzte_angebote !== false ? "lg:grid-cols-2" : ""} gap-4 mb-6`}>
+      {(showRecentInvoices || showRecentQuotes) && (
+      <div className={`grid grid-cols-1 ${showRecentInvoices && showRecentQuotes ? "lg:grid-cols-2" : ""} gap-4 mb-6`}>
         {/* Recent Invoices */}
-        {cardVisibility.letzte_rechnungen !== false && (
+        {showRecentInvoices && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
           <div className="px-4 py-3 border-b border-[var(--border)] flex justify-between items-center">
             <h2 className="text-sm sm:text-lg font-semibold text-[var(--text-primary)]">{t("dashboard.recentInvoices")}</h2>
@@ -338,7 +378,7 @@ export default function DashboardPage() {
         )}
 
         {/* Recent Quotes */}
-        {cardVisibility.letzte_angebote !== false && (
+        {showRecentQuotes && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] overflow-hidden">
           <div className="px-4 py-3 border-b border-[var(--border)] flex justify-between items-center">
             <h2 className="text-sm sm:text-lg font-semibold text-[var(--text-primary)]">{t("dashboard.recentQuotes")}</h2>

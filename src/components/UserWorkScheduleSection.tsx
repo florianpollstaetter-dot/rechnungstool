@@ -32,17 +32,29 @@ function minutesFromTimes(start: string, end: string): number {
   return diff > 0 ? diff : 0;
 }
 
+// SCH-918 K2-G10 — paid daily target = window − unpaid break. Same helper as
+// the admin modal so both editors derive the auto-target identically.
+function derivedTarget(start: string, end: string, unpaidBreakMinutes: number): number {
+  const window = minutesFromTimes(start, end);
+  if (window <= 0) return 0;
+  const paid = window - Math.max(0, unpaidBreakMinutes);
+  return paid > 0 ? paid : 0;
+}
+
 function emptyDraft(): ScheduleDraftRow[] {
   return Array.from({ length: 7 }, (_, i) => {
     const isWeekday = i < 5;
+    const start = isWeekday ? "09:00" : "";
+    const end = isWeekday ? "17:30" : "";
+    const breakMin = isWeekday ? 60 : 0;
     return {
       weekday: i,
-      start_time: isWeekday ? "09:00" : "",
-      end_time: isWeekday ? "17:30" : "",
-      daily_target_minutes: isWeekday ? 450 : 0,
+      start_time: start,
+      end_time: end,
+      daily_target_minutes: derivedTarget(start, end, breakMin),
       target_override: false,
       enabled: isWeekday,
-      unpaid_break_minutes: 0,
+      unpaid_break_minutes: breakMin,
     };
   });
 }
@@ -89,16 +101,19 @@ export default function UserWorkScheduleSection() {
         existing.forEach((row) => {
           const idx = row.weekday;
           if (idx < 0 || idx > 6) return;
+          const start = row.start_time || "";
+          const end = row.end_time || "";
+          const breakMin = row.unpaid_break_minutes ?? 0;
           next[idx] = {
             weekday: idx,
-            start_time: row.start_time || "",
-            end_time: row.end_time || "",
+            start_time: start,
+            end_time: end,
             daily_target_minutes: row.daily_target_minutes,
-            target_override: row.start_time && row.end_time
-              ? minutesFromTimes(row.start_time, row.end_time) !== row.daily_target_minutes
+            target_override: start && end
+              ? derivedTarget(start, end, breakMin) !== row.daily_target_minutes
               : row.daily_target_minutes > 0,
-            enabled: row.daily_target_minutes > 0 || !!(row.start_time && row.end_time),
-            unpaid_break_minutes: row.unpaid_break_minutes ?? 0,
+            enabled: row.daily_target_minutes > 0 || !!(start && end),
+            unpaid_break_minutes: breakMin,
           };
         });
         setDraft(next);
@@ -116,8 +131,16 @@ export default function UserWorkScheduleSection() {
       rows.map((r) => {
         if (r.weekday !== weekday) return r;
         const next: ScheduleDraftRow = { ...r, ...patch };
-        if (("start_time" in patch || "end_time" in patch) && !next.target_override) {
-          next.daily_target_minutes = minutesFromTimes(next.start_time, next.end_time);
+        // SCH-918 K2-G10 — re-derive when window OR break changes so paid
+        // time = window − break tracks both inputs.
+        const inputAffectsDerivation =
+          "start_time" in patch || "end_time" in patch || "unpaid_break_minutes" in patch;
+        if (inputAffectsDerivation && !next.target_override) {
+          next.daily_target_minutes = derivedTarget(
+            next.start_time,
+            next.end_time,
+            next.unpaid_break_minutes,
+          );
         }
         if ("daily_target_minutes" in patch) {
           next.target_override = true;
@@ -135,7 +158,9 @@ export default function UserWorkScheduleSection() {
         return {
           ...r,
           enabled,
-          daily_target_minutes: enabled ? (r.daily_target_minutes || minutesFromTimes(r.start_time, r.end_time)) : 0,
+          daily_target_minutes: enabled
+            ? (r.daily_target_minutes || derivedTarget(r.start_time, r.end_time, r.unpaid_break_minutes))
+            : 0,
           target_override: enabled ? r.target_override : false,
         };
       }),
@@ -180,8 +205,10 @@ export default function UserWorkScheduleSection() {
       ) : (
         <>
           {/* SCH-919 K2-O3 — mobile: short weekday + tighter padding/widths so
-              the row fits a 320px viewport without horizontal scroll. */}
-          <div className="bg-[var(--background)] rounded-lg border border-[var(--border)] overflow-hidden">
+              the row fits a 320px viewport without horizontal scroll.
+              SCH-918 K2-G10 — overflow-x-auto as a safety net if the unbez.
+              Pause column (added later) pushes the row past the viewport. */}
+          <div className="bg-[var(--background)] rounded-lg border border-[var(--border)] overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[var(--surface-hover)] text-[10px] uppercase text-[var(--text-muted)]">
@@ -195,7 +222,9 @@ export default function UserWorkScheduleSection() {
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {draft.map((row) => {
-                  const derived = minutesFromTimes(row.start_time, row.end_time);
+                  // SCH-918 K2-G10 — derived = paid (window − break), so the
+                  // "Auto" link restores the pause-aware value, not the raw span.
+                  const derived = derivedTarget(row.start_time, row.end_time, row.unpaid_break_minutes);
                   const mismatch = row.enabled && row.target_override && derived > 0 && derived !== row.daily_target_minutes;
                   return (
                     <tr key={row.weekday} className={row.enabled ? "" : "opacity-40"}>

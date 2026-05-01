@@ -57,18 +57,35 @@ function minutesFromTimes(start: string, end: string): number {
   return diff > 0 ? diff : 0;
 }
 
+// SCH-918 K2-G10 — paid daily target = (Bis − Von) − unpaid break.
+// Replaces the old "static 1h subtraction" baked into emptyDraft (450min for
+// 9–17:30). With this helper the admin's break value drives the derived
+// target dynamically, and the UI re-computes whenever start/end/break change.
+function derivedTarget(start: string, end: string, unpaidBreakMinutes: number): number {
+  const window = minutesFromTimes(start, end);
+  if (window <= 0) return 0;
+  const paid = window - Math.max(0, unpaidBreakMinutes);
+  return paid > 0 ? paid : 0;
+}
+
 function emptyDraft(): ScheduleDraftRow[] {
-  // Default: Mo–Fr 9–17:30 (7.5h = 450min), Sa/So off. Easy starting point; admin can edit.
+  // SCH-918 K2-G10 — Mo–Fr default 9:00–17:30 with 60min unpaid break →
+  // derived daily_target = 450min. Saturday/Sunday off. Admin can edit
+  // window or break; daily_target stays in sync via derivedTarget unless
+  // the admin manually overrides it.
   return Array.from({ length: 7 }, (_, i) => {
     const isWeekday = i < 5;
+    const start = isWeekday ? "09:00" : "";
+    const end = isWeekday ? "17:30" : "";
+    const breakMin = isWeekday ? 60 : 0;
     return {
       weekday: i,
-      start_time: isWeekday ? "09:00" : "",
-      end_time: isWeekday ? "17:30" : "",
-      daily_target_minutes: isWeekday ? 450 : 0,
+      start_time: start,
+      end_time: end,
+      daily_target_minutes: derivedTarget(start, end, breakMin),
       target_override: false,
       enabled: isWeekday,
-      unpaid_break_minutes: 0,
+      unpaid_break_minutes: breakMin,
     };
   });
 }
@@ -287,16 +304,23 @@ export default function AdminPage() {
       existing.forEach((row) => {
         const idx = row.weekday;
         if (idx < 0 || idx > 6) return;
+        const start = row.start_time || "";
+        const end = row.end_time || "";
+        const breakMin = row.unpaid_break_minutes ?? 0;
+        // SCH-918 K2-G10 — override flag is "stored target diverges from
+        // derivedTarget", so the auto-link button only appears when the admin
+        // actually customised the number.
+        const targetOverride = start && end
+          ? derivedTarget(start, end, breakMin) !== row.daily_target_minutes
+          : row.daily_target_minutes > 0;
         draft[idx] = {
           weekday: idx,
-          start_time: row.start_time || "",
-          end_time: row.end_time || "",
+          start_time: start,
+          end_time: end,
           daily_target_minutes: row.daily_target_minutes,
-          target_override: row.start_time && row.end_time
-            ? minutesFromTimes(row.start_time, row.end_time) !== row.daily_target_minutes
-            : row.daily_target_minutes > 0,
-          enabled: row.daily_target_minutes > 0 || !!(row.start_time && row.end_time),
-          unpaid_break_minutes: row.unpaid_break_minutes ?? 0,
+          target_override: targetOverride,
+          enabled: row.daily_target_minutes > 0 || !!(start && end),
+          unpaid_break_minutes: breakMin,
         };
       });
       setScheduleDraft(draft);
@@ -310,8 +334,17 @@ export default function AdminPage() {
       rows.map((r) => {
         if (r.weekday !== weekday) return r;
         const next: ScheduleDraftRow = { ...r, ...patch };
-        if (("start_time" in patch || "end_time" in patch) && !next.target_override) {
-          next.daily_target_minutes = minutesFromTimes(next.start_time, next.end_time);
+        // SCH-918 K2-G10 — auto-derive target from window AND break unless
+        // the admin has explicitly overridden the number. Editing any of
+        // start/end/break re-derives so the "minus break" stays honest.
+        const inputAffectsDerivation =
+          "start_time" in patch || "end_time" in patch || "unpaid_break_minutes" in patch;
+        if (inputAffectsDerivation && !next.target_override) {
+          next.daily_target_minutes = derivedTarget(
+            next.start_time,
+            next.end_time,
+            next.unpaid_break_minutes,
+          );
         }
         if ("daily_target_minutes" in patch) {
           next.target_override = true;
@@ -329,7 +362,9 @@ export default function AdminPage() {
         return {
           ...r,
           enabled,
-          daily_target_minutes: enabled ? (r.daily_target_minutes || minutesFromTimes(r.start_time, r.end_time)) : 0,
+          daily_target_minutes: enabled
+            ? (r.daily_target_minutes || derivedTarget(r.start_time, r.end_time, r.unpaid_break_minutes))
+            : 0,
           target_override: enabled ? r.target_override : false,
         };
       })
@@ -1093,8 +1128,13 @@ export default function AdminPage() {
               <div className="py-10 text-center text-[var(--text-muted)] text-sm">{t("common.loading")}</div>
             ) : (
               <>
-                <div className="bg-[var(--background)] rounded-lg border border-[var(--border)] overflow-hidden">
-                  <table className="w-full text-sm">
+                {/* SCH-918 K2-G10 — overflow-x-auto so the 6-column schedule
+                    table can be scrolled horizontally on phones; the modal
+                    itself stays bounded by max-w-2xl. min-w-[640px] on the
+                    table prevents columns from being squashed below their
+                    minimum readable width. */}
+                <div className="bg-[var(--background)] rounded-lg border border-[var(--border)] overflow-x-auto">
+                  <table className="w-full min-w-[640px] text-sm">
                     <thead>
                       <tr className="bg-[var(--surface-hover)] text-[10px] uppercase text-[var(--text-muted)]">
                         <th className="px-3 py-2 text-left font-medium">{t("admin.scheduleDay")}</th>
@@ -1107,7 +1147,9 @@ export default function AdminPage() {
                     </thead>
                     <tbody className="divide-y divide-[var(--border)]">
                       {scheduleDraft.map((row) => {
-                        const derived = minutesFromTimes(row.start_time, row.end_time);
+                        // SCH-918 K2-G10 — show paid time, not gross window,
+                        // so the "Auto" button restores window − break.
+                        const derived = derivedTarget(row.start_time, row.end_time, row.unpaid_break_minutes);
                         const mismatchHint = row.enabled && row.target_override && derived > 0 && derived !== row.daily_target_minutes;
                         return (
                           <tr key={row.weekday} className={row.enabled ? "" : "opacity-40"}>
@@ -1146,7 +1188,7 @@ export default function AdminPage() {
                                   value={row.unpaid_break_minutes}
                                   disabled={!row.enabled}
                                   onChange={(e) => updateDraftRow(row.weekday, { unpaid_break_minutes: Math.max(0, Number(e.target.value) || 0) })}
-                                  className="bg-[var(--surface)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)] w-16 text-right disabled:opacity-50"
+                                  className="bg-[var(--surface)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)] w-20 text-right disabled:opacity-50"
                                 />
                                 <span className="text-[10px] text-[var(--text-muted)] w-8">min</span>
                               </div>
