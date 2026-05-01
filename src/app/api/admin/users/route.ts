@@ -7,7 +7,16 @@ export async function PATCH(request: Request) {
   const auth = await requireCompanyAdmin();
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
-  const { auth_user_id: targetAuthUserId, action: userAction } = await request.json();
+  const body = (await request.json().catch(() => null)) as
+    | {
+        auth_user_id?: unknown;
+        action?: unknown;
+        email?: unknown;
+        display_name?: unknown;
+      }
+    | null;
+  const targetAuthUserId = typeof body?.auth_user_id === "string" ? body.auth_user_id : null;
+  const userAction = typeof body?.action === "string" ? body.action : null;
   if (!targetAuthUserId || !userAction) {
     return Response.json({ error: "auth_user_id und action erforderlich" }, { status: 400 });
   }
@@ -57,15 +66,6 @@ export async function PATCH(request: Request) {
   // a target user from the same company. Email change is mirrored to
   // auth.users so the user can keep logging in with the new address.
   if (userAction === "update_user") {
-    const body = (await request
-      .clone()
-      .json()
-      .catch(() => null)) as
-      | {
-          email?: unknown;
-          display_name?: unknown;
-        }
-      | null;
     const newEmail =
       typeof body?.email === "string" && body.email.trim() ? body.email.trim().toLowerCase() : null;
     const newDisplayName =
