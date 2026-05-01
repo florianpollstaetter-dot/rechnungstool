@@ -33,7 +33,12 @@ test("admin update_user mirrors new email onto auth.users", async ({ page }) => 
       email: newEmail,
     },
   });
-  expect(res.status()).toBe(200);
+  if (res.status() !== 200) {
+    // Surface server-side error verbatim so a flake or auth regression is
+    // diagnosable from the CI log without re-running with extra debug.
+    const debugBody = await res.text();
+    throw new Error(`PATCH /api/admin/users returned ${res.status()}: ${debugBody}`);
+  }
   const body = await res.json();
   expect(body.updated).toBe(true);
   expect(body.email_changed).toBe(true);

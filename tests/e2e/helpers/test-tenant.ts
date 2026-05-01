@@ -137,6 +137,10 @@ async function createProfile(
     role,
     company_access: JSON.stringify(companyIds),
     anchor_company_id: anchorCompanyId,
+    // SCH-976 — skip the OnboardingTour modal so its z-60 backdrop doesn't
+    // intercept clicks in tests. Real users see the tour on first login;
+    // the tour itself isn't part of this suite.
+    onboarding_completed_at: new Date().toISOString(),
   });
   if (error) throw new Error(`createProfile(${user.email}) failed: ${error.message}`);
 
