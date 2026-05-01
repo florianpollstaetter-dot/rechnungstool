@@ -9,7 +9,7 @@ import {
   Image,
   Font,
 } from "@react-pdf/renderer";
-import { Quote, Customer, CompanySettings, Reference, UNIT_OPTIONS, Language } from "@/lib/types";
+import { Quote, Customer, CompanySettings, Reference, unitDisplayLabel } from "@/lib/types";
 import { t } from "@/lib/i18n";
 
 Font.register({
@@ -33,10 +33,10 @@ const cl = {
 };
 
 const DEFAULT_REFERENCES: Reference[] = [
-  { title: "Produktlaunch Event", description: "Immersive Apple Vision Pro Praesentation fuer Markteinfuehrung" },
+  { title: "Produktlaunch Event", description: "Immersive Apple Vision Pro Präsentation für Markteinführung" },
   { title: "Messe-Experience", description: "Spatial Computing Showcase auf internationaler Messe" },
-  { title: "Brand Storytelling", description: "Interaktive Markenwelt fuer Premiumkunden" },
-  { title: "Sales Enablement", description: "VR-gestuetztes Verkaufsgespraech-Tool fuer Aussendienst" },
+  { title: "Brand Storytelling", description: "Interaktive Markenwelt für Premiumkunden" },
+  { title: "Sales Enablement", description: "VR-gestütztes Verkaufsgespräch-Tool für Außendienst" },
 ];
 
 const DEFAULT_REFERENCES_EN: Reference[] = [
@@ -53,12 +53,6 @@ function fmtEuro(n: number): string {
 function fmtDate(date: string): string {
   const d = new Date(date);
   return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
-}
-
-function unitLabel(unit: string, lang: Language) {
-  const opt = UNIT_OPTIONS.find((u) => u.value === unit);
-  if (!opt) return unit;
-  return lang === "en" ? opt.label_en : opt.label;
 }
 
 const s = StyleSheet.create({
@@ -229,7 +223,7 @@ export default function QuotePDF({ quote, customer, settings, references }: Prop
               <View key={idx} style={s.serviceItem}>
                 <Text style={s.serviceName}>{item.description}</Text>
                 <Text style={s.serviceDetail}>
-                  {item.quantity} {unitLabel(item.unit, lang)} x {fmtEuro(item.unit_price)}
+                  {item.quantity} {unitDisplayLabel(item.unit, lang)} x {fmtEuro(item.unit_price)}
                 </Text>
               </View>
             );
@@ -274,7 +268,7 @@ export default function QuotePDF({ quote, customer, settings, references }: Prop
               <View style={[s.tableRow, idx % 2 === 1 ? s.tableRowEven : {}]}>
                 <Text style={[s.cellNormal, s.colPos]}>{item.position}</Text>
                 <Text style={[s.cellBold, s.colDesc]}>{item.description}</Text>
-                <Text style={[s.cellNormal, s.colUnit]}>{unitLabel(item.unit, lang)}</Text>
+                <Text style={[s.cellNormal, s.colUnit]}>{unitDisplayLabel(item.unit, lang)}</Text>
                 <Text style={[s.cellNormal, s.colQty]}>{item.quantity}</Text>
                 <Text style={[s.cellNormal, s.colPrice]}>{fmtEuro(item.unit_price)}</Text>
                 <Text style={[s.cellNormal, s.colTotal]}>{fmtEuro(item.total)}</Text>

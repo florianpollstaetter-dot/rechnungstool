@@ -66,10 +66,10 @@ const DEFAULT_SETTINGS: CompanySettings = {
   default_payment_terms_days: 14,
   next_invoice_number: 1,
   next_quote_number: 1,
-  accompanying_text_de: "Vielen Dank fuer Ihren Auftrag!",
+  accompanying_text_de: "Vielen Dank für Ihren Auftrag!",
   accompanying_text_en: "Thank you for your order!",
   accompanying_text_translations: {
-    de: "Vielen Dank fuer Ihren Auftrag!",
+    de: "Vielen Dank für Ihren Auftrag!",
     en: "Thank you for your order!",
   },
   industry: "",

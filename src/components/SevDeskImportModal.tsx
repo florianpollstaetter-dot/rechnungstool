@@ -21,6 +21,7 @@ import {
 } from "@/lib/sevdesk-import";
 import { bulkCreateProducts, bulkCreateCustomers } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
+import { unitDisplayLabel } from "@/lib/types";
 
 type Stage = "idle" | "parsing" | "preview" | "importing" | "done";
 
@@ -337,7 +338,7 @@ function PreviewView({ kind, productRows, customerRows, selected, setSelected, i
                   </td>
                   <td className="px-2 py-2 text-gray-400">{p.external_ref}</td>
                   <td className="px-2 py-2">{p.name}</td>
-                  <td className="px-2 py-2 text-gray-400">{p.unit}</td>
+                  <td className="px-2 py-2 text-gray-400">{unitDisplayLabel(p.unit)}</td>
                   <td className="px-2 py-2 text-right">{formatCurrency(p.unit_price)}</td>
                   <td className="px-2 py-2 text-right text-gray-400">{p.tax_rate}%</td>
                 </tr>

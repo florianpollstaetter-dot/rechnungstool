@@ -33,19 +33,19 @@ export function PaymentOverdueBanner() {
         {isTrialExpired ? (
           <>
             <span className="font-semibold">
-              Testphase beendet — Funktionen eingeschraenkt.
+              Testphase beendet — Funktionen eingeschränkt.
             </span>
             <span className="text-rose-600/80 dark:text-rose-300/80">
-              Bitte ein Abo abschliessen, um wieder vollen Zugriff zu erhalten.
+              Bitte ein Abo abschließen, um wieder vollen Zugriff zu erhalten.
             </span>
           </>
         ) : (
           <>
             <span className="font-semibold">
-              Rechnung ueberfaellig — Funktionen eingeschraenkt.
+              Rechnung überfällig — Funktionen eingeschränkt.
             </span>
             <span className="text-rose-600/80 dark:text-rose-300/80">
-              Bitte ausstehende Rechnung begleichen{days > 0 ? ` (${days} Tage ueberfaellig)` : ""}.
+              Bitte ausstehende Rechnung begleichen{days > 0 ? ` (${days} Tage überfällig)` : ""}.
             </span>
           </>
         )}

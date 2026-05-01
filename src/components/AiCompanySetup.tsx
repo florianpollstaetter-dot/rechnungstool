@@ -13,7 +13,7 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { createCompanyRole, createProduct, getCompanyRoles } from "@/lib/db";
-import { UnitType } from "@/lib/types";
+import { UnitType, unitDisplayLabel } from "@/lib/types";
 import { useCompany } from "@/lib/company-context";
 import MissingFieldsPopup, { MissingFieldSpec } from "./MissingFieldsPopup";
 
@@ -821,7 +821,7 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
                           />
                         </td>
                         <td className="px-3 py-2 text-[var(--text-primary)]">{product.name}</td>
-                        <td className="px-3 py-2 text-[var(--text-secondary)]">{product.unit}</td>
+                        <td className="px-3 py-2 text-[var(--text-secondary)]">{unitDisplayLabel(product.unit)}</td>
                         <td className="px-3 py-2 text-right text-[var(--text-primary)]">
                           {product.unit_price.toFixed(2)} EUR
                         </td>

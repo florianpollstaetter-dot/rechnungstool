@@ -10,7 +10,7 @@ import PDFPreviewModal from "@/components/PDFPreviewModal";
 import { useI18n } from "@/lib/i18n-context";
 import { useCompany } from "@/lib/company-context";
 
-const READ_ONLY_TITLE = "Rechnung ueberfaellig — Funktionen eingeschraenkt. Bitte ausstehende Rechnung begleichen.";
+const READ_ONLY_TITLE = "Rechnung überfällig — Funktionen eingeschränkt. Bitte ausstehende Rechnung begleichen.";
 
 function isOverdue(inv: Invoice): boolean {
   if (inv.status === "bezahlt" || inv.status === "storniert") return false;
