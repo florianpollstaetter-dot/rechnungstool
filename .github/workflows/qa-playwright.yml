@@ -47,7 +47,12 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      BASE_URL: ${{ inputs.base_url || secrets.PLAYWRIGHT_BASE_URL || '' }}
+      # SCH-976 — default CI to the deployed Vercel app rather than booting
+      # `npm run dev` in-runner. The local dev server currently crashes on
+      # startup because of the `[id]` vs `[key]` slug conflict in
+      # src/app/api/documents/ (introduced by SCH-633, fix tracked
+      # separately) — production builds tolerate it but `next dev` does not.
+      BASE_URL: ${{ inputs.base_url || secrets.PLAYWRIGHT_BASE_URL || 'https://invoices-rho-nine.vercel.app' }}
       CI: "true"
     steps:
       - name: Guard — Supabase secrets must be present
