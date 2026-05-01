@@ -425,11 +425,14 @@ export async function getInvoice(
 }
 
 export async function getInvoicesForQuote(quoteId: string): Promise<Invoice[]> {
+  // SCH-959 — prefer the source_quote_id FK; fall back to the legacy
+  // [source_quote:<uuid>] notes marker so any pre-migration row still surfaces
+  // even if the backfill missed it.
   const { data: invoices } = await supabase()
     .from("invoices")
     .select("*")
     .eq("company_id", getActiveCompanyId())
-    .ilike("notes", `%[source_quote:${quoteId}]%`)
+    .or(`source_quote_id.eq.${quoteId},notes.ilike.%[source_quote:${quoteId}]%`)
     .order("created_at", { ascending: true });
   if (!invoices || invoices.length === 0) return [];
 
@@ -802,7 +805,9 @@ export async function convertQuoteToInvoice(quoteId: string): Promise<Invoice> {
     language: quote.language || "de",
     accompanying_text: null,
     e_invoice_format: "none",
-        created_by: null,
+    created_by: null,
+    source_quote_id: quote.id,
+    percent_of_quote: 100,
   });
 
   await updateQuote(quoteId, {
@@ -1769,6 +1774,8 @@ function mapInvoice(
     e_invoice_format: (row.e_invoice_format as Invoice["e_invoice_format"]) || "none",
     created_by: (row.created_by as string) || null,
     created_at: row.created_at as string,
+    source_quote_id: (row.source_quote_id as string) ?? null,
+    percent_of_quote: row.percent_of_quote == null ? null : Number(row.percent_of_quote),
   };
 }
 
