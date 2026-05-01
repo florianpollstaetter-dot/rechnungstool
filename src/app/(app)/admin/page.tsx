@@ -45,8 +45,9 @@ const PERMISSION_LABELS: Record<MemberPermissionKey, string> = {
 };
 
 import UserDiagnoseTab from "./UserDiagnoseTab";
+import ProjectsTab from "./ProjectsTab";
 
-type AdminTab = "users" | "roles" | "diagnose";
+type AdminTab = "users" | "roles" | "projects" | "diagnose";
 
 function minutesFromTimes(start: string, end: string): number {
   if (!start || !end) return 0;
@@ -103,7 +104,7 @@ const DEFAULT_ROLE_COLORS = [
 ];
 
 export default function AdminPage() {
-  const { accessibleCompanies: COMPANIES } = useCompany();
+  const { accessibleCompanies: COMPANIES, memberPermissions } = useCompany();
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -523,7 +524,12 @@ export default function AdminPage() {
   }
 
   if (loading) return <div className="flex justify-center py-12"><div className="text-gray-500">{t("common.loading")}</div></div>;
-  if (currentUserRole !== "admin") return <div className="text-center py-12 text-gray-500">{t("admin.adminOnly")}</div>;
+  // SCH-975 K2-H1 — non-admins can still reach this page if they have the
+  // `projekte_erstellen` permission, but only the Projects tab is exposed.
+  const isAdmin = currentUserRole === "admin";
+  const canSeeProjects = isAdmin || memberPermissions.projekte_erstellen === true;
+  if (!isAdmin && !canSeeProjects) return <div className="text-center py-12 text-gray-500">{t("admin.adminOnly")}</div>;
+  const effectiveTab: AdminTab = isAdmin ? activeTab : "projects";
 
   const inputClass = "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]";
 
@@ -531,42 +537,61 @@ export default function AdminPage() {
     <div>
       {/* Tab Navigation */}
       <div className="flex items-center gap-1 mb-6 border-b border-[var(--border)]">
-        <button
-          onClick={() => setActiveTab("users")}
-          className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
-            activeTab === "users"
-              ? "border-[var(--accent)] text-[var(--accent)]"
-              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-          }`}
-        >
-          {t("admin.tabUsers")}
-        </button>
-        <button
-          onClick={() => setActiveTab("roles")}
-          className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
-            activeTab === "roles"
-              ? "border-[var(--accent)] text-[var(--accent)]"
-              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-          }`}
-        >
-          {t("admin.tabRoles")}
-        </button>
-        <button
-          onClick={() => setActiveTab("diagnose")}
-          className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
-            activeTab === "diagnose"
-              ? "border-[var(--accent)] text-[var(--accent)]"
-              : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-          }`}
-        >
-          User-Diagnose
-        </button>
+        {isAdmin && (
+          <>
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
+                effectiveTab === "users"
+                  ? "border-[var(--accent)] text-[var(--accent)]"
+                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+              }`}
+            >
+              {t("admin.tabUsers")}
+            </button>
+            <button
+              onClick={() => setActiveTab("roles")}
+              className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
+                effectiveTab === "roles"
+                  ? "border-[var(--accent)] text-[var(--accent)]"
+                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+              }`}
+            >
+              {t("admin.tabRoles")}
+            </button>
+          </>
+        )}
+        {canSeeProjects && (
+          <button
+            onClick={() => setActiveTab("projects")}
+            className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
+              effectiveTab === "projects"
+                ? "border-[var(--accent)] text-[var(--accent)]"
+                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+            }`}
+          >
+            {t("admin.tabProjects")}
+          </button>
+        )}
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab("diagnose")}
+            className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
+              effectiveTab === "diagnose"
+                ? "border-[var(--accent)] text-[var(--accent)]"
+                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+            }`}
+          >
+            User-Diagnose
+          </button>
+        )}
       </div>
 
-      {activeTab === "diagnose" && <UserDiagnoseTab />}
+      {effectiveTab === "diagnose" && isAdmin && <UserDiagnoseTab />}
+      {effectiveTab === "projects" && canSeeProjects && <ProjectsTab />}
 
       {/* ==================== USERS TAB ==================== */}
-      {activeTab === "users" && (
+      {effectiveTab === "users" && isAdmin && (
         <>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("admin.userManagement")}</h1>
@@ -812,7 +837,7 @@ export default function AdminPage() {
       )}
 
       {/* ==================== ROLES TAB ==================== */}
-      {activeTab === "roles" && (
+      {effectiveTab === "roles" && isAdmin && (
         <>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("admin.roleManagement")}</h1>

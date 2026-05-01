@@ -183,7 +183,13 @@ export default function AppSidebar() {
   const timeAllowed = roleLoaded;
   // Admin section visibility tracks the static role table — only `admin` user
   // role sees it (matches the existing logic before SCH-918).
-  const adminAllowed = roleLoaded && (ROLE_PERMISSIONS[role] || []).includes("admin");
+  // SCH-975 K2-H1 — also expose the link to non-admin members who hold the
+  // `projekte_erstellen` permission, so they can reach the Projects tab
+  // (the page itself hides the admin-only tabs from them).
+  const adminAllowed =
+    roleLoaded &&
+    ((ROLE_PERMISSIONS[role] || []).includes("admin") ||
+      memberPermissions.projekte_erstellen === true);
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
