@@ -83,6 +83,12 @@ interface CompanyContextType {
   authed: boolean | null;
   isSuperadmin: boolean;
   isReadOnly: boolean;
+  /** SCH-962 — true when the user has memberships but every company they
+   *  belong to is suspended or cancelled. Used by BlockedCompanyGate to
+   *  prevent app access for users whose only company was locked by an
+   *  operator. Superadmins are never blocked (they can always reach the
+   *  operator console). */
+  companyAccessBlocked: boolean;
   setCompanyId: (id: string) => void;
   // SCH-918 K2-γ — granular per-feature permissions for the active company.
   // For owner/admin/manager/accountant the role-based map still drives the
@@ -103,6 +109,7 @@ const CompanyContext = createContext<CompanyContextType>({
   authed: null,
   isSuperadmin: false,
   isReadOnly: false,
+  companyAccessBlocked: false,
   setCompanyId: () => {},
   memberPermissions: DEFAULT_MEMBER_PERMISSIONS,
   memberRole: null,
@@ -126,6 +133,9 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     setCompanyIdStateRaw(id);
   }, []);
   const [accessibleCompanies, setAccessibleCompanies] = useState<Company[]>(FALLBACK_COMPANIES);
+  // SCH-962 — set when the user has at least one company_members row but
+  // none of those companies are status='active'. Superadmins ignore this.
+  const [companyAccessBlocked, setCompanyAccessBlocked] = useState(false);
   const [userRole, setUserRole] = useState("");
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -227,6 +237,10 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
       // Try to load companies from DB via company_members join
       let dbCompanies: Company[] = [];
+      // SCH-962 — track raw membership count so we can distinguish
+      // "user has no memberships at all" (legitimate fresh user) from
+      // "user has memberships but they're all locked" (block access).
+      let rawMembershipCount = 0;
       // SCH-918 — collect (role, permissions JSONB) per company so the sidebar
       // can gate sections without an extra query.
       const newMembershipByCompany: Record<
@@ -240,6 +254,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
           .eq("user_id", user.id);
 
         if (memberRows && memberRows.length > 0) {
+          rawMembershipCount = memberRows.length;
           for (const row of memberRows as Array<Record<string, unknown>>) {
             const cid = row.company_id as string | undefined;
             if (!cid) continue;
@@ -336,6 +351,11 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       }
       setRoleLoaded(true);
       setMembershipByCompany(newMembershipByCompany);
+      // SCH-962 — block app access when memberships exist but none are active.
+      // Superadmins bypass: they may manage suspended tenants from /operator.
+      setCompanyAccessBlocked(
+        !profile?.is_superadmin && rawMembershipCount > 0 && dbCompanies.length === 0,
+      );
 
       // SCH-525: make sure the JWT claim matches the company we just committed
       // to client state. Without this, RLS INSERT checks (e.g. AiCompanySetup
@@ -358,6 +378,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         setIsSuperadmin(false);
         setUserName("");
         setAccessibleCompanies(FALLBACK_COMPANIES);
+        setCompanyAccessBlocked(false);
         return;
       }
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
@@ -388,7 +409,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       : DEFAULT_MEMBER_PERMISSIONS);
 
   return (
-    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, greetingTone, setGreetingTone, roleLoaded, authed, isSuperadmin, isReadOnly, setCompanyId, memberPermissions, memberRole }}>
+    <CompanyContext.Provider value={{ company, accessibleCompanies, userRole, userName, greetingTone, setGreetingTone, roleLoaded, authed, isSuperadmin, isReadOnly, companyAccessBlocked, setCompanyId, memberPermissions, memberRole }}>
       {children}
     </CompanyContext.Provider>
   );

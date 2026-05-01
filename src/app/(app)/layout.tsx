@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { AppFooter } from "@/components/AppFooter";
 import { PaymentOverdueBanner } from "@/components/PaymentOverdueBanner";
 import { PasswordChangeGate } from "@/components/PasswordChangeGate";
+import { BlockedCompanyGate } from "@/components/BlockedCompanyGate";
 import { ChatWidget } from "@/components/ChatWidget";
 import OnboardingTour from "@/components/OnboardingTour";
 import AppSidebar from "@/components/AppSidebar";
@@ -11,6 +12,7 @@ import AppSidebar from "@/components/AppSidebar";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <BlockedCompanyGate />
       <PasswordChangeGate />
       <PaymentOverdueBanner />
       {/* SCH-920 K2-K1 — AppSidebar uses useSearchParams() to keep the

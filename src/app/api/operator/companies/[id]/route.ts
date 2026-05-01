@@ -1,4 +1,4 @@
-import { requireSuperadmin, createServiceClient } from "@/lib/operator";
+import { requireSuperadmin, createServiceClient, logOperatorAction } from "@/lib/operator";
 
 export async function GET(
   _request: Request,
@@ -76,3 +76,59 @@ export async function GET(
     users,
   });
 }
+
+// SCH-962 — hard delete a company and all its tenant data via the
+// purge_company() SQL function. The operator UI gates this behind a
+// 3-step confirmation (warning + name match + final button); the body
+// must echo the exact company name as a server-side guard against
+// accidental DELETEs from misrouted clients.
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireSuperadmin();
+  if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
+
+  const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+  const confirmName = typeof body?.confirm_name === "string" ? body.confirm_name : "";
+
+  const service = createServiceClient();
+
+  const { data: company, error: lookupError } = await service
+    .from("companies")
+    .select("id, name")
+    .eq("id", id)
+    .single();
+  if (lookupError || !company) {
+    return Response.json({ error: "Unternehmen nicht gefunden" }, { status: 404 });
+  }
+  if (confirmName !== company.name) {
+    return Response.json(
+      { error: "Bestätigung stimmt nicht — bitte den exakten Firmennamen eintippen." },
+      { status: 400 },
+    );
+  }
+
+  // Snapshot what we are about to nuke for the audit log; counts are best-effort.
+  const [receipts, invoices, members] = await Promise.all([
+    service.from("receipts").select("id", { count: "exact", head: true }).eq("company_id", id),
+    service.from("invoices").select("id", { count: "exact", head: true }).eq("company_id", id),
+    service.from("company_members").select("user_id", { count: "exact", head: true }).eq("company_id", id),
+  ]);
+
+  const { error: purgeError } = await service.rpc("purge_company", { p_company_id: id });
+  if (purgeError) {
+    return Response.json({ error: purgeError.message }, { status: 500 });
+  }
+
+  await logOperatorAction(auth.user!.id, "company.delete", "company", id, {
+    name: company.name,
+    receipts: receipts.count ?? 0,
+    invoices: invoices.count ?? 0,
+    members: members.count ?? 0,
+  });
+
+  return Response.json({ ok: true });
+}
+

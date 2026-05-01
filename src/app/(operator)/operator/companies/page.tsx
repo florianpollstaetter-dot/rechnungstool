@@ -10,6 +10,7 @@ interface CompanyRow {
   plan: string;
   status: string;
   trial_ends_at: string | null;
+  archived_at: string | null;
   created_at: string;
   subscription_status: "paid" | "outstanding" | "overdue" | null;
   is_free: boolean | null;
@@ -100,6 +101,8 @@ export default function OperatorCompanies() {
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("created_desc");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  // SCH-962 — archived companies are hidden by default; toggle reveals them.
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => { loadCompanies(); }, []);
 
@@ -132,7 +135,11 @@ export default function OperatorCompanies() {
     const searched = companies.filter(
       (c) => c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q),
     );
-    const payFiltered = searched.filter((c) => {
+    // SCH-962 — hide archived rows unless the operator opts in.
+    const archiveFiltered = showArchived
+      ? searched
+      : searched.filter((c) => !c.archived_at);
+    const payFiltered = archiveFiltered.filter((c) => {
       if (paymentFilter === "all") return true;
       if (paymentFilter === "free") return !!c.is_free;
       if (c.is_free) return false;
@@ -162,7 +169,12 @@ export default function OperatorCompanies() {
       sorted.sort((a, b) => rank(a) - rank(b) || daysOverdue(b.next_payment_due_at) - daysOverdue(a.next_payment_due_at));
     }
     return sorted;
-  }, [companies, search, paymentFilter, sortKey]);
+  }, [companies, search, paymentFilter, sortKey, showArchived]);
+
+  const archivedCount = useMemo(
+    () => companies.filter((c) => c.archived_at).length,
+    [companies],
+  );
 
   if (loading) return <div className="text-[var(--text-muted)] text-sm py-8 text-center">Lade Unternehmen...</div>;
   if (error) return <div className="text-rose-500 text-sm py-8 text-center">{error}</div>;
@@ -224,6 +236,15 @@ export default function OperatorCompanies() {
             </button>
           );
         })}
+        <label className="ml-auto inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+            className="accent-rose-500"
+          />
+          Archivierte anzeigen{archivedCount > 0 ? ` (${archivedCount})` : ""}
+        </label>
       </div>
 
       <div className="overflow-x-auto">
@@ -249,10 +270,19 @@ export default function OperatorCompanies() {
                 <tr
                   key={c.id}
                   onClick={() => router.push(`/operator/companies/${c.id}`)}
-                  className="border-b border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+                  className={`border-b border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer ${
+                    c.archived_at ? "opacity-60" : ""
+                  }`}
                 >
                   <td className="py-2.5 px-2">
-                    <div className="font-medium text-[var(--text-primary)]">{c.name}</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-[var(--text-primary)]">{c.name}</span>
+                      {c.archived_at && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-500/15 text-gray-500 border border-gray-500/20">
+                          Archiviert
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-[var(--text-muted)]">{c.slug}</div>
                   </td>
                   <td className="py-2.5 px-2">

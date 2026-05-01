@@ -23,6 +23,7 @@ interface CompanyDetail {
   plan: string;
   status: string;
   trial_ends_at: string | null;
+  archived_at: string | null;
   created_at: string;
   subscription_status: "paid" | "outstanding" | "overdue" | null;
   is_free: boolean | null;
@@ -83,6 +84,9 @@ export default function OperatorCompanyDetail() {
   const [actionUser, setActionUser] = useState<CompanyUser | null>(null);
   const [flash, setFlash] = useState("");
   const [tempPasswordInfo, setTempPasswordInfo] = useState<{ user: string; email: string; password: string } | null>(null);
+  // SCH-962 — lifecycle action UI state
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/operator/companies/${companyId}`);
@@ -106,6 +110,47 @@ export default function OperatorCompanyDetail() {
       await load();
       setEditing(false);
     }
+  }
+
+  // SCH-962 — toggle archive flag via dedicated route (separate from PATCH).
+  async function toggleArchive(archived: boolean) {
+    setLifecycleBusy(true);
+    const res = await fetch(`/api/operator/companies/${companyId}/archive`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived }),
+    });
+    if (res.ok) {
+      setFlash(archived ? "Unternehmen archiviert." : "Archivierung aufgehoben.");
+      await load();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setFlash(`Fehler: ${body?.error || res.statusText}`);
+    }
+    setLifecycleBusy(false);
+  }
+
+  // SCH-962 — lock/unlock via existing PATCH (status='suspended'/'active').
+  async function toggleLock(suspended: boolean) {
+    setLifecycleBusy(true);
+    const newStatus = suspended ? "suspended" : "active";
+    const res = await fetch("/api/operator/companies", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: companyId, status: newStatus }),
+    });
+    if (res.ok) {
+      setFlash(
+        suspended
+          ? "Unternehmen gesperrt — Login deaktiviert für alle User."
+          : "Sperre aufgehoben.",
+      );
+      await load();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setFlash(`Fehler: ${body?.error || res.statusText}`);
+    }
+    setLifecycleBusy(false);
   }
 
   async function handleUserAction(user: CompanyUser, action: string) {
@@ -177,7 +222,14 @@ export default function OperatorCompanyDetail() {
 
       <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">{company.name}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">{company.name}</h1>
+            {company.archived_at && (
+              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-500/15 text-gray-500 border border-gray-500/20">
+                Archiviert
+              </span>
+            )}
+          </div>
           <div className="text-xs text-[var(--text-muted)] mt-0.5">Kürzel: {company.slug} · ID: {company.id}</div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -197,6 +249,46 @@ export default function OperatorCompanyDetail() {
             Unternehmen bearbeiten
           </button>
         </div>
+      </div>
+
+      {/* SCH-962 — lifecycle actions: archive / lock / delete */}
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 mb-4 flex flex-wrap items-center gap-2">
+        <span className="text-xs text-[var(--text-muted)] mr-1">Lifecycle:</span>
+        <button
+          onClick={() => toggleArchive(!company.archived_at)}
+          disabled={lifecycleBusy}
+          className="px-3 py-1.5 text-xs font-medium bg-[var(--background)] border border-[var(--border)] text-[var(--text-primary)] rounded-md hover:bg-[var(--surface-hover)] disabled:opacity-50 transition-colors"
+        >
+          {company.archived_at ? "Archivierung aufheben" : "Archivieren"}
+        </button>
+        {company.status === "suspended" ? (
+          <button
+            onClick={() => toggleLock(false)}
+            disabled={lifecycleBusy}
+            className="px-3 py-1.5 text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 rounded-md hover:bg-emerald-500/20 disabled:opacity-50 transition-colors"
+          >
+            Sperre aufheben
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              if (confirm("Alle aktiven Sessions werden beendet, kein User kann sich mehr einloggen. Fortfahren?")) {
+                toggleLock(true);
+              }
+            }}
+            disabled={lifecycleBusy}
+            className="px-3 py-1.5 text-xs font-medium bg-amber-500/10 border border-amber-500/30 text-amber-600 rounded-md hover:bg-amber-500/20 disabled:opacity-50 transition-colors"
+          >
+            Sperren (Login blockieren)
+          </button>
+        )}
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          disabled={lifecycleBusy}
+          className="ml-auto px-3 py-1.5 text-xs font-medium bg-rose-500/10 border border-rose-500/30 text-rose-600 rounded-md hover:bg-rose-500/20 disabled:opacity-50 transition-colors"
+        >
+          Endgültig löschen
+        </button>
       </div>
 
       {flash && (
@@ -325,6 +417,17 @@ export default function OperatorCompanyDetail() {
           info={tempPasswordInfo}
           companyName={company.name}
           onClose={() => setTempPasswordInfo(null)}
+        />
+      )}
+
+      {showDeleteModal && (
+        <DeleteCompanyModal
+          company={company}
+          onClose={() => setShowDeleteModal(false)}
+          onDeleted={() => {
+            setShowDeleteModal(false);
+            router.push("/operator/companies");
+          }}
         />
       )}
     </div>
@@ -584,6 +687,144 @@ function UserActionsModal({
             Schließen
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// SCH-962 — three-step delete confirmation:
+//   1. Warning + counts
+//   2. Type the company name verbatim
+//   3. Click final "Endgültig löschen"
+function DeleteCompanyModal({
+  company,
+  onClose,
+  onDeleted,
+}: {
+  company: CompanyDetail;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [typedName, setTypedName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const nameMatches = typedName.trim() === company.name;
+
+  async function handleDelete() {
+    setBusy(true);
+    setErr("");
+    const res = await fetch(`/api/operator/companies/${company.id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm_name: company.name }),
+    });
+    if (res.ok) {
+      onDeleted();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setErr(body?.error || "Löschen fehlgeschlagen.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="bg-[var(--surface)] border-2 border-rose-500/40 rounded-xl shadow-xl p-6 max-w-md w-full">
+        <h2 className="text-lg font-bold text-rose-500 mb-2">
+          Unternehmen endgültig löschen
+        </h2>
+        <p className="text-xs text-[var(--text-muted)] mb-4">
+          {company.name} ({company.id})
+        </p>
+
+        {step === 1 && (
+          <>
+            <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3 mb-3 text-xs text-rose-600 dark:text-rose-300 space-y-2">
+              <p className="font-semibold">⚠ Unwiderruflich.</p>
+              <p>Folgende Daten werden permanent gelöscht:</p>
+              <ul className="list-disc list-inside ml-1 space-y-0.5">
+                <li>{company.user_count} Mitarbeiter-Verknüpfungen</li>
+                <li>{company.invoice_count} Rechnungen (inkl. Positionen)</li>
+                <li>{company.receipt_count} Belege</li>
+                <li>Alle Angebote, Projekte, Kunden, Produkte, Zeiten, Bank-Daten</li>
+                <li>Alle Einstellungen, Designs, Dokumente, Chats</li>
+              </ul>
+              <p className="pt-1">User-Accounts (auth.users) bleiben erhalten — nur die Verknüpfungen mit diesem Unternehmen verschwinden.</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={onClose} className="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                Abbrechen
+              </button>
+              <button onClick={() => setStep(2)} className="px-3 py-1.5 text-xs font-medium bg-rose-500 text-white rounded-md hover:bg-rose-600">
+                Weiter
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <p className="text-xs text-[var(--text-secondary)] mb-2">
+              Tippe zur Bestätigung den exakten Firmennamen ein:
+            </p>
+            <p className="text-sm font-mono font-semibold text-[var(--text-primary)] mb-2 select-all">
+              {company.name}
+            </p>
+            <input
+              type="text"
+              value={typedName}
+              onChange={(e) => setTypedName(e.target.value)}
+              autoFocus
+              placeholder="Firmenname"
+              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-rose-500/50 mb-3"
+            />
+            <div className="flex justify-between gap-2">
+              <button onClick={() => setStep(1)} className="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                ← Zurück
+              </button>
+              <div className="flex gap-2">
+                <button onClick={onClose} className="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                  Abbrechen
+                </button>
+                <button
+                  disabled={!nameMatches}
+                  onClick={() => setStep(3)}
+                  className="px-3 py-1.5 text-xs font-medium bg-rose-500 text-white rounded-md hover:bg-rose-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Weiter
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <p className="text-sm text-[var(--text-primary)] mb-3">
+              Letzte Bestätigung: Daten von <strong>{company.name}</strong> werden jetzt vollständig gelöscht.
+            </p>
+            {err && <p className="text-xs text-rose-500 mb-2">{err}</p>}
+            <div className="flex justify-between gap-2">
+              <button onClick={() => setStep(2)} disabled={busy} className="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50">
+                ← Zurück
+              </button>
+              <div className="flex gap-2">
+                <button onClick={onClose} disabled={busy} className="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50">
+                  Abbrechen
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={busy}
+                  className="px-3 py-1.5 text-xs font-bold bg-rose-600 text-white rounded-md hover:bg-rose-700 disabled:opacity-50"
+                >
+                  {busy ? "Lösche..." : "Endgültig löschen"}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
