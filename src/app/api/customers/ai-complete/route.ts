@@ -1,21 +1,41 @@
 // SCH-430 — AI-Vervollständigung für Kundenanlage.
+// SCH-960 — Multi-Pass-Strategy + Liste der weiterhin fehlenden Felder, damit
+// das Frontend ein Fallback-Popup anzeigen kann.
 //
 // Nimmt einen Firmen-/Personennamen, recherchiert im Internet und gibt
 // strukturierte Kundendaten zurück (Adresse, UID, E-Mail, Telefon etc.).
 //
-// Muster analog zu /api/company/setup-suggestions: Claude + web_search Tool.
+// Pipeline: pass 1 mit dem allgemeinen Prompt unten. Wenn nach Pass 1 noch
+// Pflichtfelder leer sind → bis zu zwei weitere Pässe mit gezieltem Re-Prompt.
 //
 // Kosten pro Aufruf (geschätzt):
-//   Input: ~600-1000 Tokens
-//   Output: ~400-800 Tokens
-//   → ca. $0.002-0.006 pro Aufruf
+//   Pass 1: ~600-1000 Input + 400-800 Output → $0.002-0.006
+//   Pass 2-3: ~+$0.002-0.004 wenn nötig
 //
 // SCH-600 Phase-5 Security: gated behind an authenticated session so an
 // anonymous caller can't drain the Claude budget.
 
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { fetchWithTimeout, isFetchTimeout } from "@/lib/fetch-with-timeout";
+import { isFetchTimeout } from "@/lib/fetch-with-timeout";
 import { logAndSanitize } from "@/lib/api-errors";
+import {
+  aiCompleteWithRetry,
+  extractJsonObject,
+  type AiCompleteFieldSpec,
+} from "@/lib/ai-complete-with-retry";
+
+const CUSTOMER_FIELDS: AiCompleteFieldSpec[] = [
+  { key: "name", label: "Kontaktperson", description: "Ansprechpartner oder leerer String", required: false },
+  { key: "company", label: "Firmenname", description: "Vollständiger Firmenname mit Rechtsform", required: true },
+  { key: "address", label: "Adresse", description: "Straße und Hausnummer", required: true },
+  { key: "zip", label: "PLZ", description: "Postleitzahl", required: true },
+  { key: "city", label: "Stadt", description: "Ort/Stadt", required: true },
+  { key: "country", label: "Land", description: "Land ausgeschrieben (z.B. Oesterreich, Deutschland)", required: true },
+  { key: "uid_number", label: "UID-Nummer", description: "EU-UID-Nummer (z.B. ATU12345678)", required: true },
+  { key: "leitweg_id", label: "Leitweg-ID", description: "Leitweg-ID nur bei Behörden, sonst leer", required: false },
+  { key: "email", label: "E-Mail-Adresse", description: "Geschäftliche E-Mail-Adresse", required: true },
+  { key: "phone", label: "Telefonnummer", description: "Telefonnummer im internationalen Format", required: true },
+];
 
 export async function POST(request: Request) {
   const ssr = await createServerClient();
@@ -44,7 +64,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const prompt = `Du bist ein Recherche-Assistent für ein österreichisches Rechnungstool. Der Benutzer möchte einen neuen Kunden anlegen und hat folgenden Namen eingegeben:
+  const initialPrompt = `Du bist ein Recherche-Assistent für ein österreichisches Rechnungstool. Der Benutzer möchte einen neuen Kunden anlegen und hat folgenden Namen eingegeben:
 
 "${name}"
 
@@ -82,72 +102,46 @@ Antworte NUR mit folgendem JSON, kein anderer Text:
 }`;
 
   try {
-    const response = await fetchWithTimeout(
-      "https://api.anthropic.com/v1/messages",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1024,
-          tools: [
-            {
-              type: "web_search_20250305",
-              name: "web_search",
-              max_uses: 3,
-            },
-          ],
-          messages: [{ role: "user", content: prompt }],
-        }),
+    const result = await aiCompleteWithRetry({
+      anthropicKey,
+      initialPrompt,
+      entityName: name,
+      fields: CUSTOMER_FIELDS,
+      maxPasses: 3,
+      parseResponse: (rawText) => {
+        const parsed = extractJsonObject(rawText);
+        const values: Record<string, string> = {};
+        for (const f of CUSTOMER_FIELDS) {
+          const v = parsed[f.key];
+          values[f.key] = typeof v === "string" ? v : "";
+        }
+        return {
+          values,
+          confidence: typeof parsed.confidence === "string" ? parsed.confidence : undefined,
+          source: typeof parsed.source === "string" ? parsed.source : undefined,
+        };
       },
-      60_000,
-    );
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Claude API error: ${response.status} ${err}`);
-    }
-
-    const result = await response.json();
-
-    const textBlock = result.content?.findLast(
-      (b: Record<string, string>) => b.type === "text"
-    );
-    const rawText = textBlock?.text || "{}";
-
-    const inputTokens = result.usage?.input_tokens || 0;
-    const outputTokens = result.usage?.output_tokens || 0;
-    const costUSD = (inputTokens * 3 + outputTokens * 15) / 1_000_000;
-    const costEUR = Math.round(costUSD * 0.92 * 10000) / 10000;
-
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+    });
 
     return Response.json({
       success: true,
       customer: {
-        name: parsed.name || "",
-        company: parsed.company || "",
-        address: parsed.address || "",
-        zip: parsed.zip || "",
-        city: parsed.city || "",
-        country: parsed.country || "Oesterreich",
-        uid_number: parsed.uid_number || "",
-        leitweg_id: parsed.leitweg_id || "",
-        email: parsed.email || "",
-        phone: parsed.phone || "",
+        name: result.values.name || "",
+        company: result.values.company || "",
+        address: result.values.address || "",
+        zip: result.values.zip || "",
+        city: result.values.city || "",
+        country: result.values.country || "Oesterreich",
+        uid_number: result.values.uid_number || "",
+        leitweg_id: result.values.leitweg_id || "",
+        email: result.values.email || "",
+        phone: result.values.phone || "",
       },
-      confidence: parsed.confidence || "low",
-      source: parsed.source || "",
-      cost: {
-        input_tokens: inputTokens,
-        output_tokens: outputTokens,
-        cost_eur: costEUR,
-      },
+      confidence: result.confidence,
+      source: result.source,
+      cost: result.cost,
+      passes: result.passes,
+      missingFields: result.missingFields,
     });
   } catch (err) {
     if (isFetchTimeout(err)) {

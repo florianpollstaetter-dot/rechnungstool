@@ -15,6 +15,19 @@ import { createClient } from "@/lib/supabase/client";
 import { createCompanyRole, createProduct, getCompanyRoles } from "@/lib/db";
 import { UnitType } from "@/lib/types";
 import { useCompany } from "@/lib/company-context";
+import MissingFieldsPopup, { MissingFieldSpec } from "./MissingFieldsPopup";
+
+const MISSING_FIELD_SPECS: Record<string, Omit<MissingFieldSpec, "key">> = {
+  address: { label: "Adresse", placeholder: "Straße + Hausnummer" },
+  zip: { label: "PLZ" },
+  city: { label: "Stadt" },
+  phone: { label: "Telefon", placeholder: "+43 1 234 5678" },
+  email: { label: "E-Mail", placeholder: "info@firma.at" },
+  uid: { label: "UID-Nummer", placeholder: "z.B. ATU12345678", hint: "EU-Mehrwertsteuer-Identifikationsnummer" },
+  website: { label: "Website", placeholder: "https://www.firma.at" },
+  industry: { label: "Branche" },
+  description: { label: "Beschreibung" },
+};
 
 interface SuggestedRole {
   name: string;
@@ -66,6 +79,9 @@ interface ApiResponse {
   success: boolean;
   suggestions: Suggestions;
   cost: { input_tokens: number; output_tokens: number; cost_eur: number };
+  // SCH-960 — multi-pass response fields.
+  passes?: number;
+  missingCompanyFields?: string[];
 }
 
 const inputClass =
@@ -135,6 +151,12 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
     typical_hourly_rate: null,
   });
 
+  // SCH-960 — fallback popup for company-data fields the AI couldn't find.
+  const [missingCompanyFields, setMissingCompanyFields] = useState<string[]>([]);
+  const [showMissingPopup, setShowMissingPopup] = useState(false);
+  const [aiPasses, setAiPasses] = useState<number | null>(null);
+  const [manualCompanyData, setManualCompanyData] = useState<Partial<SuggestedCompanyData>>({});
+
   async function handleFetch() {
     if (!name.trim()) return;
     setLoading(true);
@@ -169,6 +191,7 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
 
       setSuggestions(data.suggestions);
       setCostEur(data.cost.cost_eur);
+      setAiPasses(data.passes ?? null);
 
       // Select all by default
       setSelectedRoles(new Set(data.suggestions.suggested_roles.map((_, i) => i)));
@@ -182,6 +205,13 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
           if (val) fields.add(key);
         }
         setSelectedCompanyFields(fields);
+      }
+
+      // SCH-960: open the fallback popup if the API reports any required
+      // company-data field still empty after all passes.
+      if (Array.isArray(data.missingCompanyFields) && data.missingCompanyFields.length > 0) {
+        setMissingCompanyFields(data.missingCompanyFields);
+        setShowMissingPopup(true);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unbekannter Fehler");
@@ -315,15 +345,22 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
         });
       }
 
-      // 3. Apply selected company data fields
-      if (onCompanyDataFilled && suggestions.suggested_company_data && selectedCompanyFields.size > 0) {
-        const cd = suggestions.suggested_company_data;
+      // 3. Apply selected company data fields. SCH-960: merge in any
+      // manually-entered values from the fallback popup so the parent gets a
+      // single complete payload.
+      if (onCompanyDataFilled) {
         const data: Partial<SuggestedCompanyData> = {};
-        for (const key of selectedCompanyFields) {
-          const val = cd[key as keyof SuggestedCompanyData];
+        if (suggestions.suggested_company_data && selectedCompanyFields.size > 0) {
+          const cd = suggestions.suggested_company_data;
+          for (const key of selectedCompanyFields) {
+            const val = cd[key as keyof SuggestedCompanyData];
+            if (val) (data as Record<string, string>)[key] = val;
+          }
+        }
+        for (const [key, val] of Object.entries(manualCompanyData)) {
           if (val) (data as Record<string, string>)[key] = val;
         }
-        onCompanyDataFilled(data);
+        if (Object.keys(data).length > 0) onCompanyDataFilled(data);
       }
 
       setApplied(true);
@@ -365,7 +402,7 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
         </span>
         {costEur != null && suggestions && !applied && (
           <span className="text-xs text-[var(--text-muted)] ml-auto">
-            Kosten: {costEur.toFixed(4)} EUR
+            {aiPasses != null && aiPasses > 1 ? `${aiPasses} Pässe · ` : ""}Kosten: {costEur.toFixed(4)} EUR
           </span>
         )}
       </div>
@@ -909,6 +946,42 @@ export default function AiCompanySetup({ companyName, industry: initialIndustry,
             Erneut Vorschläge laden
           </button>
         </div>
+      )}
+
+      {showMissingPopup && missingCompanyFields.length > 0 && (
+        <MissingFieldsPopup
+          title="AI-Recherche unvollständig"
+          intro={`Trotz ${aiPasses ?? "mehrerer"} Recherche-Pässe konnten diese Pflichtfelder nicht aus öffentlichen Quellen ermittelt werden. Trag sie bitte hier nach — sie werden zusammen mit den AI-Vorschlägen übernommen.`}
+          fields={missingCompanyFields.map((k) => ({ key: k, ...MISSING_FIELD_SPECS[k] }))}
+          initialValues={Object.fromEntries(
+            missingCompanyFields.map((k) => {
+              const cd = suggestions?.suggested_company_data;
+              const v = cd ? cd[k as keyof SuggestedCompanyData] : null;
+              return [k, manualCompanyData[k as keyof SuggestedCompanyData] || v || ""];
+            }),
+          )}
+          onSubmit={(values) => {
+            setManualCompanyData((prev) => ({ ...prev, ...values }));
+            setSelectedCompanyFields((prev) => {
+              const next = new Set(prev);
+              for (const [k, v] of Object.entries(values)) {
+                if (v?.trim()) next.add(k);
+              }
+              return next;
+            });
+            setSuggestions((prev) => {
+              if (!prev) return prev;
+              const cd = { ...(prev.suggested_company_data || {}) } as SuggestedCompanyData;
+              for (const [k, v] of Object.entries(values)) {
+                if (v?.trim()) (cd as Record<string, string | null>)[k] = v.trim();
+              }
+              return { ...prev, suggested_company_data: cd };
+            });
+            setShowMissingPopup(false);
+          }}
+          onClose={() => setShowMissingPopup(false)}
+          submitLabel="Felder übernehmen"
+        />
       )}
     </div>
   );

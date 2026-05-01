@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Customer } from "@/lib/types";
 import { createCustomer } from "@/lib/db";
 import { useI18n } from "@/lib/i18n-context";
+import MissingFieldsPopup, { MissingFieldSpec } from "./MissingFieldsPopup";
 
 interface Props {
   onClose: () => void;
@@ -26,6 +27,22 @@ const emptyCustomer = {
 
 type Field = keyof typeof emptyCustomer;
 
+// SCH-960 — wenn die AI nach allen Pässen ein Pflichtfeld nicht ermitteln
+// konnte, öffnen wir das MissingFieldsPopup mit genau diesen Feldern. Labels
+// und Hinweise werden hier gemappt, damit der Server keine UI-Texte bauen muss.
+const MISSING_FIELD_SPECS: Record<Field, Omit<MissingFieldSpec, "key">> = {
+  name: { label: "Kontaktperson", placeholder: "z.B. Mag. Anna Müller" },
+  company: { label: "Firmenname", placeholder: "z.B. Acme GmbH" },
+  address: { label: "Adresse", placeholder: "Straße + Hausnummer" },
+  zip: { label: "PLZ" },
+  city: { label: "Stadt" },
+  country: { label: "Land", placeholder: "z.B. Oesterreich" },
+  uid_number: { label: "UID-Nummer", placeholder: "z.B. ATU12345678", hint: "EU-Mehrwertsteuer-Identifikationsnummer" },
+  leitweg_id: { label: "Leitweg-ID", hint: "Nur für öffentliche Auftraggeber" },
+  email: { label: "E-Mail-Adresse", placeholder: "rechnung@firma.at" },
+  phone: { label: "Telefonnummer", placeholder: "+43 1 234 5678" },
+};
+
 export default function CustomerCreateModal({ onClose, onCreated, initialName = "" }: Props) {
   const { t } = useI18n();
   const [form, setForm] = useState({ ...emptyCustomer, name: initialName });
@@ -34,9 +51,12 @@ export default function CustomerCreateModal({ onClose, onCreated, initialName = 
     confidence?: string;
     source?: string;
     cost_eur?: number;
+    passes?: number;
   } | null>(null);
   const [showAllFields, setShowAllFields] = useState(false);
   const [aiFilledKeys, setAiFilledKeys] = useState<Set<Field>>(new Set());
+  const [missingFields, setMissingFields] = useState<Field[]>([]);
+  const [showMissingPopup, setShowMissingPopup] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -72,6 +92,7 @@ export default function CustomerCreateModal({ onClose, onCreated, initialName = 
       const data = await res.json();
       if (data.success && data.customer) {
         const filled = new Set<Field>();
+        let formAfterMerge: typeof form | null = null;
         setForm((prev) => {
           const updated = { ...prev };
           (Object.keys(data.customer) as Field[]).forEach((key) => {
@@ -80,6 +101,7 @@ export default function CustomerCreateModal({ onClose, onCreated, initialName = 
               filled.add(key);
             }
           });
+          formAfterMerge = updated;
           return updated;
         });
         setAiFilledKeys(filled);
@@ -88,7 +110,22 @@ export default function CustomerCreateModal({ onClose, onCreated, initialName = 
           confidence: data.confidence,
           source: data.source,
           cost_eur: data.cost?.cost_eur,
+          passes: data.passes,
         });
+
+        // SCH-960: server tells us which required fields the AI couldn't
+        // ermitteln. Show the popup only for those still empty after merge.
+        const reportedMissing = Array.isArray(data.missingFields)
+          ? (data.missingFields as Field[])
+          : [];
+        const stillMissing = reportedMissing.filter((k) => {
+          const formNow = formAfterMerge || form;
+          return !(formNow[k] || "").trim();
+        });
+        if (stillMissing.length > 0) {
+          setMissingFields(stillMissing);
+          setShowMissingPopup(true);
+        }
       } else {
         setAiResult({ confidence: "error", source: data.error || t("customers.aiError") });
       }
@@ -97,6 +134,25 @@ export default function CustomerCreateModal({ onClose, onCreated, initialName = 
     } finally {
       setAiLoading(false);
     }
+  }
+
+  function handleMissingPopupSubmit(values: Record<string, string>) {
+    setForm((prev) => {
+      const next = { ...prev };
+      for (const [k, v] of Object.entries(values)) {
+        if (v && !next[k as Field]) {
+          next[k as Field] = v;
+        }
+      }
+      return next;
+    });
+    setAiFilledKeys((prev) => {
+      const next = new Set(prev);
+      for (const k of Object.keys(values)) next.delete(k as Field);
+      return next;
+    });
+    setShowMissingPopup(false);
+    setMissingFields([]);
   }
 
   async function handleSave() {
@@ -209,6 +265,9 @@ export default function CustomerCreateModal({ onClose, onCreated, initialName = 
                     )
                   </span>
                 )}
+                {aiResult.passes != null && aiResult.passes > 1 && (
+                  <span className="ml-2 opacity-75">— {aiResult.passes} Pässe</span>
+                )}
                 {aiResult.source && (
                   <span className="ml-2 opacity-75">— {t("customers.aiSource")}: {aiResult.source}</span>
                 )}
@@ -244,6 +303,18 @@ export default function CustomerCreateModal({ onClose, onCreated, initialName = 
           </button>
         </div>
       </div>
+
+      {showMissingPopup && missingFields.length > 0 && (
+        <MissingFieldsPopup
+          title="AI-Recherche unvollständig"
+          intro={`Trotz ${aiResult?.passes ?? "mehrerer"} Recherche-Pässe konnten diese Pflichtfelder nicht aus öffentlichen Quellen ermittelt werden. Bitte ergänze sie hier — die anderen Werte stehen schon im Formular.`}
+          fields={missingFields.map((k) => ({ key: k, ...MISSING_FIELD_SPECS[k] }))}
+          initialValues={Object.fromEntries(missingFields.map((k) => [k, form[k] || ""]))}
+          onSubmit={handleMissingPopupSubmit}
+          onClose={() => setShowMissingPopup(false)}
+          submitLabel="Ins Formular übernehmen"
+        />
+      )}
     </div>
   );
 }

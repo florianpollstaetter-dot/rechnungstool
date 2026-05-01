@@ -1,19 +1,34 @@
 // SCH-366 / SCH-406 — AI-gestützte Firmen-Setup-Vorschläge mit Web-Recherche.
+// SCH-960 — Multi-Pass für die suggested_company_data: wenn Pflichtfelder
+// (Adresse, UID, Email, Telefon, Website) nach Pass 1 leer sind, werden bis
+// zu zwei zusätzliche Pässe gezielt darauf gefahren. Roles/Products werden
+// nicht erneut angefragt.
 //
 // Analoges Muster zu /api/analyze-receipt: ein API-Call an Anthropic Claude,
 // Prompt auf Deutsch (österreichischer Kontext), JSON-only-Antwort.
 //
-// SCH-406: Nutzt Claude's web_search Tool um Infos über die Firma + Branche
-// im Internet zu recherchieren und daraus passende Rollen vorzuschlagen.
-//
 // Kosten pro Aufruf (geschätzt):
-//   Input: ~800-1200 Tokens (Prompt + Firmenname + Web-Recherche-Kontext)
-//   Output: ~800-1200 Tokens (JSON-Antwort)
-//   Sonnet: $3/M Input, $15/M Output
-//   → ca. $0.003-0.008 pro Aufruf mit Web-Recherche
+//   Pass 1: ~800-1200 Input + 800-1200 Output → $0.003-0.008
+//   Pass 2-3 (nur Firmendaten): +$0.001-0.003 wenn nötig
 
 import { createClient } from "@supabase/supabase-js";
 import { logAndSanitize } from "@/lib/api-errors";
+import {
+  refineMissingFields,
+  type AiCompleteFieldSpec,
+} from "@/lib/ai-complete-with-retry";
+
+const SETUP_COMPANY_DATA_FIELDS: AiCompleteFieldSpec[] = [
+  { key: "address", label: "Adresse", description: "Straße und Hausnummer", required: true },
+  { key: "zip", label: "PLZ", description: "Postleitzahl", required: true },
+  { key: "city", label: "Stadt", description: "Ort/Stadt", required: true },
+  { key: "phone", label: "Telefon", description: "Telefonnummer", required: true },
+  { key: "email", label: "E-Mail", description: "E-Mail-Adresse aus dem Impressum", required: true },
+  { key: "uid", label: "UID-Nummer", description: "EU-UID-Nummer (z.B. ATU12345678)", required: true },
+  { key: "website", label: "Website", description: "Hauptdomain inkl. https://", required: true },
+  { key: "industry", label: "Branche", description: "Branchen-Kurzbezeichnung", required: false },
+  { key: "description", label: "Beschreibung", description: "1-2-Satz-Beschreibung der Firma", required: false },
+];
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
@@ -170,15 +185,43 @@ Wichtig:
     const rawText = textBlock?.text || "{}";
 
     // Cost calculation — includes web search tokens.
-    const inputTokens = result.usage?.input_tokens || 0;
-    const outputTokens = result.usage?.output_tokens || 0;
-    // Sonnet: $3/M input, $15/M output
-    const costUSD = (inputTokens * 3 + outputTokens * 15) / 1_000_000;
-    const costEUR = Math.round(costUSD * 0.92 * 10000) / 10000;
+    let inputTokens = result.usage?.input_tokens || 0;
+    let outputTokens = result.usage?.output_tokens || 0;
 
     // Parse JSON from response.
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+    // SCH-960: multi-pass refinement for the company-data sub-object only —
+    // we don't re-run the role/product part of the prompt.
+    let missingCompanyFields: string[] = [];
+    let totalPasses = 1;
+    if (parsed.suggested_company_data && typeof parsed.suggested_company_data === "object") {
+      const cd = parsed.suggested_company_data as Record<string, unknown>;
+      const alreadyFound: Record<string, string> = {};
+      for (const f of SETUP_COMPANY_DATA_FIELDS) {
+        const v = cd[f.key];
+        alreadyFound[f.key] = typeof v === "string" ? v : "";
+      }
+      const refined = await refineMissingFields({
+        anthropicKey,
+        entityName: companyName,
+        fields: SETUP_COMPANY_DATA_FIELDS,
+        alreadyFound,
+        maxAdditionalPasses: 2,
+      });
+      for (const f of SETUP_COMPANY_DATA_FIELDS) {
+        cd[f.key] = refined.values[f.key] || null;
+      }
+      parsed.suggested_company_data = cd;
+      missingCompanyFields = refined.missingFields;
+      totalPasses = 1 + refined.passesUsed;
+      inputTokens += refined.additionalCost.input_tokens;
+      outputTokens += refined.additionalCost.output_tokens;
+    }
+
+    const costUSD = (inputTokens * 3 + outputTokens * 15) / 1_000_000;
+    const costEUR = Math.round(costUSD * 0.92 * 10000) / 10000;
 
     // Store the suggestions in company_settings.setup_suggestions (JSONB).
     const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey);
@@ -192,6 +235,8 @@ Wichtig:
           cost_eur: costEUR,
           model: "claude-sonnet-4-20250514",
           web_search: true,
+          passes: totalPasses,
+          missing_company_fields: missingCompanyFields,
         },
       },
       updated_at: new Date().toISOString(),
@@ -200,6 +245,8 @@ Wichtig:
     return Response.json({
       success: true,
       suggestions: parsed,
+      passes: totalPasses,
+      missingCompanyFields,
       cost: {
         input_tokens: inputTokens,
         output_tokens: outputTokens,

@@ -1,18 +1,41 @@
 // SCH-578 — AI-Vervollständigung für die eigenen Unternehmensdaten (Verkäufer).
+// SCH-960 — Multi-Pass-Strategy + Liste der weiterhin fehlenden Felder.
 //
 // Spiegelbild zu /api/customers/ai-complete, aber für `company_settings`.
 // Wird aus dem E-Rechnung-Validierungs-Popup aufgerufen, wenn EN-16931
 // Pflichtfelder (Adresse BT-35, Ort BT-37, UID BT-31, IBAN BT-84 …) fehlen.
 //
-// Gleiches Muster: Claude Sonnet 4 + web_search. Kosten ca. $0.002-0.006
-// pro Aufruf.
+// Pipeline: pass 1 mit dem allgemeinen Prompt unten. Wenn nach Pass 1 noch
+// Pflichtfelder leer sind → bis zu zwei weitere Pässe mit gezieltem Re-Prompt.
+//
+// Kosten ca. $0.002-0.006 für Pass 1, +$0.002-0.004 pro zusätzlichem Pass.
 //
 // SCH-600 Phase-5 Security: gated behind an authenticated session so an
 // anonymous caller can't drain the Claude budget.
 
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { fetchWithTimeout, isFetchTimeout } from "@/lib/fetch-with-timeout";
+import { isFetchTimeout } from "@/lib/fetch-with-timeout";
 import { logAndSanitize } from "@/lib/api-errors";
+import {
+  aiCompleteWithRetry,
+  extractJsonObject,
+  type AiCompleteFieldSpec,
+} from "@/lib/ai-complete-with-retry";
+
+const COMPANY_FIELDS: AiCompleteFieldSpec[] = [
+  { key: "company_name", label: "Firmenname", description: "Vollständiger Firmenname inkl. Rechtsform", required: true },
+  { key: "address", label: "Adresse", description: "Straße und Hausnummer", required: true },
+  { key: "zip", label: "PLZ", description: "Postleitzahl", required: true },
+  { key: "city", label: "Stadt", description: "Ort/Stadt", required: true },
+  { key: "country", label: "Land (ISO-2)", description: "ISO-3166-1 Alpha-2 Code (z.B. AT, DE, CH)", required: true },
+  { key: "uid", label: "UID-Nummer", description: "EU-UID-Nummer (z.B. ATU12345678)", required: true },
+  { key: "iban", label: "IBAN", description: "IBAN ohne Leerzeichen, sofern öffentlich (z.B. Vereinsstatut)", required: false },
+  { key: "bic", label: "BIC", description: "BIC zur IBAN", required: false },
+  { key: "email", label: "E-Mail", description: "Geschäftliche E-Mail aus dem Impressum", required: true },
+  { key: "phone", label: "Telefon", description: "Telefonnummer", required: true },
+  { key: "website", label: "Website", description: "Hauptdomain inkl. https://", required: true },
+  { key: "industry", label: "Branche", description: "Kurzbezeichnung (z.B. IT-Dienstleister)", required: false },
+];
 
 export async function POST(request: Request) {
   const ssr = await createServerClient();
@@ -41,7 +64,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const prompt = `Du bist ein Recherche-Assistent für ein österreichisches Rechnungstool. Der Benutzer möchte seine EIGENEN Unternehmensdaten (Verkäufer) vervollständigen — diese werden für E-Rechnungen (EN 16931) benötigt.
+  const initialPrompt = `Du bist ein Recherche-Assistent für ein österreichisches Rechnungstool. Der Benutzer möchte seine EIGENEN Unternehmensdaten (Verkäufer) vervollständigen — diese werden für E-Rechnungen (EN 16931) benötigt.
 
 Firmenname: "${name}"
 
@@ -86,77 +109,52 @@ Antworte NUR mit folgendem JSON, kein anderer Text:
 }`;
 
   try {
-    const response = await fetchWithTimeout(
-      "https://api.anthropic.com/v1/messages",
-      {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
+    const result = await aiCompleteWithRetry({
+      anthropicKey,
+      initialPrompt,
+      entityName: name,
+      fields: COMPANY_FIELDS,
+      maxPasses: 3,
+      refinePromptSuffix:
+        'Falls "country" zurückgegeben wird, IMMER als ISO-3166-1 Alpha-2 (z.B. AT, DE, CH). UID-Nummern niemals raten — nur aus Firmenbuch / VIES / Impressum.',
+      parseResponse: (rawText) => {
+        const parsed = extractJsonObject(rawText);
+        const values: Record<string, string> = {};
+        for (const f of COMPANY_FIELDS) {
+          const v = parsed[f.key];
+          values[f.key] = typeof v === "string" ? v : "";
+        }
+        return {
+          values,
+          confidence: typeof parsed.confidence === "string" ? parsed.confidence : undefined,
+          source: typeof parsed.source === "string" ? parsed.source : undefined,
+        };
       },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1024,
-        tools: [
-          {
-            type: "web_search_20250305",
-            name: "web_search",
-            max_uses: 3,
-          },
-        ],
-        messages: [{ role: "user", content: prompt }],
-      }),
-      },
-      60_000,
-    );
+    });
 
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Claude API error: ${response.status} ${err}`);
-    }
-
-    const result = await response.json();
-
-    const textBlock = result.content?.findLast(
-      (b: Record<string, string>) => b.type === "text"
-    );
-    const rawText = textBlock?.text || "{}";
-
-    const inputTokens = result.usage?.input_tokens || 0;
-    const outputTokens = result.usage?.output_tokens || 0;
-    const costUSD = (inputTokens * 3 + outputTokens * 15) / 1_000_000;
-    const costEUR = Math.round(costUSD * 0.92 * 10000) / 10000;
-
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-
-    // Normalize country to ISO-2 just in case the model slipped.
-    const country = (parsed.country || "").toString().trim().toUpperCase().slice(0, 2);
+    const country = (result.values.country || "").trim().toUpperCase().slice(0, 2);
 
     return Response.json({
       success: true,
       company: {
-        company_name: parsed.company_name || "",
-        address: parsed.address || "",
-        zip: parsed.zip || "",
-        city: parsed.city || "",
+        company_name: result.values.company_name || "",
+        address: result.values.address || "",
+        zip: result.values.zip || "",
+        city: result.values.city || "",
         country,
-        uid: (parsed.uid || "").replace(/\s/g, "").toUpperCase(),
-        iban: (parsed.iban || "").replace(/\s/g, "").toUpperCase(),
-        bic: parsed.bic || "",
-        email: parsed.email || "",
-        phone: parsed.phone || "",
-        website: parsed.website || "",
-        industry: parsed.industry || "",
+        uid: (result.values.uid || "").replace(/\s/g, "").toUpperCase(),
+        iban: (result.values.iban || "").replace(/\s/g, "").toUpperCase(),
+        bic: result.values.bic || "",
+        email: result.values.email || "",
+        phone: result.values.phone || "",
+        website: result.values.website || "",
+        industry: result.values.industry || "",
       },
-      confidence: parsed.confidence || "low",
-      source: parsed.source || "",
-      cost: {
-        input_tokens: inputTokens,
-        output_tokens: outputTokens,
-        cost_eur: costEUR,
-      },
+      confidence: result.confidence,
+      source: result.source,
+      cost: result.cost,
+      passes: result.passes,
+      missingFields: result.missingFields,
     });
   } catch (err) {
     if (isFetchTimeout(err)) {
