@@ -21,10 +21,15 @@ test.afterAll(async () => {
 });
 
 test("schedule modal table is horizontally scrollable at 375x667", async ({ browser }) => {
-  const context = await browser.newContext({ viewport: { width: 375, height: 667 } });
+  // Login on a desktop viewport so the auth flow + role-load completes against
+  // the layout it was designed for (the 375px mobile login form was racing
+  // its own renders in CI). Then resize to mobile and exercise the modal —
+  // the schedule modal is the actual subject under test, not the login page.
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await context.newPage();
   try {
     await loginAs(page, tenant.admin);
+    await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/admin");
 
     const userRow = page.locator("tr", { hasText: tenant.empty.email }).first();

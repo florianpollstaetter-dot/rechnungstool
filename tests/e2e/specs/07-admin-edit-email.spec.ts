@@ -9,6 +9,8 @@
 // auth row carries the new email — the symptom that broke before V3.
 
 import { expect, test } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
+import { loadEnv } from "../helpers/env";
 import { provisionTenant, destroyTenant, type TestTenant, readAuthEmail } from "../helpers/test-tenant";
 import { loginAs } from "../helpers/auth";
 
@@ -36,8 +38,30 @@ test("admin update_user mirrors new email onto auth.users", async ({ page }) => 
   if (res.status() !== 200) {
     // Surface server-side error verbatim so a flake or auth regression is
     // diagnosable from the CI log without re-running with extra debug.
+    // Vercel sometimes returns an empty 500 body when the route handler
+    // throws — also dump the admin's profile + memberships so we can spot
+    // an auth/role regression vs. a real server fault.
+    const env = loadEnv();
+    const svc = createClient(env.supabaseUrl, env.serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: adminProfile } = await svc
+      .from("user_profiles")
+      .select("auth_user_id, role, anchor_company_id")
+      .eq("auth_user_id", tenant.admin.authUserId)
+      .maybeSingle();
+    const { data: adminMemberships } = await svc
+      .from("company_members")
+      .select("company_id, role")
+      .eq("user_id", tenant.admin.authUserId);
+    const { data: adminAuth } = await svc.auth.admin.getUserById(tenant.admin.authUserId);
     const debugBody = await res.text();
-    throw new Error(`PATCH /api/admin/users returned ${res.status()}: ${debugBody}`);
+    throw new Error(
+      `PATCH /api/admin/users returned ${res.status()}: '${debugBody}'\n` +
+        `admin user_profile: ${JSON.stringify(adminProfile)}\n` +
+        `admin memberships: ${JSON.stringify(adminMemberships)}\n` +
+        `admin auth.users.app_metadata: ${JSON.stringify(adminAuth?.user?.app_metadata)}`,
+    );
   }
   const body = await res.json();
   expect(body.updated).toBe(true);

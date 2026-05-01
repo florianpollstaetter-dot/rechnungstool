@@ -19,10 +19,10 @@ test.afterAll(async () => {
   if (tenant) await destroyTenant(tenant);
 });
 
-// Heading text comes from the i18n key `settings.workScheduleTitle`. The
-// localized label "Arbeitszeitmodelle" is what's rendered for de-AT — keep
-// the locale fixed via playwright.config.ts so this is stable.
-const WORK_SCHEDULE_HEADING = /Arbeitszeitmodelle/i;
+// Heading text comes from the i18n key `settings.workScheduleTitle` —
+// rendered as "Arbeitszeitmodell" in de-AT. Plural ending tolerated for
+// historical translation drift.
+const WORK_SCHEDULE_HEADING = /Arbeitszeitmodelle?/i;
 
 test("qa-empty cannot see the work-schedule section in /settings", async ({ page }) => {
   await loginAs(page, tenant.empty);
