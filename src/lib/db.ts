@@ -211,6 +211,37 @@ export async function updateSettings(
   return requireRow(result, "updateSettings") as CompanySettings;
 }
 
+// SCH-958 — company logo upload to the public `company-logos` bucket.
+// Storage RLS pins writes to `{active_company_id}/...`; the public CDN URL
+// is what gets stored in `company_settings.logo_url` so PDFs can `<Image src=>`
+// it directly without a signed-URL refresh.
+export async function uploadCompanyLogo(file: File): Promise<string> {
+  const companyId = getActiveCompanyId();
+  const ext = (file.name.split(".").pop() || "png").toLowerCase();
+  const path = `${companyId}/logo-${Date.now()}.${ext}`;
+  const { error: uploadError } = await supabase()
+    .storage.from("company-logos")
+    .upload(path, file, { contentType: file.type || undefined, upsert: true });
+  if (uploadError) throw new Error(uploadError.message);
+  const { data: urlData } = supabase().storage.from("company-logos").getPublicUrl(path);
+  const publicUrl = urlData.publicUrl;
+  await updateSettings({ logo_url: publicUrl } as Partial<CompanySettings>);
+  return publicUrl;
+}
+
+export async function removeCompanyLogo(): Promise<void> {
+  const companyId = getActiveCompanyId();
+  const { data: list } = await supabase()
+    .storage.from("company-logos")
+    .list(companyId);
+  if (list && list.length > 0) {
+    await supabase()
+      .storage.from("company-logos")
+      .remove(list.map((f) => `${companyId}/${f.name}`));
+  }
+  await updateSettings({ logo_url: "" } as Partial<CompanySettings>);
+}
+
 // Customers
 export async function getCustomers(): Promise<Customer[]> {
   const { data } = await supabase()

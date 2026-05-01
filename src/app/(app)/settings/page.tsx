@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { CompanySettings, CompanyType, COMPANY_TYPE_OPTIONS, isFirmenbuchRegistered, SmartInsightsConfig, UserProfile, GREETING_TONES, GreetingTone } from "@/lib/types";
-import { getSettings, updateSettings, getSmartInsightsConfig, upsertSmartInsightsConfig, getUserProfile, updateUserProfile } from "@/lib/db";
+import { getSettings, updateSettings, getSmartInsightsConfig, upsertSmartInsightsConfig, getUserProfile, updateUserProfile, uploadCompanyLogo, removeCompanyLogo } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/components/ThemeProvider";
 import { useCompany } from "@/lib/company-context";
@@ -104,6 +104,11 @@ export default function SettingsPage() {
   const [insightsConfig, setInsightsConfig] = useState<SmartInsightsConfig | null>(null);
   const [insightsSaving, setInsightsSaving] = useState(false);
   const [insightsSaved, setInsightsSaved] = useState(false);
+
+  // SCH-958 — Logo upload
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const cn = localStorage.getItem("show_chuck_norris");
@@ -299,6 +304,41 @@ export default function SettingsPage() {
       setTimeout(() => setInsightsSaved(false), 2000);
     } finally {
       setInsightsSaving(false);
+    }
+  }
+
+  async function handleLogoUpload(file: File) {
+    setLogoError(null);
+    if (!file.type.startsWith("image/")) {
+      setLogoError(t("settings.logoNotAnImage"));
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setLogoError(t("settings.logoTooLarge"));
+      return;
+    }
+    setLogoUploading(true);
+    try {
+      const url = await uploadCompanyLogo(file);
+      setSettings((prev) => (prev ? { ...prev, logo_url: url } : prev));
+    } catch (err) {
+      setLogoError(err instanceof Error ? err.message : t("settings.logoUploadFailed"));
+    } finally {
+      setLogoUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  }
+
+  async function handleLogoRemove() {
+    setLogoError(null);
+    setLogoUploading(true);
+    try {
+      await removeCompanyLogo();
+      setSettings((prev) => (prev ? { ...prev, logo_url: "" } : prev));
+    } catch (err) {
+      setLogoError(err instanceof Error ? err.message : t("settings.logoUploadFailed"));
+    } finally {
+      setLogoUploading(false);
     }
   }
 
@@ -534,6 +574,65 @@ export default function SettingsPage() {
 
       {/* SCH-921 K2-J1 — Admin-managed Allgemein/Sonstiges labels. */}
       {isAdmin && <GeneralCategoriesSection />}
+
+      {/* SCH-958 K3-AA1 — Branding & Logo (admin/manager). Lives outside the
+          main settings <form> so the upload/remove actions don't trigger the
+          form's submit handler. */}
+      {canManageCompany && (
+        <div id="branding" className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 mb-6 scroll-mt-20">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-1">{t("settings.branding")}</h2>
+          <p className="text-sm text-gray-500 mb-4">{t("settings.brandingHint")}</p>
+          <div className="flex flex-col sm:flex-row gap-4 items-start">
+            <div className="w-32 h-32 flex-shrink-0 rounded-lg border border-[var(--border)] bg-[var(--background)] flex items-center justify-center overflow-hidden">
+              {settings.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={settings.logo_url} alt="Logo" className="max-w-full max-h-full object-contain" />
+              ) : (
+                <span className="text-xs text-[var(--text-muted)] text-center px-2">{t("settings.logoEmpty")}</span>
+              )}
+            </div>
+            <div className="flex-1 space-y-2">
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleLogoUpload(f);
+                }}
+                className="hidden"
+              />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={logoUploading}
+                  className="px-3 py-2 text-sm rounded-lg bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50 transition"
+                >
+                  {logoUploading
+                    ? t("common.uploading")
+                    : settings.logo_url
+                      ? t("settings.changeLogo")
+                      : t("settings.uploadLogo")}
+                </button>
+                {settings.logo_url && !logoUploading && (
+                  <button
+                    type="button"
+                    onClick={handleLogoRemove}
+                    className="px-3 py-2 text-sm rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--background)] transition"
+                  >
+                    {t("settings.removeLogo")}
+                  </button>
+                )}
+              </div>
+              {logoError && (
+                <p className="text-sm text-red-500">{logoError}</p>
+              )}
+              <p className="text-xs text-[var(--text-muted)]">{t("settings.logoFormatHint")}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 4. Unternehmensdaten + company form (company type, bank, payment terms, accompanying text) */}
       {(canManageCompany || canWriteInvoices) && (
