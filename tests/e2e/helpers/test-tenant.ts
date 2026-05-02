@@ -233,3 +233,141 @@ export async function readAuthEmail(authUserId: string): Promise<string | null> 
   if (error) throw new Error(`readAuthEmail(${authUserId}) failed: ${error.message}`);
   return data?.user?.email ?? null;
 }
+
+export interface SeededInvoice {
+  customerId: string;
+  invoiceId: string;
+  invoiceNumber: string;
+}
+
+/**
+ * SCH-578 — Seed one customer + one invoice + one item into the given company
+ * so a freshly provisioned tenant has something the invoice-list page can
+ * render. Returns the IDs the spec needs to drive the modal flow.
+ *
+ * Customer is filled in fully (so non-seller validation passes); seller
+ * settings stay empty (provisionTenant default) which is what triggers the
+ * EN-16931 modal under test.
+ */
+export async function seedInvoiceForTenant(
+  companyId: string,
+  runId: string,
+): Promise<SeededInvoice> {
+  const svc = service();
+
+  const customerInsert = await svc
+    .from("customers")
+    .insert({
+      company_id: companyId,
+      name: "Max Mustermann",
+      company: `Mustermann GmbH ${runId}`,
+      address: "Musterstraße 1",
+      city: "Wien",
+      zip: "1010",
+      country: "AT",
+      uid_number: "ATU99999999",
+      email: `kunde-${runId}@example.test`,
+      phone: "+43 1 1234567",
+      leitweg_id: "",
+    })
+    .select()
+    .single();
+  if (customerInsert.error || !customerInsert.data) {
+    throw new Error(`seedInvoiceForTenant.customer failed: ${customerInsert.error?.message}`);
+  }
+  const customerId = (customerInsert.data as { id: string }).id;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const dueDate = new Date(Date.now() + 14 * 86400_000).toISOString().slice(0, 10);
+  const invoiceInsert = await svc
+    .from("invoices")
+    .insert({
+      company_id: companyId,
+      // invoices.invoice_number has a global UNIQUE — embed runId so concurrent
+      // / repeated runs don't collide.
+      invoice_number: `QA-${runId}-A001`,
+      customer_id: customerId,
+      project_description: "QA SCH-578 fixture",
+      invoice_date: today,
+      delivery_date: today,
+      due_date: dueDate,
+      subtotal: 100,
+      tax_rate: 20,
+      tax_amount: 20,
+      total: 120,
+      overall_discount_percent: 0,
+      overall_discount_amount: 0,
+      status: "entwurf",
+      paid_amount: 0,
+      notes: "",
+      language: "de",
+      accompanying_text: null,
+      e_invoice_format: "none",
+      source_quote_id: null,
+      percent_of_quote: null,
+    })
+    .select()
+    .single();
+  if (invoiceInsert.error || !invoiceInsert.data) {
+    throw new Error(`seedInvoiceForTenant.invoice failed: ${invoiceInsert.error?.message}`);
+  }
+  const invoice = invoiceInsert.data as { id: string; invoice_number: string };
+
+  const itemInsert = await svc.from("invoice_items").insert({
+    invoice_id: invoice.id,
+    company_id: companyId,
+    position: 1,
+    description: "Beratungsleistung",
+    unit: "Stunden",
+    product_id: null,
+    quantity: 1,
+    unit_price: 100,
+    discount_percent: 0,
+    discount_amount: 0,
+    tax_rate: 20,
+    total: 100,
+  });
+  if (itemInsert.error) {
+    throw new Error(`seedInvoiceForTenant.item failed: ${itemInsert.error.message}`);
+  }
+
+  return { customerId, invoiceId: invoice.id, invoiceNumber: invoice.invoice_number };
+}
+
+/**
+ * SCH-578 — Tear down the seeded fixture rows. Called by the spec's afterAll
+ * before destroyTenant so the company-level delete doesn't trip on FKs we own.
+ */
+export async function clearSeededInvoices(companyId: string): Promise<void> {
+  const svc = service();
+  await svc.from("invoice_items").delete().eq("company_id", companyId);
+  await svc.from("invoices").delete().eq("company_id", companyId);
+  await svc.from("customers").delete().eq("company_id", companyId);
+}
+
+/**
+ * SCH-578 — Reset between modal tests. Clicking the "ZUGFeRD (PDF/A-3)"
+ * dropdown item first flips invoices.e_invoice_format to "zugferd" (see
+ * PDFDownloadButton.handleCreateEInvoice) before the validation runs. On
+ * subsequent visits the dropdown is replaced by a direct download button,
+ * which breaks tests that expect the dropdown. Also clear any seller-side
+ * settings the previous test wrote so the validator still flags missing data.
+ */
+export async function resetInvoiceForRetest(companyId: string): Promise<void> {
+  const svc = service();
+  await svc
+    .from("invoices")
+    .update({ e_invoice_format: "none" })
+    .eq("company_id", companyId);
+  await svc
+    .from("company_settings")
+    .update({
+      address: "",
+      city: "",
+      zip: "",
+      uid: "",
+      iban: "",
+      bic: "",
+    })
+    .eq("company_id", companyId);
+}
