@@ -88,16 +88,24 @@ export default async function ProjectPage({
         </Link>
       </nav>
 
-      <header className="flex items-baseline justify-between">
+      <header className="flex items-baseline justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold">{project.name}</h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
             Erstellt {new Date(project.created_at).toLocaleDateString("de-DE")}
           </p>
         </div>
-        <span className="text-xs uppercase tracking-wide bg-[var(--surface)] border border-[var(--border)] rounded-full px-3 py-1">
-          {STATUS_LABEL[project.status as ProjectStatus]}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs uppercase tracking-wide bg-[var(--surface)] border border-[var(--border)] rounded-full px-3 py-1">
+            {STATUS_LABEL[project.status as ProjectStatus]}
+          </span>
+          <Link
+            href={`/pm/${workspaceId}/projects/${projectId}/board`}
+            className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline-offset-4 hover:underline"
+          >
+            Board
+          </Link>
+        </div>
       </header>
 
       <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
