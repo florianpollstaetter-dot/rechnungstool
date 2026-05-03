@@ -1,7 +1,8 @@
-// SCH-825 M1 — PM root layout. Sidebar comes in M2 (project nav). For M1 we
-// only need the auth shell + a minimal header.
+// SCH-825 M1+M8 — PM root layout. Header carries the workspace link, the
+// notifications bell (M8), and the back-to-OO link.
 
 import Link from "next/link";
+import { NotificationsBell } from "./_components/NotificationsBell";
 
 export default function PmLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,12 +12,15 @@ export default function PmLayout({ children }: { children: React.ReactNode }) {
           <Link href="/pm" className="text-lg font-semibold tracking-tight">
             PM
           </Link>
-          <Link
-            href="/dashboard"
-            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          >
-            ← Orange Octo
-          </Link>
+          <div className="flex items-center gap-4">
+            <NotificationsBell />
+            <Link
+              href="/dashboard"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            >
+              ← Orange Octo
+            </Link>
+          </div>
         </div>
       </header>
       <main className="flex-1">{children}</main>
