@@ -105,6 +105,12 @@ export default async function ProjectPage({
           >
             Board
           </Link>
+          <Link
+            href={`/pm/${workspaceId}/projects/${projectId}/table`}
+            className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline-offset-4 hover:underline"
+          >
+            Tabelle
+          </Link>
         </div>
       </header>
 
