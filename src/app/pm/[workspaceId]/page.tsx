@@ -61,6 +61,7 @@ export default async function WorkspacePage({
   const myRole: "admin" | "member" | "guest" | null =
     (meRes.data?.role as "admin" | "member" | "guest" | undefined) ?? null;
   const isAdmin = myRole === "admin";
+  const canWrite = myRole === "admin" || myRole === "member";
 
   const memberResult = await listWorkspaceMembers(sb, workspaceId);
   const members: PmMember[] =
@@ -101,10 +102,12 @@ export default async function WorkspacePage({
         </span>
       </header>
 
-      <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-        <h2 className="text-lg font-medium mb-4">Neues Projekt anlegen</h2>
-        <CreateProjectForm workspaceId={workspaceId} />
-      </section>
+      {canWrite && (
+        <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
+          <h2 className="text-lg font-medium mb-4">Neues Projekt anlegen</h2>
+          <CreateProjectForm workspaceId={workspaceId} />
+        </section>
+      )}
 
       <section>
         <h2 className="text-lg font-medium mb-4">

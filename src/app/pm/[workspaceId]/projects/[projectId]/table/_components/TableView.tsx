@@ -45,11 +45,13 @@ export function TableView({
   projectId,
   tasks,
   members,
+  canWrite,
 }: {
   workspaceId: string;
   projectId: string;
   tasks: PmTask[];
   members: MemberOption[];
+  canWrite: boolean;
 }) {
   const router = useRouter();
   const [active, setActive] = useState<ActiveCell>(null);
@@ -138,8 +140,10 @@ export function TableView({
                 <tr key={t.id} className="hover:bg-[var(--surface-hover)]">
                   {/* Status */}
                   <td
-                    className="px-3 py-2 cursor-pointer"
-                    onClick={() => setActive({ taskId: t.id, field: "status" })}
+                    className={`px-3 py-2 ${canWrite ? "cursor-pointer" : ""}`}
+                    onClick={() =>
+                      canWrite && setActive({ taskId: t.id, field: "status" })
+                    }
                   >
                     {isActive(t.id, "status") ? (
                       <select
@@ -168,8 +172,12 @@ export function TableView({
 
                   {/* Title */}
                   <td
-                    className="px-3 py-2 cursor-text font-medium"
-                    onClick={() => setActive({ taskId: t.id, field: "title" })}
+                    className={`px-3 py-2 font-medium ${
+                      canWrite ? "cursor-text" : ""
+                    }`}
+                    onClick={() =>
+                      canWrite && setActive({ taskId: t.id, field: "title" })
+                    }
                   >
                     {isActive(t.id, "title") ? (
                       <input
@@ -194,8 +202,11 @@ export function TableView({
 
                   {/* Assignee */}
                   <td
-                    className="px-3 py-2 cursor-pointer text-[var(--text-secondary)]"
+                    className={`px-3 py-2 text-[var(--text-secondary)] ${
+                      canWrite ? "cursor-pointer" : ""
+                    }`}
                     onClick={() =>
+                      canWrite &&
                       setActive({ taskId: t.id, field: "assignee_user_id" })
                     }
                   >
@@ -239,9 +250,9 @@ export function TableView({
 
                   {/* Due date */}
                   <td
-                    className="px-3 py-2 cursor-pointer"
+                    className={`px-3 py-2 ${canWrite ? "cursor-pointer" : ""}`}
                     onClick={() =>
-                      setActive({ taskId: t.id, field: "due_date" })
+                      canWrite && setActive({ taskId: t.id, field: "due_date" })
                     }
                   >
                     {isActive(t.id, "due_date") ? (
@@ -273,9 +284,11 @@ export function TableView({
 
                   {/* Priority */}
                   <td
-                    className={`px-3 py-2 cursor-pointer ${PRIORITY_BADGE[t.priority]}`}
+                    className={`px-3 py-2 ${PRIORITY_BADGE[t.priority]} ${
+                      canWrite ? "cursor-pointer" : ""
+                    }`}
                     onClick={() =>
-                      setActive({ taskId: t.id, field: "priority" })
+                      canWrite && setActive({ taskId: t.id, field: "priority" })
                     }
                   >
                     {isActive(t.id, "priority") ? (
@@ -323,7 +336,9 @@ export function TableView({
       </div>
 
       <p className="text-xs text-[var(--text-muted)]">
-        Zelle anklicken zum Bearbeiten. Speichern beim Verlassen oder mit Enter.
+        {canWrite
+          ? "Zelle anklicken zum Bearbeiten. Speichern beim Verlassen oder mit Enter."
+          : "Als Gast hast du nur Leserechte."}
       </p>
     </div>
   );

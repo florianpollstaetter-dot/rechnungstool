@@ -37,11 +37,13 @@ export function BoardView({
   projectId,
   statuses,
   tasksByStatus,
+  canWrite,
 }: {
   workspaceId: string;
   projectId: string;
   statuses: typeof TASK_STATUSES;
   tasksByStatus: Record<TaskStatus, PmTask[]>;
+  canWrite: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -56,6 +58,7 @@ export function BoardView({
   }
 
   async function moveTask(taskId: string, targetStatus: TaskStatus) {
+    if (!canWrite) return;
     const task = taskById.get(taskId);
     if (!task) return;
     if (task.status === targetStatus) return;
@@ -84,6 +87,7 @@ export function BoardView({
   }
 
   async function handleStatusSelect(taskId: string, newStatus: TaskStatus) {
+    if (!canWrite) return;
     setError(null);
     const res = await fetch(
       `/api/pm/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}`,
@@ -112,7 +116,8 @@ export function BoardView({
             tasks={tasksByStatus[status]}
             isDragOver={dragOver === status}
             isPending={pending}
-            onDragEnter={() => setDragOver(status)}
+            canWrite={canWrite}
+            onDragEnter={() => canWrite && setDragOver(status)}
             onDragLeave={() => setDragOver((curr) => (curr === status ? null : curr))}
             onDrop={(taskId) => {
               setDragOver(null);
@@ -131,6 +136,7 @@ function BoardColumn({
   tasks,
   isDragOver,
   isPending,
+  canWrite,
   onDragEnter,
   onDragLeave,
   onDrop,
@@ -140,6 +146,7 @@ function BoardColumn({
   tasks: PmTask[];
   isDragOver: boolean;
   isPending: boolean;
+  canWrite: boolean;
   onDragEnter: () => void;
   onDragLeave: () => void;
   onDrop: (taskId: string) => void;
@@ -150,6 +157,7 @@ function BoardColumn({
       data-board-column={status}
       data-drag-over={isDragOver ? "true" : undefined}
       onDragOver={(e) => {
+        if (!canWrite) return;
         // preventDefault is required to allow drop on this element.
         if (e.dataTransfer.types.includes(DRAG_MIME)) {
           e.preventDefault();
@@ -157,6 +165,7 @@ function BoardColumn({
         }
       }}
       onDragEnter={(e) => {
+        if (!canWrite) return;
         if (e.dataTransfer.types.includes(DRAG_MIME)) onDragEnter();
       }}
       onDragLeave={(e) => {
@@ -172,6 +181,7 @@ function BoardColumn({
         onDragLeave();
       }}
       onDrop={(e) => {
+        if (!canWrite) return;
         const taskId = e.dataTransfer.getData(DRAG_MIME);
         if (taskId) onDrop(taskId);
       }}
@@ -199,6 +209,7 @@ function BoardColumn({
               key={task.id}
               task={task}
               isPending={isPending}
+              canWrite={canWrite}
               onStatusSelect={onStatusSelect}
             />
           ))
@@ -211,10 +222,12 @@ function BoardColumn({
 function BoardCard({
   task,
   isPending,
+  canWrite,
   onStatusSelect,
 }: {
   task: PmTask;
   isPending: boolean;
+  canWrite: boolean;
   onStatusSelect: (taskId: string, newStatus: TaskStatus) => void;
 }) {
   const [dragging, setDragging] = useState(false);
@@ -223,15 +236,20 @@ function BoardCard({
     <li
       data-board-card={task.id}
       data-board-card-status={task.status}
-      draggable
+      draggable={canWrite}
       onDragStart={(e) => {
+        if (!canWrite) {
+          e.preventDefault();
+          return;
+        }
         e.dataTransfer.setData(DRAG_MIME, task.id);
         e.dataTransfer.effectAllowed = "move";
         setDragging(true);
       }}
       onDragEnd={() => setDragging(false)}
       className={
-        "bg-[var(--background)] border border-[var(--border)] rounded-md px-3 py-2 text-sm space-y-1 cursor-grab active:cursor-grabbing " +
+        "bg-[var(--background)] border border-[var(--border)] rounded-md px-3 py-2 text-sm space-y-1 " +
+        (canWrite ? "cursor-grab active:cursor-grabbing " : "") +
         (dragging ? "opacity-50" : "")
       }
     >
@@ -249,21 +267,25 @@ function BoardCard({
           {PRIORITY_LABEL[task.priority]}
         </span>
       </div>
-      <div className="flex items-center justify-between gap-2 pt-1">
-        <select
-          value={task.status}
-          onChange={(e) => onStatusSelect(task.id, e.target.value as TaskStatus)}
-          disabled={isPending}
-          className="text-xs bg-[var(--surface)] border border-[var(--border)] rounded-md px-2 py-1 outline-none flex-1"
-          aria-label="Status ändern"
-        >
-          {TASK_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </option>
-          ))}
-        </select>
-      </div>
+      {canWrite ? (
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <select
+            value={task.status}
+            onChange={(e) =>
+              onStatusSelect(task.id, e.target.value as TaskStatus)
+            }
+            disabled={isPending}
+            className="text-xs bg-[var(--surface)] border border-[var(--border)] rounded-md px-2 py-1 outline-none flex-1"
+            aria-label="Status ändern"
+          >
+            {TASK_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABEL[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
     </li>
   );
 }

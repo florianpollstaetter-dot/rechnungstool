@@ -30,7 +30,7 @@ export default async function ProjectTablePage({
     redirect(`/login?next=/pm/${workspaceId}/projects/${projectId}/table`);
   }
 
-  const [wsRes, projectRes, tasksRes, membersResult] = await Promise.all([
+  const [wsRes, projectRes, tasksRes, membersResult, meRes] = await Promise.all([
     sb
       .schema("pm")
       .from("workspaces")
@@ -53,6 +53,13 @@ export default async function ProjectTablePage({
       .order("status", { ascending: true })
       .order("position", { ascending: true }),
     listWorkspaceMembers(sb, workspaceId),
+    sb
+      .schema("pm")
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
   if (projectRes.error) {
@@ -71,6 +78,8 @@ export default async function ProjectTablePage({
   const tasks: PmTask[] = (tasksRes.data ?? []) as PmTask[];
   const loadError = tasksRes.error?.message ?? null;
   const members = "members" in membersResult ? membersResult.members : [];
+  const myRole = (meRes.data?.role as "admin" | "member" | "guest" | undefined) ?? null;
+  const canWrite = myRole === "admin" || myRole === "member";
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 space-y-6">
@@ -115,6 +124,7 @@ export default async function ProjectTablePage({
         workspaceId={workspaceId}
         projectId={projectId}
         tasks={tasks}
+        canWrite={canWrite}
         members={members.map((m) => ({
           user_id: m.user_id,
           display_name: m.display_name,

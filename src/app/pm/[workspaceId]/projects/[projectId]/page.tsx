@@ -72,6 +72,7 @@ export default async function ProjectPage({
   const workspace = wsRes.data;
   const myRole = (meRes.data?.role as "admin" | "member" | "guest" | undefined) ?? null;
   const isAdmin = myRole === "admin";
+  const canWrite = myRole === "admin" || myRole === "member";
 
   const tasks: PmTask[] = (tasksRes.data ?? []) as PmTask[];
   const tasksLoadError = tasksRes.error?.message ?? null;
@@ -114,23 +115,27 @@ export default async function ProjectPage({
         </div>
       </header>
 
-      <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-        <h2 className="text-lg font-medium mb-4">Projekt bearbeiten</h2>
-        <EditProjectForm project={project} isAdmin={isAdmin} />
-      </section>
+      {canWrite && (
+        <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
+          <h2 className="text-lg font-medium mb-4">Projekt bearbeiten</h2>
+          <EditProjectForm project={project} isAdmin={isAdmin} />
+        </section>
+      )}
 
-      <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
-        <h2 className="text-lg font-medium mb-4">Neue Aufgabe</h2>
-        <CreateTaskForm
-          workspaceId={workspaceId}
-          projectId={projectId}
-          members={members.map((m) => ({
-            user_id: m.user_id,
-            display_name: m.display_name,
-            email: m.email,
-          }))}
-        />
-      </section>
+      {canWrite && (
+        <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
+          <h2 className="text-lg font-medium mb-4">Neue Aufgabe</h2>
+          <CreateTaskForm
+            workspaceId={workspaceId}
+            projectId={projectId}
+            members={members.map((m) => ({
+              user_id: m.user_id,
+              display_name: m.display_name,
+              email: m.email,
+            }))}
+          />
+        </section>
+      )}
 
       <section>
         <h2 className="text-lg font-medium mb-4">
@@ -156,6 +161,7 @@ export default async function ProjectPage({
                 }))}
                 currentUserId={user.id}
                 isAdmin={isAdmin}
+                canWrite={canWrite}
               />
             ))}
           </ul>
