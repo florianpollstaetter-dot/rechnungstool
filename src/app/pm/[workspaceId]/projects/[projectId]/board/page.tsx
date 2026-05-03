@@ -18,6 +18,7 @@ import {
   type PmTask,
   type TaskStatus,
 } from "@/lib/pm/tasks";
+import { RealtimeRefresher } from "@/lib/pm/RealtimeRefresher";
 import { BoardView } from "./_components/BoardView";
 
 export const dynamic = "force-dynamic";
@@ -98,6 +99,15 @@ export default async function ProjectBoardPage({
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 space-y-6">
+      <RealtimeRefresher
+        subs={[
+          {
+            table: "tasks",
+            filter: `project_id=eq.${projectId}`,
+            channelKey: `project=${projectId}:board`,
+          },
+        ]}
+      />
       <nav className="text-sm">
         <Link
           href={`/pm/${workspaceId}/projects/${projectId}`}
