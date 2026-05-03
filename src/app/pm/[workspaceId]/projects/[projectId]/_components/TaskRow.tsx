@@ -33,12 +33,14 @@ export function TaskRow({
   members,
   currentUserId,
   isAdmin,
+  canWrite,
 }: {
   task: PmTask;
   workspaceId: string;
   members: MemberOption[];
   currentUserId: string;
   isAdmin: boolean;
+  canWrite: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -108,18 +110,24 @@ export function TaskRow({
   return (
     <li className="bg-[var(--surface)]">
       <div className="flex items-center gap-3 px-4 py-3">
-        <select
-          value={task.status}
-          onChange={(e) => handleStatusChange(e.target.value as TaskStatus)}
-          disabled={pending}
-          className="text-xs bg-[var(--background)] border border-[var(--border)] rounded-md px-2 py-1 outline-none"
-        >
-          {TASK_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </option>
-          ))}
-        </select>
+        {canWrite ? (
+          <select
+            value={task.status}
+            onChange={(e) => handleStatusChange(e.target.value as TaskStatus)}
+            disabled={pending}
+            className="text-xs bg-[var(--background)] border border-[var(--border)] rounded-md px-2 py-1 outline-none"
+          >
+            {TASK_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABEL[s]}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="text-xs bg-[var(--background)] border border-[var(--border)] rounded-full px-2 py-0.5">
+            {STATUS_LABEL[task.status as TaskStatus]}
+          </span>
+        )}
 
         <div className="min-w-0 flex-1">
           <div className="font-medium truncate">{task.title}</div>
@@ -147,21 +155,25 @@ export function TaskRow({
         >
           {showingComments ? "💬 Schließen" : "💬 Kommentare"}
         </button>
-        <button
-          type="button"
-          onClick={() => setEditing((v) => !v)}
-          className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-        >
-          {editing ? "Schließen" : "Bearbeiten"}
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={pending}
-          className="text-xs text-red-300 hover:text-red-200 disabled:opacity-50"
-        >
-          Löschen
-        </button>
+        {canWrite && (
+          <>
+            <button
+              type="button"
+              onClick={() => setEditing((v) => !v)}
+              className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            >
+              {editing ? "Schließen" : "Bearbeiten"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={pending}
+              className="text-xs text-red-300 hover:text-red-200 disabled:opacity-50"
+            >
+              Löschen
+            </button>
+          </>
+        )}
       </div>
 
       {editing && (
@@ -266,6 +278,7 @@ export function TaskRow({
             taskId={task.id}
             currentUserId={currentUserId}
             isAdmin={isAdmin}
+            canWrite={canWrite}
             members={members}
           />
         </div>

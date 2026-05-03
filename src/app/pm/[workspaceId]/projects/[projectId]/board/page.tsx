@@ -37,7 +37,7 @@ export default async function ProjectBoardPage({
     redirect(`/login?next=/pm/${workspaceId}/projects/${projectId}/board`);
   }
 
-  const [wsRes, projectRes, tasksRes] = await Promise.all([
+  const [wsRes, projectRes, tasksRes, meRes] = await Promise.all([
     sb
       .schema("pm")
       .from("workspaces")
@@ -59,6 +59,13 @@ export default async function ProjectBoardPage({
       .is("parent_task_id", null)
       .order("status", { ascending: true })
       .order("position", { ascending: true }),
+    sb
+      .schema("pm")
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
   if (projectRes.error) {
@@ -76,6 +83,8 @@ export default async function ProjectBoardPage({
   const workspace = wsRes.data;
   const allTasks: PmTask[] = (tasksRes.data ?? []) as PmTask[];
   const loadError = tasksRes.error?.message ?? null;
+  const myRole = (meRes.data?.role as "admin" | "member" | "guest" | undefined) ?? null;
+  const canWrite = myRole === "admin" || myRole === "member";
 
   const tasksByStatus: Record<TaskStatus, PmTask[]> = {
     todo: [],
@@ -133,6 +142,7 @@ export default async function ProjectBoardPage({
         projectId={projectId}
         statuses={TASK_STATUSES}
         tasksByStatus={tasksByStatus}
+        canWrite={canWrite}
       />
     </div>
   );

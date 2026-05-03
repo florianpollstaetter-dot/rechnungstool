@@ -20,6 +20,7 @@ export function CommentThread({
   taskId,
   currentUserId,
   isAdmin,
+  canWrite,
   members,
 }: {
   workspaceId: string;
@@ -27,6 +28,7 @@ export function CommentThread({
   taskId: string;
   currentUserId: string;
   isAdmin: boolean;
+  canWrite: boolean;
   members: MemberOption[];
 }) {
   const baseUrl = `/api/pm/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}/comments`;
@@ -151,22 +153,28 @@ export function CommentThread({
         </ul>
       )}
 
-      <form onSubmit={handlePost} className="space-y-2">
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          rows={2}
-          placeholder="Kommentar schreiben — @name erwähnt Mitglieder"
-          className="w-full bg-[var(--background)] border border-[var(--border)] rounded-md px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
-        />
-        <button
-          type="submit"
-          disabled={posting || !draft.trim()}
-          className="bg-[var(--accent)] text-black font-medium rounded-md px-3 py-1.5 text-xs disabled:opacity-50"
-        >
-          {posting ? "Sendet…" : "Senden"}
-        </button>
-      </form>
+      {canWrite ? (
+        <form onSubmit={handlePost} className="space-y-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={2}
+            placeholder="Kommentar schreiben — @name erwähnt Mitglieder"
+            className="w-full bg-[var(--background)] border border-[var(--border)] rounded-md px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+          />
+          <button
+            type="submit"
+            disabled={posting || !draft.trim()}
+            className="bg-[var(--accent)] text-black font-medium rounded-md px-3 py-1.5 text-xs disabled:opacity-50"
+          >
+            {posting ? "Sendet…" : "Senden"}
+          </button>
+        </form>
+      ) : (
+        <p className="text-xs text-[var(--text-muted)]">
+          Als Gast hast du nur Leserechte.
+        </p>
+      )}
     </div>
   );
 }
