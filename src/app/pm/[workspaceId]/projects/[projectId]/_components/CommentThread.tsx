@@ -3,10 +3,13 @@
 // SCH-825 M7 — Comment thread for a task. Lazy-loads on mount; renders the
 // list, a new-comment form with @-mention autocomplete (simple substring
 // match, the API does the canonical resolution server-side), and a delete
-// button per comment that's visible to the author or workspace admin.
+// button per comment that's visible to the author or workspace admin. M10
+// subscribes to task_comments via Supabase Realtime so other users' posts
+// appear without a refresh.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PmTaskComment } from "@/lib/pm/comments";
+import { usePmRealtime } from "@/lib/pm/useRealtime";
 
 type MemberOption = {
   user_id: string;
@@ -46,7 +49,7 @@ export function CommentThread({
     return m.display_name || m.email || userId.slice(0, 8);
   }
 
-  async function reload() {
+  const reload = useCallback(async () => {
     setError(null);
     const res = await fetch(baseUrl);
     if (!res.ok) {
@@ -55,12 +58,25 @@ export function CommentThread({
     }
     const json = (await res.json()) as { comments: PmTaskComment[] };
     setComments(json.comments);
-  }
+  }, [baseUrl]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskId]);
+  }, [reload]);
+
+  // M10 — push updates from other users.
+  const subs = useMemo(
+    () => [
+      {
+        table: "task_comments" as const,
+        filter: `task_id=eq.${taskId}`,
+        channelKey: `task=${taskId}`,
+      },
+    ],
+    [taskId],
+  );
+  usePmRealtime(subs, reload);
 
   async function handlePost(e: React.FormEvent) {
     e.preventDefault();

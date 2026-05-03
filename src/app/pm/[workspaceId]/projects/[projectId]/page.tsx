@@ -12,6 +12,7 @@ import {
   type ProjectStatus,
 } from "@/lib/pm/projects";
 import { TASK_COLUMNS, type PmTask } from "@/lib/pm/tasks";
+import { RealtimeRefresher } from "@/lib/pm/RealtimeRefresher";
 import { EditProjectForm } from "./_components/EditProjectForm";
 import { CreateTaskForm } from "./_components/CreateTaskForm";
 import { TaskRow } from "./_components/TaskRow";
@@ -80,6 +81,15 @@ export default async function ProjectPage({
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
+      <RealtimeRefresher
+        subs={[
+          {
+            table: "tasks",
+            filter: `project_id=eq.${projectId}`,
+            channelKey: `project=${projectId}`,
+          },
+        ]}
+      />
       <nav className="text-sm">
         <Link
           href={`/pm/${workspaceId}`}

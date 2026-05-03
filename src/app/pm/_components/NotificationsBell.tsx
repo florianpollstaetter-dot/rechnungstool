@@ -1,18 +1,24 @@
 "use client";
 
-// SCH-825 M8 — Header bell. Shows unread count badge; click opens a
-// dropdown with recent notifications. Polls every 30s as a stop-gap until
-// M10 swaps in Realtime. Click on a row marks-read + navigates to the
-// task's project page (anchor jump to task row).
+// SCH-825 M8 + M10 — Header bell. Shows unread count badge; click opens a
+// dropdown with recent notifications. M10 swapped the 30s polling for a
+// Supabase Realtime subscription on pm.notifications, filtered by the
+// current user's id (RLS gates the payload server-side either way; the
+// filter just keeps the channel quiet when nothing's relevant). A 5-minute
+// safety-net poll handles tab-suspension / lost-connection edge cases.
+//
+// Click on a row marks-read + navigates to the task's project page.
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   TYPE_LABEL,
   type PmNotificationWithTask,
 } from "@/lib/pm/notifications";
+import { createClient } from "@/lib/supabase/client";
+import { usePmRealtime } from "@/lib/pm/useRealtime";
 
-const POLL_MS = 30_000;
+const SAFETY_POLL_MS = 5 * 60_000;
 
 type ApiResponse = {
   notifications: PmNotificationWithTask[];
@@ -23,24 +29,46 @@ export function NotificationsBell() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<ApiResponse | null>(null);
   const [marking, setMarking] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     const res = await fetch("/api/pm/notifications?limit=20");
     if (!res.ok) return;
     const json = (await res.json()) as ApiResponse;
     setData(json);
-  }
+  }, []);
+
+  // Resolve current user once (needed for the Realtime row-filter).
+  useEffect(() => {
+    const sb = createClient();
+    sb.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUserId(user.id);
+    });
+  }, []);
 
   useEffect(() => {
-    // load() awaits a fetch before touching state, so it's not a sync
-    // setState-in-effect; the lint rule can't tell. Disabled for this
-    // line + the polling tick below.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
-    const t = window.setInterval(load, POLL_MS);
+    const t = window.setInterval(load, SAFETY_POLL_MS);
     return () => window.clearInterval(t);
-  }, []);
+  }, [load]);
+
+  // Realtime push: any change to a row where I'm the recipient.
+  const subs = useMemo(
+    () =>
+      userId
+        ? [
+            {
+              table: "notifications" as const,
+              filter: `recipient_user_id=eq.${userId}`,
+              channelKey: `recipient=${userId}`,
+            },
+          ]
+        : [],
+    [userId],
+  );
+  usePmRealtime(subs, load);
 
   // Close dropdown on outside click.
   useEffect(() => {

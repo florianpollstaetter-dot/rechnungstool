@@ -11,6 +11,7 @@ import {
   type ProjectStatus,
 } from "@/lib/pm/projects";
 import { TASK_COLUMNS, type PmTask } from "@/lib/pm/tasks";
+import { RealtimeRefresher } from "@/lib/pm/RealtimeRefresher";
 import { TableView } from "./_components/TableView";
 
 export const dynamic = "force-dynamic";
@@ -83,6 +84,15 @@ export default async function ProjectTablePage({
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 space-y-6">
+      <RealtimeRefresher
+        subs={[
+          {
+            table: "tasks",
+            filter: `project_id=eq.${projectId}`,
+            channelKey: `project=${projectId}:table`,
+          },
+        ]}
+      />
       <nav className="text-sm">
         <Link
           href={`/pm/${workspaceId}/projects/${projectId}`}
