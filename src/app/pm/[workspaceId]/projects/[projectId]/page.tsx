@@ -1,16 +1,20 @@
-// SCH-825 M2 — Project detail (RSC). Loads the project + caller's workspace
-// role, then renders the edit form. M3 will add a tasks section under the
-// "Aufgaben" placeholder.
+// SCH-825 M2+M3 — Project detail (RSC). Loads project, caller's workspace
+// role, workspace member list (for the assignee dropdown), and tasks. M4
+// will replace the flat list with a Kanban board view.
 
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { listWorkspaceMembers } from "@/lib/pm/members";
 import {
   STATUS_LABEL,
   type PmProject,
   type ProjectStatus,
 } from "@/lib/pm/projects";
+import { TASK_COLUMNS, type PmTask } from "@/lib/pm/tasks";
 import { EditProjectForm } from "./_components/EditProjectForm";
+import { CreateTaskForm } from "./_components/CreateTaskForm";
+import { TaskRow } from "./_components/TaskRow";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +31,7 @@ export default async function ProjectPage({
     redirect(`/login?next=/pm/${workspaceId}/projects/${projectId}`);
   }
 
-  const [wsRes, projectRes, meRes] = await Promise.all([
+  const [wsRes, projectRes, meRes, tasksRes, membersResult] = await Promise.all([
     sb.schema("pm").from("workspaces").select("id, name, slug").eq("id", workspaceId).maybeSingle(),
     sb
       .schema("pm")
@@ -43,6 +47,14 @@ export default async function ProjectPage({
       .eq("workspace_id", workspaceId)
       .eq("user_id", user.id)
       .maybeSingle(),
+    sb
+      .schema("pm")
+      .from("tasks")
+      .select(TASK_COLUMNS)
+      .eq("project_id", projectId)
+      .order("status", { ascending: true })
+      .order("position", { ascending: true }),
+    listWorkspaceMembers(sb, workspaceId),
   ]);
 
   if (projectRes.error) {
@@ -60,6 +72,10 @@ export default async function ProjectPage({
   const workspace = wsRes.data;
   const myRole = (meRes.data?.role as "admin" | "member" | "guest" | undefined) ?? null;
   const isAdmin = myRole === "admin";
+
+  const tasks: PmTask[] = (tasksRes.data ?? []) as PmTask[];
+  const tasksLoadError = tasksRes.error?.message ?? null;
+  const members = "members" in membersResult ? membersResult.members : [];
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
@@ -89,8 +105,45 @@ export default async function ProjectPage({
         <EditProjectForm project={project} isAdmin={isAdmin} />
       </section>
 
-      <section className="border border-dashed border-[var(--border)] rounded-lg p-6 text-sm text-[var(--text-secondary)]">
-        Aufgaben kommen in M3.
+      <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6">
+        <h2 className="text-lg font-medium mb-4">Neue Aufgabe</h2>
+        <CreateTaskForm
+          workspaceId={workspaceId}
+          projectId={projectId}
+          members={members.map((m) => ({
+            user_id: m.user_id,
+            display_name: m.display_name,
+            email: m.email,
+          }))}
+        />
+      </section>
+
+      <section>
+        <h2 className="text-lg font-medium mb-4">
+          Aufgaben ({tasks.length})
+        </h2>
+        {tasksLoadError ? (
+          <p className="text-sm text-red-300">{tasksLoadError}</p>
+        ) : tasks.length === 0 ? (
+          <div className="text-[var(--text-secondary)] text-sm border border-dashed border-[var(--border)] rounded-md p-6 text-center">
+            Noch keine Aufgaben. Lege oben deine erste an.
+          </div>
+        ) : (
+          <ul className="divide-y divide-[var(--border)] border border-[var(--border)] rounded-lg overflow-hidden">
+            {tasks.map((t) => (
+              <TaskRow
+                key={t.id}
+                task={t}
+                workspaceId={workspaceId}
+                members={members.map((m) => ({
+                  user_id: m.user_id,
+                  display_name: m.display_name,
+                  email: m.email,
+                }))}
+              />
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );
