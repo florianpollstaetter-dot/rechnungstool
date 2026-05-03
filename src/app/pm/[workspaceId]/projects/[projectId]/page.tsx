@@ -154,6 +154,8 @@ export default async function ProjectPage({
                   display_name: m.display_name,
                   email: m.email,
                 }))}
+                currentUserId={user.id}
+                isAdmin={isAdmin}
               />
             ))}
           </ul>
