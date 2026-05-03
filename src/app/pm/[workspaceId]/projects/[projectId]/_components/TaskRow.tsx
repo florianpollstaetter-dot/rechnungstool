@@ -1,8 +1,9 @@
 "use client";
 
-// SCH-825 M3 — Task row with inline edit + status quick-change. Used by the
-// project detail page. Status changes save immediately on select; full edits
-// expand a form below the row. Delete confirms via window.confirm.
+// SCH-825 M3 — Task row with inline edit + status quick-change. M7 adds a
+// comment thread toggle. Used by the project detail page. Status changes
+// save immediately on select; full edits expand a form below the row.
+// Delete confirms via window.confirm.
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -15,6 +16,7 @@ import {
   type TaskPriority,
   type TaskStatus,
 } from "@/lib/pm/tasks";
+import { CommentThread } from "./CommentThread";
 
 type MemberOption = { user_id: string; display_name: string; email: string };
 
@@ -29,13 +31,18 @@ export function TaskRow({
   task,
   workspaceId,
   members,
+  currentUserId,
+  isAdmin,
 }: {
   task: PmTask;
   workspaceId: string;
   members: MemberOption[];
+  currentUserId: string;
+  isAdmin: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [showingComments, setShowingComments] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -133,6 +140,13 @@ export function TaskRow({
           </div>
         </div>
 
+        <button
+          type="button"
+          onClick={() => setShowingComments((v) => !v)}
+          className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+        >
+          {showingComments ? "💬 Schließen" : "💬 Kommentare"}
+        </button>
         <button
           type="button"
           onClick={() => setEditing((v) => !v)}
@@ -242,6 +256,19 @@ export function TaskRow({
             </button>
           </div>
         </form>
+      )}
+
+      {showingComments && (
+        <div className="px-4 pb-4 pt-1 border-t border-[var(--border)]">
+          <CommentThread
+            workspaceId={workspaceId}
+            projectId={task.project_id}
+            taskId={task.id}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            members={members}
+          />
+        </div>
       )}
 
       {error && (
