@@ -363,7 +363,30 @@ export interface UserProfile {
   // SCH-582 — first-login onboarding tour completion marker.
   // NULL on fresh profiles; set to NOW() when the tour is finished or skipped.
   onboarding_completed_at?: string | null;
+  // SCH-2087 — assigned Arbeitszeitmodell (template). NULL = kein Modell zugewiesen.
+  work_time_model_id?: string | null;
   created_at: string;
+}
+
+// SCH-2087 — Arbeitszeitmodell als wiederverwendbare Vorlage.
+export interface WorkTimeModel {
+  id: string;
+  company_id: string;
+  name: string;
+  weekly_target_minutes: number;
+  // Standard-Pause pro Tag (unbezahlt). Modellweit, nicht pro Wochentag.
+  unpaid_break_minutes: number;
+  vacation_days_per_year: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkTimeModelDay {
+  model_id: string;
+  weekday: number;
+  start_time: string | null;
+  end_time: string | null;
+  daily_target_minutes: number;
 }
 
 export type ExpenseStatus = "draft" | "submitted" | "approved" | "rejected" | "booked";
@@ -450,6 +473,15 @@ export interface TimeEntry {
   billable: boolean;
   hourly_rate: number;
   entry_type: TimeEntryType;
+  // SCH-2088 — Zuschlagsberechnung. Persisted per save by the engine in
+  // src/lib/surcharge. Optional on the TS type because legacy rows that
+  // haven't been backfilled yet (or active timers without end_time) carry
+  // zero/empty values; non-NULL is enforced at the DB level with defaults.
+  base_minutes?: number;
+  ot_25_minutes?: number;
+  ot_50_minutes?: number;
+  ot_100_minutes?: number;
+  surcharge_breakdown?: Record<string, unknown>;
   created_at: string;
 }
 
