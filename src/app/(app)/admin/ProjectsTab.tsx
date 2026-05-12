@@ -1,10 +1,13 @@
 "use client";
 
 // SCH-975 K2-H1 — Projekt-Verwaltung + Merge-Modal.
+// SCH-2237 — Rename-Modal added on top.
 // Lists projects in the active company and lets a user with the
-// `projekte_erstellen` permission merge two duplicates into one. The merge
-// itself is the existing POST /api/projects/[id]/merge route; this UI just
-// surfaces the picker, the confirmation, and the 409 quote-conflict step.
+// `projekte_erstellen` permission merge two duplicates into one or rename
+// a project. The merge itself is the existing POST /api/projects/[id]/merge
+// route; this UI just surfaces the picker, the confirmation, and the 409
+// quote-conflict step. Rename goes through `updateProject` directly (RLS
+// gates writes to the active company).
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -59,6 +62,14 @@ export default function ProjectsTab() {
   const [mergeError, setMergeError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<ConflictState | null>(null);
   const [keepWinner, setKeepWinner] = useState<"source" | "target" | null>(null);
+
+  // SCH-2237 — rename modal state
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
+
+  const RENAME_MAX = 200;
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -139,6 +150,59 @@ export default function ProjectsTab() {
     setKeepWinner(null);
     setMerging(false);
   }
+
+  function openRename(p: ProjectRow) {
+    setRenameId(p.id);
+    setRenameValue(p.name);
+    setRenameError(null);
+  }
+
+  function closeRename() {
+    if (renaming) return;
+    setRenameId(null);
+    setRenameValue("");
+    setRenameError(null);
+  }
+
+  async function performRename() {
+    if (!renameId) return;
+    const trimmed = renameValue.trim();
+    if (trimmed.length < 1 || trimmed.length >= RENAME_MAX) {
+      setRenameError(t("projects.admin.renameValidation"));
+      return;
+    }
+    const current = projects.find((p) => p.id === renameId);
+    if (current && current.name === trimmed) {
+      // No-op: just close.
+      setRenameId(null);
+      setRenameValue("");
+      setRenameError(null);
+      return;
+    }
+    setRenaming(true);
+    setRenameError(null);
+    // Optimistic update.
+    setProjects((prev) =>
+      prev.map((p) => (p.id === renameId ? { ...p, name: trimmed } : p)),
+    );
+    try {
+      await updateProject(renameId, { name: trimmed });
+      setRenameId(null);
+      setRenameValue("");
+      await loadProjects();
+    } catch (err) {
+      setRenameError(err instanceof Error ? err.message : String(err));
+      // Roll back optimistic update on failure.
+      await loadProjects();
+    } finally {
+      setRenaming(false);
+    }
+  }
+
+  const renameProject = useMemo(
+    () => (renameId ? projects.find((p) => p.id === renameId) ?? null : null),
+    [projects, renameId],
+  );
 
   async function performMerge() {
     if (!source || !target) return;
@@ -266,13 +330,16 @@ export default function ProjectsTab() {
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                   {t("projects.admin.colTime")}
                 </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  {t("projects.admin.colActions")}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
               {projects.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-8 text-center text-gray-500"
                   >
                     {t("projects.admin.empty")}
@@ -353,6 +420,29 @@ export default function ProjectsTab() {
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-[var(--text-secondary)]">
                       {p.time_entry_count}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => openRename(p)}
+                        title={t("projects.admin.renameBtn")}
+                        aria-label={t("projects.admin.renameBtn")}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                        </svg>
+                      </button>
                     </td>
                   </tr>
                 );
@@ -535,6 +625,101 @@ export default function ProjectsTab() {
                   : conflict
                     ? t("projects.merge.confirmAndMerge")
                     : t("projects.merge.confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== RENAME MODAL (SCH-2237) ==================== */}
+      {renameId && renameProject && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={renaming ? undefined : closeRename}
+        >
+          <div
+            className="bg-[var(--surface)] rounded-xl shadow-2xl border border-[var(--border)] max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                  {t("projects.admin.renameTitle")}
+                </h3>
+                <p className="text-sm text-[var(--text-muted)]">
+                  {t("projects.admin.renameSubtitle", {
+                    name: renameProject.name,
+                  })}
+                </p>
+              </div>
+              <button
+                onClick={closeRename}
+                disabled={renaming}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-50"
+                title={t("common.close")}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <label
+              htmlFor="rename-project-input"
+              className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
+            >
+              {t("projects.admin.renameLabel")}
+            </label>
+            <input
+              id="rename-project-input"
+              type="text"
+              value={renameValue}
+              maxLength={RENAME_MAX}
+              autoFocus
+              disabled={renaming}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void performRename();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  closeRename();
+                }
+              }}
+              className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40 focus:border-[var(--accent)] disabled:opacity-50"
+            />
+
+            {renameError && (
+              <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3 text-sm text-rose-500 mt-3">
+                {renameError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={closeRename}
+                disabled={renaming}
+                className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] rounded-lg transition disabled:opacity-50"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                onClick={performRename}
+                disabled={renaming || renameValue.trim().length < 1}
+                className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50"
+              >
+                {renaming ? t("common.saving") : t("common.save")}
               </button>
             </div>
           </div>
