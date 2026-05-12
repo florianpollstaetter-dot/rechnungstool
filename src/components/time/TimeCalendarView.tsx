@@ -23,6 +23,9 @@ interface Props {
   /** Called when an inline new project is created — lets the parent merge
    *  the new project into its in-memory list without a full reload. */
   onProjectCreated?: (project: Project) => void;
+  /** SCH-2240 — called when an inline Allgemein-Kategorie is created so the
+   *  parent can merge it into its in-memory list without a full reload. */
+  onGeneralCategoryCreated?: (category: GeneralCategory) => void;
   onCreate: (result: ModalResult) => Promise<void>;
   onEdit: (id: string, result: ModalResult) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -113,6 +116,7 @@ export function TimeCalendarView({
   generalCategories,
   projects,
   onProjectCreated,
+  onGeneralCategoryCreated,
   onCreate,
   onEdit,
   onDelete,
@@ -645,6 +649,7 @@ export function TimeCalendarView({
           generalCategories={generalCategories}
           projects={projects}
           onProjectCreated={onProjectCreated}
+          onGeneralCategoryCreated={onGeneralCategoryCreated}
           editData={editInit ?? undefined}
           onCancel={handleModalCancel}
           onSubmit={handleModalSubmit}

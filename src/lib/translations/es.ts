@@ -1245,6 +1245,9 @@ const es: Record<string, string> = {
 
   "time.newProjectButton": "+ Nuevo proyecto",
   "time.newProjectPrompt": "Nombre del nuevo proyecto (p. ej. pitch, RR.HH., IT):",
+  "time.create.new_general_category": "+ Nueva categoría",
+  "time.create.new_general_category_placeholder": "Nombre de la categoría",
+  "time.create.duplicate_category": "Ya existe",
   "time.noProjects": "Aún no hay proyectos. Crea un presupuesto o inicia un proyecto libre.",
 
   // ── Projects (SCH-975 K2-H1) ──

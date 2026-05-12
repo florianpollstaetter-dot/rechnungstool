@@ -678,6 +678,7 @@ function TimePageInner() {
           generalCategories={generalCategories}
           projects={projects}
           onProjectCreated={(p) => setProjects((prev) => [p, ...prev.filter((x) => x.id !== p.id)])}
+          onGeneralCategoryCreated={(c) => setGeneralCategories((prev) => [...prev.filter((x) => x.id !== c.id), c])}
           onCreate={handleCalendarCreate}
           onEdit={handleCalendarEdit}
           onDelete={async (id) => { await deleteTimeEntry(id); await loadData(); }}
