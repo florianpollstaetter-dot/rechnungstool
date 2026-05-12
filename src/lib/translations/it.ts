@@ -1245,6 +1245,9 @@ const it: Record<string, string> = {
 
   "time.newProjectButton": "+ Nuovo progetto",
   "time.newProjectPrompt": "Nome del nuovo progetto (es. pitch, HR, IT):",
+  "time.create.new_general_category": "+ Nuova categoria",
+  "time.create.new_general_category_placeholder": "Nome della categoria",
+  "time.create.duplicate_category": "Già esistente",
   "time.noProjects": "Ancora nessun progetto. Crea un preventivo o avvia un progetto libero.",
 
   // ── Projects (SCH-975 K2-H1) ──

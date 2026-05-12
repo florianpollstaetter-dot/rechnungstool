@@ -1245,6 +1245,9 @@ const ar: Record<string, string> = {
 
   "time.newProjectButton": "+ مشروع جديد",
   "time.newProjectPrompt": "اسم المشروع الجديد (مثال: عرض، الموارد البشرية، تكنولوجيا المعلومات):",
+  "time.create.new_general_category": "+ فئة جديدة",
+  "time.create.new_general_category_placeholder": "اسم الفئة",
+  "time.create.duplicate_category": "موجودة بالفعل",
   "time.noProjects": "لا توجد مشاريع بعد. أنشئ عرض سعر أو ابدأ مشروعًا حرًا.",
 
   // ── Projects (SCH-975 K2-H1) ──

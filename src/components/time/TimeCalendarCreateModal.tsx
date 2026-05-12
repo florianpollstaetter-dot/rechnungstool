@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Quote, GeneralCategory, DEFAULT_GENERAL_CATEGORIES, Project } from "@/lib/types";
 import { TabButton } from "@/components/TabButton";
 import NewProjectModal from "@/components/projects/NewProjectModal";
+import { createGeneralCategory } from "@/lib/db";
+import { useCompany } from "@/lib/company-context";
+import { useI18n } from "@/lib/i18n-context";
 
 type PickerTab = "allgemein" | "projekte" | "other";
 
@@ -43,6 +46,9 @@ interface Props {
   /** Called after the inline NewProjectModal saves a project so the parent
    *  can merge it into its in-memory list without a full reload. */
   onProjectCreated?: (project: Project) => void;
+  /** SCH-2240 — called after an inline Allgemein-Kategorie is created so the
+   *  parent can merge it into its in-memory list without a full reload. */
+  onGeneralCategoryCreated?: (category: GeneralCategory) => void;
   editData?: EditData;
   onCancel: () => void;
   onSubmit: (result: ModalResult) => Promise<{ ok: boolean; error?: string }>;
@@ -75,7 +81,10 @@ function formatDuration(minutes: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, projectFreq, generalCategories, projects, onProjectCreated, editData, onCancel, onSubmit, onDelete }: Props) {
+export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, projectFreq, generalCategories, projects, onProjectCreated, onGeneralCategoryCreated, editData, onCancel, onSubmit, onDelete }: Props) {
+  const { userRole } = useCompany();
+  const isAdmin = userRole === "admin";
+  const { t } = useI18n();
   // SCH-921 K2-J1 — split admin-managed labels into the two picker tabs.
   // Empty/undefined input falls back to the hardcoded defaults so the modal
   // is never empty for tenants seeded before this migration.
@@ -104,6 +113,12 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
   // this modal. We keep the date/time/description state intact so the user
   // can pick the just-created project and continue without re-entering data.
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  // SCH-2240 — inline form for creating a new Allgemein category without
+  // leaving the modal. Admin-only; non-admins never see the trigger button.
+  const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
+  const [newCategoryLabel, setNewCategoryLabel] = useState("");
+  const [newCategorySaving, setNewCategorySaving] = useState(false);
+  const [newCategoryError, setNewCategoryError] = useState<string | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
@@ -150,6 +165,32 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
   const canSave = !!selectedLabel && durationMinutes > 0 && durationMinutes <= 24 * 60 && !submitting;
 
   function pickGeneral(label: string) { setSelectedLabel(label); setSelectedQuoteId(null); setSelectedProjectId(null); }
+  async function handleSaveNewCategory() {
+    const trimmed = newCategoryLabel.trim();
+    if (!trimmed || newCategorySaving) return;
+    if (allgemeinLabels.some((l) => l.toLowerCase() === trimmed.toLowerCase())) {
+      setNewCategoryError(t("time.create.duplicate_category"));
+      return;
+    }
+    setNewCategorySaving(true);
+    setNewCategoryError(null);
+    try {
+      const created = await createGeneralCategory({ group_key: "allgemein", label: trimmed });
+      onGeneralCategoryCreated?.(created);
+      pickGeneral(created.label);
+      setNewCategoryLabel("");
+      setShowNewCategoryForm(false);
+    } catch (e) {
+      setNewCategoryError(e instanceof Error ? e.message : t("common.save"));
+    } finally {
+      setNewCategorySaving(false);
+    }
+  }
+  function cancelNewCategory() {
+    setShowNewCategoryForm(false);
+    setNewCategoryLabel("");
+    setNewCategoryError(null);
+  }
   function pickOther(label: string) { setSelectedLabel(label); setSelectedQuoteId(null); setSelectedProjectId(null); }
   function pickQuote(q: Quote) {
     const label = q.project_description || q.quote_number;
@@ -272,8 +313,59 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${selectedLabel === item ? "bg-[var(--brand-orange)] text-white" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:bg-[var(--brand-orange-dim)] hover:text-[var(--brand-orange)]"}`}
                 >{item}</button>
               ))}
-              {pickerTab === "allgemein" && allgemeinLabels.length === 0 && (
-                <p className="text-xs text-[var(--text-muted)]">Keine Kategorien konfiguriert.</p>
+              {pickerTab === "allgemein" && allgemeinLabels.length === 0 && !showNewCategoryForm && (
+                <p className="text-xs text-[var(--text-muted)] w-full">Keine Kategorien konfiguriert.</p>
+              )}
+              {/* SCH-2240 — Admin inline-create for Allgemein-Kategorien.
+                  Non-admins (read-only on general_categories per SCH-921 RLS)
+                  never see the trigger, matching the SCH-918 pattern. */}
+              {pickerTab === "allgemein" && isAdmin && !showNewCategoryForm && (
+                <button
+                  onClick={() => { setShowNewCategoryForm(true); setNewCategoryError(null); }}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--brand-orange)] hover:text-[var(--brand-orange)] transition"
+                >{t("time.create.new_general_category")}</button>
+              )}
+              {pickerTab === "allgemein" && isAdmin && showNewCategoryForm && (
+                <div className="w-full flex flex-col gap-1">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newCategoryLabel}
+                      onChange={(e) => { setNewCategoryLabel(e.target.value); if (newCategoryError) setNewCategoryError(null); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); handleSaveNewCategory(); }
+                        else if (e.key === "Escape") {
+                          // Stop the modal's window-level Escape handler so
+                          // cancelling the inline form doesn't also dismiss
+                          // the whole modal and lose the user's date/time.
+                          e.preventDefault();
+                          e.stopPropagation();
+                          e.nativeEvent.stopImmediatePropagation();
+                          cancelNewCategory();
+                        }
+                      }}
+                      maxLength={60}
+                      autoFocus
+                      placeholder={t("time.create.new_general_category_placeholder")}
+                      className="flex-1 bg-[var(--background)] border border-[var(--border)] rounded-lg px-2 py-1 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-orange)]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveNewCategory}
+                      disabled={!newCategoryLabel.trim() || newCategorySaving}
+                      className="px-3 py-1 text-xs font-semibold rounded-lg bg-[var(--brand-orange)] text-white hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    >{newCategorySaving ? "…" : t("common.save")}</button>
+                    <button
+                      type="button"
+                      onClick={cancelNewCategory}
+                      disabled={newCategorySaving}
+                      className="px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition disabled:opacity-40"
+                    >{t("common.cancel")}</button>
+                  </div>
+                  {newCategoryError && (
+                    <p className="text-[11px] text-rose-400">{newCategoryError}</p>
+                  )}
+                </div>
               )}
               {pickerTab === "projekte" && (
                 <>

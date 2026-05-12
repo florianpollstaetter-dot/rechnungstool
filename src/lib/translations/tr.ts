@@ -1245,6 +1245,9 @@ const tr: Record<string, string> = {
 
   "time.newProjectButton": "+ Yeni proje",
   "time.newProjectPrompt": "Yeni projenin adı (örn. pitch, İK, BT):",
+  "time.create.new_general_category": "+ Yeni kategori",
+  "time.create.new_general_category_placeholder": "Kategori adı",
+  "time.create.duplicate_category": "Zaten var",
   "time.noProjects": "Henüz proje yok. Bir teklif oluştur veya serbest bir proje başlat.",
 
   // ── Projects (SCH-975 K2-H1) ──
