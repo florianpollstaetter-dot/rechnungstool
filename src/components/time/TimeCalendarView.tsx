@@ -128,6 +128,16 @@ export function TimeCalendarView({
     currentMin: number;
   } | null>(null);
 
+  // SCH-899 Phase B — drag-resize at the top/bottom edge of an entry block
+  // adjusts start_time / end_time in 15-min snaps. While the user holds the
+  // mouse we keep the deltaMin in state so the rendered block can preview the
+  // new height; on mouseup we apply it via onEdit (with overlap protection).
+  const [resizeState, setResizeState] = useState<{
+    entryId: string;
+    edge: "top" | "bottom";
+    deltaMin: number;
+  } | null>(null);
+
   const [modalInit, setModalInit] = useState<{ start: Date; end: Date } | null>(null);
   const [editInit, setEditInit] = useState<EditData | null>(null);
 
@@ -187,6 +197,92 @@ export function TimeCalendarView({
     });
     return map;
   }, [entries]);
+
+  // SCH-899 Phase B — start a resize from the top/bottom edge of an entry.
+  // Live entries (no end_time) and read-only views are skipped by the caller.
+  function handleEdgeMouseDown(
+    entry: TimeEntry,
+    edge: "top" | "bottom",
+    dayIndex: number,
+    ev: React.MouseEvent<HTMLDivElement>,
+  ) {
+    if (ev.button !== 0) return;
+    if (modalInit || editInit) return;
+    if (!entry.end_time) return;
+    const target = gridRefs.current.get(dayIndex);
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    const minPerPx = VISIBLE_MINUTES / rect.height;
+    const startY = ev.clientY;
+    const origStart = new Date(entry.start_time);
+    const origEnd = new Date(entry.end_time);
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const buf = { deltaMin: 0 };
+    setResizeState({ entryId: entry.id, edge, deltaMin: 0 });
+
+    const onMove = (mv: MouseEvent) => {
+      const dy = mv.clientY - startY;
+      const snap = snapMinutesToSlot(dy * minPerPx);
+      buf.deltaMin = snap;
+      setResizeState((prev) => (prev ? { ...prev, deltaMin: snap } : prev));
+    };
+
+    const onUp = async () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      setResizeState(null);
+
+      if (buf.deltaMin === 0) return;
+
+      let newStart = new Date(origStart);
+      let newEnd = new Date(origEnd);
+      const dayStart = new Date(origStart);
+      dayStart.setHours(DAY_START_HOUR, 0, 0, 0);
+      const dayEnd = new Date(origStart);
+      dayEnd.setHours(DAY_END_HOUR, 0, 0, 0);
+      const minSpanMs = SLOT_MINUTES * 60_000;
+
+      if (edge === "top") {
+        newStart = new Date(origStart.getTime() + buf.deltaMin * 60_000);
+        if (newStart.getTime() >= newEnd.getTime() - minSpanMs) {
+          newStart = new Date(newEnd.getTime() - minSpanMs);
+        }
+        if (newStart < dayStart) newStart = dayStart;
+      } else {
+        newEnd = new Date(origEnd.getTime() + buf.deltaMin * 60_000);
+        if (newEnd.getTime() <= newStart.getTime() + minSpanMs) {
+          newEnd = new Date(newStart.getTime() + minSpanMs);
+        }
+        if (newEnd > dayEnd) newEnd = dayEnd;
+      }
+
+      if (
+        newStart.getTime() === origStart.getTime() &&
+        newEnd.getTime() === origEnd.getTime()
+      ) {
+        return;
+      }
+
+      if (hasOverlap(newStart, newEnd, entry.id)) {
+        window.alert("Konflikt: ein Eintrag überschneidet sich mit einem bestehenden.");
+        return;
+      }
+
+      await onEdit(entry.id, {
+        start: newStart,
+        end: newEnd,
+        project_label: entry.project_label,
+        quote_id: entry.quote_id,
+        project_id: entry.project_id ?? null,
+        description: entry.description,
+      });
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
 
   function handleMouseDown(dayIndex: number, ev: React.MouseEvent<HTMLDivElement>) {
     if (ev.button !== 0) return;
@@ -415,28 +511,76 @@ export function TimeCalendarView({
                         : new Date(start.getTime() + activeElapsed * 60000);
                       const clamped = clampToVisible(day, start, end);
                       if (!clamped) return null;
-                      const top = (clamped.topMin / VISIBLE_MINUTES) * GRID_HEIGHT_PX;
-                      const height = Math.max(12, ((clamped.bottomMin - clamped.topMin) / VISIBLE_MINUTES) * GRID_HEIGHT_PX);
+                      // SCH-899 Phase B — while this entry is being resized,
+                      // shift the preview top/bottom by deltaMin so the user
+                      // sees the future block before mouseup commits.
+                      let topMin = clamped.topMin;
+                      let bottomMin = clamped.bottomMin;
+                      const isResizing = resizeState?.entryId === e.id;
+                      if (isResizing && resizeState) {
+                        const minSpan = SLOT_MINUTES;
+                        if (resizeState.edge === "top") {
+                          topMin = Math.max(
+                            DAY_START_HOUR * 60,
+                            Math.min(bottomMin - minSpan, topMin + resizeState.deltaMin),
+                          );
+                        } else {
+                          bottomMin = Math.min(
+                            DAY_END_HOUR * 60,
+                            Math.max(topMin + minSpan, bottomMin + resizeState.deltaMin),
+                          );
+                        }
+                      }
+                      const top = (topMin / VISIBLE_MINUTES) * GRID_HEIGHT_PX;
+                      const height = Math.max(12, ((bottomMin - topMin) / VISIBLE_MINUTES) * GRID_HEIGHT_PX);
                       const isPause = e.entry_type === "pause";
                       const color = isPause ? "#f59e0b" : getProjectColor(e.project_label, allProjectLabels);
+                      // SCH-899 Phase B — preview times shown in the title and
+                      // the secondary line so the user can read the snapped
+                      // result while dragging.
+                      const previewStart = isResizing && resizeState?.edge === "top"
+                        ? new Date(start.getTime() + resizeState.deltaMin * 60_000)
+                        : start;
+                      const previewEnd = isResizing && resizeState?.edge === "bottom" && e.end_time
+                        ? new Date(end.getTime() + resizeState.deltaMin * 60_000)
+                        : end;
                       return (
                         <div
                           key={e.id}
-                          onClick={(ev) => handleEntryClick(e, ev)}
+                          onClick={(ev) => { if (isResizing) { ev.stopPropagation(); return; } handleEntryClick(e, ev); }}
                           onMouseDown={(ev) => { if (e.end_time) ev.stopPropagation(); }}
-                          className={`absolute left-1 right-1 rounded-md px-1.5 py-0.5 text-[10px] leading-tight overflow-hidden ${e.end_time ? "cursor-pointer hover:brightness-125" : "pointer-events-none"} ${isPause ? "italic opacity-70" : ""} ${isLive ? "ring-1 ring-emerald-400/60" : ""}`}
+                          className={`absolute left-1 right-1 rounded-md px-1.5 py-0.5 text-[10px] leading-tight overflow-hidden ${e.end_time ? "cursor-pointer hover:brightness-125" : "pointer-events-none"} ${isPause ? "italic opacity-70" : ""} ${isLive ? "ring-1 ring-emerald-400/60" : ""} ${isResizing ? "ring-1 ring-[var(--brand-orange)]" : ""}`}
                           style={{
                             top,
                             height,
                             background: color + "22",
                             borderLeft: `3px solid ${color}`,
                           }}
-                          title={`${formatTime(start)}–${e.end_time ? formatTime(new Date(e.end_time)) : "läuft"} · ${e.project_label}${e.description ? " · " + e.description : ""}`}
+                          title={`${formatTime(previewStart)}–${e.end_time ? formatTime(previewEnd) : "läuft"} · ${e.project_label}${e.description ? " · " + e.description : ""}`}
                         >
+                          {/* SCH-899 Phase B — top/bottom drag handles. Only
+                              shown for completed entries (live timer has no
+                              end_time to resize against). */}
+                          {e.end_time && (
+                            <>
+                              <div
+                                onMouseDown={(ev) => handleEdgeMouseDown(e, "top", dayIndex, ev)}
+                                onClick={(ev) => ev.stopPropagation()}
+                                className="absolute top-0 left-0 right-0 h-1.5 cursor-ns-resize hover:bg-white/30 z-10"
+                                title="Startzeit ziehen"
+                              />
+                              <div
+                                onMouseDown={(ev) => handleEdgeMouseDown(e, "bottom", dayIndex, ev)}
+                                onClick={(ev) => ev.stopPropagation()}
+                                className="absolute bottom-0 left-0 right-0 h-1.5 cursor-ns-resize hover:bg-white/30 z-10"
+                                title="Endzeit ziehen"
+                              />
+                            </>
+                          )}
                           <div className="font-medium text-[var(--text-primary)] truncate">{isPause ? "Pause" : e.project_label}</div>
                           {height > 28 && (
                             <div className="text-[9px] text-[var(--text-muted)] truncate">
-                              {formatTime(start)}{e.end_time ? ` – ${formatTime(new Date(e.end_time))}` : ""}
+                              {formatTime(previewStart)}{e.end_time ? ` – ${formatTime(previewEnd)}` : ""}
                             </div>
                           )}
                           {height > 48 && e.description && (

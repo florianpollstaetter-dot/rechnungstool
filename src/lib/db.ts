@@ -1,5 +1,7 @@
 import { createClient } from "./supabase/client";
 import { requireRow, throwOnMutationError } from "./supabase/require-data";
+import { computeSurchargeColumns, zeroSurchargeColumns } from "./surcharge/save-hook";
+import type { TimeEntryType } from "./types";
 import {
   Customer,
   Invoice,
@@ -41,6 +43,8 @@ import {
   QuoteDesignSelection,
   QuoteDesignKey,
   QuoteDesignAIPayload,
+  WorkTimeModel,
+  WorkTimeModelDay,
 } from "./types";
 
 const DEFAULT_SETTINGS: CompanySettings = {
@@ -884,75 +888,146 @@ export async function getActiveTimer(userId: string): Promise<TimeEntry | null> 
   return data ? ({ ...data, id: data.id as string } as TimeEntry) : null;
 }
 
+// SCH-2088 — Compute surcharge columns for a (user, start, end) tuple. Reads
+// the user's weekly schedule once, runs the pure engine, returns the column
+// set to merge into the insert/update payload. Returns zero-columns when the
+// entry is an active timer (no end_time) or a pause row.
+async function buildSurchargeColumns(
+  userId: string,
+  startTime: string,
+  endTime: string | null | undefined,
+  entryType: TimeEntryType,
+): Promise<Partial<TimeEntry>> {
+  if (!endTime || entryType !== "work") {
+    const zero = zeroSurchargeColumns();
+    return {
+      surcharge_breakdown: zero.surcharge_breakdown as unknown as Record<string, unknown>,
+      base_minutes: zero.base_minutes,
+      ot_25_minutes: zero.ot_25_minutes,
+      ot_50_minutes: zero.ot_50_minutes,
+      ot_100_minutes: zero.ot_100_minutes,
+    };
+  }
+  const schedules = await getUserWorkSchedules(userId);
+  const cols = computeSurchargeColumns(startTime, endTime, schedules);
+  return {
+    surcharge_breakdown: cols.surcharge_breakdown as unknown as Record<string, unknown>,
+    base_minutes: cols.base_minutes,
+    ot_25_minutes: cols.ot_25_minutes,
+    ot_50_minutes: cols.ot_50_minutes,
+    ot_100_minutes: cols.ot_100_minutes,
+  };
+}
+
 export async function createTimeEntry(entry: Omit<TimeEntry, "id" | "created_at">): Promise<TimeEntry> {
-  const result = await supabase().from("time_entries").insert({ ...entry, company_id: getActiveCompanyId() }).select().single();
+  const surcharge = await buildSurchargeColumns(entry.user_id, entry.start_time, entry.end_time, entry.entry_type);
+  const payload = { ...entry, ...surcharge, company_id: getActiveCompanyId() };
+  const result = await supabase().from("time_entries").insert(payload).select().single();
   return requireRow(result, "createTimeEntry") as unknown as TimeEntry;
 }
 
 export async function updateTimeEntry(id: string, updates: Partial<TimeEntry>): Promise<void> {
-  throwOnMutationError(await supabase().from("time_entries").update(updates).eq("id", id), "updateTimeEntry");
+  // Recompute surcharges when fields the engine depends on change. Touching
+  // description/billable/etc. skips the lookup entirely so noisy edits stay
+  // cheap.
+  const touchesEngineInputs =
+    updates.start_time !== undefined ||
+    updates.end_time !== undefined ||
+    updates.entry_type !== undefined;
+  let merged: Partial<TimeEntry> = updates;
+  if (touchesEngineInputs) {
+    const { data: existing } = await supabase()
+      .from("time_entries")
+      .select("user_id, start_time, end_time, entry_type")
+      .eq("id", id)
+      .single();
+    if (existing) {
+      const userId = updates.user_id ?? existing.user_id;
+      const startTime = updates.start_time ?? existing.start_time;
+      const endTime = updates.end_time !== undefined ? updates.end_time : existing.end_time;
+      const entryType = (updates.entry_type ?? existing.entry_type) as TimeEntryType;
+      const surcharge = await buildSurchargeColumns(userId, startTime, endTime, entryType);
+      merged = { ...updates, ...surcharge };
+    }
+  }
+  throwOnMutationError(await supabase().from("time_entries").update(merged).eq("id", id), "updateTimeEntry");
 }
 
 export async function deleteTimeEntry(id: string): Promise<void> {
   throwOnMutationError(await supabase().from("time_entries").delete().eq("id", id), "deleteTimeEntry");
 }
 
-// User Work Schedules (per-user weekly pensum — SCH-369)
-export async function getUserWorkSchedules(userId: string): Promise<UserWorkSchedule[]> {
+// Work Time Models (SCH-2087 — wiederverwendbare Arbeitszeitmodell-Vorlagen)
+//
+// Replaces the per-user user_work_schedules layer for reads/writes. The legacy
+// table is preserved for history but is no longer the source of truth — all
+// schedule data now lives in work_time_model_days, joined via
+// user_profiles.work_time_model_id.
+
+export async function getWorkTimeModels(): Promise<WorkTimeModel[]> {
   const { data } = await supabase()
-    .from("user_work_schedules")
+    .from("work_time_models")
     .select("*")
-    .eq("user_id", userId)
-    .order("weekday", { ascending: true });
-  return (data ?? []).map(mapUserWorkSchedule);
+    .order("name", { ascending: true });
+  return (data ?? []).map(mapWorkTimeModel);
 }
 
-export async function getCurrentUserWorkSchedules(): Promise<UserWorkSchedule[]> {
-  const { data: { user } } = await supabase().auth.getUser();
-  if (!user) return [];
-  const profile = await getUserProfile(user.id);
-  if (!profile) return [];
-  return getUserWorkSchedules(profile.id);
+export async function getWorkTimeModel(modelId: string): Promise<WorkTimeModel | null> {
+  const { data } = await supabase()
+    .from("work_time_models")
+    .select("*")
+    .eq("id", modelId)
+    .maybeSingle();
+  return data ? mapWorkTimeModel(data) : null;
 }
 
-export async function upsertUserWorkSchedule(
-  schedule: Omit<UserWorkSchedule, "id" | "created_at" | "updated_at">
-): Promise<UserWorkSchedule> {
+export async function createWorkTimeModel(
+  input: Omit<WorkTimeModel, "id" | "company_id" | "created_at" | "updated_at">,
+): Promise<WorkTimeModel> {
   const result = await supabase()
-    .from("user_work_schedules")
-    .upsert(
-      { ...schedule, updated_at: new Date().toISOString() },
-      { onConflict: "user_id,weekday" }
-    )
+    .from("work_time_models")
+    .insert({ ...input, company_id: getActiveCompanyId() })
     .select()
     .single();
-  return mapUserWorkSchedule(requireRow(result, "upsertUserWorkSchedule"));
+  return mapWorkTimeModel(requireRow(result, "createWorkTimeModel"));
 }
 
-export async function deleteUserWorkSchedule(userId: string, weekday: number): Promise<void> {
-  await supabase()
-    .from("user_work_schedules")
-    .delete()
-    .eq("user_id", userId)
-    .eq("weekday", weekday);
+export async function updateWorkTimeModel(
+  modelId: string,
+  patch: Partial<Omit<WorkTimeModel, "id" | "company_id" | "created_at" | "updated_at">>,
+): Promise<WorkTimeModel> {
+  const result = await supabase()
+    .from("work_time_models")
+    .update(patch)
+    .eq("id", modelId)
+    .select()
+    .single();
+  return mapWorkTimeModel(requireRow(result, "updateWorkTimeModel"));
 }
 
-// Replace the entire weekly schedule for a user in one round-trip pair (delete
-// of removed weekdays + bulk upsert of kept rows). Each row's
-// daily_target_minutes/Von–Bis is validated against the same rules the DB
-// enforces; rejected rows throw before any write so a partial save can't
-// leave the user with a half-applied schedule.
-export async function replaceUserWorkSchedules(
-  userId: string,
-  // SCH-918 K2-G10 — unpaid_break_minutes added to UserWorkSchedule but legacy
-  // call sites don't pass it; relax to Partial so we can roll out the column
-  // without touching every caller in one push.
-  rows: Array<
-    Omit<UserWorkSchedule, "id" | "user_id" | "created_at" | "updated_at" | "unpaid_break_minutes">
-    & { unpaid_break_minutes?: number }
-  >
-): Promise<UserWorkSchedule[]> {
-  // Lazy import keeps work-schedule.ts free of supabase deps.
+export async function deleteWorkTimeModel(modelId: string): Promise<void> {
+  throwOnMutationError(
+    await supabase().from("work_time_models").delete().eq("id", modelId),
+    "deleteWorkTimeModel",
+  );
+}
+
+export async function getWorkTimeModelDays(modelId: string): Promise<WorkTimeModelDay[]> {
+  const { data } = await supabase()
+    .from("work_time_model_days")
+    .select("*")
+    .eq("model_id", modelId)
+    .order("weekday", { ascending: true });
+  return (data ?? []).map(mapWorkTimeModelDay);
+}
+
+// Replace the per-weekday rows for a model in one shot. Empty rows (no Von/Bis
+// and 0 Tagespensum) are deleted; valid rows are upserted; the parent model's
+// weekly_target_minutes is recomputed so the list view stays in sync.
+export async function replaceWorkTimeModelDays(
+  modelId: string,
+  rows: Array<Omit<WorkTimeModelDay, "model_id">>,
+): Promise<WorkTimeModelDay[]> {
   const { validateScheduleRow, isEmptyRow } = await import("./work-schedule");
 
   const kept: typeof rows = [];
@@ -965,7 +1040,7 @@ export async function replaceUserWorkSchedules(
     }
     const errs = validateScheduleRow(row);
     if (errs.length > 0) {
-      throw new Error(`Ungültiges Arbeitszeitmodell für Wochentag ${i}: ${errs.join(", ")}`);
+      throw new Error(`Ungültiges Modell für Wochentag ${i}: ${errs.join(", ")}`);
     }
     kept.push(row);
   }
@@ -974,25 +1049,159 @@ export async function replaceUserWorkSchedules(
 
   if (removedWeekdays.length > 0) {
     await sb
-      .from("user_work_schedules")
+      .from("work_time_model_days")
       .delete()
-      .eq("user_id", userId)
+      .eq("model_id", modelId)
       .in("weekday", removedWeekdays);
   }
 
-  if (kept.length === 0) return [];
+  let saved: WorkTimeModelDay[] = [];
+  if (kept.length > 0) {
+    const { data, error } = await sb
+      .from("work_time_model_days")
+      .upsert(
+        kept.map((r) => ({ ...r, model_id: modelId })),
+        { onConflict: "model_id,weekday" },
+      )
+      .select();
+    if (error) throw new Error(error.message);
+    saved = (data ?? []).map(mapWorkTimeModelDay);
+  }
 
-  const nowIso = new Date().toISOString();
-  const { data, error } = await sb
-    .from("user_work_schedules")
-    .upsert(
-      kept.map((r) => ({ ...r, user_id: userId, updated_at: nowIso })),
-      { onConflict: "user_id,weekday" }
-    )
-    .select();
+  const weeklyTotal = saved.reduce((s, r) => s + r.daily_target_minutes, 0);
+  await sb
+    .from("work_time_models")
+    .update({ weekly_target_minutes: weeklyTotal })
+    .eq("id", modelId);
 
-  if (error) throw new Error(error.message);
-  return (data ?? []).map(mapUserWorkSchedule);
+  return saved;
+}
+
+export async function assignWorkTimeModelToUser(
+  userProfileId: string,
+  modelId: string | null,
+): Promise<void> {
+  throwOnMutationError(
+    await supabase()
+      .from("user_profiles")
+      .update({ work_time_model_id: modelId })
+      .eq("id", userProfileId),
+    "assignWorkTimeModelToUser",
+  );
+}
+
+// Users currently using a given model (used by the admin list to show the
+// "x MA zugewiesen" badge and the model-detail page to show the assignment).
+export async function getUsersAssignedToWorkTimeModel(modelId: string): Promise<UserProfile[]> {
+  const { data } = await supabase()
+    .from("user_profiles")
+    .select("*")
+    .eq("work_time_model_id", modelId)
+    .order("display_name", { ascending: true });
+  return (data ?? []).map(mapUserProfile);
+}
+
+// User Work Schedules (per-user weekly pensum — SCH-369; re-routed via models
+// in SCH-2087). The read path joins user_profiles.work_time_model_id ➜
+// work_time_model_days so existing callers (TimeCalendarView, smart-insights,
+// work-schedule helpers) keep their input shape. The legacy
+// user_work_schedules table is no longer queried.
+export async function getUserWorkSchedules(userId: string): Promise<UserWorkSchedule[]> {
+  const sb = supabase();
+  const { data: profileRow } = await sb
+    .from("user_profiles")
+    .select("work_time_model_id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const modelId = (profileRow?.work_time_model_id as string | null) ?? null;
+  if (!modelId) return [];
+
+  const { data: modelRow } = await sb
+    .from("work_time_models")
+    .select("unpaid_break_minutes, created_at, updated_at")
+    .eq("id", modelId)
+    .maybeSingle();
+
+  const { data: dayRows } = await sb
+    .from("work_time_model_days")
+    .select("*")
+    .eq("model_id", modelId)
+    .order("weekday", { ascending: true });
+
+  const breakMin = Number(modelRow?.unpaid_break_minutes ?? 0);
+  const createdAt = (modelRow?.created_at as string) ?? new Date(0).toISOString();
+  const updatedAt = (modelRow?.updated_at as string) ?? new Date(0).toISOString();
+
+  return (dayRows ?? []).map((r) =>
+    synthesizeUserWorkSchedule(r as Record<string, unknown>, {
+      userId,
+      modelId,
+      unpaidBreakMinutes: breakMin,
+      createdAt,
+      updatedAt,
+    }),
+  );
+}
+
+export async function getCurrentUserWorkSchedules(): Promise<UserWorkSchedule[]> {
+  const { data: { user } } = await supabase().auth.getUser();
+  if (!user) return [];
+  const profile = await getUserProfile(user.id);
+  if (!profile) return [];
+  return getUserWorkSchedules(profile.id);
+}
+
+// Replace the user's schedule. If the user has no assigned model yet, create a
+// "Persönliches Modell – {display_name}" first so subsequent reads find it.
+// Defensive: if the assigned model is shared (used by another user), we still
+// edit it in place — admin UI should warn before calling this in that case.
+export async function replaceUserWorkSchedules(
+  userId: string,
+  rows: Array<
+    Omit<UserWorkSchedule, "id" | "user_id" | "created_at" | "updated_at" | "unpaid_break_minutes">
+    & { unpaid_break_minutes?: number }
+  >,
+): Promise<UserWorkSchedule[]> {
+  const sb = supabase();
+  const { data: profileRow } = await sb
+    .from("user_profiles")
+    .select("id, display_name, work_time_model_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!profileRow) throw new Error("Mitarbeiter nicht gefunden");
+
+  let modelId = (profileRow.work_time_model_id as string | null) ?? null;
+  if (!modelId) {
+    const created = await createWorkTimeModel({
+      name: `Persönliches Modell – ${(profileRow.display_name as string) || "Mitarbeiter"}`,
+      weekly_target_minutes: 0,
+      unpaid_break_minutes: 30,
+      vacation_days_per_year: 25,
+    });
+    modelId = created.id;
+    await assignWorkTimeModelToUser(userId, modelId);
+  }
+
+  // If any per-day Pause came in, lift the largest value into the model so the
+  // derivedTarget helper in the editor stays in sync after save.
+  const breaks = rows
+    .map((r) => Number(r.unpaid_break_minutes ?? 0))
+    .filter((n) => n > 0);
+  if (breaks.length > 0) {
+    const maxBreak = Math.max(...breaks);
+    await updateWorkTimeModel(modelId, { unpaid_break_minutes: maxBreak });
+  }
+
+  const dayRows = rows.map((r) => ({
+    weekday: r.weekday,
+    start_time: r.start_time,
+    end_time: r.end_time,
+    daily_target_minutes: r.daily_target_minutes,
+  }));
+  await replaceWorkTimeModelDays(modelId, dayRows);
+
+  return getUserWorkSchedules(userId);
 }
 
 // Absences + Leave Balances (SCH-925 K2-ι) ---------------------------------
@@ -2037,23 +2246,54 @@ function mapUserDashboardLayout(row: Record<string, unknown>): UserDashboardLayo
   };
 }
 
-function mapUserWorkSchedule(row: Record<string, unknown>): UserWorkSchedule {
-  const trim = (v: unknown): string | null => {
-    if (typeof v !== "string" || !v) return null;
-    // Postgres time columns round-trip as "HH:MM:SS"; keep only "HH:MM".
-    return v.length >= 5 ? v.slice(0, 5) : v;
-  };
+function trimTimeColumn(v: unknown): string | null {
+  if (typeof v !== "string" || !v) return null;
+  // Postgres `time` columns round-trip as "HH:MM:SS"; keep only "HH:MM".
+  return v.length >= 5 ? v.slice(0, 5) : v;
+}
+
+function mapWorkTimeModel(row: Record<string, unknown>): WorkTimeModel {
   return {
     id: row.id as string,
-    user_id: row.user_id as string,
-    weekday: Number(row.weekday),
-    start_time: trim(row.start_time),
-    end_time: trim(row.end_time),
-    daily_target_minutes: Number(row.daily_target_minutes ?? 0),
-    // SCH-918 K2-G10 — column added in 20260429142000_sch918_work_schedules_unpaid_break.sql
-    unpaid_break_minutes: Number(row.unpaid_break_minutes ?? 0),
+    company_id: row.company_id as string,
+    name: (row.name as string) || "",
+    weekly_target_minutes: Number(row.weekly_target_minutes ?? 0),
+    unpaid_break_minutes: Number(row.unpaid_break_minutes ?? 30),
+    vacation_days_per_year: Number(row.vacation_days_per_year ?? 25),
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
+  };
+}
+
+function mapWorkTimeModelDay(row: Record<string, unknown>): WorkTimeModelDay {
+  return {
+    model_id: row.model_id as string,
+    weekday: Number(row.weekday),
+    start_time: trimTimeColumn(row.start_time),
+    end_time: trimTimeColumn(row.end_time),
+    daily_target_minutes: Number(row.daily_target_minutes ?? 0),
+  };
+}
+
+// SCH-2087 — getUserWorkSchedules now reads from work_time_model_days. The
+// legacy callers expect UserWorkSchedule rows, so we synthesize one per
+// model-day using model-level metadata (unpaid break, created/updated stamps)
+// and a composite id keyed by model+weekday so React keys stay stable.
+function synthesizeUserWorkSchedule(
+  row: Record<string, unknown>,
+  ctx: { userId: string; modelId: string; unpaidBreakMinutes: number; createdAt: string; updatedAt: string },
+): UserWorkSchedule {
+  const weekday = Number(row.weekday);
+  return {
+    id: `${ctx.modelId}:${weekday}`,
+    user_id: ctx.userId,
+    weekday,
+    start_time: trimTimeColumn(row.start_time),
+    end_time: trimTimeColumn(row.end_time),
+    daily_target_minutes: Number(row.daily_target_minutes ?? 0),
+    unpaid_break_minutes: ctx.unpaidBreakMinutes,
+    created_at: ctx.createdAt,
+    updated_at: ctx.updatedAt,
   };
 }
 
@@ -2116,6 +2356,8 @@ function mapUserProfile(row: Record<string, unknown>): UserProfile {
     }),
     greeting_tone: ((row.greeting_tone as UserProfile["greeting_tone"]) || "motivating"),
     onboarding_completed_at: (row.onboarding_completed_at as string | null) ?? null,
+    // SCH-2087 — column added in 20260511180000_sch2087_work_time_models.sql
+    work_time_model_id: (row.work_time_model_id as string | null) ?? null,
     created_at: row.created_at as string,
   };
 }

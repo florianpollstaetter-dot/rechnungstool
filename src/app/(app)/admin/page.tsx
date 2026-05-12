@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { UserProfile, USER_ROLE_OPTIONS, UserRole, CompanyRole, UserRoleAssignment } from "@/lib/types";
+import Link from "next/link";
+import { UserProfile, USER_ROLE_OPTIONS, UserRole, CompanyRole, UserRoleAssignment, WorkTimeModel } from "@/lib/types";
 import {
   DEFAULT_MEMBER_PERMISSIONS,
   MEMBER_PERMISSION_KEYS,
@@ -13,6 +14,7 @@ import {
   getUserWorkSchedules, replaceUserWorkSchedules,
   getCompanyRoles, createCompanyRole, updateCompanyRole, deleteCompanyRole,
   getUserRoleAssignments, assignRoleToUser, removeRoleFromUser,
+  getWorkTimeModels, assignWorkTimeModelToUser,
 } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { useCompany } from "@/lib/company-context";
@@ -149,6 +151,9 @@ export default function AdminPage() {
   const [roleAssignUser, setRoleAssignUser] = useState<UserProfile | null>(null);
   const [assignSaving, setAssignSaving] = useState(false);
 
+  // SCH-2087 — Arbeitszeitmodell-Zuweisung pro User (Dropdown in User-Edit).
+  const [workTimeModels, setWorkTimeModels] = useState<WorkTimeModel[]>([]);
+
   // Password-reset state (SCH-557)
   const [resetUser, setResetUser] = useState<UserProfile | null>(null);
   const [resetBusy, setResetBusy] = useState(false);
@@ -174,14 +179,23 @@ export default function AdminPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const profiles = await getUserProfilesForMyCompanies();
+      const [profiles, models] = await Promise.all([
+        getUserProfilesForMyCompanies(),
+        getWorkTimeModels().catch(() => [] as WorkTimeModel[]),
+      ]);
       setUsers(profiles);
+      setWorkTimeModels(models);
       const myProfile = profiles.find((p) => p.auth_user_id === user.id);
       setCurrentUserRole(myProfile?.role || "admin"); // first user is admin
       setCurrentAuthUserId(user.id);
     }
     setLoading(false);
   }, []);
+
+  async function handleAssignWorkTimeModel(userId: string, modelId: string) {
+    await assignWorkTimeModelToUser(userId, modelId || null);
+    await loadData();
+  }
 
   const loadRoles = useCallback(async () => {
     setRolesLoading(true);
@@ -574,6 +588,14 @@ export default function AdminPage() {
           </button>
         )}
         {isAdmin && (
+          <Link
+            href="/admin/arbeitszeitmodelle"
+            className="px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          >
+            Arbeitszeitmodelle
+          </Link>
+        )}
+        {isAdmin && (
           <button
             onClick={() => setActiveTab("diagnose")}
             className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
@@ -734,12 +756,13 @@ export default function AdminPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("admin.systemRole")}</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("admin.companyRoles")}</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("admin.companyAccess")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Arbeitszeitmodell</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {users.length === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">{t("admin.noUsersYet")}</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">{t("admin.noUsersYet")}</td></tr>
                 )}
                 {users.map((u) => {
                   const isEditing = editingUser === u.id;
@@ -803,6 +826,19 @@ export default function AdminPage() {
                           </button>
                         ))}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={u.work_time_model_id ?? ""}
+                        onChange={(e) => handleAssignWorkTimeModel(u.id, e.target.value)}
+                        className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)] max-w-[12rem]"
+                        title="Arbeitszeitmodell zuweisen"
+                      >
+                        <option value="">— kein Modell —</option>
+                        {workTimeModels.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       {isEditing ? (
