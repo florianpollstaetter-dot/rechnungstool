@@ -71,16 +71,41 @@ async function main() {
 
   const supa = createClient(url, key, { auth: { persistSession: false } });
 
-  // Per-user schedule cache so we don't re-fetch on every entry.
+  // Per-user schedule cache so we don't re-fetch on every entry. Mirrors the
+  // post-SCH-2087 read path used by db.ts::getUserWorkSchedules:
+  // user_profiles.work_time_model_id → work_time_model_days. The legacy
+  // user_work_schedules table is no longer populated for new users — reading
+  // it directly would feed daily_target_minutes=0 to the engine and mark
+  // every minute as OT.
   const scheduleCache = new Map<string, WorkScheduleRow[]>();
   async function getSchedule(userId: string): Promise<WorkScheduleRow[]> {
     const cached = scheduleCache.get(userId);
     if (cached) return cached;
-    const { data } = await supa
-      .from("user_work_schedules")
-      .select("weekday, daily_target_minutes, unpaid_break_minutes")
-      .eq("user_id", userId);
-    const rows = (data ?? []) as WorkScheduleRow[];
+    const { data: profileRow } = await supa
+      .from("user_profiles")
+      .select("work_time_model_id")
+      .eq("id", userId)
+      .maybeSingle();
+    const modelId = (profileRow?.work_time_model_id as string | null) ?? null;
+    if (!modelId) {
+      scheduleCache.set(userId, []);
+      return [];
+    }
+    const { data: modelRow } = await supa
+      .from("work_time_models")
+      .select("unpaid_break_minutes")
+      .eq("id", modelId)
+      .maybeSingle();
+    const { data: dayRows } = await supa
+      .from("work_time_model_days")
+      .select("weekday, daily_target_minutes")
+      .eq("model_id", modelId);
+    const breakMin = Number(modelRow?.unpaid_break_minutes ?? 0);
+    const rows: WorkScheduleRow[] = (dayRows ?? []).map((r) => ({
+      weekday: Number(r.weekday),
+      daily_target_minutes: Number(r.daily_target_minutes ?? 0),
+      unpaid_break_minutes: breakMin,
+    }));
     scheduleCache.set(userId, rows);
     return rows;
   }
