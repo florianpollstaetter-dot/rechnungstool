@@ -908,11 +908,8 @@ async function buildSurchargeColumns(
       ot_100_minutes: zero.ot_100_minutes,
     };
   }
-  const { data: schedules } = await supabase()
-    .from("user_work_schedules")
-    .select("weekday, daily_target_minutes, unpaid_break_minutes")
-    .eq("user_id", userId);
-  const cols = computeSurchargeColumns(startTime, endTime, schedules ?? []);
+  const schedules = await getUserWorkSchedules(userId);
+  const cols = computeSurchargeColumns(startTime, endTime, schedules);
   return {
     surcharge_breakdown: cols.surcharge_breakdown as unknown as Record<string, unknown>,
     base_minutes: cols.base_minutes,
