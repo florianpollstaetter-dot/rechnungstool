@@ -145,16 +145,20 @@ test("admin legt Modell an mit Default-Pause 30 + 32h-Woche, weist es qa-empty z
 
   await logout(page);
 
-  // ---------- 6) qa-empty → /time/analytics zeigt 32h Wochenpensum ----------
+  // ---------- 6) qa-empty → /time/analytics zeigt Tagespensum + Wochenpensum ----------
   await loginAs(page, tenant.empty);
   await page.goto("/time/analytics");
 
-  // The analytics view shows a "Soll bisher: Xh" line and a weekly Wochenpensum
-  // marker. The most stable assertion is that 32h appears somewhere on the
-  // weekly view (sum of Mo-Do × 8h). We also assert that Fr-So show Soll = 0
-  // via the weekday legend (best-effort; falls back to skip if the legend
-  // is not rendered for empty days).
+  // Weekly view shows the user's assigned schedule as bar-chart tick labels.
+  // Each day-button title is `${label} ${date}: ${formatDuration(work)}` plus
+  // ` / Soll ${formatDuration(target)}` when target > 0. We assert per acceptance:
+  //   Mo-Do (4 buttons) carry "Soll 8h 0m" in their title attribute,
+  //   Fr-So (3 buttons) carry no "Soll" segment (target = 0 → tick suppressed).
+  // 32h weekly sum is implied by 4 × 8h, but we assert it explicitly to lock the
+  // Wochenpensum readout too.
   await expect(page.getByText(/32h/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('button[title*="Soll 8h 0m"]')).toHaveCount(4);
+  await expect(page.locator('button[title*="Soll"]')).toHaveCount(4);
 
   await logout(page);
 });
