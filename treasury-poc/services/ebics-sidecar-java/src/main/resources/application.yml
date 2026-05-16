@@ -1,0 +1,27 @@
+server:
+  port: 8081
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+ebics:
+  hostId: ${EBICS_HOST_ID:OCTOPOC}
+  partnerId: ${EBICS_PARTNER_ID:OCTO001}
+  userId: ${EBICS_USER_ID:OCTOUSR1}
+  url: ${EBICS_BANK_URL:http://libeufin-sandbox:5016/ebicsweb}
+  keystore:
+    dir: ${EBICS_KEYSTORE_DIR:/var/lib/ebics-sidecar/keystore}
+    password: ${EBICS_KEYSTORE_PASSWORD:}
+
+logging:
+  level:
+    root: INFO
+    com.orangeocto.ebics: DEBUG

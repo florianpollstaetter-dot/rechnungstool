@@ -1,0 +1,17 @@
+# PoC-local artefacts — never committed
+**/target/
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/node_modules/
+**/.mvn/
+**/dependency-reduced-pom.xml
+bench/statements/*.xml
+.env
+.env.local
+
+# Real bank credentials never land here
+**/keystore/**
+*.p12
+*.jks
+*.pem

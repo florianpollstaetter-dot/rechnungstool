@@ -1,0 +1,56 @@
+version: "3.9"
+
+# Libeufin Mock-Bank für EBICS-3.0-Sandbox-Tests.
+# Libeufin Sandbox simuliert eine EBICS-3.0-Bank; Libeufin Nexus ist der EBICS-Client (hier nicht genutzt — wir testen unsere eigenen Sidecars).
+# Doku: https://docs.taler.net/libeufin/
+
+services:
+  libeufin-db:
+    image: postgres:16
+    container_name: libeufin-db
+    environment:
+      POSTGRES_DB: libeufin
+      POSTGRES_USER: libeufin
+      POSTGRES_PASSWORD: libeufin-poc
+    volumes:
+      - libeufin-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U libeufin"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  libeufin-sandbox:
+    image: registry.taler.net/libeufin-sandbox:0.10.4
+    container_name: libeufin-sandbox
+    depends_on:
+      libeufin-db:
+        condition: service_healthy
+    environment:
+      LIBEUFIN_SANDBOX_DB_CONNECTION: "jdbc:postgresql://libeufin-db:5432/libeufin?user=libeufin&password=libeufin-poc"
+      LIBEUFIN_SANDBOX_ADMIN_PASSWORD: "admin-poc"
+      LIBEUFIN_SANDBOX_CURRENCY: "EUR"
+    ports:
+      - "5016:5016"
+    command: ["serve"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5016/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  libeufin-bootstrap:
+    # One-shot: seedet Default-Bank "orange-octo-test" und einen EBICS-Subscriber.
+    # Idempotent durch /admin/bank-accounts upsert.
+    image: alpine:3.20
+    container_name: libeufin-bootstrap
+    depends_on:
+      libeufin-sandbox:
+        condition: service_healthy
+    volumes:
+      - ./libeufin/bootstrap.sh:/bootstrap.sh:ro
+    entrypoint: ["sh", "/bootstrap.sh"]
+    restart: "no"
+
+volumes:
+  libeufin-pg:

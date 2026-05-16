@@ -1,0 +1,24 @@
+[project]
+name = "ebics-sidecar-py"
+version = "0.1.0"
+description = "JOONIS Python Fintech sidecar (Kandidat B) for Orange Octo Treasury PoC"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic>=2.8.0",
+    "python-dotenv>=1.0.1",
+    # JOONIS Python Fintech is a commercial package. Install via PyPI with a valid
+    # license key set in the FINTECH_LICENSEEE / FINTECH_LICENSEKEY env vars. The
+    # version below is pinned for reproducibility; bump only after CEO-approved
+    # license renewal.
+    "fintech>=7.2.7",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
