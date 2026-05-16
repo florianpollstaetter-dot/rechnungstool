@@ -22,6 +22,20 @@ dotenv.config({ path: path.resolve(__dirname, ".env.local") });
 // company / DELETE /api/admin/users.
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
+// ORA-2286 — Vercel preview deployments are SSO-gated by Deployment Protection.
+// When CI resolves a PR's preview URL and exports VERCEL_AUTOMATION_BYPASS_SECRET,
+// inject the bypass header on every HTTP request the browser issues (navigations,
+// XHR, fetch, asset loads) so Playwright reaches the app instead of the SSO wall.
+// The `samesitenone` cookie hint lets Vercel persist the bypass for subsequent
+// requests in the same browser context.
+const vercelBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+const extraHTTPHeaders = vercelBypass
+  ? {
+      "x-vercel-protection-bypass": vercelBypass,
+      "x-vercel-set-bypass-cookie": "samesitenone",
+    }
+  : undefined;
+
 export default defineConfig({
   testDir: "./tests/e2e/specs",
   outputDir: "./tests/e2e/.artifacts",
@@ -39,6 +53,7 @@ export default defineConfig({
     video: "retain-on-failure",
     locale: "de-AT",
     timezoneId: "Europe/Vienna",
+    extraHTTPHeaders,
   },
   projects: [
     {

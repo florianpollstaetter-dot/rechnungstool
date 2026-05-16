@@ -1,18 +1,28 @@
 name: qa-playwright
 
-# SCH-976 — K2-γ QA suite. Runs the Playwright specs in tests/e2e/specs
-# against a freshly-provisioned `qa-perms-<runid>` tenant on the configured
-# Supabase project. Triggered on PRs that touch app/test code, on pushes to
-# master, and manually via workflow_dispatch.
+# K2-γ QA suite. Runs the Playwright specs in tests/e2e/specs against a
+# freshly-provisioned `qa-perms-<runid>` tenant on the configured Supabase
+# project. BASE_URL is resolved per event:
+#
+#   * pull_request    → the PR's own Vercel preview deployment, looked up by
+#                       commit SHA via the Vercel API. Previews are SSO-gated
+#                       (Deployment Protection); the runner reads the project's
+#                       Protection-Bypass-for-Automation secret and Playwright
+#                       sends `x-vercel-protection-bypass` on every request so
+#                       tests reach the PR's code instead of an auth wall.
+#                       (ORA-2286 — replaces the prior master-prod fallback
+#                       which made deploy-gated tests untestable pre-merge.)
+#   * push to master  → production deployment https://invoices-rho-nine.vercel.app.
+#   * workflow_dispatch → manual `base_url` input wins; else master prod.
 #
 # Required repo secrets (Settings → Secrets → Actions):
-#   NEXT_PUBLIC_SUPABASE_URL
-#   NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
 #   SUPABASE_SERVICE_ROLE_KEY
+#   VERCEL_TOKEN, VERCEL_PROJECT_ID, VERCEL_TEAM_ID,
+#   VERCEL_AUTOMATION_BYPASS_SECRET           (pull_request only)
 # Optional:
-#   PLAYWRIGHT_BASE_URL — point at a deployed env (e.g. a Vercel preview)
-#                         instead of booting `npm run dev` in CI. When unset
-#                         the workflow boots the local dev server.
+#   PLAYWRIGHT_BASE_URL — pin a fixed BASE_URL across all events (skips Vercel
+#                         API resolution entirely).
 
 on:
   push:
@@ -42,31 +52,92 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      # SCH-976 — default CI to the deployed Vercel app rather than booting
-      # `npm run dev` in-runner. The local dev server currently crashes on
-      # startup because of the `[id]` vs `[key]` slug conflict in
-      # src/app/api/documents/ (introduced by SCH-633, fix tracked
-      # separately) — production builds tolerate it but `next dev` does not.
-      BASE_URL: ${{ inputs.base_url || secrets.PLAYWRIGHT_BASE_URL || 'https://invoices-rho-nine.vercel.app' }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       CI: "true"
     steps:
-      - name: Guard — Supabase secrets must be present
+      - name: Guard — required secrets must be present
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          OVERRIDE_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
         run: |
           missing=()
           [ -n "$NEXT_PUBLIC_SUPABASE_URL" ] || missing+=("NEXT_PUBLIC_SUPABASE_URL")
           [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] || missing+=("NEXT_PUBLIC_SUPABASE_ANON_KEY")
           [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || missing+=("SUPABASE_SERVICE_ROLE_KEY")
+          # Vercel secrets are only required when we need to resolve a PR preview
+          # at runtime; PLAYWRIGHT_BASE_URL or workflow_dispatch.base_url skip it.
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && [ -z "$OVERRIDE_BASE_URL" ]; then
+            [ -n "$VERCEL_TOKEN" ] || missing+=("VERCEL_TOKEN")
+            [ -n "$VERCEL_PROJECT_ID" ] || missing+=("VERCEL_PROJECT_ID")
+            [ -n "$VERCEL_TEAM_ID" ] || missing+=("VERCEL_TEAM_ID")
+            [ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ] || missing+=("VERCEL_AUTOMATION_BYPASS_SECRET")
+          fi
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error::Missing repo secrets: ${missing[*]}" >&2
             echo "Add them under Settings → Secrets → Actions." >&2
             exit 1
           fi
       - uses: actions/checkout@v4
+      - name: Resolve BASE_URL
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          MANUAL_BASE_URL: ${{ inputs.base_url }}
+          OVERRIDE_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+          # pull_request: GITHUB_SHA is the synthetic merge commit; the build
+          # that Vercel produced corresponds to the PR head commit.
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Manual workflow_dispatch override wins.
+          if [ -n "$MANUAL_BASE_URL" ]; then
+            echo "BASE_URL=$MANUAL_BASE_URL" >> "$GITHUB_ENV"
+            echo "Using workflow_dispatch override: $MANUAL_BASE_URL"
+            exit 0
+          fi
+          # Repo-pinned override (kept for emergencies / staging URLs).
+          if [ -n "$OVERRIDE_BASE_URL" ]; then
+            echo "BASE_URL=$OVERRIDE_BASE_URL" >> "$GITHUB_ENV"
+            echo "Using PLAYWRIGHT_BASE_URL secret: $OVERRIDE_BASE_URL"
+            exit 0
+          fi
+          # Master push → fixed production URL (custom-domain alias, no SSO).
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            BASE='https://invoices-rho-nine.vercel.app'
+            echo "BASE_URL=$BASE" >> "$GITHUB_ENV"
+            echo "Push to master → production: $BASE"
+            exit 0
+          fi
+          # pull_request → poll Vercel API until the deployment for this commit
+          # is READY (10 min cap: ~30 × 20 s). Vercel typically builds a PR in
+          # 2–4 min, so the loop usually exits early.
+          SHA="${PR_HEAD_SHA:-$GITHUB_SHA}"
+          echo "Resolving Vercel preview deployment for commit $SHA"
+          URL=""
+          for attempt in $(seq 1 30); do
+            RESP=$(curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&teamId=$VERCEL_TEAM_ID&meta-githubCommitSha=$SHA&limit=20")
+            URL=$(echo "$RESP" | jq -r '[.deployments[]? | select(.state=="READY")] | sort_by(.created) | last | .url // empty')
+            if [ -n "$URL" ]; then break; fi
+            STATE=$(echo "$RESP" | jq -r '[.deployments[]?] | sort_by(.created) | last | .state // "NONE"')
+            echo "attempt $attempt/30: latest state=$STATE — sleeping 20 s for READY"
+            sleep 20
+          done
+          if [ -z "$URL" ]; then
+            echo "::error::No READY Vercel preview deployment found for $SHA after 10 min." >&2
+            echo "::error::Check Vercel project '$VERCEL_PROJECT_ID' build logs." >&2
+            exit 1
+          fi
+          echo "BASE_URL=https://$URL" >> "$GITHUB_ENV"
+          echo "Resolved preview: https://$URL"
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
