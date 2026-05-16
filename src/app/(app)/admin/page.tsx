@@ -596,6 +596,14 @@ export default function AdminPage() {
           </Link>
         )}
         {isAdmin && (
+          <Link
+            href="/admin/stundenabrechnung"
+            className="px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          >
+            Stundenabrechnung
+          </Link>
+        )}
+        {isAdmin && (
           <button
             onClick={() => setActiveTab("diagnose")}
             className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
