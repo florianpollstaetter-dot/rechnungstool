@@ -22,6 +22,14 @@ dotenv.config({ path: path.resolve(__dirname, ".env.local") });
 // company / DELETE /api/admin/users.
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
+// ORA-2286: when CI targets a Vercel preview with Deployment Protection
+// enabled, every request needs the bypass secret so Playwright isn't
+// redirected to the Vercel auth wall. Set VERCEL_PROTECTION_BYPASS in the
+// workflow (injected from the VERCEL_PROTECTION_BYPASS repo secret).
+const extraHTTPHeaders: Record<string, string> = process.env.VERCEL_PROTECTION_BYPASS
+  ? { "x-vercel-protection-bypass": process.env.VERCEL_PROTECTION_BYPASS }
+  : {};
+
 export default defineConfig({
   testDir: "./tests/e2e/specs",
   outputDir: "./tests/e2e/.artifacts",
@@ -34,6 +42,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   use: {
     baseURL: BASE_URL,
+    extraHTTPHeaders,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
