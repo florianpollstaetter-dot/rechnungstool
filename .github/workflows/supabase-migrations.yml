@@ -10,8 +10,20 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  push:
+  lint:
+    name: Lint migrations for permissive USING(true)
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check for permissive RLS policies (SCH-833)
+        run: bash scripts/check-migrations.sh
+
+  push:
+    name: Apply pending migrations
+    runs-on: ubuntu-latest
+    needs: lint
     steps:
       - uses: actions/checkout@v4
 
