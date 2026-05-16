@@ -97,6 +97,7 @@ export interface CompanySubscription {
 export interface ParsedCamt053 {
   iban: string;
   bic: string | null;
+  bankName: string | null;
   currency: string;
   statementDate: string;
   openingBalance: number;

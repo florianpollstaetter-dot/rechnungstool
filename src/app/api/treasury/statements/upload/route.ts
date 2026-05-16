@@ -9,9 +9,9 @@
 // EBICS polling lands in Phase 3 and will reuse the same insert path —
 // only the source attribution changes (`source: 'ebics_poll'`).
 //
-// Middleware (`src/middleware.ts`) already gates this route on
-// has_treasury=true; here we additionally enforce membership of the active
-// company via service_role so the row we insert is provably scoped.
+// The proxy (`src/proxy.ts`) already gates this route on has_treasury=true;
+// here we additionally enforce membership of the active company via
+// service_role so the row we insert is provably scoped.
 
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
@@ -21,6 +21,13 @@ import { parseCamt053, Camt053ParseError } from "@/lib/treasury/iso20022/camt053
 import type { ParsedCamt053 } from "@/lib/treasury/types";
 
 export const runtime = "nodejs";
+
+// Hard cap on accepted CAMT.053 payloads. Real-world bank exports are
+// 50–500 KB; 10 MB is ~20× headroom for a multi-statement monthly file and
+// still small enough that a flood of large bodies can't exhaust memory
+// before request.text() returns. Enforced via Content-Length before the
+// body is read, then again on the parsed string in case the header lied.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 interface UploadOk {
   ok: true;
@@ -62,11 +69,28 @@ export async function POST(request: Request): Promise<NextResponse<UploadOk | Up
     return NextResponse.json({ ok: false, error: "Keine aktive Company" }, { status: 400 });
   }
 
+  const contentLengthHeader = request.headers.get("content-length");
+  if (contentLengthHeader) {
+    const contentLength = Number.parseInt(contentLengthHeader, 10);
+    if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
+      return NextResponse.json(
+        { ok: false, error: "Upload too large (max 10 MB)" },
+        { status: 413 },
+      );
+    }
+  }
+
   let xml: string;
   try {
     xml = await request.text();
   } catch {
     return NextResponse.json({ ok: false, error: "Body unlesbar" }, { status: 400 });
+  }
+  if (Buffer.byteLength(xml, "utf8") > MAX_UPLOAD_BYTES) {
+    return NextResponse.json(
+      { ok: false, error: "Upload too large (max 10 MB)" },
+      { status: 413 },
+    );
   }
   if (!xml.trim()) {
     return NextResponse.json({ ok: false, error: "Leerer Upload" }, { status: 400 });
@@ -188,7 +212,7 @@ async function ensureAccount(
       company_id: companyId,
       entity_id: entityId,
       bank_bic: parsed.bic ?? "UNKNOWN",
-      bank_name: parsed.bic ?? "Imported via CAMT.053",
+      bank_name: parsed.bankName ?? parsed.bic ?? "Imported via CAMT.053",
       iban,
       currency: parsed.currency,
       status: "active",

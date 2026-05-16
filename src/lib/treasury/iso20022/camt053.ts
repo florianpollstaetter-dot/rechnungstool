@@ -44,6 +44,16 @@ export function parseCamt053(xml: string): ParsedCamt053 {
   // BIC is optional in CAMT.053 (some banks omit it); we accept null.
   const bic = extractTag(stmt, "BICFI") ?? extractTag(stmt, "BIC");
 
+  // Bank name lives under <Acct><Svcr><FinInstnId><Nm>. Many banks omit it
+  // and only emit BICFI — accept null. Persisted into
+  // treasury_bank_accounts.bank_name so the UI can show a human-readable
+  // institution rather than the BIC code.
+  const finInstn = matchInner(
+    stmt,
+    /<(?:[a-zA-Z_][\w.-]*:)?FinInstnId\b[^>]*>([\s\S]*?)<\/(?:[a-zA-Z_][\w.-]*:)?FinInstnId>/,
+  );
+  const bankName = finInstn ? extractTag(finInstn, "Nm") : null;
+
   // Account currency: prefer <Acct><Ccy>, fall back to first balance's Ccy attr.
   const acctBlock = matchInner(stmt, /<(?:[a-zA-Z_][\w.-]*:)?Acct\b[^>]*>([\s\S]*?)<\/(?:[a-zA-Z_][\w.-]*:)?Acct>/);
   const accountCurrency = (acctBlock && extractTag(acctBlock, "Ccy")) ?? "";
@@ -88,6 +98,7 @@ export function parseCamt053(xml: string): ParsedCamt053 {
   return {
     iban: iban.replace(/\s+/g, ""),
     bic: bic ? bic.trim() : null,
+    bankName: bankName ? bankName.trim() : null,
     currency,
     statementDate,
     openingBalance,

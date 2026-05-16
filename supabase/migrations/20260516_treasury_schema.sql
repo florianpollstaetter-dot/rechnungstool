@@ -440,6 +440,13 @@ END $$;
 
 -- Globale Tabellen (Sanctions-Listen + Einträge): authenticated darf lesen,
 -- Writes nur service_role (Sync-Job).
+--
+-- `USING (true)` ist hier INTENTIONAL und keine Lücke: die Sanctions-Listen
+-- (EU consolidated, OFAC SDN, UN, …) sind public-record-Daten, die ohnehin
+-- frei verfügbar sind. Tenant-Scoping wäre semantisch falsch — ein Customer
+-- in DE soll dieselbe OFAC-Liste lesen wie einer in AT. Sensitive
+-- Tenant-Daten (Hits gegen Payments) liegen separat in
+-- treasury_sanctions_hits und sind dort company-scoped.
 ALTER TABLE treasury_sanctions_lists ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "treasury_sanctions_lists_select" ON treasury_sanctions_lists
   FOR SELECT USING (true);
@@ -449,8 +456,13 @@ CREATE POLICY "treasury_sanctions_entries_select" ON treasury_sanctions_entries
   FOR SELECT USING (true);
 
 -- Audit-Chain: nur SELECT für authenticated; INSERT/UPDATE/DELETE blockiert.
+--
+-- Bewusst KEINE INSERT/UPDATE/DELETE-Policies: die Audit-Chain ist
+-- append-only und tamper-evident from-user-side. Schreibzugriff läuft
+-- ausschließlich über service_role (siehe audit-chain.ts-Helper), das
+-- bypasst RLS — Anwendungslogik hängt SHA256-Vorgänger-Hashes ein, damit
+-- nachträgliche Mutationen auffallen. Wer als authenticated reading-only
+-- prüft, kann die Kette validieren ohne sie zu manipulieren.
 ALTER TABLE treasury_audit_chain ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "treasury_audit_chain_select" ON treasury_audit_chain
   FOR SELECT USING (public.treasury_tenant_check(company_id));
--- Keine INSERT/UPDATE/DELETE Policies → tamper-evident für authenticated.
--- Inserts erfolgen ausschließlich via service_role im audit-chain.ts-Helper.
