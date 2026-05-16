@@ -78,8 +78,8 @@ export function parseCamt053(xml: string): ParsedCamt053 {
       closingBalance = signed;
       balanceCurrency = currency;
       if (!statementDate) {
-        const balDate = extractTag(balBlock, "Dt");
-        if (balDate) statementDate = balDate.slice(0, 10);
+        const balDate = extractDate(balBlock, "Dt");
+        if (balDate) statementDate = balDate;
       }
     }
   }
@@ -109,8 +109,8 @@ export function parseCamt053(xml: string): ParsedCamt053 {
 
 function parseEntry(ntry: string, fallbackCurrency: string): ParsedCamtTransaction {
   const { amount, currency, direction } = extractAmount(ntry);
-  const bookingDate = (extractTag(ntry, "BookgDt") ?? "").slice(0, 10) || null;
-  const valueDate = (extractTag(ntry, "ValDt") ?? "").slice(0, 10) || null;
+  const bookingDate = extractDate(ntry, "BookgDt");
+  const valueDate = extractDate(ntry, "ValDt");
 
   // BkTxCd block can be deeply nested; we collapse it to the proprietary code
   // when present, else the domain/family code, else null.
@@ -176,6 +176,19 @@ function collapseBankTransactionCode(block: string): string | null {
     if (code) return code;
   }
   return null;
+}
+
+// CAMT.053 dates are wrapped: `<BookgDt><Dt>YYYY-MM-DD</Dt></BookgDt>` for
+// pure dates and `<BookgDt><DtTm>YYYY-MM-DDThh:mm:ss</DtTm></BookgDt>` when the
+// bank includes a time component. extractTag on its own returns the wrapper
+// contents (`<Dt>2026-05-16</Dt>`), which then poisons Postgres `date`
+// inserts. This helper peels the inner Dt/DtTm before slicing to `YYYY-MM-DD`.
+function extractDate(xml: string, tag: string): string | null {
+  const wrapper = extractTag(xml, tag);
+  if (!wrapper) return null;
+  const inner = extractTag(wrapper, "Dt") ?? extractTag(wrapper, "DtTm") ?? wrapper;
+  const iso = inner.trim().slice(0, 10);
+  return iso || null;
 }
 
 function extractTag(xml: string, tag: string): string | null {
