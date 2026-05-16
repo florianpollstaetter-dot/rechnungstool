@@ -330,12 +330,16 @@ export const USER_ROLE_OPTIONS: { value: UserRole; label: string; description: s
   { value: "employee", label: "Mitarbeiter", description: "Nur Spesen und Zeiterfassung" },
 ];
 
-export type AppSection = "dashboard" | "invoices" | "quotes" | "customers" | "products" | "receipts" | "bank" | "export" | "fixed-costs" | "expenses" | "time" | "admin";
+// ORA-2283 — `treasury` is the umbrella section gating the entire Treasury
+// module (cash, accounts, forecast, payments, sanctions, reports, settings).
+// Its sidebar visibility additionally requires company_subscriptions.has_treasury;
+// see AppSidebar + middleware.ts.
+export type AppSection = "dashboard" | "invoices" | "quotes" | "customers" | "products" | "receipts" | "bank" | "export" | "fixed-costs" | "expenses" | "time" | "admin" | "treasury";
 
 export const ROLE_PERMISSIONS: Record<UserRole, AppSection[]> = {
-  admin: ["dashboard", "invoices", "quotes", "customers", "products", "receipts", "bank", "export", "fixed-costs", "expenses", "time", "admin"],
-  manager: ["dashboard", "invoices", "quotes", "customers", "products", "receipts", "bank", "export", "fixed-costs", "expenses", "time"],
-  accountant: ["dashboard", "invoices", "receipts", "bank", "export", "fixed-costs", "expenses"],
+  admin: ["dashboard", "invoices", "quotes", "customers", "products", "receipts", "bank", "export", "fixed-costs", "expenses", "time", "admin", "treasury"],
+  manager: ["dashboard", "invoices", "quotes", "customers", "products", "receipts", "bank", "export", "fixed-costs", "expenses", "time", "treasury"],
+  accountant: ["dashboard", "invoices", "receipts", "bank", "export", "fixed-costs", "expenses", "treasury"],
   employee: ["expenses", "time"],
 };
 

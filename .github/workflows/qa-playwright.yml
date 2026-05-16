@@ -47,6 +47,8 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       # SCH-976 — default CI to the deployed Vercel app rather than booting
       # `npm run dev` in-runner. The local dev server currently crashes on
       # startup because of the `[id]` vs `[key]` slug conflict in
@@ -61,6 +63,8 @@ jobs:
           [ -n "$NEXT_PUBLIC_SUPABASE_URL" ] || missing+=("NEXT_PUBLIC_SUPABASE_URL")
           [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] || missing+=("NEXT_PUBLIC_SUPABASE_ANON_KEY")
           [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || missing+=("SUPABASE_SERVICE_ROLE_KEY")
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing+=("SUPABASE_ACCESS_TOKEN")
+          [ -n "$SUPABASE_PROJECT_REF" ] || missing+=("SUPABASE_PROJECT_REF")
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error::Missing repo secrets: ${missing[*]}" >&2
             echo "Add them under Settings → Secrets → Actions." >&2
@@ -75,6 +79,11 @@ jobs:
         run: npm ci
       - name: Install Playwright browsers (chromium only)
         run: npx playwright install --with-deps chromium
+      - name: Apply pending Supabase migrations
+        # PR branches need their migrations on the shared QA Supabase before
+        # Playwright runs — otherwise tables that the PR adds don't exist yet.
+        # Idempotent: skips versions already in supabase_migrations.schema_migrations.
+        run: python3 .github/scripts/apply_migrations.py
       - name: Run Playwright suite
         run: npm run test:e2e
       - name: Upload Playwright artifacts on failure

@@ -15,6 +15,7 @@ import { ROLE_PERMISSIONS, AppSection, UserRole } from "@/lib/types";
 import type { MemberPermissions } from "@/lib/permissions";
 import CompanyBadge from "@/components/CompanyBadge";
 import type { TranslationKey } from "@/lib/translations/de";
+import { useTreasuryFlag } from "@/lib/treasury/use-treasury-flag";
 
 // SCH-915 K2-C1 — daily-rotating greeting rendered directly under the sidebar
 // logo. Pool sizes match `(app)/layout.tsx`; the previous implementation lived
@@ -39,7 +40,11 @@ type IconKey =
   | "dashboard" | "quotes" | "invoices" | "fixedCosts" | "receipts" | "bank"
   | "export" | "expenses" | "customers" | "products" | "time" | "list"
   | "calendar" | "analytics" | "admin" | "settings" | "logout" | "shield"
-  | "menu" | "close" | "chevronDown";
+  | "menu" | "close" | "chevronDown"
+  // ORA-2283 — Treasury icons. `treasury` for the overview tile, sub-icons
+  // mirror the function: `cash` (wallet), `forecast` (trending), `sanctions`
+  // (shield-alert), `reports` (file-text).
+  | "treasury" | "cash" | "forecast" | "sanctions" | "reports";
 
 function Icon({ name, className }: { name: IconKey; className?: string }) {
   const common = {
@@ -96,6 +101,16 @@ function Icon({ name, className }: { name: IconKey; className?: string }) {
       return <svg {...common}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
     case "chevronDown":
       return <svg {...common} width="14" height="14"><polyline points="6 9 12 15 18 9" /></svg>;
+    case "treasury":
+      return <svg {...common}><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6l-8-4z" /><path d="M9 12l2 2 4-4" /></svg>;
+    case "cash":
+      return <svg {...common}><rect x="2" y="6" width="20" height="13" rx="2" /><circle cx="12" cy="12.5" r="2.5" /><path d="M6 9h.01M18 16h.01" /></svg>;
+    case "forecast":
+      return <svg {...common}><polyline points="3 17 9 11 13 15 21 7" /><polyline points="14 7 21 7 21 14" /></svg>;
+    case "sanctions":
+      return <svg {...common}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="15" r="0.5" fill="currentColor" /></svg>;
+    case "reports":
+      return <svg {...common}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /></svg>;
   }
 }
 
@@ -124,6 +139,21 @@ const TIME_ITEMS: NavLeaf[] = [
   { href: "/time?view=list", labelKey: "time.list", icon: "list", section: "time" },
   { href: "/time?view=calendar", labelKey: "time.calendar", icon: "calendar", section: "time" },
   { href: "/time?view=analytics", labelKey: "time.analytics", icon: "analytics", section: "time" },
+];
+
+// ORA-2283 — Treasury nav block. Only rendered when
+// `company_subscriptions.has_treasury = true` (see useTreasuryFlag() below).
+// Sub-items mirror the route stubs under `(app)/treasury/`; future phases
+// add deeper destinations (investments, hedging, netting) — kept off for
+// the Phase 0+1 PR to avoid 404 dead-ends.
+const TREASURY_ITEMS: NavLeaf[] = [
+  { href: "/treasury", labelKey: "nav.treasury", icon: "treasury", exact: true, section: "treasury" },
+  { href: "/treasury/cash", labelKey: "nav.treasuryCash", icon: "cash", section: "treasury" },
+  { href: "/treasury/accounts", labelKey: "nav.treasuryAccounts", icon: "bank", section: "treasury" },
+  { href: "/treasury/forecast", labelKey: "nav.treasuryForecast", icon: "forecast", section: "treasury" },
+  { href: "/treasury/payments", labelKey: "nav.treasuryPayments", icon: "invoices", section: "treasury" },
+  { href: "/treasury/sanctions", labelKey: "nav.treasurySanctions", icon: "sanctions", section: "treasury" },
+  { href: "/treasury/reports", labelKey: "nav.treasuryReports", icon: "reports", section: "treasury" },
 ];
 
 // SCH-918 K2-γ G2/G3/G4 — for `employee` role we gate sections via the
@@ -167,6 +197,11 @@ export default function AppSidebar() {
   const searchParams = useSearchParams();
   const { t } = useI18n();
   const { company, accessibleCompanies, userName, userRole, roleLoaded, isSuperadmin, greetingTone, setCompanyId, memberPermissions } = useCompany();
+  // ORA-2283 — Treasury sidebar block is feature-flag-gated. Hidden until
+  // company_subscriptions.has_treasury=true; remains hidden during the
+  // initial load so we never flash the section for tenants that don't own
+  // the SKU.
+  const { hasTreasury, loaded: treasuryFlagLoaded } = useTreasuryFlag();
   const greeting = useMemo(() => {
     if (greetingTone === "off") return "";
     const size = GREETING_POOL_SIZE[greetingTone];
@@ -181,6 +216,17 @@ export default function AppSidebar() {
     : [];
   // Time tracking is always on for every authenticated user (G3).
   const timeAllowed = roleLoaded;
+  // Treasury appears only when the feature flag is loaded AND true AND the
+  // user's role grants access to the `treasury` section. Role-based gating
+  // (admin/manager/accountant get treasury; employee does not — see
+  // ROLE_PERMISSIONS in lib/types.ts) keeps the SKU paywall from being the
+  // only line of defence; an employee in a Treasury-enabled tenant still
+  // doesn't see the nav block.
+  const treasuryAllowed =
+    roleLoaded &&
+    treasuryFlagLoaded &&
+    hasTreasury &&
+    (ROLE_PERMISSIONS[role] || []).includes("treasury");
   // Admin section visibility tracks the static role table — only `admin` user
   // role sees it (matches the existing logic before SCH-918).
   // SCH-975 K2-H1 — also expose the link to non-admin members who hold the
@@ -309,6 +355,38 @@ export default function AppSidebar() {
             <ul className="space-y-0.5">
               {TIME_ITEMS.map((item) => {
                 const active = isTimeViewActive(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        active
+                          ? "bg-[var(--brand-orange-dim)] text-[var(--brand-orange)]"
+                          : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      <Icon name={item.icon} className="shrink-0" />
+                      <span className="truncate">{t(item.labelKey)}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {/* ORA-2283 — Treasury block (gated on company_subscriptions.has_treasury) */}
+        {treasuryAllowed && (
+          <div className="mb-4" data-testid="treasury-nav-block">
+            <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              {t("nav.sectionTreasury")}
+            </p>
+            <ul className="space-y-0.5">
+              {TREASURY_ITEMS.map((item) => {
+                const active = item.exact
+                  ? pathname === item.href
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
                 return (
                   <li key={item.href}>
                     <Link
