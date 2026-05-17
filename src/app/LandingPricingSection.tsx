@@ -158,6 +158,22 @@ export default function LandingPricingSection() {
           Alle Preise netto pro Monat. Jährliche Zahlung spart 20 %. Keine Kreditkarte für den Trial, keine
           Einrichtungsgebühr.
         </p>
+
+        {/* ORA-2291 — Treasury Add-on Teaser */}
+        <div className={styles.addonRow}>
+          <div className={styles.addonCard}>
+            <div className={styles.addonBadge}>Add-on · Early Access</div>
+            <h3 className={styles.addonTitle}>Treasury-Modul</h3>
+            <p className={styles.addonBody}>
+              EBICS&nbsp;3.0 zu allen DACH-Hausbanken, ML-Cash-Forecast, SEPA-Massen-Zahlungen
+              mit 4-Augen-Approval-Matrix und kryptografischer Audit-Chain.
+              Hinzubuchbar zu jedem Orange-Octo-Tarif.
+            </p>
+            <Link href="/treasury-info" className={styles.addonCta}>
+              Treasury-Add-on ansehen →
+            </Link>
+          </div>
+        </div>
       </div>
     </section>
   );

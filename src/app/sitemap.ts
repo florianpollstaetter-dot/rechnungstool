@@ -7,12 +7,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://orange-octo.com";
   const now = new Date();
   const routes: { path: string; priority: number; changeFrequency: "daily" | "weekly" | "monthly" | "yearly" }[] = [
-    { path: "/",            priority: 1.0, changeFrequency: "weekly" },
-    { path: "/register",    priority: 0.8, changeFrequency: "monthly" },
-    { path: "/login",       priority: 0.6, changeFrequency: "monthly" },
-    { path: "/impressum",   priority: 0.4, changeFrequency: "yearly" },
-    { path: "/datenschutz", priority: 0.4, changeFrequency: "yearly" },
-    { path: "/agb",         priority: 0.4, changeFrequency: "yearly" },
+    { path: "/",               priority: 1.0, changeFrequency: "weekly" },
+    { path: "/treasury-info",  priority: 0.9, changeFrequency: "weekly" },
+    { path: "/register",       priority: 0.8, changeFrequency: "monthly" },
+    { path: "/login",          priority: 0.6, changeFrequency: "monthly" },
+    { path: "/impressum",      priority: 0.4, changeFrequency: "yearly" },
+    { path: "/datenschutz",    priority: 0.4, changeFrequency: "yearly" },
+    { path: "/agb",            priority: 0.4, changeFrequency: "yearly" },
   ];
   return routes.map((r) => ({
     url: `${baseUrl}${r.path}`,

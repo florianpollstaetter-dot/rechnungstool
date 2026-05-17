@@ -163,6 +163,9 @@ export default async function LandingPage() {
             <li>
               <a href="#preise">Preise</a>
             </li>
+            <li>
+              <Link href="/treasury-info">Treasury</Link>
+            </li>
           </ul>
           <div className={styles.navRight}>
             <LandingHeaderLogin />
@@ -358,6 +361,7 @@ export default async function LandingPage() {
           </Link>
 
           <div className={styles.footerLinks}>
+            <Link href="/treasury-info">Treasury-Add-on</Link>
             <Link href="/impressum">Impressum</Link>
             <Link href="/datenschutz">Datenschutz</Link>
             <Link href="/agb">AGB</Link>
