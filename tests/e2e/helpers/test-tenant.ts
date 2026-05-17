@@ -371,3 +371,118 @@ export async function resetInvoiceForRetest(companyId: string): Promise<void> {
     })
     .eq("company_id", companyId);
 }
+
+/**
+ * SCH-2089 — Seed a work time model with daily targets (8h per weekday, 0h on weekends)
+ * for use in stundenabrechnung tests.
+ */
+export async function seedWorkTimeModel(companyId: string, authUserId: string): Promise<void> {
+  const svc = service();
+
+  // Create work time model
+  const modelInsert = await svc
+    .from("work_time_models")
+    .insert({
+      company_id: companyId,
+      name: "QA Test Model",
+    })
+    .select()
+    .single();
+
+  if (modelInsert.error || !modelInsert.data) {
+    throw new Error(`seedWorkTimeModel failed: ${modelInsert.error?.message}`);
+  }
+  const modelId = (modelInsert.data as { id: string }).id;
+
+  // Set daily targets: 480 minutes (8h) Mon-Fri, 0 on weekends
+  const daysData = [
+    { model_id: modelId, weekday: 0, daily_target_minutes: 480 }, // Mon
+    { model_id: modelId, weekday: 1, daily_target_minutes: 480 }, // Tue
+    { model_id: modelId, weekday: 2, daily_target_minutes: 480 }, // Wed
+    { model_id: modelId, weekday: 3, daily_target_minutes: 480 }, // Thu
+    { model_id: modelId, weekday: 4, daily_target_minutes: 480 }, // Fri
+    { model_id: modelId, weekday: 5, daily_target_minutes: 0 },   // Sat
+    { model_id: modelId, weekday: 6, daily_target_minutes: 0 },   // Sun
+  ];
+
+  const daysInsert = await svc.from("work_time_model_days").insert(daysData);
+  if (daysInsert.error) {
+    throw new Error(`seedWorkTimeModel days failed: ${daysInsert.error.message}`);
+  }
+
+  // Assign model to user
+  const profileUpdate = await svc
+    .from("user_profiles")
+    .update({ work_time_model_id: modelId })
+    .eq("auth_user_id", authUserId);
+
+  if (profileUpdate.error) {
+    throw new Error(`seedWorkTimeModel profile update failed: ${profileUpdate.error.message}`);
+  }
+}
+
+/**
+ * SCH-2089 — Seed time entries and absences for the current month
+ * to test the stundenabrechnung calendar view.
+ */
+export async function seedTimeEntriesAndAbsences(companyId: string, authUserId: string): Promise<void> {
+  const svc = service();
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  // Create 5 days of time entries in the current month
+  const entries = [];
+  for (let day = 1; day <= 5; day++) {
+    const date = new Date(currentYear, currentMonth, day);
+    // Skip weekends
+    if (date.getDay() === 0 || date.getDay() === 6) continue;
+
+    const startTime = new Date(date);
+    startTime.setHours(9, 0, 0, 0);
+    const endTime = new Date(date);
+    endTime.setHours(17, 0, 0, 0);
+
+    entries.push({
+      company_id: companyId,
+      user_id: authUserId,
+      entry_type: "work",
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString(),
+      duration_minutes: 480,
+      base_minutes: 450,
+      ot_25_minutes: 30,
+      ot_50_minutes: 0,
+      ot_100_minutes: 0,
+    });
+  }
+
+  if (entries.length > 0) {
+    const insertResult = await svc.from("time_entries").insert(entries);
+    if (insertResult.error) {
+      throw new Error(`seedTimeEntriesAndAbsences entries failed: ${insertResult.error.message}`);
+    }
+  }
+
+  // Add one absence for testing (e.g., first workday of month)
+  const firstWorkday = new Date(currentYear, currentMonth, 1);
+  while (firstWorkday.getDay() === 0 || firstWorkday.getDay() === 6) {
+    firstWorkday.setDate(firstWorkday.getDate() + 1);
+  }
+
+  const absence = {
+    company_id: companyId,
+    user_id: authUserId,
+    start_date: firstWorkday.toISOString().slice(0, 10),
+    end_date: firstWorkday.toISOString().slice(0, 10),
+    absence_type: "Urlaub",
+    approved: true,
+  };
+
+  const absenceInsert = await svc.from("absences").insert(absence);
+  if (absenceInsert.error) {
+    // It's OK if absence insert fails (foreign key or other constraint)
+    console.warn(`seedTimeEntriesAndAbsences absence failed: ${absenceInsert.error.message}`);
+  }
+}

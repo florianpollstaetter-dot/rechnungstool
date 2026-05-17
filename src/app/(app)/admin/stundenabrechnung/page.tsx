@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { getUserProfilesForMyCompanies } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile } from "@/lib/types";
@@ -283,9 +283,8 @@ export default function StundenabrechnungPage() {
                   : "bg-[var(--background)]";
 
                 return (
-                  <>
+                  <React.Fragment key={day.date}>
                     <tr
-                      key={day.date}
                       className={`${bgBase} border-b border-[var(--border)]/30 hover:bg-[var(--accent)]/5 transition`}
                     >
                       <td className="px-2 py-1.5 text-[var(--text-secondary)] whitespace-nowrap">
@@ -355,7 +354,7 @@ export default function StundenabrechnungPage() {
                         <td />
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </tbody>
