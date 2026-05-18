@@ -98,29 +98,21 @@ public class EbicsResponseBuilder {
         return encryptedKeyManagementResponse("HPB", orderData, subscriberE002Key);
     }
 
+    private static final String NS_DS = "http://www.w3.org/2000/09/xmldsig#";
+
     private String buildHpbOrderData(BankKeyStore bank) {
         String authCertB64 = Base64.getEncoder().encodeToString(bank.authCertDer());
         String encCertB64  = Base64.getEncoder().encodeToString(bank.encCertDer());
-        // PubKeyValue retained for forward-compatibility; X509Data is what the library parses.
-        return "<HPBResponseOrderData xmlns=\"" + NS_H005 + "\">\n" +
+        // X509Data MUST be in the xmldsig namespace (ds:) — ebics_types_H005 xsd:
+        //   <element ref="ds:X509Data"/> inside PubKeyInfoType.
+        // Without the ds: prefix the XMLBeans parser can't find it → getX509Data() == null.
+        return "<HPBResponseOrderData xmlns=\"" + NS_H005 + "\" xmlns:ds=\"" + NS_DS + "\">\n" +
             "  <AuthenticationPubKeyInfo>\n" +
-            "    <X509Data><X509Certificate>" + authCertB64 + "</X509Certificate></X509Data>\n" +
-            "    <PubKeyValue>\n" +
-            "      <RSAKeyValue>\n" +
-            "        <Modulus>" + BankKeyStore.base64(bank.authPublic().getModulus()) + "</Modulus>\n" +
-            "        <Exponent>" + BankKeyStore.base64(bank.authPublic().getPublicExponent()) + "</Exponent>\n" +
-            "      </RSAKeyValue>\n" +
-            "    </PubKeyValue>\n" +
+            "    <ds:X509Data><ds:X509Certificate>" + authCertB64 + "</ds:X509Certificate></ds:X509Data>\n" +
             "    <AuthenticationVersion>X002</AuthenticationVersion>\n" +
             "  </AuthenticationPubKeyInfo>\n" +
             "  <EncryptionPubKeyInfo>\n" +
-            "    <X509Data><X509Certificate>" + encCertB64 + "</X509Certificate></X509Data>\n" +
-            "    <PubKeyValue>\n" +
-            "      <RSAKeyValue>\n" +
-            "        <Modulus>" + BankKeyStore.base64(bank.encPublic().getModulus()) + "</Modulus>\n" +
-            "        <Exponent>" + BankKeyStore.base64(bank.encPublic().getPublicExponent()) + "</Exponent>\n" +
-            "      </RSAKeyValue>\n" +
-            "    </PubKeyValue>\n" +
+            "    <ds:X509Data><ds:X509Certificate>" + encCertB64 + "</ds:X509Certificate></ds:X509Data>\n" +
             "    <EncryptionVersion>E002</EncryptionVersion>\n" +
             "  </EncryptionPubKeyInfo>\n" +
             "  <HostID>" + hostId + "</HostID>\n" +
