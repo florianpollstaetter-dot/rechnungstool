@@ -10,8 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
@@ -250,10 +248,12 @@ public class RealEbicsClientFacade implements EbicsClientFacade {
             EbicsClient c = client();
             File tmp = Files.createTempFile("sta-", ".xml").toFile();
             try {
-                Date fromD = Date.from(from.atStartOfDay(ZoneOffset.UTC).toInstant());
-                Date toD = Date.from(to.atStartOfDay(ZoneOffset.UTC).toInstant());
                 EbicsOrderType orderType = chooseStatementOrderType();
-                c.fetchFile(tmp, orderType, fromD, toD);
+                // fetchFile(File, EbicsOrderType, Date, Date) requires defaultUser to be set
+                // (via createDefaultUser, not createUser). Use the explicit-user overload so
+                // we don't depend on that internal state. Date range is expressed via order
+                // parameters when the bank supports it; mock ignores dates.
+                c.fetchFile(tmp, user(), product(), orderType, /* isTest */ false);
                 byte[] body = Files.readAllBytes(tmp.toPath());
                 LOG.info("ebics.sta requestId={} from={} to={} bytes={} orderType={}",
                     requestId, from, to, body.length, orderType.getCode());

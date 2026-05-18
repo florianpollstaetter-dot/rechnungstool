@@ -344,9 +344,7 @@ public class EbicsResponseBuilder {
         if (hash.charAt(0) == '0') hash = hash.substring(1);
         byte[] digest = MessageDigest.getInstance("SHA-256").digest(
                 hash.getBytes(StandardCharsets.US_ASCII));
-        // Return hex of digest (matches KeyUtil.getKeyDigest return format), then Base64 it
-        String hexDigest = bytesToHex(digest);
-        return Base64.getEncoder().encodeToString(hexDigest.getBytes(StandardCharsets.US_ASCII));
+        return Base64.getEncoder().encodeToString(digest);
     }
 
     private static String bytesToHex(byte[] bytes) {
