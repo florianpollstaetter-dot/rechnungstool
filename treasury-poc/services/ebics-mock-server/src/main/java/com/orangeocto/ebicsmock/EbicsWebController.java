@@ -121,9 +121,15 @@ public class EbicsWebController {
         LOG.info("authenticated order={}", orderType);
 
         if (orderType == null) {
-            // Receipt request: TransactionPhase=Receipt, no OrderType.
+            // Receipt (download): TransactionPhase=Receipt
             if (body.contains("TransferReceipt") || body.contains("Receipt")) {
                 return responses.receiptAck();
+            }
+            // Upload transfer segment: TransactionPhase=Transfer, no OrderType.
+            // ebics-java-client sends one Transfer per segment after init.
+            // Must return ebicsResponse (not ebicsKeyManagementResponse).
+            if (body.contains("Transfer")) {
+                return responses.transferAck();
             }
             return responses.systemError("unsupported-order:null");
         }

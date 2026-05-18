@@ -173,6 +173,25 @@ public class EbicsResponseBuilder {
             "</ebicsResponse>\n";
     }
 
+    // ------------------------------------------------------------------ Upload Transfer
+
+    public String transferAck() {
+        // Must be ebicsResponse, NOT ebicsKeyManagementResponse —
+        // InitializationResponseElement/TransferResponseElement parse EbicsResponseDocument.
+        return XML_DECL +
+            "<ebicsResponse xmlns=\"" + NS_H005 + "\" Version=\"H005\" Revision=\"1\">\n" +
+            "  <header authenticate=\"true\">\n" +
+            "    <static><TransactionID>" + randomHex32() + "</TransactionID></static>\n" +
+            "    <mutable>\n" +
+            "      <TransactionPhase>Transfer</TransactionPhase>\n" +
+            "      <ReturnCode>000000</ReturnCode>\n" +
+            "      <ReportText>[EBICS_OK] Transfer accepted</ReportText>\n" +
+            "    </mutable>\n" +
+            "  </header>\n" +
+            "  <body><ReturnCode authenticate=\"true\">000000</ReturnCode></body>\n" +
+            "</ebicsResponse>\n";
+    }
+
     // ------------------------------------------------------------------ Receipt
 
     public String receiptAck() {
