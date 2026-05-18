@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.11</version>
+        <version>3.5.14</version>
         <relativePath/>
     </parent>
 
@@ -25,9 +25,10 @@
     <properties>
         <java.version>17</java.version>
         <ebics.version>master-SNAPSHOT</ebics.version>
-        <!-- Override Spring Boot 3.3.4's tomcat 10.1.30 → 10.1.44 to clear
-             CVE-2025-48989 (HTTP/2 MadeYouReset DoS). -->
-        <tomcat.version>10.1.44</tomcat.version>
+        <!-- Pin Tomcat 10.1.55 to clear all Trivy-flagged HIGH/CRITICAL CVEs
+             (CVE-2026-29145 CRITICAL + 4 HIGH). Spring Boot 3.5.14 ships
+             10.1.x but not yet 10.1.55, so override explicitly. -->
+        <tomcat.version>10.1.55</tomcat.version>
     </properties>
 
     <repositories>
