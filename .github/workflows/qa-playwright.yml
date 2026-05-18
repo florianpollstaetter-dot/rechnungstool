@@ -49,12 +49,14 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-      # SCH-976 — default CI to the deployed Vercel app rather than booting
-      # `npm run dev` in-runner. The local dev server currently crashes on
-      # startup because of the `[id]` vs `[key]` slug conflict in
-      # src/app/api/documents/ (introduced by SCH-633, fix tracked
-      # separately) — production builds tolerate it but `next dev` does not.
-      BASE_URL: ${{ inputs.base_url || secrets.PLAYWRIGHT_BASE_URL || 'https://invoices-rho-nine.vercel.app' }}
+      # SCH-2089 — CI now boots `npm run dev` in-runner (no prod fallback).
+      # The `[id]` vs `[key]` slug conflict that previously crashed `next dev`
+      # was fixed in 35f7cb5 (SCH-2089 hotfix), so PR branches that add new
+      # routes (e.g. /admin/stundenabrechnung) can actually be exercised in CI
+      # instead of running against the master prod deploy where the new
+      # routes do not exist yet. Manual workflow_dispatch + PLAYWRIGHT_BASE_URL
+      # secret remain as overrides for explicit deployed-env runs.
+      BASE_URL: ${{ inputs.base_url || secrets.PLAYWRIGHT_BASE_URL || '' }}
       CI: "true"
     steps:
       - name: Guard — Supabase secrets must be present
