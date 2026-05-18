@@ -83,6 +83,55 @@ export interface TreasuryTransaction {
   created_at: string;
 }
 
+// ORA-2308 — EBICS Hausbank-Anbindung pro Subscriber.
+// Mirrors `treasury_bank_connection` from
+// `20260518120000_ora2308_treasury_bank_connection.sql`. One row per EBICS
+// subscriber (Partner-ID + User-ID + Host-ID), N `treasury_bank_accounts`
+// (IBANs) attached via `connection_id`.
+
+export type EbicsBankPreset = "erste" | "sparkasse" | "deutsche_bank" | "manual";
+
+export type EbicsConnectionStatus =
+  | "draft"
+  | "init_sent"
+  | "letters_pending"
+  | "hpb_pending"
+  | "hkd_pending"
+  | "active"
+  | "failed";
+
+export type EbicsVersion = "H004" | "H005";
+
+export interface TreasuryBankConnection {
+  id: string;
+  company_id: string;
+  bank_preset: EbicsBankPreset;
+  bank_name: string;
+  host_url: string;
+  host_id: string;
+  partner_id: string;
+  user_id: string;
+  customer_id: string;
+  system_id: string | null;
+  ebics_version: EbicsVersion;
+  setup_status: EbicsConnectionStatus;
+  keystore_id: string | null;
+  order_types: string[];
+  init_order_id: string | null;
+  hia_order_id: string | null;
+  letters_generated_at: string | null;
+  last_hev_version: string | null;
+  last_hpb_at: string | null;
+  last_poll_at: string | null;
+  next_poll_at: string | null;
+  activated_at: string | null;
+  last_error: string | null;
+  metadata: Record<string, unknown>;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CompanySubscription {
   company_id: string;
   has_octo: boolean;
