@@ -1,6 +1,8 @@
 # Multi-stage build for libeufin-bank v1.5.0 from source.
 # Replaces registry.taler.net/libeufin-sandbox:0.10.4 (NXDOMAIN since 2026).
-# Source: https://git.taler.net/taler/libeufin/ tag v1.5.0
+# Source clone URL: https://git.taler.net/libeufin.git
+#   (cgit browse path is /taler/libeufin/ but the smart-http git endpoint
+#    sits at /libeufin.git — confirmed with `git ls-remote` listing v1.5.0).
 #
 # libeufin 1.x renamed "libeufin-sandbox" → "libeufin-bank".
 # EBICS endpoint is still at /ebicsweb; admin API moved from /admin/ → /management/.
@@ -16,7 +18,7 @@ WORKDIR /src
 
 # Shallow clone at the stable v1.5.0 tag.
 RUN git clone --depth 1 --branch v1.5.0 \
-      https://git.taler.net/taler/libeufin.git .
+      https://git.taler.net/libeufin.git .
 
 # Build the bank distribution (skips nexus and integration tests).
 # --no-daemon keeps memory footprint small in CI builders.
