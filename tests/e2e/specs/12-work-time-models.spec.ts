@@ -165,7 +165,7 @@ test("admin legt Modell an mit Default-Pause 30 + 32h-Woche, weist es qa-empty z
   //   Fr-So (3 buttons) carry no "Soll" segment (target = 0 → tick suppressed).
   // 32h weekly sum is implied by 4 × 8h, but we assert it explicitly to lock the
   // Wochenpensum readout too.
-  await expect(page.getByText(/32h/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("32h 0m", { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('button[title*="Soll 8h 0m"]')).toHaveCount(4);
   await expect(page.locator('button[title*="Soll"]')).toHaveCount(4);
 
