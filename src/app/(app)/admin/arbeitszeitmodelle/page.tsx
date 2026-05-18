@@ -19,7 +19,6 @@ import {
   getWorkTimeModelDays,
   getWorkTimeModels,
   replaceWorkTimeModelDays,
-  updateWorkTimeModel,
 } from "@/lib/db";
 import type { UserProfile, WorkTimeModel } from "@/lib/types";
 import { WEEKDAY_LABELS_LONG } from "@/lib/types";
@@ -228,19 +227,47 @@ export default function ArbeitszeitmodelleAdminPage() {
       const weeklyTotal = editDraft.days
         .filter((d) => d.enabled)
         .reduce((s, d) => s + d.daily_target_minutes, 0);
-      await updateWorkTimeModel(editing.id, {
-        name: editDraft.name.trim() || editing.name,
-        weekly_target_minutes: weeklyTotal,
-        unpaid_break_minutes: editDraft.unpaid_break_minutes,
-        vacation_days_per_year: editDraft.vacation_days_per_year,
-      });
       const dayRows = editDraft.days.map((d) => ({
         weekday: d.weekday,
         start_time: d.enabled ? (d.start_time || null) : null,
         end_time: d.enabled ? (d.end_time || null) : null,
         daily_target_minutes: d.enabled ? d.daily_target_minutes : 0,
       }));
-      await replaceWorkTimeModelDays(editing.id, dayRows);
+
+      // ORA-2295 — route through service-role API so RLS denials / silent
+      // UPDATE errors surface as user-visible failures instead of looking like
+      // a successful save.
+      const url = `/api/admin/work-time-models/${editing.id}`;
+      const settingsRes = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update_settings",
+          name: editDraft.name.trim() || editing.name,
+          weekly_target_minutes: weeklyTotal,
+          unpaid_break_minutes: editDraft.unpaid_break_minutes,
+          vacation_days_per_year: editDraft.vacation_days_per_year,
+        }),
+      });
+      if (!settingsRes.ok) {
+        const data = await settingsRes.json().catch(() => ({}));
+        const msg = (data as { error?: string }).error || `Speichern fehlgeschlagen (${settingsRes.status})`;
+        alert(`Fehler beim Speichern: ${msg}`);
+        throw new Error(msg);
+      }
+
+      const daysRes = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "replace_days", days: dayRows }),
+      });
+      if (!daysRes.ok) {
+        const data = await daysRes.json().catch(() => ({}));
+        const msg = (data as { error?: string }).error || `Tagespläne speichern fehlgeschlagen (${daysRes.status})`;
+        alert(`Fehler beim Speichern der Tagespläne: ${msg}`);
+        throw new Error(msg);
+      }
+
       setEditing(null);
       setEditDraft(null);
       await loadAll();
