@@ -85,6 +85,26 @@ Bewertungs-Achsen (CEO-Direktive Rev 2):
 2. **CCI-Workaround-PoC** (Child-Issue W5) — beweisen, dass ebics-java-client einen generischen BTF mit Order-Type CCI senden kann. Risk Score derzeit "niedrig", muss aber im PoC validiert sein bevor Phase 5 startet.
 3. **Performance-Bench** (Child-Issue W4) — bestätigt, dass Spring-Boot-Sidecar 100k CAMT.053-Entries in akzeptabler Zeit/RSS verarbeitet. Falls Java-Sidecar im Bench grob unterlegen ist (>5× Speicher gegenüber Python), eskaliert das die Entscheidung — derzeit kein Hinweis darauf.
 
+## Performance
+
+Bench-Driver: [`treasury-poc/bench/run_bench.sh`](../bench/run_bench.sh) +
+CI-Workflow [`.github/workflows/treasury-poc-bench.yml`](../../.github/workflows/treasury-poc-bench.yml).
+Misst `GET /ebics/sta` über den ebics-java-Sidecar + In-House-EBICS-3.0-Mock
+mit 1k / 10k / 100k CAMT.053-Einträgen (hyperfine warmup=10, runs=50). Peak
+RSS via `docker stats`, Image-Größe via `docker save | gzip | wc -c`.
+
+**Acceptance-Gate ([ORA-2298](/ORA/issues/ORA-2298)):** bei 100k Statements
+darf der Sidecar Peak-RSS ≤ 1 GiB und mittlere STA-Latenz ≤ 5 s nicht
+überschreiten. Andernfalls Tuning-PR (`MaxRAMPercentage`, GC, streaming
+parser) oder ein Folge-Issue.
+
+**Aktueller Stand (2026-05-18):** Bench-Infrastruktur committed; Mock lädt
+CAMT.053-Payload jetzt aus `bench/statements/`-Volume statt hartcodiert.
+Erste CI-Bench-Werte werden vom Workflow nach dem nächsten Push auf
+`feature/treasury-ebics-bench` in [`../bench/results.md`](../bench/results.md)
+geschrieben. Diese Sektion wird mit der 3–5-zeiligen Zusammenfassung
+aktualisiert, sobald die Zahlen vorliegen.
+
 ## Sign-off
 
 | Rolle | Agent | Status |

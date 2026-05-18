@@ -17,6 +17,14 @@ services:
     container_name: ebics-mock
     ports:
       - "5016:5016"
+    environment:
+      # ORA-2298 bench: when set, STA/C53 returns this CAMT.053 fixture
+      # instead of the hardcoded mini-payload. Path is inside the container.
+      EBICSMOCK_CAMT053FIXTUREPATH: ${EBICSMOCK_CAMT053FIXTUREPATH:-}
+    volumes:
+      # Bench fixtures are mounted read-only. ORA-2298 generates these via
+      # bench/gen_fixtures.py before bringing up the stack.
+      - ./bench/statements:/var/lib/ebics-mock/fixtures:ro
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5016/actuator/health/readiness"]
       interval: 10s
@@ -27,9 +35,12 @@ services:
   ebics-sidecar:
     # The production-target sidecar. Built from services/ebics-sidecar-java/.
     # Talks to the mock via the in-network DNS name `ebics-mock`.
+    # Explicit `image:` so the bench workflow can pre-build the same tag
+    # and measure container-image size deterministically (ORA-2298).
     build:
       context: ./services/ebics-sidecar-java
       dockerfile: Dockerfile
+    image: ebics-sidecar:bench
     container_name: ebics-sidecar
     depends_on:
       ebics-mock:
