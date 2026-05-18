@@ -257,9 +257,9 @@ public class RealEbicsClientFacade implements EbicsClientFacade {
     }
 
     /**
-     * Most EBICS-3.0 banks expose CAMT.053 via order-type C53; Libeufin sandbox
-     * still uses the legacy STA code for the same payload. We prefer C53 and
-     * the controller can override via {@code ebics.statementOrderType}.
+     * Most EBICS-3.0 banks expose CAMT.053 via order-type C53; the in-house
+     * mock and some legacy banks still emit the same payload under STA.
+     * Default to C53; the controller can override via {@code ebics.statementOrderType}.
      */
     private EbicsOrderType chooseStatementOrderType() {
         return statementOrderTypeOverride != null ? statementOrderTypeOverride : OrderType.C53;

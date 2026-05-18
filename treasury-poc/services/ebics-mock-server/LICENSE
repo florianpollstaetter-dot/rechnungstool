@@ -1,0 +1,43 @@
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   Copyright 2026 Orange Octo / Paperclip — Treasury Engineering
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   ---------------------------------------------------------------------
+
+   NOTICE
+
+   This sub-project ("ebics-mock-server") is **independent in-house code**,
+   written from scratch by Orange Octo / Paperclip Treasury Engineering for
+   the Orange Octo EBICS-3.0 PoC (issue ORA-2303). It is *not* a fork of
+   any upstream EBICS implementation. No GPL/LGPL/AGPL source was copied,
+   adapted, or linked into this module.
+
+   Specifically, this module does **not** derive from:
+     - Libeufin / GNU Taler  (AGPL-3.0)
+     - ebics-java-client     (LGPL-2.1)  — only consumed by the *sidecar*
+     - JOONIS Python Fintech (commercial)
+     - any other EBICS server, sandbox, or test harness
+
+   Its sole purpose is to serve canned, deterministic responses to a small
+   subset of EBICS-3.0 order types (HEV, INI, HIA, HPB, HKD, STA/C53, CCT)
+   so that the production-target sidecar's smoke can be exercised without
+   relying on an external bank sandbox.
+
+   The Apache-2.0 license above applies to **this directory only**
+   (treasury-poc/services/ebics-mock-server/). The rest of the
+   rechnungstool repository is governed by the company's standard
+   proprietary license.
