@@ -3,6 +3,7 @@ package com.orangeocto.ebics.keystore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.security.KeyStore;
@@ -30,7 +31,15 @@ import java.util.Optional;
  * <p>No-op when {@link KeyStoreLocator#backend()} is {@code FILE}: returns
  * {@link Optional#empty()} so the upstream library keeps full ownership.
  */
+/*
+ * Gated on ebics.keystore.backend being explicitly set so this component
+ * doesn't fail-to-wire on the PoC default where no Spring bean of type
+ * KeyStoreLocator (the sealed interface in this package) is exposed.
+ * The full backend factory + RealEbicsClientFacade rewire is a follow-up
+ * to ORA-2309 (sealed-interface KeyStoreConfig with env-driven selection).
+ */
 @Component
+@ConditionalOnProperty(name = "ebics.keystore.backend", matchIfMissing = false)
 public class Pkcs11A005Signer {
 
     private static final Logger LOG = LoggerFactory.getLogger(Pkcs11A005Signer.class);
