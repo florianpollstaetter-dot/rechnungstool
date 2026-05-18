@@ -28,7 +28,7 @@ import org.springframework.stereotype.Component;
  *   - Download payload: AES/CBC/ISO10126Padding, 16-byte zero IV, 16-byte key.
  *   - Transaction key: RSA/NONE/PKCS1Padding with subscriber's E002 public key.
  *   - HPBResponseOrderData: DER-encoded self-signed X.509 certs for bank keys.
- *   - Receipt: plain 000000 ebicsResponse.
+ *   - Receipt: ebicsResponse with 011000 (EBICS_DOWNLOAD_POSTPROCESS_DONE).
  *
  * If the subscriber E002 key is null (HPB requested before HIA), the response
  * falls back to unencrypted Base64 — this should not happen in correct smoke flow.
@@ -176,17 +176,19 @@ public class EbicsResponseBuilder {
     // ------------------------------------------------------------------ Receipt
 
     public String receiptAck() {
+        // ReceiptResponseElement.report() requires 011000 (EBICS_DOWNLOAD_POSTPROCESS_DONE);
+        // 000000 causes ReturnCode.throwException() to fire.
         return XML_DECL +
             "<ebicsResponse xmlns=\"" + NS_H005 + "\" Version=\"H005\" Revision=\"1\">\n" +
             "  <header authenticate=\"true\">\n" +
             "    <static><TransactionID>" + randomHex32() + "</TransactionID></static>\n" +
             "    <mutable>\n" +
             "      <TransactionPhase>Receipt</TransactionPhase>\n" +
-            "      <ReturnCode>000000</ReturnCode>\n" +
-            "      <ReportText>[EBICS_OK] Receipt</ReportText>\n" +
+            "      <ReturnCode>011000</ReturnCode>\n" +
+            "      <ReportText>[EBICS_DOWNLOAD_POSTPROCESS_DONE] OK</ReportText>\n" +
             "    </mutable>\n" +
             "  </header>\n" +
-            "  <body><ReturnCode authenticate=\"true\">000000</ReturnCode></body>\n" +
+            "  <body><ReturnCode authenticate=\"true\">011000</ReturnCode></body>\n" +
             "</ebicsResponse>\n";
     }
 
