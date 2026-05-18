@@ -16,6 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.kopi.ebics.client.EbicsClient;
+import org.kopi.ebics.client.EbicsUploadParams;
 import org.kopi.ebics.client.User;
 import org.kopi.ebics.interfaces.EbicsOrderType;
 import org.kopi.ebics.session.OrderType;
@@ -297,11 +298,11 @@ public class RealEbicsClientFacade implements EbicsClientFacade {
             File tmp = Files.createTempFile("cct-", ".xml").toFile();
             try {
                 Files.write(tmp.toPath(), pain001);
-                // v2.0.0 sendFile has no upload-params overload; allocate the
-                // bank order-id ourselves so the response carries it for the
-                // Next.js audit-chain.
-                String bankOrderId = u.getPartner().nextOrderId();
-                c.sendFile(tmp, u, product(), OrderType.CCT);
+                // master API requires EbicsUploadParams (v2.0.0 had a 4-param overload
+                // that omitted DataDigest from the upload XML, failing schema validation).
+                String bankOrderId = nextOrderId(u);
+                EbicsUploadParams params = new EbicsUploadParams(bankOrderId, null);
+                c.sendFile(tmp, u, product(), OrderType.CCT, params);
                 LOG.info("ebics.cct requestId={} bytes={} bankOrderId={}",
                     requestId, pain001.length, bankOrderId);
                 return new CctResult(requestId, bankOrderId, pain001.length);

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ebics-java-client sidecar (Kandidat A).
-  PoC-Scope: Spring Boot 3.x + ebics-java-client 2.0.0 via JitPack.
+  PoC-Scope: Spring Boot 3.x + ebics-java-client master-SNAPSHOT via JitPack.
   Library-Lizenz: LGPL-2.1-or-later (dynamic linking → unsere App bleibt proprietär).
   Build: ./mvnw clean package; Run: java -jar target/ebics-sidecar-java-0.1.0.jar
 -->
@@ -24,7 +24,7 @@
 
     <properties>
         <java.version>17</java.version>
-        <ebics.version>2.0.0</ebics.version>
+        <ebics.version>master-SNAPSHOT</ebics.version>
     </properties>
 
     <repositories>
