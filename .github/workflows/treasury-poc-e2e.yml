@@ -1,0 +1,98 @@
+name: treasury-poc-e2e
+
+# ORA-2297 — productionizes the ebics-java sidecar against the Libeufin mock bank.
+# Brings up `treasury-poc/docker-compose.libeufin.yml`, runs the smoke script,
+# uploads response artifacts. Trivy scans the sidecar image with CVSS<7 baseline.
+
+on:
+  push:
+    branches: [master, "feature/treasury-**"]
+    paths:
+      - "treasury-poc/**"
+      - ".github/workflows/treasury-poc-e2e.yml"
+  pull_request:
+    paths:
+      - "treasury-poc/**"
+      - ".github/workflows/treasury-poc-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: treasury-poc
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build sidecar image
+        run: |
+          docker buildx build \
+            --load \
+            -t ebics-sidecar-java:ci \
+            ./services/ebics-sidecar-java
+
+      - name: Bring up Libeufin + sidecar
+        run: |
+          docker compose -f docker-compose.libeufin.yml up -d \
+            libeufin-db libeufin-sandbox libeufin-bootstrap
+          # Wait for bootstrap to finish before starting sidecar so the
+          # subscriber row exists when INI/HIA fire.
+          docker compose -f docker-compose.libeufin.yml wait libeufin-bootstrap || true
+          docker compose -f docker-compose.libeufin.yml up -d ebics-sidecar
+
+      - name: Wait for sidecar readiness
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:8081/actuator/health/readiness; then
+              echo "ready after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "sidecar never became ready"; exit 1
+
+      - name: Run e2e smoke
+        run: |
+          chmod +x scripts/smoke.sh
+          ARTIFACTS_DIR="$PWD/smoke-artifacts" \
+          SIDECAR_URL=http://127.0.0.1:8081 \
+            scripts/smoke.sh
+
+      - name: Capture container logs
+        if: always()
+        run: |
+          mkdir -p smoke-artifacts/logs
+          docker compose -f docker-compose.libeufin.yml logs --no-color \
+            > smoke-artifacts/logs/compose.log || true
+          docker logs ebics-sidecar > smoke-artifacts/logs/sidecar.log 2>&1 || true
+          docker logs libeufin-sandbox > smoke-artifacts/logs/libeufin.log 2>&1 || true
+
+      - name: Upload smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: treasury-poc-smoke-artifacts
+          path: treasury-poc/smoke-artifacts/
+          retention-days: 14
+
+      - name: Trivy vulnerability scan (CVSS<7 baseline)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ebics-sidecar-java:ci
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          format: table
+
+      - name: Compose down
+        if: always()
+        run: docker compose -f docker-compose.libeufin.yml down -v

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Minimal pain.001.001.09 fixture for the e2e CCT smoke. One credit transfer
+  from the seeded subscriber's IBAN to an internal counter-party in the same
+  sandbox bank. Amounts/IBANs are dummies; this file must never be reused
+  against a real bank.
+-->
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.09"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <CstmrCdtTrfInitn>
+    <GrpHdr>
+      <MsgId>POC-CCT-0001</MsgId>
+      <CreDtTm>2026-05-18T08:00:00</CreDtTm>
+      <NbOfTxs>1</NbOfTxs>
+      <CtrlSum>12.34</CtrlSum>
+      <InitgPty>
+        <Nm>Orange Octo PoC GmbH</Nm>
+      </InitgPty>
+    </GrpHdr>
+    <PmtInf>
+      <PmtInfId>POC-CCT-0001-PMT</PmtInfId>
+      <PmtMtd>TRF</PmtMtd>
+      <BtchBookg>false</BtchBookg>
+      <NbOfTxs>1</NbOfTxs>
+      <CtrlSum>12.34</CtrlSum>
+      <PmtTpInf>
+        <SvcLvl><Cd>SEPA</Cd></SvcLvl>
+      </PmtTpInf>
+      <ReqdExctnDt>
+        <Dt>2026-05-19</Dt>
+      </ReqdExctnDt>
+      <Dbtr><Nm>Orange Octo PoC GmbH</Nm></Dbtr>
+      <DbtrAcct><Id><IBAN>AT483200000012345864</IBAN></Id></DbtrAcct>
+      <DbtrAgt><FinInstnId><BICFI>OPSKATWW</BICFI></FinInstnId></DbtrAgt>
+      <CdtTrfTxInf>
+        <PmtId>
+          <InstrId>POC-CCT-0001-TX</InstrId>
+          <EndToEndId>POC-E2E-0001</EndToEndId>
+        </PmtId>
+        <Amt><InstdAmt Ccy="EUR">12.34</InstdAmt></Amt>
+        <CdtrAgt><FinInstnId><BICFI>OPSKATWW</BICFI></FinInstnId></CdtrAgt>
+        <Cdtr><Nm>POC Counter Party</Nm></Cdtr>
+        <CdtrAcct><Id><IBAN>AT611904300234573201</IBAN></Id></CdtrAcct>
+        <RmtInf><Ustrd>POC smoke transfer</Ustrd></RmtInf>
+      </CdtTrfTxInf>
+    </PmtInf>
+  </CstmrCdtTrfInitn>
+</Document>
