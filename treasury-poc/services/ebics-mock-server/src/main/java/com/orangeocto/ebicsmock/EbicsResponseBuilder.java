@@ -2,38 +2,61 @@ package com.orangeocto.ebicsmock;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
  * Renders EBICS-3.0 response XML envelopes.
  *
- * Scope: only what ORA-2297 smoke.sh exercises. No signatures (the sidecar's
- * smoke path treats the bank as trusted; full crypto comes when wiring against
- * the real Erste-Bank sandbox in ORA-2285). Return-code 000000 = EBICS_OK.
+ * Scope: only what ORA-2297 smoke.sh exercises. Crypto follows the
+ * ebics-java-client v2.0.0 expectations:
+ *
+ *   - Download payload: AES/CBC/ISO10126Padding, 16-byte zero IV, 16-byte key.
+ *   - Transaction key: RSA/NONE/PKCS1Padding with subscriber's E002 public key.
+ *   - HPBResponseOrderData: DER-encoded self-signed X.509 certs for bank keys.
+ *   - Receipt: plain 000000 ebicsResponse.
+ *
+ * If the subscriber E002 key is null (HPB requested before HIA), the response
+ * falls back to unencrypted Base64 — this should not happen in correct smoke flow.
  */
 @Component
 public class EbicsResponseBuilder {
 
+    private static final Logger LOG = LoggerFactory.getLogger(EbicsResponseBuilder.class);
+
     private static final String XML_DECL = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    private static final String NS_H000 = "http://www.ebics.org/H000";
-    private static final String NS_H005 = "urn:org:ebics:H005";
+    private static final String NS_H000  = "http://www.ebics.org/H000";
+    private static final String NS_H005  = "urn:org:ebics:H005";
+    private static final SecureRandom RNG = new SecureRandom();
 
     private final SubscriberRegistry subscribers;
-    @Value("${ebicsmock.hostId}") private String hostId;
+
+    @Value("${ebicsmock.hostId}")   private String hostId;
     @Value("${ebicsmock.partnerId}") private String partnerId;
-    @Value("${ebicsmock.userId}") private String userId;
-    @Value("${ebicsmock.iban}") private String iban;
-    @Value("${ebicsmock.bic}") private String bic;
+    @Value("${ebicsmock.userId}")   private String userId;
+    @Value("${ebicsmock.iban}")     private String iban;
+    @Value("${ebicsmock.bic}")      private String bic;
     @Value("${ebicsmock.currency}") private String currency;
 
     public EbicsResponseBuilder(SubscriberRegistry subscribers) {
         this.subscribers = subscribers;
     }
+
+    // ------------------------------------------------------------------ HEV
 
     public String hev() {
         return XML_DECL +
@@ -46,6 +69,8 @@ public class EbicsResponseBuilder {
             "  <VersionNumber ProtocolVersion=\"H004\">2.5</VersionNumber>\n" +
             "</ebicsHEVResponse>\n";
     }
+
+    // ------------------------------------------------------------------ INI / HIA
 
     public String keyManagementAck(String orderType) {
         return XML_DECL +
@@ -61,14 +86,25 @@ public class EbicsResponseBuilder {
             "</ebicsKeyManagementResponse>\n";
     }
 
-    public String hpb(BankKeyStore bank) {
-        // OrderData for HPB carries the bank's public keys (X002 auth + E002
-        // encryption) so the subscriber can verify future bank signatures and
-        // encrypt outgoing payloads. Real banks compress + sign this; the mock
-        // emits the raw HPBResponseOrderData inline (no compression, no sig).
-        String orderData =
-            "<HPBResponseOrderData xmlns=\"" + NS_H005 + "\">\n" +
+    // ------------------------------------------------------------------ HPB
+
+    /**
+     * Returns the HPB response containing the bank's public keys (X002 auth +
+     * E002 encryption) as DER-encoded X.509 certs, encrypted with an AES session
+     * key that is RSA-PKCS1-wrapped with the subscriber's E002 public key.
+     */
+    public String hpb(BankKeyStore bank, RSAPublicKey subscriberE002Key) {
+        String orderData = buildHpbOrderData(bank);
+        return encryptedKeyManagementResponse("HPB", orderData, subscriberE002Key);
+    }
+
+    private String buildHpbOrderData(BankKeyStore bank) {
+        String authCertB64 = Base64.getEncoder().encodeToString(bank.authCertDer());
+        String encCertB64  = Base64.getEncoder().encodeToString(bank.encCertDer());
+        // PubKeyValue retained for forward-compatibility; X509Data is what the library parses.
+        return "<HPBResponseOrderData xmlns=\"" + NS_H005 + "\">\n" +
             "  <AuthenticationPubKeyInfo>\n" +
+            "    <X509Data><X509Certificate>" + authCertB64 + "</X509Certificate></X509Data>\n" +
             "    <PubKeyValue>\n" +
             "      <RSAKeyValue>\n" +
             "        <Modulus>" + BankKeyStore.base64(bank.authPublic().getModulus()) + "</Modulus>\n" +
@@ -78,6 +114,7 @@ public class EbicsResponseBuilder {
             "    <AuthenticationVersion>X002</AuthenticationVersion>\n" +
             "  </AuthenticationPubKeyInfo>\n" +
             "  <EncryptionPubKeyInfo>\n" +
+            "    <X509Data><X509Certificate>" + encCertB64 + "</X509Certificate></X509Data>\n" +
             "    <PubKeyValue>\n" +
             "      <RSAKeyValue>\n" +
             "        <Modulus>" + BankKeyStore.base64(bank.encPublic().getModulus()) + "</Modulus>\n" +
@@ -88,29 +125,11 @@ public class EbicsResponseBuilder {
             "  </EncryptionPubKeyInfo>\n" +
             "  <HostID>" + hostId + "</HostID>\n" +
             "</HPBResponseOrderData>";
-        String orderDataB64 = Base64.getEncoder().encodeToString(orderData.getBytes(StandardCharsets.UTF_8));
-
-        return XML_DECL +
-            "<ebicsKeyManagementResponse xmlns=\"" + NS_H005 + "\" Version=\"H005\" Revision=\"1\">\n" +
-            "  <header authenticate=\"true\">\n" +
-            "    <static><HostID>" + hostId + "</HostID></static>\n" +
-            "    <mutable>\n" +
-            "      <ReturnCode>000000</ReturnCode>\n" +
-            "      <ReportText>[EBICS_OK] HPB</ReportText>\n" +
-            "    </mutable>\n" +
-            "  </header>\n" +
-            "  <body>\n" +
-            "    <DataTransfer>\n" +
-            "      <OrderData>" + orderDataB64 + "</OrderData>\n" +
-            "    </DataTransfer>\n" +
-            "    <ReturnCode authenticate=\"true\">000000</ReturnCode>\n" +
-            "  </body>\n" +
-            "</ebicsKeyManagementResponse>\n";
     }
 
-    public String hkd() {
-        // HKDResponseOrderData carries subscriber+account permission metadata.
-        // For smoke purposes we just need a non-empty OrderData blob.
+    // ------------------------------------------------------------------ HKD
+
+    public String hkd(RSAPublicKey subscriberE002Key) {
         String orderData =
             "<HKDResponseOrderData xmlns=\"" + NS_H005 + "\">\n" +
             "  <PartnerInfo>\n" +
@@ -131,16 +150,16 @@ public class EbicsResponseBuilder {
             "    <Permission><OrderTypes>STA C53 CCT HKD</OrderTypes></Permission>\n" +
             "  </UserInfo>\n" +
             "</HKDResponseOrderData>";
-        return downloadResponse(orderData);
+        return encryptedDownloadResponse(orderData, subscriberE002Key);
     }
 
-    public String statement() {
-        // STA / C53: returns a canned CAMT.053 fixture. The sidecar's smoke
-        // only checks rawBytes > 0; downstream parsers will receive valid
-        // CAMT.053 XML so future ingestion tests can build on this.
-        String camt053 = camt053Fixture();
-        return downloadResponse(camt053);
+    // ------------------------------------------------------------------ STA / C53
+
+    public String statement(RSAPublicKey subscriberE002Key) {
+        return encryptedDownloadResponse(camt053Fixture(), subscriberE002Key);
     }
+
+    // ------------------------------------------------------------------ CCT
 
     public String cctAck() {
         String orderId = subscribers.nextOrderId();
@@ -162,6 +181,25 @@ public class EbicsResponseBuilder {
             "</ebicsResponse>\n";
     }
 
+    // ------------------------------------------------------------------ Receipt
+
+    public String receiptAck() {
+        return XML_DECL +
+            "<ebicsResponse xmlns=\"" + NS_H005 + "\" Version=\"H005\" Revision=\"1\">\n" +
+            "  <header authenticate=\"true\">\n" +
+            "    <static><TransactionID>" + randomHex32() + "</TransactionID></static>\n" +
+            "    <mutable>\n" +
+            "      <TransactionPhase>Receipt</TransactionPhase>\n" +
+            "      <ReturnCode>000000</ReturnCode>\n" +
+            "      <ReportText>[EBICS_OK] Receipt</ReportText>\n" +
+            "    </mutable>\n" +
+            "  </header>\n" +
+            "  <body><ReturnCode authenticate=\"true\">000000</ReturnCode></body>\n" +
+            "</ebicsResponse>\n";
+    }
+
+    // ------------------------------------------------------------------ Error
+
     public String systemError(String message) {
         return XML_DECL +
             "<ebicsKeyManagementResponse xmlns=\"" + NS_H005 + "\" Version=\"H005\" Revision=\"1\">\n" +
@@ -176,40 +214,159 @@ public class EbicsResponseBuilder {
             "</ebicsKeyManagementResponse>\n";
     }
 
-    private String downloadResponse(String orderDataXml) {
-        // Real EBICS-3.0 banks compress + encrypt OrderData. The smoke client
-        // path inside ebics-java-client tolerates Base64-wrapped uncompressed
-        // payloads when the EncryptionPubKeyDigest matches, and the smoke just
-        // needs rawBytes > 0 on the downstream response. We emit a plain Base64
-        // wrap for now; real-crypto upgrade tracked in the in-code TODO below.
-        byte[] raw = orderDataXml.getBytes(StandardCharsets.UTF_8);
-        String b64 = Base64.getEncoder().encodeToString(deflate(raw));
-        return XML_DECL +
-            "<ebicsResponse xmlns=\"" + NS_H005 + "\" Version=\"H005\" Revision=\"1\">\n" +
-            "  <header authenticate=\"true\">\n" +
-            "    <static>\n" +
-            "      <TransactionID>" + randomHex32() + "</TransactionID>\n" +
-            "      <NumSegments>1</NumSegments>\n" +
-            "    </static>\n" +
-            "    <mutable>\n" +
-            "      <TransactionPhase>Initialisation</TransactionPhase>\n" +
-            "      <SegmentNumber lastSegment=\"true\">1</SegmentNumber>\n" +
-            "      <ReturnCode>000000</ReturnCode>\n" +
-            "      <ReportText>[EBICS_DOWNLOAD_POSTPROCESS_DONE] OK</ReportText>\n" +
-            "    </mutable>\n" +
-            "  </header>\n" +
-            "  <body>\n" +
-            "    <DataTransfer>\n" +
-            "      <OrderData>" + b64 + "</OrderData>\n" +
-            "    </DataTransfer>\n" +
-            "    <ReturnCode authenticate=\"true\">000000</ReturnCode>\n" +
-            "  </body>\n" +
-            "</ebicsResponse>\n";
+    // ------------------------------------------------------------------ Crypto helpers
+
+    /**
+     * Wraps orderDataXml in an encrypted ebicsKeyManagementResponse (used for HPB).
+     */
+    private String encryptedKeyManagementResponse(String label, String orderDataXml,
+                                                   RSAPublicKey subscriberE002Key) {
+        try {
+            EncryptedPayload ep = encrypt(orderDataXml, subscriberE002Key);
+            return XML_DECL +
+                "<ebicsKeyManagementResponse xmlns=\"" + NS_H005 + "\" Version=\"H005\" Revision=\"1\">\n" +
+                "  <header authenticate=\"true\">\n" +
+                "    <static><HostID>" + hostId + "</HostID></static>\n" +
+                "    <mutable>\n" +
+                "      <ReturnCode>000000</ReturnCode>\n" +
+                "      <ReportText>[EBICS_OK] " + label + "</ReportText>\n" +
+                "    </mutable>\n" +
+                "  </header>\n" +
+                "  <body>\n" +
+                "    <DataTransfer>\n" +
+                ep.dataEncryptionInfo() +
+                "      <OrderData>" + ep.orderDataB64() + "</OrderData>\n" +
+                "    </DataTransfer>\n" +
+                "    <ReturnCode authenticate=\"true\">000000</ReturnCode>\n" +
+                "  </body>\n" +
+                "</ebicsKeyManagementResponse>\n";
+        } catch (Exception e) {
+            LOG.error("HPB encryption failed", e);
+            return systemError("hpb-encryption-error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Wraps orderDataXml in an encrypted ebicsResponse (used for HKD, STA, C53).
+     */
+    private String encryptedDownloadResponse(String orderDataXml, RSAPublicKey subscriberE002Key) {
+        try {
+            EncryptedPayload ep = encrypt(orderDataXml, subscriberE002Key);
+            return XML_DECL +
+                "<ebicsResponse xmlns=\"" + NS_H005 + "\" Version=\"H005\" Revision=\"1\">\n" +
+                "  <header authenticate=\"true\">\n" +
+                "    <static>\n" +
+                "      <TransactionID>" + randomHex32() + "</TransactionID>\n" +
+                "      <NumSegments>1</NumSegments>\n" +
+                "    </static>\n" +
+                "    <mutable>\n" +
+                "      <TransactionPhase>Initialisation</TransactionPhase>\n" +
+                "      <SegmentNumber lastSegment=\"true\">1</SegmentNumber>\n" +
+                "      <ReturnCode>000000</ReturnCode>\n" +
+                "      <ReportText>[EBICS_DOWNLOAD_POSTPROCESS_DONE] OK</ReportText>\n" +
+                "    </mutable>\n" +
+                "  </header>\n" +
+                "  <body>\n" +
+                "    <DataTransfer>\n" +
+                ep.dataEncryptionInfo() +
+                "      <OrderData>" + ep.orderDataB64() + "</OrderData>\n" +
+                "    </DataTransfer>\n" +
+                "    <ReturnCode authenticate=\"true\">000000</ReturnCode>\n" +
+                "  </body>\n" +
+                "</ebicsResponse>\n";
+        } catch (Exception e) {
+            LOG.error("Download encryption failed", e);
+            return systemError("download-encryption-error: " + e.getMessage());
+        }
+    }
+
+    private record EncryptedPayload(String dataEncryptionInfo, String orderDataB64) {}
+
+    /**
+     * Encrypts orderDataXml with a fresh 16-byte AES key (AES/CBC/ISO10126Padding,
+     * 16-byte zero IV), wraps the AES key with the subscriber's E002 RSA key
+     * (RSA/NONE/PKCS1Padding), and returns the DataEncryptionInfo XML block
+     * plus the Base64-encoded encrypted data.
+     */
+    private EncryptedPayload encrypt(String orderDataXml, RSAPublicKey subscriberE002Key)
+            throws Exception {
+        byte[] raw = deflate(orderDataXml.getBytes(StandardCharsets.UTF_8));
+
+        // 16-byte AES session key
+        byte[] aesKey = new byte[16];
+        RNG.nextBytes(aesKey);
+
+        // AES/CBC/ISO10126Padding with zero IV (matches ebics-java-client Utils.decrypt)
+        Cipher aesCipher = Cipher.getInstance("AES/CBC/ISO10126Padding",
+                BouncyCastleProvider.PROVIDER_NAME);
+        aesCipher.init(Cipher.ENCRYPT_MODE,
+                new SecretKeySpec(aesKey, "AES"),
+                new IvParameterSpec(new byte[16]));
+        byte[] encData = aesCipher.doFinal(raw);
+
+        String orderDataB64 = Base64.getEncoder().encodeToString(encData);
+
+        // RSA-PKCS1 wrap the AES key with subscriber's E002 public key
+        String encKeyB64;
+        String keyDigest;
+        if (subscriberE002Key != null) {
+            Cipher rsaCipher = Cipher.getInstance("RSA/NONE/PKCS1Padding",
+                    BouncyCastleProvider.PROVIDER_NAME);
+            rsaCipher.init(Cipher.ENCRYPT_MODE, subscriberE002Key);
+            encKeyB64 = Base64.getEncoder().encodeToString(rsaCipher.doFinal(aesKey));
+            keyDigest = ebicsKeyDigest(subscriberE002Key);
+        } else {
+            // Fallback: encode the raw AES key (subscriber hasn't sent HIA yet).
+            // This should not happen in correct smoke flow; log a warning.
+            LOG.warn("Subscriber E002 key not yet available — sending unencrypted transaction key");
+            encKeyB64 = Base64.getEncoder().encodeToString(aesKey);
+            keyDigest = "";
+        }
+
+        String dataEncryptionInfo =
+            "      <DataEncryptionInfo authenticate=\"true\">\n" +
+            "        <EncryptionPubKeyDigest Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"" +
+            " Version=\"E002\">" + keyDigest + "</EncryptionPubKeyDigest>\n" +
+            "        <TransactionKey>" + encKeyB64 + "</TransactionKey>\n" +
+            "      </DataEncryptionInfo>\n";
+
+        return new EncryptedPayload(dataEncryptionInfo, orderDataB64);
+    }
+
+    /**
+     * Computes the EBICS key digest as expected by ebics-java-client's KeyUtil.getKeyDigest:
+     *   SHA-256( hex(exponent) + " " + hex(modulus_without_leading_zero) )
+     * The result is returned as a lowercase hex string encoded in Base64.
+     */
+    private static String ebicsKeyDigest(RSAPublicKey key) throws Exception {
+        String exponent = bytesToHex(key.getPublicExponent().toByteArray());
+        byte[] modBytes = key.getModulus().toByteArray();
+        // Remove leading zero byte if present (BigInteger is signed)
+        if (modBytes.length > 1 && modBytes[0] == 0) {
+            byte[] tmp = new byte[modBytes.length - 1];
+            System.arraycopy(modBytes, 1, tmp, 0, tmp.length);
+            modBytes = tmp;
+        }
+        String modulus = bytesToHex(modBytes);
+        String hash = exponent + " " + modulus;
+        if (hash.charAt(0) == '0') hash = hash.substring(1);
+        byte[] digest = MessageDigest.getInstance("SHA-256").digest(
+                hash.getBytes(StandardCharsets.US_ASCII));
+        // Return hex of digest (matches KeyUtil.getKeyDigest return format), then Base64 it
+        String hexDigest = bytesToHex(digest);
+        return Base64.getEncoder().encodeToString(hexDigest.getBytes(StandardCharsets.US_ASCII));
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) sb.append(String.format("%02x", b & 0xff));
+        return sb.toString();
     }
 
     private static byte[] deflate(byte[] raw) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-             DeflaterOutputStream def = new DeflaterOutputStream(out, new Deflater(Deflater.BEST_COMPRESSION))) {
+             DeflaterOutputStream def = new DeflaterOutputStream(out,
+                     new Deflater(Deflater.BEST_COMPRESSION))) {
             def.write(raw);
             def.finish();
             return out.toByteArray();
@@ -219,14 +376,10 @@ public class EbicsResponseBuilder {
     }
 
     private static String randomHex32() {
-        // 32-char uppercase-hex transaction id (EBICS-3.0 RFC4122 alt format).
         return java.util.UUID.randomUUID().toString().replace("-", "").toUpperCase();
     }
 
     private String camt053Fixture() {
-        // Minimal valid CAMT.053.001.08 envelope; one statement with one
-        // booked entry that matches the seeded IBAN. Smoke only inspects
-        // bytes-non-empty; downstream parser tests can build on this shape.
         return "<Document xmlns=\"urn:iso:std:iso:20022:tech:xsd:camt.053.001.08\">\n" +
             "  <BkToCstmrStmt>\n" +
             "    <GrpHdr>\n" +
