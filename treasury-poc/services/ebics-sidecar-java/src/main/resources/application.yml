@@ -30,6 +30,7 @@ ebics:
   url: ${EBICS_BANK_URL:http://ebics-mock:5016/ebicsweb}
   bankName: ${EBICS_BANK_NAME:orange-octo-test}
   statementOrderType: ${EBICS_STATEMENT_ORDER_TYPE:C53}
+  countryCode: ${EBICS_COUNTRY_CODE:DE}
   product:
     name: ${EBICS_PRODUCT_NAME:OrangeOctoTreasury}
     language: ${EBICS_PRODUCT_LANGUAGE:de}

@@ -48,6 +48,7 @@ public class RealEbicsClientFacade implements EbicsClientFacade {
     private final String bankName;
     private final String productName;
     private final String productLanguage;
+    private final String countryCode;
 
     private final Object lock = new Object();
     private final AtomicReference<EbicsClient> clientRef = new AtomicReference<>();
@@ -64,7 +65,8 @@ public class RealEbicsClientFacade implements EbicsClientFacade {
         @Value("${ebics.url}") String bankUrl,
         @Value("${ebics.bankName:orange-octo-test}") String bankName,
         @Value("${ebics.product.name:OrangeOctoTreasury}") String productName,
-        @Value("${ebics.product.language:de}") String productLanguage
+        @Value("${ebics.product.language:de}") String productLanguage,
+        @Value("${ebics.countryCode:DE}") String countryCode
     ) {
         this.keystore = keystore;
         this.hostId = hostId;
@@ -74,6 +76,7 @@ public class RealEbicsClientFacade implements EbicsClientFacade {
         this.bankName = bankName;
         this.productName = productName;
         this.productLanguage = productLanguage;
+        this.countryCode = countryCode;
     }
 
     private EbicsClient client() throws Exception {
@@ -95,7 +98,12 @@ public class RealEbicsClientFacade implements EbicsClientFacade {
     }
 
     private void writeDefaultConfigFile(File configFile) throws IOException {
+        // EbicsClient.createEbicsClient() validates countryCode, languageCode, and
+        // productName via ConfigProperties.get() which throws on missing/empty values.
         String body = String.join("\n",
+            "countryCode=" + countryCode.toUpperCase(),
+            "languageCode=" + productLanguage.toLowerCase(),
+            "productName=" + productName,
             "log.file.path=" + keystore.dir().resolve("trace").toString(),
             "client.production.name=" + productName,
             "client.production.language=" + productLanguage,
