@@ -13,12 +13,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   assignWorkTimeModelToUser,
-  createWorkTimeModel,
   deleteWorkTimeModel,
   getUserProfilesForMyCompanies,
   getWorkTimeModelDays,
   getWorkTimeModels,
-  replaceWorkTimeModelDays,
 } from "@/lib/db";
 import type { UserProfile, WorkTimeModel } from "@/lib/types";
 import { WEEKDAY_LABELS_LONG } from "@/lib/types";
@@ -165,19 +163,42 @@ export default function ArbeitszeitmodelleAdminPage() {
       const weeklyTotal = createDraft.days
         .filter((d) => d.enabled)
         .reduce((s, d) => s + d.daily_target_minutes, 0);
-      const model = await createWorkTimeModel({
-        name: createDraft.name.trim() || "Neues Modell",
-        weekly_target_minutes: weeklyTotal,
-        unpaid_break_minutes: createDraft.unpaid_break_minutes,
-        vacation_days_per_year: createDraft.vacation_days_per_year,
-      });
       const dayRows = createDraft.days.map((d) => ({
         weekday: d.weekday,
         start_time: d.enabled ? (d.start_time || null) : null,
         end_time: d.enabled ? (d.end_time || null) : null,
         daily_target_minutes: d.enabled ? d.daily_target_minutes : 0,
       }));
-      await replaceWorkTimeModelDays(model.id, dayRows);
+
+      // ORA-2295 (5th regression) — route through service-role API so RLS
+      // denials or silent insert failures surface as user-visible errors
+      // instead of looking like a successful save. Same anti-pattern as the
+      // edit path fixed in commit 351d6c0.
+      const companyId =
+        typeof window !== "undefined"
+          ? localStorage.getItem("activeCompanyId") || "vrthefans"
+          : "vrthefans";
+      const res = await fetch(`/api/admin/work-time-models`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company_id: companyId,
+          name: createDraft.name.trim() || "Neues Modell",
+          weekly_target_minutes: weeklyTotal,
+          unpaid_break_minutes: createDraft.unpaid_break_minutes,
+          vacation_days_per_year: createDraft.vacation_days_per_year,
+          days: dayRows,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg =
+          (data as { error?: string }).error ||
+          `Anlegen fehlgeschlagen (${res.status})`;
+        alert(`Fehler beim Anlegen: ${msg}`);
+        throw new Error(msg);
+      }
+
       resetCreateDraft();
       setShowCreate(false);
       await loadAll();
