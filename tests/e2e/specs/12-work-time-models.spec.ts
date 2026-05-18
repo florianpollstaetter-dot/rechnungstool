@@ -61,11 +61,14 @@ test("admin legt Modell an mit Default-Pause 30 + 32h-Woche, weist es qa-empty z
   // ---------- 2) "Neues Modell" → Form ----------
   await page.getByRole("button", { name: /Neues Modell/i }).click();
 
-  // Labels im ModelForm sind nicht htmlFor-assoziiert — Inputs werden über
-  // die enthaltende `<div>` mit Label-Text gefunden.
+  // Labels im ModelForm sind nicht htmlFor-assoziiert — wir ankern auf dem
+  // <label>-Element und gehen einen Schritt nach oben zum wrapping <div>, das
+  // genau label+input zusammenhält. Der vorherige `form.locator("div")`-Pfad
+  // hat den umgebenden Grid-Container (`grid-cols-3`) gematcht und damit
+  // `.first()` auf das Name-Input geleitet statt auf Pause.
   const form = page.locator("form").filter({ hasText: /Wochenpensum/i });
   const fieldByLabel = (label: RegExp) =>
-    form.locator("div").filter({ has: page.getByText(label) }).locator("input").first();
+    form.locator("label").filter({ hasText: label }).locator("xpath=../input").first();
 
   // DoD: Pause/Tag muss mit 30 vorbelegt sein.
   const pauseInput = fieldByLabel(/Unbez\. Pause\/Tag/);
