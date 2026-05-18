@@ -1,4 +1,6 @@
 // ORA-2310 — Treasury Phase 3 W3.5 EBICS happy-path helpers.
+// ORA-2312 — Schema reconciled to `treasury_bank_connections` (plural). The
+// service-role seed and the wizard now write the same table; no bridge.
 //
 // Companions to `treasury.ts`. These helpers cover the parts of the EBICS
 // roundtrip that the spec needs to set up or assert against:
@@ -7,21 +9,13 @@
 //   - drive the four wizard POSTs from inside a logged-in Playwright page,
 //     so the same browser session that the user would walk through actually
 //     issues the requests
-//   - seed a `treasury_bank_connections` (plural) row + matching
+//   - seed a `treasury_bank_connections` row + matching
 //     `treasury_bank_accounts` row that the poller's `selectDueConnections`
 //     can pick up, using service-role
 //   - call `GET /api/treasury/ebics/poll` with the test CRON_SECRET so the
 //     spec can drive a deterministic cron tick instead of waiting on a
 //     real Vercel-Cron schedule
 //   - tear the EBICS-specific rows down at the end of the suite
-//
-// Why service-role seeds the polling row: ORA-2307 and ORA-2308 currently
-// store EBICS subscriber data in two disjoint tables
-// (`treasury_bank_connection` singular for the wizard, `treasury_bank_connections`
-// plural for the poller). Reconciling them belongs to the integration step
-// of ORA-2288 (the parent EBICS-Polling-Implementation epic) — not to this
-// spec. Until then this helper bridges the gap so the happy-path roundtrip
-// can be exercised end-to-end against the docker-compose mock + sidecar.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Page } from "@playwright/test";
@@ -44,9 +38,9 @@ export interface WizardConnection {
   id: string;
   company_id: string;
   setup_status: string;
-  host_id: string;
-  partner_id: string;
-  user_id: string;
+  ebics_host_id: string;
+  ebics_partner_id: string;
+  ebics_user_id: string;
   activated_at: string | null;
 }
 
@@ -182,9 +176,12 @@ export interface PollerSeedParams {
 }
 
 /**
- * Seed a poller-ready `treasury_bank_connections` row + matching
- * `treasury_bank_accounts` row so `selectDueConnections` returns a tickable
- * connection. Uses service-role to bypass RLS.
+ * Make the wizard-created `treasury_bank_connections` row poll-ready by
+ * filling the poller-side fields (bank_bic, sidecar_base_url) and attaching
+ * a `treasury_bank_accounts` row. After ORA-2312 the wizard and poller share
+ * the same row, identified by (company_id, ebics_host_id, ebics_partner_id,
+ * ebics_user_id); we upsert against that unique key so the helper works
+ * whether the wizard ran first or not. Uses service-role to bypass RLS.
  */
 export async function seedPollerConnection(p: PollerSeedParams): Promise<PollerSeed> {
   const svc = service();
@@ -199,20 +196,23 @@ export async function seedPollerConnection(p: PollerSeedParams): Promise<PollerS
 
   const conn = await svc
     .from("treasury_bank_connections")
-    .insert({
-      company_id: p.companyId,
-      bank_bic: p.bankBic,
-      bank_name: p.bankName,
-      ebics_host_id: p.hostId,
-      ebics_partner_id: p.partnerId,
-      ebics_user_id: p.userId,
-      sidecar_base_url: p.sidecarBaseUrl ?? null,
-      timezone: "Europe/Vienna",
-      status: "active",
-    })
+    .upsert(
+      {
+        company_id: p.companyId,
+        bank_bic: p.bankBic,
+        bank_name: p.bankName,
+        ebics_host_id: p.hostId,
+        ebics_partner_id: p.partnerId,
+        ebics_user_id: p.userId,
+        sidecar_base_url: p.sidecarBaseUrl ?? null,
+        timezone: "Europe/Vienna",
+        status: "active",
+      },
+      { onConflict: "company_id,ebics_host_id,ebics_partner_id,ebics_user_id" },
+    )
     .select("id")
     .single();
-  if (conn.error) throw new Error(`treasury_bank_connections insert: ${conn.error.message}`);
+  if (conn.error) throw new Error(`treasury_bank_connections upsert: ${conn.error.message}`);
   const connectionId = (conn.data as { id: string }).id;
 
   const account = await svc
@@ -324,19 +324,12 @@ export async function snapshotCounts(companyId: string): Promise<CountsSnapshot>
 
 export async function cleanupEbicsFor(companyId: string): Promise<void> {
   const svc = service();
-  // Order: transactions → statements → accounts → connections (plural) →
-  // bank_connection (singular wizard table) → entities → audit_chain.
+  // Order: transactions → statements → accounts → connections → entities →
+  // audit_chain. Single bank-connections table after ORA-2312.
   await svc.from("treasury_transactions").delete().eq("company_id", companyId);
   await svc.from("treasury_statements").delete().eq("company_id", companyId);
   await svc.from("treasury_bank_accounts").delete().eq("company_id", companyId);
   await svc.from("treasury_bank_connections").delete().eq("company_id", companyId);
-  // `treasury_bank_connection` (singular) is the ORA-2308 wizard table.
-  // Tolerate missing-table errors when the ORA-2308 migration has not been
-  // applied to the target Supabase yet.
-  const wizardDel = await svc.from("treasury_bank_connection").delete().eq("company_id", companyId);
-  if (wizardDel.error && !/relation .* does not exist/i.test(wizardDel.error.message)) {
-    throw new Error(`treasury_bank_connection delete: ${wizardDel.error.message}`);
-  }
   await svc.from("treasury_entities").delete().eq("company_id", companyId);
   await svc.from("treasury_audit_chain").delete().eq("company_id", companyId);
 }

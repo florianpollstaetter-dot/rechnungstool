@@ -62,21 +62,21 @@ export default function Step2SubscriberBootstrap({ connection, onCompleted, onEr
       const blob = await pdf(
         <EbicsLetterPDF
           kind={kind}
-          bankName={current.bank_name}
-          hostId={current.host_id}
-          partnerId={current.partner_id}
-          userId={current.user_id}
-          customerId={current.customer_id}
+          bankName={current.bank_name ?? ""}
+          hostId={current.ebics_host_id}
+          partnerId={current.ebics_partner_id}
+          userId={current.ebics_user_id}
+          customerId={current.customer_id ?? ""}
           systemId={current.system_id}
           ebicsVersion={current.ebics_version}
-          subscriberName={current.bank_name}
+          subscriberName={current.bank_name ?? ""}
           generatedAt={(current.letters_generated_at ?? new Date().toISOString()).slice(0, 10)}
         />,
       ).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `EBICS_${kind.toUpperCase()}_${current.host_id}_${current.partner_id}.pdf`;
+      a.download = `EBICS_${kind.toUpperCase()}_${current.ebics_host_id}_${current.ebics_partner_id}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

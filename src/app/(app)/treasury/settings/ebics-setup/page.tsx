@@ -43,7 +43,7 @@ export default async function EbicsSetupPage() {
 
   const service = createServiceClient();
   const { data: connection } = await service
-    .from("treasury_bank_connection")
+    .from("treasury_bank_connections")
     .select("*")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false })

@@ -28,13 +28,13 @@ interface FormState {
 function initial(connection: TreasuryBankConnection | null): FormState {
   if (connection) {
     return {
-      bank_preset: connection.bank_preset,
-      bank_name: connection.bank_name,
-      host_url: connection.host_url,
-      host_id: connection.host_id,
-      partner_id: connection.partner_id,
-      user_id: connection.user_id,
-      customer_id: connection.customer_id,
+      bank_preset: connection.bank_preset ?? "manual",
+      bank_name: connection.bank_name ?? "",
+      host_url: connection.host_url ?? "",
+      host_id: connection.ebics_host_id,
+      partner_id: connection.ebics_partner_id,
+      user_id: connection.ebics_user_id,
+      customer_id: connection.customer_id ?? "",
       system_id: connection.system_id ?? "",
     };
   }

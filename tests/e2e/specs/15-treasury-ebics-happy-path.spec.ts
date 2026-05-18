@@ -135,7 +135,7 @@ test("EBICS happy-path: wizard → cron tick → idempotent re-poll", async ({ p
     system_id: null,
     ebics_version: "H005",
   });
-  expect(step1.host_id).toBe(TEST_HOST_ID);
+  expect(step1.ebics_host_id).toBe(TEST_HOST_ID);
   expect(["draft", "init_sent"]).toContain(step1.setup_status);
   const connectionId = step1.id;
 
@@ -151,11 +151,11 @@ test("EBICS happy-path: wizard → cron tick → idempotent re-poll", async ({ p
   expect(afterHev.setup_status).toBe("active");
   expect(afterHev.activated_at).not.toBeNull();
 
-  // ── Bridge: seed a polling-table row. ────────────────────────────────
-  // ORA-2307 reads `treasury_bank_connections` (plural); ORA-2308 writes
-  // `treasury_bank_connection` (singular). Reconciliation is parent
-  // ORA-2288's job. Until then, mirror the wizard's subscriber identity
-  // into the polling table so `selectDueConnections` can pick it up.
+  // ── Attach poller-side fields + bank account. ───────────────────────
+  // After ORA-2312 the wizard and poller share the same
+  // `treasury_bank_connections` row; this upserts the bank_bic +
+  // sidecar_base_url that the wizard does not collect, and inserts a
+  // `treasury_bank_accounts` row so `selectDueConnections` has a target.
   const seed = await seedPollerConnection({
     companyId: tenant.primarySlug,
     bankBic: "MOCKDEFFXXX",

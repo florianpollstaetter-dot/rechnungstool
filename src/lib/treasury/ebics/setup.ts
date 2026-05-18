@@ -1,7 +1,14 @@
 // ORA-2308 — Backend operations for the EBICS INI/HIA-Setup-Wizard.
+// ORA-2312 — Reconciled to the plural `treasury_bank_connections` table that
+// the W3.2 poller already reads. Column names follow the table:
+//   wire-name   → DB column
+//   host_id     → ebics_host_id
+//   partner_id  → ebics_partner_id
+//   user_id     → ebics_user_id
+//   last_error  → last_error_message
 //
 // Responsibilities:
-//   - Persist the `treasury_bank_connection` draft from Step 1 (Bank-Connector).
+//   - Persist the connection draft from Step 1 (Bank-Connector).
 //   - Drive the sidecar through INI/HIA (Step 2), HPB+HKD (Step 3), HEV
 //     (Step 4) — exactly one sidecar call per wizard action.
 //   - Update the connection row's `setup_status` machine so the UI can resume
@@ -23,6 +30,8 @@ import type {
   EbicsVersion,
   TreasuryBankConnection,
 } from "../types";
+
+const TABLE = "treasury_bank_connections";
 
 export interface BankConnectorInput {
   bank_preset: EbicsBankPreset;
@@ -129,8 +138,8 @@ interface UpsertOptions {
 
 /**
  * Persist a draft connection. If a row with the same
- * (company_id, host_id, partner_id, user_id) tuple already exists, update it
- * — admins may revisit the wizard to fix typos.
+ * (company_id, ebics_host_id, ebics_partner_id, ebics_user_id) tuple already
+ * exists, update it — admins may revisit the wizard to fix typos.
  */
 export async function upsertConnectionDraft(
   service: SupabaseClient,
@@ -140,12 +149,12 @@ export async function upsertConnectionDraft(
   if (err) throw new EbicsSetupError("save_draft", err);
 
   const existing = await service
-    .from("treasury_bank_connection")
+    .from(TABLE)
     .select("*")
     .eq("company_id", opts.companyId)
-    .eq("host_id", opts.input.host_id)
-    .eq("partner_id", opts.input.partner_id)
-    .eq("user_id", opts.input.user_id)
+    .eq("ebics_host_id", opts.input.host_id)
+    .eq("ebics_partner_id", opts.input.partner_id)
+    .eq("ebics_user_id", opts.input.user_id)
     .maybeSingle<TreasuryBankConnection>();
 
   const row: Partial<TreasuryBankConnection> = {
@@ -153,9 +162,9 @@ export async function upsertConnectionDraft(
     bank_preset: opts.input.bank_preset,
     bank_name: opts.input.bank_name,
     host_url: opts.input.host_url,
-    host_id: opts.input.host_id,
-    partner_id: opts.input.partner_id,
-    user_id: opts.input.user_id,
+    ebics_host_id: opts.input.host_id,
+    ebics_partner_id: opts.input.partner_id,
+    ebics_user_id: opts.input.user_id,
     customer_id: opts.input.customer_id,
     system_id: opts.input.system_id ?? null,
     ebics_version: opts.input.ebics_version ?? "H005",
@@ -164,7 +173,7 @@ export async function upsertConnectionDraft(
 
   if (existing.data) {
     const { data, error } = await service
-      .from("treasury_bank_connection")
+      .from(TABLE)
       .update(row)
       .eq("id", existing.data.id)
       .select("*")
@@ -176,7 +185,7 @@ export async function upsertConnectionDraft(
   }
 
   const { data, error } = await service
-    .from("treasury_bank_connection")
+    .from(TABLE)
     .insert({ ...row, setup_status: "draft" satisfies EbicsConnectionStatus })
     .select("*")
     .single<TreasuryBankConnection>();
@@ -197,7 +206,7 @@ async function loadConnection(
   opts: RunStepOptions,
 ): Promise<TreasuryBankConnection> {
   const { data, error } = await service
-    .from("treasury_bank_connection")
+    .from(TABLE)
     .select("*")
     .eq("id", opts.connectionId)
     .eq("company_id", opts.companyId)
@@ -218,7 +227,7 @@ async function patchConnection(
   patch: Partial<TreasuryBankConnection>,
 ): Promise<TreasuryBankConnection> {
   const { data, error } = await service
-    .from("treasury_bank_connection")
+    .from(TABLE)
     .update(patch)
     .eq("id", id)
     .select("*")
@@ -234,7 +243,7 @@ async function patchConnection(
 }
 
 function buildClient(connection: TreasuryBankConnection, service: SupabaseClient): EbicsSidecarClient {
-  const config = loadSidecarConfig(connection.host_id);
+  const config = loadSidecarConfig(connection.ebics_host_id);
   return new EbicsSidecarClient({ config, supabase: service });
 }
 
@@ -256,16 +265,16 @@ export async function runIniHiaBootstrap(
     // any UI change.
     return patchConnection(service, connection.id, {
       setup_status: "letters_pending",
-      keystore_id: connection.user_id,
+      keystore_id: connection.ebics_user_id,
       init_order_id: result.iniOrderId,
       hia_order_id: result.hiaOrderId,
       letters_generated_at: new Date().toISOString(),
-      last_error: null,
+      last_error_message: null,
     });
   } catch (err) {
     await patchConnection(service, connection.id, {
       setup_status: "failed",
-      last_error: err instanceof Error ? err.message : String(err),
+      last_error_message: err instanceof Error ? err.message : String(err),
     });
     if (err instanceof EbicsClientError) {
       throw new EbicsSetupError("init", err.message, err);
@@ -300,12 +309,12 @@ export async function runHpbHkdSync(
       setup_status: "hkd_pending",
       order_types: decoded ?? connection.order_types,
       last_hpb_at: new Date().toISOString(),
-      last_error: null,
+      last_error_message: null,
     });
   } catch (err) {
     await patchConnection(service, connection.id, {
       setup_status: "failed",
-      last_error: err instanceof Error ? err.message : String(err),
+      last_error_message: err instanceof Error ? err.message : String(err),
     });
     if (err instanceof EbicsClientError) {
       throw new EbicsSetupError("hkd", err.message, err);
@@ -337,18 +346,18 @@ export async function runHevProbe(
       setup_status: "active",
       last_hev_version: version,
       activated_at: new Date().toISOString(),
-      last_error: null,
+      last_error_message: null,
     });
   } catch (err) {
     if (!(err instanceof EbicsSetupError)) {
       await patchConnection(service, connection.id, {
         setup_status: "failed",
-        last_error: err instanceof Error ? err.message : String(err),
+        last_error_message: err instanceof Error ? err.message : String(err),
       });
     } else {
       await patchConnection(service, connection.id, {
         setup_status: "failed",
-        last_error: err.message,
+        last_error_message: err.message,
       });
     }
     if (err instanceof EbicsClientError) {

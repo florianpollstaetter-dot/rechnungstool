@@ -91,7 +91,7 @@ export default function Step4HevProbe({ connection, onCompleted, onError }: Prop
             />
             <StatusCell
               label={t("treasury.settings.ebicsSetup.step4.lastPollLabel")}
-              value={current.last_poll_at ? new Date(current.last_poll_at).toLocaleString("de-AT") : "—"}
+              value={current.last_polled_at ? new Date(current.last_polled_at).toLocaleString("de-AT") : "—"}
             />
             <StatusCell
               label={t("treasury.settings.ebicsSetup.step4.nextPollLabel")}

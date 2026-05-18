@@ -83,11 +83,17 @@ export interface TreasuryTransaction {
   created_at: string;
 }
 
-// ORA-2308 — EBICS Hausbank-Anbindung pro Subscriber.
-// Mirrors `treasury_bank_connection` from
-// `20260518120000_ora2308_treasury_bank_connection.sql`. One row per EBICS
-// subscriber (Partner-ID + User-ID + Host-ID), N `treasury_bank_accounts`
-// (IBANs) attached via `connection_id`.
+// ORA-2308 + ORA-2312 — EBICS Hausbank-Anbindung pro Subscriber.
+// Mirrors `treasury_bank_connections` (plural) from
+// `20260518_treasury_bank_connections.sql` (W3.2 poller fields) plus the
+// W3.6 wizard fields from
+// `20260518130000_treasury_bank_connections_wizard_fields.sql`. One row per
+// EBICS subscriber (Host-ID + Partner-ID + User-ID), N
+// `treasury_bank_accounts` (IBANs) attached via `connection_id`.
+//
+// Two distinct lifecycles share the row:
+//   - `status` — operational gate for the poller cron.
+//   - `setup_status` — wizard onboarding state machine.
 
 export type EbicsBankPreset = "erste" | "sparkasse" | "deutsche_bank" | "manual";
 
@@ -102,16 +108,32 @@ export type EbicsConnectionStatus =
 
 export type EbicsVersion = "H004" | "H005";
 
+export type TreasuryConnectionOperationalStatus = "active" | "paused" | "disabled";
+
 export interface TreasuryBankConnection {
   id: string;
   company_id: string;
-  bank_preset: EbicsBankPreset;
-  bank_name: string;
-  host_url: string;
-  host_id: string;
-  partner_id: string;
-  user_id: string;
-  customer_id: string;
+  // W3.2 poller fields
+  bank_bic: string | null;
+  bank_name: string | null;
+  ebics_host_id: string;
+  ebics_partner_id: string;
+  ebics_user_id: string;
+  sidecar_base_url: string | null;
+  timezone: string;
+  status: TreasuryConnectionOperationalStatus;
+  last_polled_at: string | null;
+  last_camt053_at: string | null;
+  last_camt053_statement_date: string | null;
+  consecutive_failures: number;
+  breaker_open_until: string | null;
+  last_error_code: string | null;
+  last_error_message: string | null;
+  last_request_id: string | null;
+  // W3.6 wizard fields
+  bank_preset: EbicsBankPreset | null;
+  host_url: string | null;
+  customer_id: string | null;
   system_id: string | null;
   ebics_version: EbicsVersion;
   setup_status: EbicsConnectionStatus;
@@ -122,10 +144,8 @@ export interface TreasuryBankConnection {
   letters_generated_at: string | null;
   last_hev_version: string | null;
   last_hpb_at: string | null;
-  last_poll_at: string | null;
   next_poll_at: string | null;
   activated_at: string | null;
-  last_error: string | null;
   metadata: Record<string, unknown>;
   created_by: string | null;
   created_at: string;
