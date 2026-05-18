@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # treasury-poc/scripts/smoke.sh
 #
-# End-to-end smoke for the EBICS sidecar against the Libeufin sandbox.
+# End-to-end smoke for the EBICS sidecar against the in-house EBICS-3.0 mock.
 # Sequence: HEV → INI/HIA bootstrap → HPB → HKD sanity → STA round-trip → CCT upload.
 #
-# Pre-req: `docker compose -f treasury-poc/docker-compose.libeufin.yml up -d`
+# Pre-req: `docker compose -f treasury-poc/docker-compose.ebics-mock.yml up -d`
 # Exit code is non-zero on any step failure so CI can fail fast.
 
 set -euo pipefail

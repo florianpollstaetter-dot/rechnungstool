@@ -39,13 +39,13 @@ Begründung Sidecar (statt In-Process):
 
 ## Quickstart (PoC, lokal)
 
-Die ganze Kette (Libeufin Sandbox + Bootstrap + ebics-sidecar) läuft als ein Compose-Bundle:
+Die ganze Kette (in-house EBICS-3.0 Mock + ebics-sidecar) läuft als ein Compose-Bundle:
 
 ```bash
 cd treasury-poc
 
-# 1. Komplettes Stack hochfahren: Postgres + Libeufin + Bootstrap + Java-Sidecar
-docker compose -f docker-compose.libeufin.yml up -d --build
+# 1. Komplettes Stack hochfahren: EBICS-Mock + Java-Sidecar
+docker compose -f docker-compose.ebics-mock.yml up -d --build
 
 # 2. Readiness des Sidecars abwarten (curl returnt UP wenn Spring Actuator bereit)
 curl -sf http://127.0.0.1:8081/actuator/health/readiness

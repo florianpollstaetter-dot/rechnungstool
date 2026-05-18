@@ -18,7 +18,7 @@ app = FastAPI(title="ebics-sidecar-py", version="0.1.0")
 HOST_ID = os.getenv("EBICS_HOST_ID", "OCTOPOC")
 PARTNER_ID = os.getenv("EBICS_PARTNER_ID", "OCTO001")
 USER_ID = os.getenv("EBICS_USER_ID", "OCTOUSR1")
-BANK_URL = os.getenv("EBICS_BANK_URL", "http://libeufin-sandbox:5016/ebicsweb")
+BANK_URL = os.getenv("EBICS_BANK_URL", "http://ebics-mock:5016/ebicsweb")
 
 
 @app.get("/ebics/health")
