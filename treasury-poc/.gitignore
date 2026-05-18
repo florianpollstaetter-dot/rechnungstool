@@ -10,8 +10,12 @@ bench/statements/*.xml
 .env
 .env.local
 
-# Real bank credentials never land here
+# Real bank credentials never land here.
+# Allow Java/Kotlin source files under any keystore/ package — only runtime
+# key material (serialized stores, certificates) must stay out of git.
 **/keystore/**
+!**/keystore/*.java
+!**/keystore/*.kt
 *.p12
 *.jks
 *.pem
