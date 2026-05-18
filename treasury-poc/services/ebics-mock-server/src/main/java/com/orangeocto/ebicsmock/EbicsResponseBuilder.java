@@ -2,6 +2,8 @@ package com.orangeocto.ebicsmock;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
@@ -51,6 +53,11 @@ public class EbicsResponseBuilder {
     @Value("${ebicsmock.iban}")     private String iban;
     @Value("${ebicsmock.bic}")      private String bic;
     @Value("${ebicsmock.currency}") private String currency;
+
+    // ORA-2298: when set, STA/C53 returns this fixture instead of the hardcoded
+    // mini-CAMT.053 — drives bench payload size (1k / 10k / 100k entries).
+    @Value("${ebicsmock.camt053FixturePath:}") private String camt053FixturePath;
+    private volatile String camt053Cache;
 
     public EbicsResponseBuilder(SubscriberRegistry subscribers) {
         this.subscribers = subscribers;
@@ -391,6 +398,21 @@ public class EbicsResponseBuilder {
     }
 
     private String camt053Fixture() {
+        if (camt053FixturePath != null && !camt053FixturePath.isBlank()) {
+            String cached = camt053Cache;
+            if (cached != null) return cached;
+            try {
+                byte[] bytes = Files.readAllBytes(Path.of(camt053FixturePath));
+                String loaded = new String(bytes, StandardCharsets.UTF_8);
+                LOG.info("Loaded CAMT.053 bench fixture from {} ({} bytes)",
+                    camt053FixturePath, bytes.length);
+                camt053Cache = loaded;
+                return loaded;
+            } catch (Exception e) {
+                LOG.warn("Failed to load CAMT.053 fixture from {} ({}), falling back to hardcoded.",
+                    camt053FixturePath, e.getMessage());
+            }
+        }
         return "<Document xmlns=\"urn:iso:std:iso:20022:tech:xsd:camt.053.001.08\">\n" +
             "  <BkToCstmrStmt>\n" +
             "    <GrpHdr>\n" +
