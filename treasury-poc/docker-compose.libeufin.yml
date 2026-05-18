@@ -21,23 +21,31 @@ services:
       retries: 10
 
   libeufin-sandbox:
-    image: registry.taler.net/libeufin-sandbox:0.10.4
+    # Built from source: treasury-poc/services/libeufin-sandbox/Dockerfile
+    # Replaces registry.taler.net/libeufin-sandbox:0.10.4 (NXDOMAIN).
+    # libeufin 1.x renamed the binary to libeufin-bank; env-var prefix changed
+    # from LIBEUFIN_SANDBOX_* → LIBEUFIN_BANK_*.
+    build:
+      context: ./services/libeufin-sandbox
+      dockerfile: Dockerfile
+    image: libeufin-bank:v1.5.0
     container_name: libeufin-sandbox
     depends_on:
       libeufin-db:
         condition: service_healthy
     environment:
-      LIBEUFIN_SANDBOX_DB_CONNECTION: "jdbc:postgresql://libeufin-db:5432/libeufin?user=libeufin&password=libeufin-poc"
-      LIBEUFIN_SANDBOX_ADMIN_PASSWORD: "admin-poc"
-      LIBEUFIN_SANDBOX_CURRENCY: "EUR"
+      LIBEUFIN_BANK_DB_CONNECTION: "jdbc:postgresql://libeufin-db:5432/libeufin?user=libeufin&password=libeufin-poc"
+      LIBEUFIN_BANK_ADMIN_PASSWORD: "admin-poc"
+      LIBEUFIN_BANK_CURRENCY: "EUR"
+      LIBEUFIN_BANK_PORT: "5016"
     ports:
       - "5016:5016"
-    command: ["serve"]
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5016/"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:5016/config"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 20s
 
   libeufin-bootstrap:
     # One-shot: seedet Default-Bank "orange-octo-test" und einen EBICS-Subscriber.

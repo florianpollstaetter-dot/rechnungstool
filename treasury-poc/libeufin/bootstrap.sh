@@ -1,4 +1,7 @@
 #!/bin/sh
+# libeufin-bank v1.x bootstrap.
+# Admin API prefix changed from /admin/ → /management/ in libeufin 1.0.
+# Idempotent: all POST calls use || true so re-runs are safe.
 set -eu
 
 SANDBOX="http://libeufin-sandbox:5016"
@@ -6,16 +9,16 @@ ADMIN_AUTH="admin:admin-poc"
 
 apk add --no-cache curl jq >/dev/null
 
-echo "Waiting for Libeufin Sandbox at ${SANDBOX} ..."
-until curl -sf "${SANDBOX}/" >/dev/null; do sleep 2; done
+echo "Waiting for Libeufin Bank at ${SANDBOX} ..."
+until curl -sf "${SANDBOX}/config" >/dev/null; do sleep 2; done
 
-# Idempotent: create the demo EBICS host if missing.
-curl -sS -u "${ADMIN_AUTH}" -X POST "${SANDBOX}/admin/ebics/hosts" \
+# Create the demo EBICS host.
+curl -sS -u "${ADMIN_AUTH}" -X POST "${SANDBOX}/management/ebics/hosts" \
   -H 'content-type: application/json' \
   -d '{"hostID":"OCTOPOC","ebicsVersion":"3.0"}' || true
 
 # Create a demo bank account "orange-octo-test" with IBAN AT483200000012345864.
-curl -sS -u "${ADMIN_AUTH}" -X POST "${SANDBOX}/admin/bank-accounts" \
+curl -sS -u "${ADMIN_AUTH}" -X POST "${SANDBOX}/management/bank-accounts" \
   -H 'content-type: application/json' \
   -d '{
     "label":"orange-octo-test",
@@ -26,7 +29,7 @@ curl -sS -u "${ADMIN_AUTH}" -X POST "${SANDBOX}/admin/bank-accounts" \
   }' || true
 
 # Register an EBICS subscriber bound to the bank account.
-curl -sS -u "${ADMIN_AUTH}" -X POST "${SANDBOX}/admin/ebics/subscribers" \
+curl -sS -u "${ADMIN_AUTH}" -X POST "${SANDBOX}/management/ebics/subscribers" \
   -H 'content-type: application/json' \
   -d '{
     "hostID":"OCTOPOC",
