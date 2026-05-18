@@ -76,8 +76,9 @@ public class EbicsWebController {
     }
 
     private String handleUnsecured(String body) {
-        // INI and HIA are sent as ebicsUnsecuredRequest with OrderType INI / HIA.
-        String orderType = sniff("OrderType", body);
+        // ebics-java-client H005 uses AdminOrderType (not OrderType) in unsecured requests.
+        String orderType = sniff("AdminOrderType", body);
+        if (orderType == null) orderType = sniff("OrderType", body);
         LOG.info("unsecured order={}", orderType);
         if ("INI".equals(orderType) || "HIA".equals(orderType)) {
             subscribers.recordKeyManagement(orderType);
@@ -89,7 +90,9 @@ public class EbicsWebController {
     private String handleNoPubKeyDigests(String body) {
         // HPB is sent as ebicsNoPubKeyDigestsRequest — subscriber doesn't yet
         // have the bank's keys, so the request omits the digest header.
-        String orderType = sniff("OrderType", body);
+        // ebics-java-client H005 uses AdminOrderType in this envelope too.
+        String orderType = sniff("AdminOrderType", body);
+        if (orderType == null) orderType = sniff("OrderType", body);
         LOG.info("noPubKeyDigests order={}", orderType);
         if ("HPB".equals(orderType)) {
             return responses.hpb(bankKeys);
