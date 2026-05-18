@@ -298,10 +298,16 @@ public class RealEbicsClientFacade implements EbicsClientFacade {
             File tmp = Files.createTempFile("cct-", ".xml").toFile();
             try {
                 Files.write(tmp.toPath(), pain001);
-                // master API requires EbicsUploadParams (v2.0.0 had a 4-param overload
-                // that omitted DataDigest from the upload XML, failing schema validation).
+                // master API requires EbicsUploadParams with non-null OrderParams.
+                // Passing null triggers qualifySubstitutionGroup(StandardOrderParamsType.type)
+                // which calls cursor.setName(null) → IllegalArgumentException("Name is null")
+                // because StandardOrderParamsType is not a document element (no QName).
+                // BTF OrderParams makes the library use BTUOrderParamsDocument.type instead,
+                // which has a proper getDocumentElementName(). AdminOrderType stays "CCT" in
+                // the H005 header so the mock still routes to cctAck() correctly.
                 String bankOrderId = nextOrderId(u);
-                EbicsUploadParams params = new EbicsUploadParams(bankOrderId, null);
+                EbicsUploadParams params = new EbicsUploadParams(bankOrderId,
+                    new EbicsUploadParams.OrderParams("CCT", "DE", null, "pain.001", "09", false));
                 c.sendFile(tmp, u, product(), OrderType.CCT, params);
                 LOG.info("ebics.cct requestId={} bytes={} bankOrderId={}",
                     requestId, pain001.length, bankOrderId);
