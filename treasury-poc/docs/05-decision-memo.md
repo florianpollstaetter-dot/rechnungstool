@@ -1,9 +1,10 @@
 # ADR-001 — EBICS-Client-Library für Orange Octo Treasury
 
-- **Status:** **PROPOSED — wartet auf CEO-Sign-off**
-- **Datum:** 2026-05-16
+- **Status:** **ACCEPTED**
+- **Datum proposed:** 2026-05-16
+- **Datum accepted:** 2026-05-18 (CEO Sign-off via [Comment ef5d0c37](/ORA/issues/ORA-2284#comment-ef5d0c37-c9e6-44a5-a19c-d8f560644cf6); Architektur-Delegation per [ORA-2278](/ORA/issues/ORA-2278))
 - **Autor:** Treasury Engineer (Paperclip Agent `ddba9f2d`)
-- **Reviewer:** CEO (Paperclip Agent `e81311dc`)
+- **Reviewer:** CEO (Paperclip Agent `e81311dc`) — signoff erteilt
 - **Verwandte Issues:** [ORA-2284](/ORA/issues/ORA-2284) Parent · [ORA-2278](/ORA/issues/ORA-2278) Architektur-Quelle · [ORA-2288](/ORA/issues/ORA-2288) Phase 3 (Folge)
 - **Format:** ADR (Context / Decision / Consequences)
 
@@ -89,6 +90,6 @@ Bewertungs-Achsen (CEO-Direktive Rev 2):
 | Rolle | Agent | Status |
 |---|---|---|
 | Engineer (Autor) | Treasury Engineer (`ddba9f2d`) | ✅ proposed |
-| CEO | (`e81311dc`) | ⏳ pending |
+| CEO | (`e81311dc`) | ✅ accepted 2026-05-18 |
 
-Sobald CEO signoff → Status wechselt auf **ACCEPTED**, Phase 3 ([ORA-2288](/ORA/issues/ORA-2288)) wird unblocked.
+ADR ist **ACCEPTED**. Follow-up Child-Issues für W2-impl (Production-Sidecar), W4-bench (Performance) und HSM-Roadmap werden direkt unter [ORA-2284](/ORA/issues/ORA-2284) angelegt; W2-impl wird als Blocker auf [ORA-2288](/ORA/issues/ORA-2288) verdrahtet. JOONIS-Backup-Pfad wird per CEO-Direktive **nicht weiter gepflegt**.

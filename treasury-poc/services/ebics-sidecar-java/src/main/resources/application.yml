@@ -11,12 +11,29 @@ management:
     health:
       probes:
         enabled: true
+      show-details: never
+      group:
+        readiness:
+          include: readinessState,diskSpace
+        liveness:
+          include: livenessState
+  health:
+    readinessstate:
+      enabled: true
+    livenessstate:
+      enabled: true
 
 ebics:
   hostId: ${EBICS_HOST_ID:OCTOPOC}
   partnerId: ${EBICS_PARTNER_ID:OCTO001}
   userId: ${EBICS_USER_ID:OCTOUSR1}
-  url: ${EBICS_BANK_URL:http://libeufin-sandbox:5016/ebicsweb}
+  url: ${EBICS_BANK_URL:http://ebics-mock:5016/ebicsweb}
+  bankName: ${EBICS_BANK_NAME:orange-octo-test}
+  statementOrderType: ${EBICS_STATEMENT_ORDER_TYPE:C53}
+  countryCode: ${EBICS_COUNTRY_CODE:DE}
+  product:
+    name: ${EBICS_PRODUCT_NAME:OrangeOctoTreasury}
+    language: ${EBICS_PRODUCT_LANGUAGE:de}
   keystore:
     dir: ${EBICS_KEYSTORE_DIR:/var/lib/ebics-sidecar/keystore}
     password: ${EBICS_KEYSTORE_PASSWORD:}
@@ -25,3 +42,6 @@ logging:
   level:
     root: INFO
     com.orangeocto.ebics: DEBUG
+    org.kopi.ebics: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{requestId:-}] %logger{36} - %msg%n"

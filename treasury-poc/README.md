@@ -3,7 +3,7 @@
 Side-by-Side-PoC zweier EBICS-3.0-Client-Bibliotheken für das Orange-Octo-Treasury-Modul.
 Output dieses PoC ist ein **ADR-Decision-Memo** ([`docs/05-decision-memo.md`](docs/05-decision-memo.md)) mit Empfehlung, das CEO + Engineer gemeinsam unterzeichnen.
 
-> **Status**: Scaffold-Phase. Alle Sidecar-Skelette sind vorhanden; Live-Runs gegen Libeufin und Bench-Resultate werden in eigenen Child-Issues (ORA-22xx W1–W6) eingespielt.
+> **Status**: ADR-001 **ACCEPTED** → Kandidat A. Java-Sidecar wird in [ORA-2297](/ORA/issues/ORA-2297) produktiv verdrahtet (W2-impl: echte ebics-java-client-Calls + Libeufin-Round-Trip + CI-Smoke). Python-Sidecar (Kandidat B) bleibt nur als Notfall-Fallback im Repo.
 
 ## Kandidaten
 
@@ -39,24 +39,23 @@ Begründung Sidecar (statt In-Process):
 
 ## Quickstart (PoC, lokal)
 
+Die ganze Kette (in-house EBICS-3.0 Mock + ebics-sidecar) läuft als ein Compose-Bundle:
+
 ```bash
-# 1. Libeufin Mock-Bank starten
 cd treasury-poc
-docker compose -f docker-compose.libeufin.yml up -d
 
-# 2. Kandidat A (Java) starten
-cd services/ebics-sidecar-java
-./mvnw spring-boot:run     # läuft auf :8081
+# 1. Komplettes Stack hochfahren: EBICS-Mock + Java-Sidecar
+docker compose -f docker-compose.ebics-mock.yml up -d --build
 
-# 3. Kandidat B (Python) starten (alternativ, anderer Port)
-cd services/ebics-sidecar-py
-poetry install
-poetry run uvicorn app.main:app --port 8082
+# 2. Readiness des Sidecars abwarten (curl returnt UP wenn Spring Actuator bereit)
+curl -sf http://127.0.0.1:8081/actuator/health/readiness
 
-# 4. Smoke-Test
-curl -X POST http://localhost:8081/init   # Kandidat A: INI/HIA gegen Libeufin
-curl -X POST http://localhost:8082/init   # Kandidat B: dito
+# 3. End-to-End-Smoke (HEV → INI/HIA → HPB → HKD → STA → CCT)
+chmod +x scripts/smoke.sh
+ARTIFACTS_DIR=./smoke-artifacts scripts/smoke.sh
 ```
+
+Der Smoke schreibt die rohen Bank-Responses (`rawBase64`) und Request-IDs in `./smoke-artifacts/*.json` — diese Felder verbraucht die Next.js-Seite später für den Audit-Chain-Hash.
 
 ## Bench-Plan
 
@@ -88,6 +87,7 @@ Resultate: [`bench/results.md`](bench/results.md).
 ## Verwandte Issues
 
 - Parent: [ORA-2284](/ORA/issues/ORA-2284) — Treasury Phase 2: EBICS-Library-PoC + Decision
+- W2-impl: [ORA-2297](/ORA/issues/ORA-2297) — Productionizes the Java-Sidecar gegen Libeufin
 - Epic: [ORA-2280](/ORA/issues/ORA-2280) — Treasury MVP V0
 - Architektur-Quelle: [ORA-2278](/ORA/issues/ORA-2278) Deliverable 08
 - Sandbox-Beschaffung: [ORA-2285](/ORA/issues/ORA-2285) — Erste Bank Wien EBICS-Sandbox One-Pager

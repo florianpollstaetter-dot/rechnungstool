@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   ebics-java-client sidecar (Kandidat A).
-  PoC-Scope: Spring Boot 3.x + ebics-java-client 2.0.0 via JitPack.
+  PoC-Scope: Spring Boot 3.x + ebics-java-client master-SNAPSHOT via JitPack.
   Library-Lizenz: LGPL-2.1-or-later (dynamic linking → unsere App bleibt proprietär).
   Build: ./mvnw clean package; Run: java -jar target/ebics-sidecar-java-0.1.0.jar
 -->
@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.4</version>
+        <version>3.5.14</version>
         <relativePath/>
     </parent>
 
@@ -24,7 +24,11 @@
 
     <properties>
         <java.version>17</java.version>
-        <ebics.version>2.0.0</ebics.version>
+        <ebics.version>master-SNAPSHOT</ebics.version>
+        <!-- Pin Tomcat 10.1.55 to clear all Trivy-flagged HIGH/CRITICAL CVEs
+             (CVE-2026-29145 CRITICAL + 4 HIGH). Spring Boot 3.5.14 ships
+             10.1.x but not yet 10.1.55, so override explicitly. -->
+        <tomcat.version>10.1.55</tomcat.version>
     </properties>
 
     <repositories>
@@ -57,6 +61,18 @@
             <groupId>com.github.ebics-java</groupId>
             <artifactId>ebics-java-client</artifactId>
             <version>${ebics.version}</version>
+        </dependency>
+
+        <!-- Override bcprov pulled in by ebics-java-client to fix CVE-2026-5598 (1.82 → 1.84) -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.84</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>1.84</version>
         </dependency>
 
         <dependency>

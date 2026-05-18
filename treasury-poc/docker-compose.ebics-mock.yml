@@ -1,0 +1,58 @@
+version: "3.9"
+
+# In-house EBICS-3.0 mock server + production-target sidecar.
+# Replaces the Libeufin sandbox dependency (ORA-2302 CEO decision):
+# libeufin upstream registry is NXDOMAIN, the v1.5.0 source build proved
+# brittle, and we need a reproducible deterministic mock to unblock the
+# ORA-2297 CI smoke. The mock is a minimal Spring Boot service that
+# answers the seven order types smoke.sh exercises (HEV, INI, HIA, HPB,
+# HKD, STA/C53, CCT) with in-memory state only — no DB, no signatures.
+
+services:
+  ebics-mock:
+    build:
+      context: ./services/ebics-mock-server
+      dockerfile: Dockerfile
+    image: ebics-mock-server:0.1.0
+    container_name: ebics-mock
+    ports:
+      - "5016:5016"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5016/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  ebics-sidecar:
+    # The production-target sidecar. Built from services/ebics-sidecar-java/.
+    # Talks to the mock via the in-network DNS name `ebics-mock`.
+    build:
+      context: ./services/ebics-sidecar-java
+      dockerfile: Dockerfile
+    container_name: ebics-sidecar
+    depends_on:
+      ebics-mock:
+        condition: service_healthy
+    environment:
+      EBICS_HOST_ID: OCTOPOC
+      EBICS_PARTNER_ID: OCTO001
+      EBICS_USER_ID: OCTOUSR1
+      EBICS_BANK_URL: http://ebics-mock:5016/ebicsweb
+      EBICS_BANK_NAME: orange-octo-test
+      EBICS_STATEMENT_ORDER_TYPE: ${EBICS_STATEMENT_ORDER_TYPE:-STA}
+      EBICS_KEYSTORE_PASSWORD: ${EBICS_KEYSTORE_PASSWORD:-poc-keystore-pass}
+      JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+    volumes:
+      - ebics-keystore:/var/lib/ebics-sidecar/keystore
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  ebics-keystore:

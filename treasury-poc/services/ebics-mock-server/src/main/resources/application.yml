@@ -1,0 +1,30 @@
+server:
+  port: 5016
+  shutdown: graceful
+
+spring:
+  application:
+    name: ebics-mock-server
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    com.orangeocto.ebicsmock: INFO
+
+ebicsmock:
+  hostId: OCTOPOC
+  partnerId: OCTO001
+  userId: OCTOUSR1
+  bankAccount: orange-octo-test
+  iban: AT483200000012345864
+  bic: OPSKATWW
+  currency: EUR
