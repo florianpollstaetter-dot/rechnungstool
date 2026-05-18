@@ -133,7 +133,13 @@ test("admin legt Modell an mit Default-Pause 30 + 32h-Woche, weist es qa-empty z
   });
   await expect(emptyRow).toBeVisible();
   const modelSelect = emptyRow.locator("select[title='Arbeitszeitmodell zuweisen']");
+  // Wait for the auto-save PATCH before reloading — handleAssignWorkTimeModel
+  // is async; without this wait the reload races the fetch and the write is lost.
+  const saveResponse = page.waitForResponse(
+    (r) => r.url().includes("/api/admin/users") && r.request().method() === "PATCH",
+  );
   await modelSelect.selectOption({ label: name });
+  await saveResponse;
 
   // Selection is auto-saved (handleAssignWorkTimeModel runs on change); reload
   // to confirm it stuck.
