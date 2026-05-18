@@ -48,3 +48,16 @@ export {
   type AuditChainEntryInput,
   type AuditChainWriteResult,
 } from "./audit-chain";
+
+// ORA-2308 — Wizard backend helpers.
+export {
+  BANK_PRESETS,
+  EbicsSetupError,
+  runHevProbe,
+  runHpbHkdSync,
+  runIniHiaBootstrap,
+  upsertConnectionDraft,
+  validateBankConnectorInput,
+  type BankConnectorInput,
+  type BankPresetDescriptor,
+} from "./setup";
