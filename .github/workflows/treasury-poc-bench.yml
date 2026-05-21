@@ -180,7 +180,7 @@ jobs:
           set -euo pipefail
           git config user.name  "paperclip-bot"
           git config user.email "noreply@paperclip.ing"
-          git add bench/results.md
+          git add treasury-poc/bench/results.md
           if git diff --staged --quiet; then
             echo "no bench changes to commit"
           else
