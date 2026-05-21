@@ -214,7 +214,20 @@ export default function ArbeitszeitmodelleAdminPage() {
   async function openEdit(model: WorkTimeModel) {
     setError(null);
     setEditing(model);
-    const days = await getWorkTimeModelDays(model.id);
+    // ORA-2320 — getWorkTimeModelDays now throws on read failure (was a
+    // silent `[]` swallow under RLS denial). Surface the real error instead
+    // of falling back to the Mo-Fr 09:00-17:30 default and pretending the
+    // model was empty.
+    let days;
+    try {
+      days = await getWorkTimeModelDays(model.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Tagespläne konnten nicht geladen werden: ${msg}`);
+      setError(msg);
+      setEditing(null);
+      return;
+    }
     const draft = emptyDays(model.unpaid_break_minutes);
     days.forEach((d) => {
       const idx = d.weekday;
