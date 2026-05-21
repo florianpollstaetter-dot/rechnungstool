@@ -346,30 +346,22 @@ export async function clearSeededInvoices(companyId: string): Promise<void> {
 }
 
 /**
- * SCH-578 — Reset between modal tests. Clicking the "ZUGFeRD (PDF/A-3)"
- * dropdown item first flips invoices.e_invoice_format to "zugferd" (see
- * PDFDownloadButton.handleCreateEInvoice) before the validation runs. On
- * subsequent visits the dropdown is replaced by a direct download button,
- * which breaks tests that expect the dropdown. Also clear any seller-side
- * settings the previous test wrote so the validator still flags missing data.
+ * ORA-2266 — Read the seeded invoice's current e_invoice_format. Used by the
+ * cancel-path assertion to prove the fix: clicking a dropdown item must NOT
+ * persist the format until validation + download succeed.
  */
-export async function resetInvoiceForRetest(companyId: string): Promise<void> {
+export async function readSeededInvoiceFormat(
+  companyId: string,
+): Promise<string | null> {
   const svc = service();
-  await svc
+  const { data, error } = await svc
     .from("invoices")
-    .update({ e_invoice_format: "none" })
-    .eq("company_id", companyId);
-  await svc
-    .from("company_settings")
-    .update({
-      address: "",
-      city: "",
-      zip: "",
-      uid: "",
-      iban: "",
-      bic: "",
-    })
-    .eq("company_id", companyId);
+    .select("e_invoice_format")
+    .eq("company_id", companyId)
+    .limit(1)
+    .single();
+  if (error) throw new Error(`readSeededInvoiceFormat failed: ${error.message}`);
+  return (data as { e_invoice_format: string | null } | null)?.e_invoice_format ?? null;
 }
 
 /**
