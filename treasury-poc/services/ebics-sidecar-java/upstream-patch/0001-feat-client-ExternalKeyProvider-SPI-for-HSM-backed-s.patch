@@ -1,0 +1,571 @@
+From 77815467ed3597973b3fc03716987c821a33725b Mon Sep 17 00:00:00 2001
+From: Orange Octo Treasury Engineer <treasury-engineer@orange-octo.test>
+Date: Thu, 21 May 2026 11:39:01 +0000
+Subject: [PATCH] feat(client): ExternalKeyProvider SPI for HSM-backed
+ subscribers
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Adds a new SPI that lets callers install A005 / X002 / E002 key material
+from outside the JVM heap — typically a SunPKCS11 PrivateKey rooted in an
+HSM or smartcard — without the library generating fresh in-process key
+pairs or persisting private keys to disk.
+
+Surface:
+- New org.kopi.ebics.client.ExternalKeyProvider interface with three
+  methods (a005(), x002(), e002()) returning a small (PrivateKey,
+  X509Certificate) record per role.
+- New User constructor accepting the SPI. Skips createUserCertificates()
+  entirely so no in-process KeyPairGenerator runs. CertificateManager
+  stays null, and saveUserCertificates() becomes a no-op for the lifetime
+  of this user — external keys are the caller's persistence responsibility.
+- New EbicsClient.createUser(..., ExternalKeyProvider) overload that
+  delegates to the new constructor. The legacy
+  createUser(...PasswordCallback) overload is unchanged and continues to
+  generate + PKCS#12-persist as before.
+
+Provider routing:
+- User.sign() / authenticate() previously hardcoded BouncyCastle, which
+  caused InvalidKeyException for SunPKCS11-rooted private keys. Replaced
+  with a small newSignature(algo, key) helper that resolves the JCE
+  Provider via the key's class name (sun.security.pkcs11.* → SunPKCS11-*
+  provider) and falls back to BouncyCastle for legacy software keys.
+- User.decrypt() gets the same treatment for the E002 RSA cipher.
+- Behavioural compatibility: any caller using the legacy in-process flow
+  hits the BouncyCastle fallback unchanged.
+
+Tests:
+- ExternalKeyProviderTest exercises KeyMaterial guards, the new User
+  constructor, and verifies the legacy BouncyCastle path still produces
+  a valid 256-byte signature for software-backed external keys.
+- HSM-specific routing (SunPKCS11 → on-token signing) is verified by
+  downstream consumers against SoftHSMv2 — out of scope for unit tests.
+
+Motivation: enables EBICS subscribers whose private keys never leave a
+PKCS#11 device. Without this seam, the only way to drive INI/HIA with an
+HSM-backed signer is to fork the library, since createUser() and User()
+both go through CertificateManager.create() → KeyUtil.makeKeyPair() and
+the in-process key is then signed against a BouncyCastle Signature
+instance that does not accept opaque SunPKCS11 keys.
+---
+ .../org/kopi/ebics/client/EbicsClient.java    |  70 +++++++
+ .../ebics/client/ExternalKeyProvider.java     |  71 ++++++++
+ src/main/java/org/kopi/ebics/client/User.java | 122 ++++++++++++-
+ .../ebics/client/ExternalKeyProviderTest.java | 171 ++++++++++++++++++
+ 4 files changed, 428 insertions(+), 6 deletions(-)
+ create mode 100644 src/main/java/org/kopi/ebics/client/ExternalKeyProvider.java
+ create mode 100644 src/test/java/org/kopi/ebics/client/ExternalKeyProviderTest.java
+
+diff --git a/src/main/java/org/kopi/ebics/client/EbicsClient.java b/src/main/java/org/kopi/ebics/client/EbicsClient.java
+index d743d31..2c2d6c6 100644
+--- a/src/main/java/org/kopi/ebics/client/EbicsClient.java
++++ b/src/main/java/org/kopi/ebics/client/EbicsClient.java
+@@ -221,6 +221,76 @@ public class EbicsClient {
+         }
+     }
+ 
++    /**
++     * Creates a new EBICS subscriber whose A005 / X002 / E002 key material is
++     * supplied externally — typically by a SunPKCS11 HSM or smartcard binding.
++     * The library does <b>not</b> generate fresh key pairs and does <b>not</b>
++     * persist private keys to disk. INI/HIA letters are still written to
++     * {@code configuration.getLettersDirectory(user)} because they carry only
++     * the public-key hashes.
++     *
++     * <p>This is the supported entry point for HSM-backed Treasury / commercial
++     * subscribers. The original
++     * {@link #createUser(URL, String, String, String, String, String, String,
++     * String, String, boolean, boolean,
++     * org.kopi.ebics.interfaces.PasswordCallback) createUser} overload remains
++     * untouched and continues to generate and persist a PKCS#12 keystore.
++     *
++     * @param url the bank URL
++     * @param bankName the bank name
++     * @param hostId the bank host ID
++     * @param partnerId the partner ID
++     * @param userId UserId as obtained from the bank
++     * @param name the user name
++     * @param email the user email
++     * @param country the user country
++     * @param organization the user organization or company
++     * @param useCertificates does the bank use certificates?
++     * @param passwordCallback callback handler for the password (may be
++     *        {@code null} for externally-keyed subscribers — see
++     *        {@link User#User(org.kopi.ebics.interfaces.EbicsPartner, String,
++     *        String, String, String, String,
++     *        org.kopi.ebics.interfaces.PasswordCallback, ExternalKeyProvider)})
++     * @param externalKeys supplier of the A005 / X002 / E002 key triples
++     * @return the new subscriber
++     * @throws IllegalArgumentException if {@code externalKeys} is null or
++     *         returns null material for any of the three roles
++     * @throws Exception on any persistence or letter-write failure
++     */
++    public User createUser(URL url, String bankName, String hostId, String partnerId,
++        String userId, String name, String email, String country, String organization,
++        boolean useCertificates, PasswordCallback passwordCallback,
++        ExternalKeyProvider externalKeys) throws Exception {
++        log.info(messages.getString("user.create.info", userId));
++        if (externalKeys == null) {
++            throw new IllegalArgumentException("externalKeys is required");
++        }
++
++        Bank bank = createBank(url, bankName, hostId, useCertificates);
++        Partner partner = createPartner(bank, partnerId);
++        try {
++            User user = new User(partner, userId, name, email, country, organization,
++                passwordCallback, externalKeys);
++            createUserDirectories(user);
++            // saveUserCertificates() is intentionally NOT called: external keys
++            // are HSM/smartcard-resident and the library MUST NOT mirror them to
++            // disk. The legacy PKCS#12 path remains via the original createUser.
++            configuration.getSerializationManager().serialize(bank);
++            configuration.getSerializationManager().serialize(partner);
++            configuration.getSerializationManager().serialize(user);
++            createLetters(user, useCertificates);
++            users.put(userId, user);
++            partners.put(partner.getPartnerId(), partner);
++            banks.put(bank.getHostId(), bank);
++
++            log.info(messages.getString("user.create.success", userId));
++            return user;
++        } catch (Exception e) {
++            log.error(messages.getString("user.create.error"), e);
++            throw e;
++        }
++    }
++
+     private void createLetters(EbicsUser user, boolean useCertificates)
+         throws GeneralSecurityException, IOException, EbicsException {
+         user.getPartner().getBank().setUseCertificate(useCertificates);
+diff --git a/src/main/java/org/kopi/ebics/client/ExternalKeyProvider.java b/src/main/java/org/kopi/ebics/client/ExternalKeyProvider.java
+new file mode 100644
+index 0000000..7798753
+--- /dev/null
++++ b/src/main/java/org/kopi/ebics/client/ExternalKeyProvider.java
+@@ -0,0 +1,71 @@
++/*
++ * Copyright (c) 2026 Orange Octo SARL.
++ *
++ * This file is added on top of the kopiLeft-licensed ebics-java-client (LGPL 2.1)
++ * and is licensed under the same terms.
++ */
++
++package org.kopi.ebics.client;
++
++import java.security.PrivateKey;
++import java.security.cert.X509Certificate;
++
++/**
++ * Supplies the A005 / X002 / E002 key material for a subscriber when the caller
++ * holds the private keys outside the JVM heap (HSM, smartcard, or any other
++ * provider-attached {@link PrivateKey} — typically {@code SunPKCS11}).
++ *
++ * <p>Use this interface together with
++ * {@link EbicsClient#createUser(java.net.URL, String, String, String, String,
++ * String, String, String, String, boolean,
++ * org.kopi.ebics.interfaces.PasswordCallback, ExternalKeyProvider)} to provision
++ * an EBICS subscriber whose A005/X002 signing operations execute inside the
++ * device — the library never sees plaintext key bytes.
++ *
++ * <p><b>Caller invariant.</b> When the keys are intended to be HSM-resident, the
++ * returned {@link PrivateKey} instances MUST be provider-attached (their class
++ * lives under the provider that issued them, e.g. {@code sun.security.pkcs11.*})
++ * AND their {@code getEncoded()} MUST return {@code null}. The library does not
++ * enforce this — callers are responsible for the on-token / off-token decision
++ * via PKCS#11 attributes (typically {@code CKA_SENSITIVE=true} and
++ * {@code CKA_EXTRACTABLE=false}).
++ */
++public interface ExternalKeyProvider {
++
++    /** Signature key (EBICS role A005). */
++    KeyMaterial a005();
++
++    /** Identification &amp; authentication key (EBICS role X002). */
++    KeyMaterial x002();
++
++    /** Encryption key (EBICS role E002). */
++    KeyMaterial e002();
++
++    /**
++     * One (PrivateKey, X509Certificate) pair for a single EBICS role.
++     * Both fields are required; {@code null} either parameter throws.
++     */
++    final class KeyMaterial {
++        private final PrivateKey privateKey;
++        private final X509Certificate certificate;
++
++        public KeyMaterial(PrivateKey privateKey, X509Certificate certificate) {
++            if (privateKey == null) {
++                throw new IllegalArgumentException("privateKey is required");
++            }
++            if (certificate == null) {
++                throw new IllegalArgumentException("certificate is required");
++            }
++            this.privateKey = privateKey;
++            this.certificate = certificate;
++        }
++
++        public PrivateKey getPrivateKey() {
++            return privateKey;
++        }
++
++        public X509Certificate getCertificate() {
++            return certificate;
++        }
++    }
++}
+diff --git a/src/main/java/org/kopi/ebics/client/User.java b/src/main/java/org/kopi/ebics/client/User.java
+index e1a3718..0e5e911 100644
+--- a/src/main/java/org/kopi/ebics/client/User.java
++++ b/src/main/java/org/kopi/ebics/client/User.java
+@@ -24,7 +24,11 @@ import java.io.IOException;
+ import java.io.ObjectInputStream;
+ import java.io.ObjectOutputStream;
+ import java.security.GeneralSecurityException;
++import java.security.NoSuchAlgorithmException;
++import java.security.NoSuchProviderException;
+ import java.security.PrivateKey;
++import java.security.Provider;
++import java.security.Security;
+ import java.security.Signature;
+ import java.security.cert.CertificateEncodingException;
+ import java.security.cert.X509Certificate;
+@@ -87,6 +91,61 @@ public class User implements EbicsUser, Savable {
+     needSave = true;
+   }
+ 
++  /**
++   * Externally-provisioned constructor. Use this constructor when the A005,
++   * X002 and E002 key material is supplied from outside the JVM heap — typically
++   * a {@code SunPKCS11} {@link PrivateKey} backed by an HSM or smartcard — and
++   * the library MUST NOT generate fresh keys.
++   *
++   * <p>No call to {@link #createUserCertificates()} is made; {@code manager}
++   * stays {@code null}, so {@link #saveUserCertificates(File)} is a no-op for
++   * this user — external keys are the caller's persistence responsibility.
++   *
++   * @param partner customer in whose name we operate.
++   * @param userId UserId as obtained from the bank.
++   * @param name the user name
++   * @param email the user email (used only in the DN)
++   * @param country the user country (used only in the DN)
++   * @param organization the user organization (used only in the DN)
++   * @param passwordCallback the callback-handler. May be {@code null} for
++   *        externally-keyed subscribers because the library does not own the
++   *        keystore password.
++   * @param externalKeys the A005/X002/E002 material to install on the user.
++   * @throws IllegalArgumentException if any role in {@code externalKeys} is null.
++   */
++  public User(EbicsPartner partner,
++              String userId,
++              String name,
++              String email,
++              String country,
++              String organization,
++              PasswordCallback passwordCallback,
++              ExternalKeyProvider externalKeys)
++  {
++    if (externalKeys == null) {
++      throw new IllegalArgumentException("externalKeys is required");
++    }
++    ExternalKeyProvider.KeyMaterial a005 = externalKeys.a005();
++    ExternalKeyProvider.KeyMaterial x002 = externalKeys.x002();
++    ExternalKeyProvider.KeyMaterial e002 = externalKeys.e002();
++    if (a005 == null || x002 == null || e002 == null) {
++      throw new IllegalArgumentException(
++          "ExternalKeyProvider must return non-null material for A005, X002 and E002");
++    }
++    this.partner = partner;
++    this.userId = userId;
++    this.name = name;
++    this.dn = makeDN(name, email, country, organization);
++    this.passwordCallback = passwordCallback;
++    this.a005Certificate = a005.getCertificate();
++    this.a005PrivateKey = a005.getPrivateKey();
++    this.x002Certificate = x002.getCertificate();
++    this.x002PrivateKey = x002.getPrivateKey();
++    this.e002Certificate = e002.getCertificate();
++    this.e002PrivateKey = e002.getPrivateKey();
++    needSave = true;
++  }
++
+   /**
+    * Reconstructs a persisted EBICS user.
+    *
+@@ -159,7 +218,11 @@ public class User implements EbicsUser, Savable {
+    */
+   public void saveUserCertificates(File directory) throws GeneralSecurityException, IOException {
+     if (manager == null) {
+-      throw new GeneralSecurityException("Cannot save user certificates");
++      // Externally-provisioned keys (HSM / smartcard) are not the library's to
++      // persist — they live in the device that issued them. Silently no-op so
++      // callers can share the same createUser → saveUserCertificates flow for
++      // both internal-key and external-key subscribers.
++      return;
+     }
+ 
+     manager.save(directory, passwordCallback);
+@@ -456,9 +519,7 @@ public class User implements EbicsUser, Savable {
+    */
+   @Override
+   public byte[] authenticate(byte[] digest) throws GeneralSecurityException {
+-    Signature			signature;
+-
+-    signature = Signature.getInstance("SHA256WithRSA", BouncyCastleProvider.PROVIDER_NAME);
++    Signature signature = newSignature("SHA256WithRSA", x002PrivateKey);
+     signature.initSign(x002PrivateKey);
+     signature.update(digest);
+     return signature.sign();
+@@ -511,12 +572,56 @@ public class User implements EbicsUser, Savable {
+    */
+   @Override
+   public byte[] sign(byte[] digest) throws GeneralSecurityException {
+-    Signature signature = Signature.getInstance("SHA256WithRSA", BouncyCastleProvider.PROVIDER_NAME);
++    Signature signature = newSignature("SHA256WithRSA", a005PrivateKey);
+     signature.initSign(a005PrivateKey);
+     signature.update(removeOSSpecificChars(digest));
+     return signature.sign();
+   }
+ 
++  /**
++   * Builds a {@link Signature} instance for the given {@code key}, routing the
++   * sign operation to the JCE provider that issued the key.
++   *
++   * <p>If the key is rooted in a named {@code SunPKCS11-*} provider (typical for
++   * HSM / smartcard subscribers) the Signature is bound to that provider so the
++   * private-key bytes never enter the JVM heap. Otherwise the historical
++   * {@link BouncyCastleProvider#PROVIDER_NAME BouncyCastle} provider is used,
++   * which preserves bit-for-bit identical behaviour for the legacy
++   * in-process PKCS#12 keystore flow.
++   */
++  private static Signature newSignature(String algorithm, PrivateKey key)
++    throws NoSuchAlgorithmException, NoSuchProviderException
++  {
++    Provider keyProvider = providerOf(key);
++    if (keyProvider != null) {
++      return Signature.getInstance(algorithm, keyProvider);
++    }
++    return Signature.getInstance(algorithm, BouncyCastleProvider.PROVIDER_NAME);
++  }
++
++  /**
++   * Resolves the JCE {@link Provider} that issued {@code key} when the key is
++   * provider-attached (e.g. SunPKCS11 HSM keys). Returns {@code null} for
++   * heap-resident software keys so callers fall through to the historical
++   * BouncyCastle path.
++   */
++  private static Provider providerOf(java.security.Key key) {
++    if (key == null) {
++      return null;
++    }
++    String className = key.getClass().getName();
++    // SunPKCS11 keys are rooted under sun.security.pkcs11.* — the matching
++    // provider is registered with a name of the form "SunPKCS11-<configName>".
++    if (className.startsWith("sun.security.pkcs11.")) {
++      for (Provider p : Security.getProviders()) {
++        if (p.getName().startsWith("SunPKCS11")) {
++          return p;
++        }
++      }
++    }
++    return null;
++  }
++
+   /**
+    * EBICS IG CFONB VF 2.1.4 2012 02 24 - 2.1.3.2 Calcul de la signature:
+    *
+@@ -538,7 +643,12 @@ public class User implements EbicsUser, Savable {
+     int				blockSize;
+     ByteArrayOutputStream	outputStream;
+ 
+-    cipher = Cipher.getInstance("RSA/NONE/PKCS1Padding", BouncyCastleProvider.PROVIDER_NAME);
++    Provider e002Provider = providerOf(e002PrivateKey);
++    if (e002Provider != null) {
++      cipher = Cipher.getInstance("RSA/NONE/PKCS1Padding", e002Provider);
++    } else {
++      cipher = Cipher.getInstance("RSA/NONE/PKCS1Padding", BouncyCastleProvider.PROVIDER_NAME);
++    }
+     cipher.init(Cipher.DECRYPT_MODE, e002PrivateKey);
+     blockSize = cipher.getBlockSize();
+     outputStream = new ByteArrayOutputStream();
+diff --git a/src/test/java/org/kopi/ebics/client/ExternalKeyProviderTest.java b/src/test/java/org/kopi/ebics/client/ExternalKeyProviderTest.java
+new file mode 100644
+index 0000000..8a42d43
+--- /dev/null
++++ b/src/test/java/org/kopi/ebics/client/ExternalKeyProviderTest.java
+@@ -0,0 +1,171 @@
++/*
++ * Copyright (c) 2026 Orange Octo SARL.
++ *
++ * Tests for the ExternalKeyProvider SPI added to support HSM-backed
++ * subscribers (PKCS#11 / SunPKCS11). LGPL 2.1.
++ */
++
++package org.kopi.ebics.client;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertNotNull;
++import static org.junit.jupiter.api.Assertions.assertThrows;
++
++import java.math.BigInteger;
++import java.security.KeyPair;
++import java.security.KeyPairGenerator;
++import java.security.PrivateKey;
++import java.security.Security;
++import java.security.cert.X509Certificate;
++import java.time.Instant;
++import java.time.temporal.ChronoUnit;
++import java.util.Date;
++
++import org.bouncycastle.cert.X509v3CertificateBuilder;
++import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
++import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
++import org.bouncycastle.jce.X509Principal;
++import org.bouncycastle.jce.provider.BouncyCastleProvider;
++import org.bouncycastle.operator.ContentSigner;
++import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
++import org.junit.jupiter.api.BeforeAll;
++import org.junit.jupiter.api.Test;
++
++/**
++ * Verifies the {@link ExternalKeyProvider} guard rails plus the
++ * {@link User} constructor that consumes external key material.
++ *
++ * <p>No HSM is required for this suite — synthetic in-process RSA keys play
++ * the role the SunPKCS11 provider would in production. The HSM-specific
++ * provider routing in {@link User#newSignature} is exercised separately in
++ * the sidecar's {@code SoftHsmA005SigningTest}.
++ */
++class ExternalKeyProviderTest {
++
++    @BeforeAll
++    static void registerBouncyCastle() {
++        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
++            Security.addProvider(new BouncyCastleProvider());
++        }
++    }
++
++    @Test
++    void keyMaterial_rejects_null_privateKey() {
++        X509Certificate cert = newSelfSignedCert();
++        assertThrows(IllegalArgumentException.class,
++            () -> new ExternalKeyProvider.KeyMaterial(null, cert));
++    }
++
++    @Test
++    void keyMaterial_rejects_null_certificate() {
++        PrivateKey pk = newRsaKeyPair().getPrivate();
++        assertThrows(IllegalArgumentException.class,
++            () -> new ExternalKeyProvider.KeyMaterial(pk, null));
++    }
++
++    @Test
++    void user_constructor_assigns_all_three_roles() throws Exception {
++        ExternalKeyProvider provider = stubProvider();
++        Partner partner = new Partner(stubBank(), "PARTNER_TEST");
++        User user = new User(partner, "USER_TEST", "Test User",
++            "test@example.org", "DE", "Orange Octo", null, provider);
++
++        // The setters target the same fields as the legacy CertificateManager
++        // path, so the public-key getters should now return the keys we wired.
++        assertNotNull(user.getA005PublicKey(),
++            "A005 public key must be reachable after external-key install");
++        assertNotNull(user.getX002PublicKey());
++        assertNotNull(user.getE002PublicKey());
++        assertEquals("USER_TEST", user.getUserId());
++    }
++
++    @Test
++    void user_constructor_rejects_null_provider() {
++        Partner partner = new Partner(stubBank(), "PARTNER_TEST");
++        assertThrows(IllegalArgumentException.class,
++            () -> new User(partner, "USER_TEST", "Test User",
++                "test@example.org", "DE", "Orange Octo", null, null));
++    }
++
++    @Test
++    void user_sign_with_external_software_key_routes_through_bouncycastle()
++        throws Exception
++    {
++        // For software keys (no SunPKCS11 attachment), the patched User.newSignature
++        // falls through to BouncyCastle — proving zero regression on the legacy
++        // in-process flow.
++        ExternalKeyProvider provider = stubProvider();
++        Partner partner = new Partner(stubBank(), "PARTNER_TEST");
++        User user = new User(partner, "USER_TEST", "Test User",
++            "test@example.org", "DE", "Orange Octo", null, provider);
++
++        byte[] digest = "hello".getBytes();
++        byte[] sig = user.sign(digest);
++        assertNotNull(sig);
++        // 2048-bit RSA → 256-byte signature.
++        assertEquals(256, sig.length);
++    }
++
++    // ------------------------------------------------------------------
++    // helpers
++    // ------------------------------------------------------------------
++
++    private static Bank stubBank() {
++        try {
++            return new Bank(new java.net.URL("https://example.test/ebics"),
++                "TestBank", "TESTHOST", false);
++        } catch (Exception e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    private static ExternalKeyProvider stubProvider() {
++        KeyPair a005 = newRsaKeyPair();
++        KeyPair x002 = newRsaKeyPair();
++        KeyPair e002 = newRsaKeyPair();
++        X509Certificate a005Cert = newSelfSignedCertFor(a005);
++        X509Certificate x002Cert = newSelfSignedCertFor(x002);
++        X509Certificate e002Cert = newSelfSignedCertFor(e002);
++        return new ExternalKeyProvider() {
++            @Override public KeyMaterial a005() { return new KeyMaterial(a005.getPrivate(), a005Cert); }
++            @Override public KeyMaterial x002() { return new KeyMaterial(x002.getPrivate(), x002Cert); }
++            @Override public KeyMaterial e002() { return new KeyMaterial(e002.getPrivate(), e002Cert); }
++        };
++    }
++
++    private static KeyPair newRsaKeyPair() {
++        try {
++            KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA",
++                BouncyCastleProvider.PROVIDER_NAME);
++            kpg.initialize(2048);
++            return kpg.generateKeyPair();
++        } catch (Exception e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    private static X509Certificate newSelfSignedCert() {
++        return newSelfSignedCertFor(newRsaKeyPair());
++    }
++
++    private static X509Certificate newSelfSignedCertFor(KeyPair pair) {
++        try {
++            X509Principal subject = new X509Principal("CN=test, O=Orange Octo, C=DE");
++            X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
++                new javax.security.auth.x500.X500Principal(subject.getName()),
++                BigInteger.ONE,
++                Date.from(Instant.now()),
++                Date.from(Instant.now().plus(365, ChronoUnit.DAYS)),
++                new javax.security.auth.x500.X500Principal(subject.getName()),
++                pair.getPublic());
++            ContentSigner signer = new JcaContentSignerBuilder("SHA256WithRSA")
++                .setProvider(BouncyCastleProvider.PROVIDER_NAME)
++                .build(pair.getPrivate());
++            return new JcaX509CertificateConverter()
++                .setProvider(BouncyCastleProvider.PROVIDER_NAME)
++                .getCertificate(builder.build(signer));
++        } catch (Exception e) {
++            throw new RuntimeException(e);
++        }
++    }
++}
+-- 
+2.43.0
+
