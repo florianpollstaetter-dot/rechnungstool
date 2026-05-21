@@ -965,10 +965,15 @@ export async function deleteTimeEntry(id: string): Promise<void> {
 // user_profiles.work_time_model_id.
 
 export async function getWorkTimeModels(): Promise<WorkTimeModel[]> {
-  const { data } = await supabase()
+  // ORA-2320 audit — propagate Supabase errors instead of swallowing them.
+  // RLS denial still returns `data: []` with `error: null` (active_company_id
+  // policy), so empty list is indistinguishable from "no models"; but DB-level
+  // failures must surface to the caller.
+  const { data, error } = await supabase()
     .from("work_time_models")
     .select("*")
     .order("name", { ascending: true });
+  if (error) throw new Error(error.message);
   return (data ?? []).map(mapWorkTimeModel);
 }
 
@@ -1012,13 +1017,24 @@ export async function deleteWorkTimeModel(modelId: string): Promise<void> {
   );
 }
 
+// ORA-2320 — read via service-role API instead of the anon-key client. The
+// previous direct supabase().from("work_time_model_days") query silently
+// dropped errors, so an RLS denial returned `[]` and the edit form fell back
+// to the Mo-Fr 09:00-17:30 default on every reload (diagnosis: ORA-2301).
+// Failures now surface so the caller can show a real error instead of
+// pretending the save was empty.
 export async function getWorkTimeModelDays(modelId: string): Promise<WorkTimeModelDay[]> {
-  const { data } = await supabase()
-    .from("work_time_model_days")
-    .select("*")
-    .eq("model_id", modelId)
-    .order("weekday", { ascending: true });
-  return (data ?? []).map(mapWorkTimeModelDay);
+  const res = await fetch(
+    `/api/admin/work-time-models/${encodeURIComponent(modelId)}/days`,
+    { method: "GET", headers: { "Content-Type": "application/json" }, cache: "no-store" },
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error || `Arbeitszeitmodell-Tage laden fehlgeschlagen (${res.status})`);
+  }
+  const body = (await res.json()) as { days?: unknown };
+  const rows = Array.isArray(body.days) ? body.days : [];
+  return rows.map((r) => mapWorkTimeModelDay(r as Record<string, unknown>));
 }
 
 // Replace the per-weekday rows for a model in one shot. Empty rows (no Von/Bis
@@ -1093,11 +1109,13 @@ export async function assignWorkTimeModelToUser(
 // Users currently using a given model (used by the admin list to show the
 // "x MA zugewiesen" badge and the model-detail page to show the assignment).
 export async function getUsersAssignedToWorkTimeModel(modelId: string): Promise<UserProfile[]> {
-  const { data } = await supabase()
+  // ORA-2320 audit — propagate Supabase errors instead of swallowing them.
+  const { data, error } = await supabase()
     .from("user_profiles")
     .select("*")
     .eq("work_time_model_id", modelId)
     .order("display_name", { ascending: true });
+  if (error) throw new Error(error.message);
   return (data ?? []).map(mapUserProfile);
 }
 
