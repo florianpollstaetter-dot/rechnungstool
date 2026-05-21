@@ -98,12 +98,18 @@ darf der Sidecar Peak-RSS ≤ 1 GiB und mittlere STA-Latenz ≤ 5 s nicht
 überschreiten. Andernfalls Tuning-PR (`MaxRAMPercentage`, GC, streaming
 parser) oder ein Folge-Issue.
 
-**Aktueller Stand (2026-05-18):** Bench-Infrastruktur committed; Mock lädt
-CAMT.053-Payload jetzt aus `bench/statements/`-Volume statt hartcodiert.
-Erste CI-Bench-Werte werden vom Workflow nach dem nächsten Push auf
-`feature/treasury-ebics-bench` in [`../bench/results.md`](../bench/results.md)
-geschrieben. Diese Sektion wird mit der 3–5-zeiligen Zusammenfassung
-aktualisiert, sobald die Zahlen vorliegen.
+**Ergebnisse (CI-Run 2026-05-21, commit `93cf540`, 50 Runs, warmup=10):**
+
+| Statements | Mean-Latenz | Max-Latenz | Sidecar-RSS |
+|---|---|---|---|
+| 1 k | 51 ms | 68 ms | 367 MiB |
+| 10 k | 103 ms | 125 ms | 438 MiB |
+| 100 k | 619 ms | 665 ms | **884 MiB** |
+
+**Acceptance-Gate: ✅ PASS.** 100k Peak-RSS 884 MiB < 1 GiB-Limit; 100k
+Mean-Latenz 619 ms < 5 s-Limit. Kein Tuning-PR erforderlich. Image-Größe:
+ebics-sidecar 102 MB gzipped. Vollständige Tabellen in
+[`../bench/results.md`](../bench/results.md).
 
 ## Sign-off
 
