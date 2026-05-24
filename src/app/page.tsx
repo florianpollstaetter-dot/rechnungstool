@@ -7,6 +7,7 @@ import LandingHeaderLogin from "./LandingHeaderLogin";
 import LandingInlineLogin from "./LandingInlineLogin";
 import LandingFeaturesGrid, { type LandingFeature } from "./LandingFeaturesGrid";
 import LandingPricingSection from "./LandingPricingSection";
+import LandingFaqSection, { FAQ_ITEMS } from "./LandingFaqSection";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://orange-octo.com";
 
@@ -51,6 +52,19 @@ const SOFTWARE_JSON_LD = {
     availability: "https://schema.org/InStock",
   },
   inLanguage: ["de", "en"],
+};
+
+const FAQ_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.a,
+    },
+  })),
 };
 
 export default async function LandingPage() {
@@ -138,6 +152,10 @@ export default async function LandingPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(SOFTWARE_JSON_LD) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSON_LD) }}
       />
       <link
         href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap"
@@ -338,6 +356,8 @@ export default async function LandingPage() {
       </section>
 
       <LandingPricingSection />
+
+      <LandingFaqSection />
 
       <LandingInlineLogin />
 
