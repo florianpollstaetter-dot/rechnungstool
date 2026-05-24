@@ -18,7 +18,7 @@ export const metadata = {
   alternates: { canonical: SITE_URL },
   openGraph: {
     type: "website",
-    locale: "de_AT",
+    locale: "de_DE",
     url: SITE_URL,
     siteName: "Orange Octo",
     title: "Orange Octo — Buchhaltung, die sich selbst erledigt",
@@ -199,7 +199,7 @@ export default async function LandingPage() {
           <div className={styles.heroText}>
             <div className={styles.heroBadge}>
               <span className={styles.heroBadgeDot} />
-              KI-gestützte Buchhaltung · Made in Austria
+              KI-gestützte Buchhaltung · Hosted in EU
             </div>
 
             <h1>
