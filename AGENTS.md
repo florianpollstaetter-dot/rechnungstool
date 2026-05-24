@@ -29,3 +29,15 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - For ALTER TABLE against tables that may not exist in every environment, wrap in `DO $$ IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'foo') THEN ... END $$;`
 - For CREATE POLICY, always `DROP POLICY IF EXISTS` first so re-runs are idempotent
 - Match column types exactly — `user_profiles.auth_user_id` is `uuid`, not `text`. Do NOT cast `auth.uid()::text` when comparing to UUID columns.
+
+# Pre-push gate — `npm run build`, not just `tsc --noEmit`
+
+**Rule:** any change touching a `src/app/*.tsx` server component, a `"use client"` module imported from one, or any other client/server boundary crossing MUST be verified with `npm run build` before push — not just `tsc --noEmit`.
+
+**Why:** `tsc --noEmit` checks types but not the Next.js client/server boundary. A `"use client"` module's named exports are wrapped as reference proxies when imported from a server component; the types remain nominally correct (`FAQ_ITEMS: FaqItem[]`) but the runtime value is a proxy, so `.map(...)` throws `is not a function` only at `next build`'s "Collecting page data" phase.
+
+**Real incident (SCH-600 Phase 4 v2, 2026-05-24):** `0915a57` exported `FAQ_ITEMS` from `LandingFaqSection.tsx` (`"use client"`) and imported it from `page.tsx` (server). `tsc --noEmit` passed. Vercel silently rolled back to the previous green build for ~45 min, serving stale copy to production while master appeared green. Fix in `7d7c059` extracted data to a plain `LandingFaqData.ts`.
+
+**Practical pattern:** put any data that both server and client components need into a plain TS module (no `"use client"`), then import it from both sides. Client-component named exports of data are a footgun.
+
+**Post-push smoke for landing changes:** after Vercel finishes building (~2–5 min), curl prod and grep for a unique marker from the new commit. Five seconds; catches deploy-failed-silently in seconds instead of hours.
