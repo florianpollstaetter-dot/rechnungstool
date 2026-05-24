@@ -7,7 +7,8 @@ import LandingHeaderLogin from "./LandingHeaderLogin";
 import LandingInlineLogin from "./LandingInlineLogin";
 import LandingFeaturesGrid, { type LandingFeature } from "./LandingFeaturesGrid";
 import LandingPricingSection from "./LandingPricingSection";
-import LandingFaqSection, { FAQ_ITEMS } from "./LandingFaqSection";
+import LandingFaqSection from "./LandingFaqSection";
+import { FAQ_ITEMS } from "./LandingFaqData";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://orange-octo.com";
 
