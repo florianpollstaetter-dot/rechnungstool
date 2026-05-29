@@ -21,7 +21,10 @@ test.describe("SCH-1766: Domain-Aware Validation — Schicht 1 (7 Cases)", () =>
   // SCHICHT-1-TRIGGER: Response = Clarification Question
   test("1. Land=AT, 'mein Sohn hat eine 6 bekommen' → asks for clarification (AT uses 1-5)", async ({ page }) => {
     const response = await page.request.post(`${PREVIEW_URL}/api/demo`, {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer kin-qa-a51cae6795cfdd30bf463e4f78a34747",
+      },
       data: {
         situation: "mein Sohn hat eine 6 bekommen",
         age: 12,
@@ -44,7 +47,10 @@ test.describe("SCH-1766: Domain-Aware Validation — Schicht 1 (7 Cases)", () =>
 
   test("2. Land=CH (default Kanton), 'er geht in die Realschule' → asks for clarification (CH-specific schools)", async ({ page }) => {
     const response = await page.request.post(`${PREVIEW_URL}/api/demo`, {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer kin-qa-a51cae6795cfdd30bf463e4f78a34747",
+      },
       data: {
         situation: "er geht in die Realschule",
         age: 13,
@@ -67,7 +73,10 @@ test.describe("SCH-1766: Domain-Aware Validation — Schicht 1 (7 Cases)", () =>
 
   test("3. Land=DE, Bayern, 'AHS' text → asks for clarification (AHS is Austrian, not DE)", async ({ page }) => {
     const response = await page.request.post(`${PREVIEW_URL}/api/demo`, {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer kin-qa-a51cae6795cfdd30bf463e4f78a34747",
+      },
       data: {
         situation: "AHS Gymnasium",
         age: 15,
@@ -91,7 +100,10 @@ test.describe("SCH-1766: Domain-Aware Validation — Schicht 1 (7 Cases)", () =>
   // SCHICHT-1-NEGATIV: Response = Direct Advice
   test("4. Land=DE, Note 4 + 'bestanden' → direct advice (clear domain context)", async ({ page }) => {
     const response = await page.request.post(`${PREVIEW_URL}/api/demo`, {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer kin-qa-a51cae6795cfdd30bf463e4f78a34747",
+      },
       data: {
         situation: "Note 4 bestanden",
         age: 10,
@@ -115,7 +127,10 @@ test.describe("SCH-1766: Domain-Aware Validation — Schicht 1 (7 Cases)", () =>
 
   test("5. Land=CH, Kanton Zurich, 'Sek A' → direct advice (clear domain context)", async ({ page }) => {
     const response = await page.request.post(`${PREVIEW_URL}/api/demo`, {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer kin-qa-a51cae6795cfdd30bf463e4f78a34747",
+      },
       data: {
         situation: "Sek A Klasse",
         age: 12,
@@ -142,7 +157,10 @@ test.describe("SCH-1766: Domain-Aware Validation — Schicht 1 (7 Cases)", () =>
     // Note: This requires authentication to test properly
     // Simulating without auth; in full test would use session
     const response = await page.request.post(`${PREVIEW_URL}/api/demo`, {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer kin-qa-a51cae6795cfdd30bf463e4f78a34747",
+      },
       data: {
         situation: "Mein Sohn hat Probleme",
         age: 11,
@@ -167,7 +185,10 @@ test.describe("SCH-1766: Domain-Aware Validation — Schicht 1 (7 Cases)", () =>
   test("7. Authed Father, 'Was soll ich sagen?' → father-addressing in response (SCH-1189)", async ({ page }) => {
     // Note: This requires authentication to test properly
     const response = await page.request.post(`${PREVIEW_URL}/api/demo`, {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer kin-qa-a51cae6795cfdd30bf463e4f78a34747",
+      },
       data: {
         situation: "Was soll ich sagen?",
         age: 9,
