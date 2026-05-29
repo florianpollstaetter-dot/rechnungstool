@@ -7,7 +7,9 @@ import { test, expect } from "@playwright/test";
  * New Preview (2026-05-11): https://schulbegleiter-5ygietnkw-florianpollstaetter-dots-projects.vercel.app
  */
 
-const PREVIEW_URL = "https://schulbegleiter-kdfl0i043-florianpollstaetter-dots-projects.vercel.app";
+// Use BASE_URL from playwright config (env var) so tests run against the correct deployment.
+// Falls back to localhost:3000 for local dev (matches playwright.config.ts default).
+const PREVIEW_URL = process.env.BASE_URL?.replace(/\/$/, "") || "http://localhost:3000";
 
 test.describe("SCH-1766: Domain-Aware Validation — Schicht 1 (7 Cases)", () => {
   test.beforeEach(async ({ page }) => {
