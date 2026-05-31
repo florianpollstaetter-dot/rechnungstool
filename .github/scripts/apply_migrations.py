@@ -68,6 +68,10 @@ def main() -> int:
         return 0
 
     local = sorted(mig_dir.glob("*.sql"))
+    if not local:
+        print("No migration files found — skipping API call.")
+        return 0
+
     applied = applied_versions()
     print(f"Already applied: {len(applied)}")
 
