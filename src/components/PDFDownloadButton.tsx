@@ -114,8 +114,6 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
     setEInvoiceLoading(true);
     setError(null);
     try {
-      await updateInvoice(invoice.id, { e_invoice_format: format });
-      onInvoiceUpdated?.();
       await runEInvoiceDownload(format);
     } catch (err) {
       console.error("E-Rechnung creation failed:", err);
@@ -180,6 +178,7 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
 
       const blob = new Blob([data.xml], { type: "application/xml" });
       triggerDownload(blob, `XRechnung_${invoice.invoice_number.replace(/\s/g, "_")}.xml`);
+      await persistFormatIfChanged(format);
     } else {
       const pdfResult = await generateBlob(overrideSettings);
       if (!pdfResult) throw new Error("PDF generation failed");
@@ -208,7 +207,17 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
       const zugferdBytes = Uint8Array.from(atob(data.pdf), (c) => c.charCodeAt(0));
       const blob = new Blob([zugferdBytes], { type: "application/pdf" });
       triggerDownload(blob, `ZUGFeRD_${invoice.invoice_number.replace(/\s/g, "_")}.pdf`);
+      await persistFormatIfChanged(format);
     }
+  }
+
+  // ORA-2266: only commit e_invoice_format to the DB after validation and
+  // download succeed. Pre-commit would mark cancelled drafts as e-invoices.
+  async function persistFormatIfChanged(format: Exclude<EInvoiceFormat, "none">) {
+    if (!invoice) return;
+    if (invoice.e_invoice_format === format) return;
+    await updateInvoice(invoice.id, { e_invoice_format: format });
+    onInvoiceUpdated?.();
   }
 
   async function handleValidationSaved() {

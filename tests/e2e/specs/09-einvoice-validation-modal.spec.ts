@@ -17,7 +17,7 @@ import {
   destroyTenant,
   seedInvoiceForTenant,
   clearSeededInvoices,
-  resetInvoiceForRetest,
+  readSeededInvoiceFormat,
   type TestTenant,
 } from "../helpers/test-tenant";
 import { loginAs, logout } from "../helpers/auth";
@@ -29,10 +29,9 @@ test.beforeAll(async () => {
   await seedInvoiceForTenant(tenant.primarySlug, tenant.runId);
 });
 
-test.beforeEach(async () => {
-  // Each test re-enters the dropdown flow, so reset format + settings.
-  if (tenant) await resetInvoiceForRetest(tenant.primarySlug);
-});
+// ORA-2266 — No per-test reset. PDFDownloadButton now persists
+// e_invoice_format only after the download succeeds, so the only test that
+// mutates the seeded invoice is the save-path test, which runs last.
 
 test.afterAll(async () => {
   if (tenant) {
@@ -93,6 +92,48 @@ test("validation modal opens when seller settings are empty", async ({ page }) =
   await logout(page);
 });
 
+test("non-seller errors show as amber info block, not as form fields", async ({ page }) => {
+  await loginAs(page, tenant.admin);
+  await page.goto("/invoices");
+  await page.waitForLoadState("networkidle");
+
+  await openEInvoiceModal(page);
+
+  // The amber section may or may not be present depending on which validator
+  // rules fired. If it is present, it carries the amber-500 border class.
+  const nonSellerSection = page.locator("text=Weitere Fehler").first();
+  if (await nonSellerSection.isVisible().catch(() => false)) {
+    await expect(page.locator(".border-amber-500\\/40").first()).toBeVisible();
+  }
+
+  await logout(page);
+});
+
+// ORA-2266 — Cancelling the validation modal must NOT persist e_invoice_format.
+// Pre-fix, handleCreateEInvoice flipped the column to "zugferd" before
+// validation ran, so a cancelled draft was permanently marked as e-invoice.
+test("cancel does not persist e_invoice_format (ORA-2266)", async ({ page }) => {
+  await loginAs(page, tenant.admin);
+  await page.goto("/invoices");
+  await page.waitForLoadState("networkidle");
+
+  const before = await readSeededInvoiceFormat(tenant.primarySlug);
+  expect(before).toBe("none");
+
+  const modalTitle = await openEInvoiceModal(page);
+
+  await page.locator('button:has-text("Abbrechen")').first().click();
+  await expect(modalTitle).not.toBeVisible({ timeout: 5_000 });
+
+  const after = await readSeededInvoiceFormat(tenant.primarySlug);
+  expect(after).toBe("none");
+
+  await logout(page);
+});
+
+// Runs last because this is the only test that successfully persists
+// e_invoice_format + seller settings. Anything after would see a populated
+// invoice and the dropdown flow would no longer apply (see openEInvoiceModal).
 test("user can fill seller fields and save closes the modal", async ({ page }) => {
   await loginAs(page, tenant.admin);
   await page.goto("/invoices");
@@ -114,36 +155,6 @@ test("user can fill seller fields and save closes the modal", async ({ page }) =
   // Either path closes the modal — assert the heading is gone within timeout.
   await saveBtn.click();
   await expect(modalTitle).not.toBeVisible({ timeout: 15_000 });
-
-  await logout(page);
-});
-
-test("non-seller errors show as amber info block, not as form fields", async ({ page }) => {
-  await loginAs(page, tenant.admin);
-  await page.goto("/invoices");
-  await page.waitForLoadState("networkidle");
-
-  await openEInvoiceModal(page);
-
-  // The amber section may or may not be present depending on which validator
-  // rules fired. If it is present, it carries the amber-500 border class.
-  const nonSellerSection = page.locator("text=Weitere Fehler").first();
-  if (await nonSellerSection.isVisible().catch(() => false)) {
-    await expect(page.locator(".border-amber-500\\/40").first()).toBeVisible();
-  }
-
-  await logout(page);
-});
-
-test("cancel button closes the modal without saving", async ({ page }) => {
-  await loginAs(page, tenant.admin);
-  await page.goto("/invoices");
-  await page.waitForLoadState("networkidle");
-
-  const modalTitle = await openEInvoiceModal(page);
-
-  await page.locator('button:has-text("Abbrechen")').first().click();
-  await expect(modalTitle).not.toBeVisible({ timeout: 5_000 });
 
   await logout(page);
 });

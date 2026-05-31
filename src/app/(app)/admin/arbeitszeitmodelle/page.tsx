@@ -13,13 +13,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   assignWorkTimeModelToUser,
-  createWorkTimeModel,
   deleteWorkTimeModel,
   getUserProfilesForMyCompanies,
   getWorkTimeModelDays,
   getWorkTimeModels,
-  replaceWorkTimeModelDays,
-  updateWorkTimeModel,
 } from "@/lib/db";
 import type { UserProfile, WorkTimeModel } from "@/lib/types";
 import { WEEKDAY_LABELS_LONG } from "@/lib/types";
@@ -166,19 +163,42 @@ export default function ArbeitszeitmodelleAdminPage() {
       const weeklyTotal = createDraft.days
         .filter((d) => d.enabled)
         .reduce((s, d) => s + d.daily_target_minutes, 0);
-      const model = await createWorkTimeModel({
-        name: createDraft.name.trim() || "Neues Modell",
-        weekly_target_minutes: weeklyTotal,
-        unpaid_break_minutes: createDraft.unpaid_break_minutes,
-        vacation_days_per_year: createDraft.vacation_days_per_year,
-      });
       const dayRows = createDraft.days.map((d) => ({
         weekday: d.weekday,
         start_time: d.enabled ? (d.start_time || null) : null,
         end_time: d.enabled ? (d.end_time || null) : null,
         daily_target_minutes: d.enabled ? d.daily_target_minutes : 0,
       }));
-      await replaceWorkTimeModelDays(model.id, dayRows);
+
+      // ORA-2295 (5th regression) — route through service-role API so RLS
+      // denials or silent insert failures surface as user-visible errors
+      // instead of looking like a successful save. Same anti-pattern as the
+      // edit path fixed in commit 351d6c0.
+      const companyId =
+        typeof window !== "undefined"
+          ? localStorage.getItem("activeCompanyId") || "vrthefans"
+          : "vrthefans";
+      const res = await fetch(`/api/admin/work-time-models`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company_id: companyId,
+          name: createDraft.name.trim() || "Neues Modell",
+          weekly_target_minutes: weeklyTotal,
+          unpaid_break_minutes: createDraft.unpaid_break_minutes,
+          vacation_days_per_year: createDraft.vacation_days_per_year,
+          days: dayRows,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg =
+          (data as { error?: string }).error ||
+          `Anlegen fehlgeschlagen (${res.status})`;
+        alert(`Fehler beim Anlegen: ${msg}`);
+        throw new Error(msg);
+      }
+
       resetCreateDraft();
       setShowCreate(false);
       await loadAll();
@@ -194,7 +214,20 @@ export default function ArbeitszeitmodelleAdminPage() {
   async function openEdit(model: WorkTimeModel) {
     setError(null);
     setEditing(model);
-    const days = await getWorkTimeModelDays(model.id);
+    // ORA-2320 — getWorkTimeModelDays now throws on read failure (was a
+    // silent `[]` swallow under RLS denial). Surface the real error instead
+    // of falling back to the Mo-Fr 09:00-17:30 default and pretending the
+    // model was empty.
+    let days;
+    try {
+      days = await getWorkTimeModelDays(model.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Tagespläne konnten nicht geladen werden: ${msg}`);
+      setError(msg);
+      setEditing(null);
+      return;
+    }
     const draft = emptyDays(model.unpaid_break_minutes);
     days.forEach((d) => {
       const idx = d.weekday;
@@ -228,19 +261,47 @@ export default function ArbeitszeitmodelleAdminPage() {
       const weeklyTotal = editDraft.days
         .filter((d) => d.enabled)
         .reduce((s, d) => s + d.daily_target_minutes, 0);
-      await updateWorkTimeModel(editing.id, {
-        name: editDraft.name.trim() || editing.name,
-        weekly_target_minutes: weeklyTotal,
-        unpaid_break_minutes: editDraft.unpaid_break_minutes,
-        vacation_days_per_year: editDraft.vacation_days_per_year,
-      });
       const dayRows = editDraft.days.map((d) => ({
         weekday: d.weekday,
         start_time: d.enabled ? (d.start_time || null) : null,
         end_time: d.enabled ? (d.end_time || null) : null,
         daily_target_minutes: d.enabled ? d.daily_target_minutes : 0,
       }));
-      await replaceWorkTimeModelDays(editing.id, dayRows);
+
+      // ORA-2295 — route through service-role API so RLS denials / silent
+      // UPDATE errors surface as user-visible failures instead of looking like
+      // a successful save.
+      const url = `/api/admin/work-time-models/${editing.id}`;
+      const settingsRes = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update_settings",
+          name: editDraft.name.trim() || editing.name,
+          weekly_target_minutes: weeklyTotal,
+          unpaid_break_minutes: editDraft.unpaid_break_minutes,
+          vacation_days_per_year: editDraft.vacation_days_per_year,
+        }),
+      });
+      if (!settingsRes.ok) {
+        const data = await settingsRes.json().catch(() => ({}));
+        const msg = (data as { error?: string }).error || `Speichern fehlgeschlagen (${settingsRes.status})`;
+        alert(`Fehler beim Speichern: ${msg}`);
+        throw new Error(msg);
+      }
+
+      const daysRes = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "replace_days", days: dayRows }),
+      });
+      if (!daysRes.ok) {
+        const data = await daysRes.json().catch(() => ({}));
+        const msg = (data as { error?: string }).error || `Tagespläne speichern fehlgeschlagen (${daysRes.status})`;
+        alert(`Fehler beim Speichern der Tagespläne: ${msg}`);
+        throw new Error(msg);
+      }
+
       setEditing(null);
       setEditDraft(null);
       await loadAll();

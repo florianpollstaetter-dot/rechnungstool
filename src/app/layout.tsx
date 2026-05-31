@@ -35,7 +35,7 @@ const syne = Syne({
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://orange-octo.com";
 const SITE_TITLE = "Orange Octo — KI-gestützte Buchhaltung für Selbstständige";
 const SITE_DESCRIPTION =
-  "Rechnungen, Angebote, Belege und Zeiterfassung in einer einfachen App. KI-vorausgefüllte Felder, E-Rechnung (EN-16931), Made in Austria.";
+  "Rechnungen, Angebote, Belege und Zeiterfassung in einer einfachen App. KI-vorausgefüllte Felder, E-Rechnung (XRechnung/ZUGFeRD, EN-16931), DSGVO- und GoBD-konform.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -55,8 +55,12 @@ export const metadata: Metadata = {
     "EN-16931",
     "Selbstständige",
     "Freelancer",
-    "Österreich",
-    "Austria",
+    "Deutschland",
+    "Germany",
+    "XRechnung",
+    "ZUGFeRD",
+    "DSGVO",
+    "GoBD",
     "SaaS",
     "Accounting",
     "Invoicing",
@@ -70,7 +74,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    locale: "de_AT",
+    locale: "de_DE",
     url: SITE_URL,
     siteName: "Orange Octo",
     title: SITE_TITLE,

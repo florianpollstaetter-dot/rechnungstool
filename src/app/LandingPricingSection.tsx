@@ -80,7 +80,7 @@ export default function LandingPricingSection() {
             keine versteckten Kosten.
           </h2>
           <p className={styles.sectionSub}>
-            14 Tage kostenlos testen — keine Kreditkarte nötig. Danach einer dieser Tarife. Monatlich kündbar.
+            14 Tage gratis testen — keine Kreditkarte. Danach monatlich kündbar, jederzeit den Tarif wechseln.
           </p>
 
           <div className={styles.billingToggle} role="radiogroup" aria-label="Abrechnungszeitraum">
@@ -155,8 +155,8 @@ export default function LandingPricingSection() {
         </div>
 
         <p className={styles.pricingFooterNote}>
-          Alle Preise netto pro Monat. Jährliche Zahlung spart 20 %. Keine Kreditkarte für den Trial, keine
-          Einrichtungsgebühr.
+          Alle Preise netto pro Monat · Jährlich −20 % · Keine Kreditkarte beim Trial · Keine Einrichtungsgebühr ·
+          Tarifwechsel jederzeit möglich
         </p>
       </div>
     </section>

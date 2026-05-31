@@ -16,10 +16,11 @@ export default function RegisterPage() {
   const [step, setStep] = useState<Step>("credentials");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [companySlug, setCompanySlug] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -37,10 +38,6 @@ export default function RegisterPage() {
     setError("");
     if (password.length < 8) {
       setError(t("register.passwordTooShort"));
-      return;
-    }
-    if (password !== passwordConfirm) {
-      setError(t("register.passwordMismatch"));
       return;
     }
     setStep("company");
@@ -153,16 +150,6 @@ export default function RegisterPage() {
         {step === "credentials" && (
           <form onSubmit={handleCredentials} className={styles.card}>
             <div className={styles.fieldGroup}>
-              <label className={styles.label}>{t("register.name")}</label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className={styles.input}
-                placeholder="Max Mustermann"
-              />
-            </div>
-            <div className={styles.fieldGroup}>
               <label className={styles.label}>{t("register.email")}</label>
               <input
                 type="email"
@@ -170,32 +157,32 @@ export default function RegisterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className={styles.input}
-                placeholder="max@unternehmen.at"
+                placeholder="max@unternehmen.de"
                 autoComplete="email"
               />
             </div>
             <div className={styles.fieldGroup}>
               <label className={styles.label}>{t("register.password")}</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                className={styles.input}
-                autoComplete="new-password"
-              />
-            </div>
-            <div className={styles.fieldGroup}>
-              <label className={styles.label}>{t("register.confirmPassword")}</label>
-              <input
-                type="password"
-                value={passwordConfirm}
-                onChange={(e) => setPasswordConfirm(e.target.value)}
-                required
-                className={styles.input}
-                autoComplete="new-password"
-              />
+              <div className={styles.passwordWrapper}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className={`${styles.input} ${styles.passwordInput}`}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className={styles.passwordToggle}
+                  aria-label={showPassword ? t("register.hidePassword") : t("register.showPassword")}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? t("register.hidePassword") : t("register.showPassword")}
+                </button>
+              </div>
             </div>
 
             {error && <div className={styles.error}>{error}</div>}
@@ -214,6 +201,17 @@ export default function RegisterPage() {
               {t("register.companySetupHint")}
             </p>
             <div className={styles.fieldGroup}>
+              <label className={styles.label}>{t("register.nameOptional")}</label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className={styles.input}
+                placeholder="Max Mustermann"
+                autoComplete="name"
+              />
+            </div>
+            <div className={styles.fieldGroup}>
               <label className={styles.label}>{t("register.companyName")}</label>
               <input
                 type="text"
@@ -229,20 +227,36 @@ export default function RegisterPage() {
                 placeholder="Mein Unternehmen GmbH"
               />
             </div>
-            <div className={styles.fieldGroup}>
-              <label className={styles.label}>
-                {t("register.companySlug")}
-                <span className={styles.labelHint}>{t("register.slugHint")}</span>
-              </label>
-              <input
-                type="text"
-                value={companySlug}
-                onChange={(e) => setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-                className={styles.input}
-                placeholder="mein-unternehmen"
-                maxLength={30}
-              />
-            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              className={styles.advancedToggle}
+              aria-expanded={showAdvanced}
+              aria-controls="register-advanced"
+            >
+              <span className={styles.advancedChevron} aria-hidden="true">
+                {showAdvanced ? "▾" : "▸"}
+              </span>
+              {t("register.advanced")}
+            </button>
+
+            {showAdvanced && (
+              <div id="register-advanced" className={styles.fieldGroup}>
+                <label className={styles.label}>
+                  {t("register.companySlug")}
+                  <span className={styles.labelHint}>{t("register.slugHint")}</span>
+                </label>
+                <input
+                  type="text"
+                  value={companySlug}
+                  onChange={(e) => setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                  className={styles.input}
+                  placeholder="mein-unternehmen"
+                  maxLength={30}
+                />
+              </div>
+            )}
 
             <div className={styles.trialHint}>
               <span className={styles.trialHintIcon}>✓</span>

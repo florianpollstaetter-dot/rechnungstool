@@ -61,11 +61,14 @@ test("admin legt Modell an mit Default-Pause 30 + 32h-Woche, weist es qa-empty z
   // ---------- 2) "Neues Modell" → Form ----------
   await page.getByRole("button", { name: /Neues Modell/i }).click();
 
-  // Labels im ModelForm sind nicht htmlFor-assoziiert — Inputs werden über
-  // die enthaltende `<div>` mit Label-Text gefunden.
+  // Labels im ModelForm sind nicht htmlFor-assoziiert — wir ankern auf dem
+  // <label>-Element und gehen einen Schritt nach oben zum wrapping <div>, das
+  // genau label+input zusammenhält. Der vorherige `form.locator("div")`-Pfad
+  // hat den umgebenden Grid-Container (`grid-cols-3`) gematcht und damit
+  // `.first()` auf das Name-Input geleitet statt auf Pause.
   const form = page.locator("form").filter({ hasText: /Wochenpensum/i });
   const fieldByLabel = (label: RegExp) =>
-    form.locator("div").filter({ has: page.getByText(label) }).locator("input").first();
+    form.locator("label").filter({ hasText: label }).locator("xpath=../input").first();
 
   // DoD: Pause/Tag muss mit 30 vorbelegt sein.
   const pauseInput = fieldByLabel(/Unbez\. Pause\/Tag/);
@@ -130,7 +133,13 @@ test("admin legt Modell an mit Default-Pause 30 + 32h-Woche, weist es qa-empty z
   });
   await expect(emptyRow).toBeVisible();
   const modelSelect = emptyRow.locator("select[title='Arbeitszeitmodell zuweisen']");
+  // Wait for the auto-save PATCH before reloading — handleAssignWorkTimeModel
+  // is async; without this wait the reload races the fetch and the write is lost.
+  const saveResponse = page.waitForResponse(
+    (r) => r.url().includes("/api/admin/users") && r.request().method() === "PATCH",
+  );
   await modelSelect.selectOption({ label: name });
+  await saveResponse;
 
   // Selection is auto-saved (handleAssignWorkTimeModel runs on change); reload
   // to confirm it stuck.
@@ -156,7 +165,7 @@ test("admin legt Modell an mit Default-Pause 30 + 32h-Woche, weist es qa-empty z
   //   Fr-So (3 buttons) carry no "Soll" segment (target = 0 → tick suppressed).
   // 32h weekly sum is implied by 4 × 8h, but we assert it explicitly to lock the
   // Wochenpensum readout too.
-  await expect(page.getByText(/32h/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("32h 0m", { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('button[title*="Soll 8h 0m"]')).toHaveCount(4);
   await expect(page.locator('button[title*="Soll"]')).toHaveCount(4);
 

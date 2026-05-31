@@ -14,7 +14,7 @@ import {
   getUserWorkSchedules, replaceUserWorkSchedules,
   getCompanyRoles, createCompanyRole, updateCompanyRole, deleteCompanyRole,
   getUserRoleAssignments, assignRoleToUser, removeRoleFromUser,
-  getWorkTimeModels, assignWorkTimeModelToUser,
+  getWorkTimeModels,
 } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import { useCompany } from "@/lib/company-context";
@@ -192,9 +192,26 @@ export default function AdminPage() {
     setLoading(false);
   }, []);
 
-  async function handleAssignWorkTimeModel(userId: string, modelId: string) {
-    await assignWorkTimeModelToUser(userId, modelId || null);
-    await loadData();
+  async function handleAssignWorkTimeModel(u: UserProfile, modelId: string) {
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          auth_user_id: u.auth_user_id,
+          action: "assign_work_time_model",
+          work_time_model_id: modelId || null,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        alert(result.error || "Arbeitszeitmodell konnte nicht gespeichert werden.");
+        return;
+      }
+      await loadData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Unbekannter Fehler beim Speichern");
+    }
   }
 
   const loadRoles = useCallback(async () => {
@@ -596,6 +613,14 @@ export default function AdminPage() {
           </Link>
         )}
         {isAdmin && (
+          <Link
+            href="/admin/stundenabrechnung"
+            className="px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          >
+            Stundenabrechnung
+          </Link>
+        )}
+        {isAdmin && (
           <button
             onClick={() => setActiveTab("diagnose")}
             className={`px-4 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
@@ -830,7 +855,7 @@ export default function AdminPage() {
                     <td className="px-4 py-3">
                       <select
                         value={u.work_time_model_id ?? ""}
-                        onChange={(e) => handleAssignWorkTimeModel(u.id, e.target.value)}
+                        onChange={(e) => handleAssignWorkTimeModel(u, e.target.value)}
                         className="bg-[var(--background)] border border-[var(--border)] rounded px-2 py-1 text-xs text-[var(--text-primary)] max-w-[12rem]"
                         title="Arbeitszeitmodell zuweisen"
                       >

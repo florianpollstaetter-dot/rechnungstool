@@ -7,22 +7,24 @@ import LandingHeaderLogin from "./LandingHeaderLogin";
 import LandingInlineLogin from "./LandingInlineLogin";
 import LandingFeaturesGrid, { type LandingFeature } from "./LandingFeaturesGrid";
 import LandingPricingSection from "./LandingPricingSection";
+import LandingFaqSection from "./LandingFaqSection";
+import { FAQ_ITEMS } from "./LandingFaqData";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://orange-octo.com";
 
 export const metadata = {
   title: "Orange Octo — Buchhaltung, die sich selbst erledigt",
   description:
-    "KI-Belegerfassung, EU-konforme E-Rechnung und Zeiterfassung in einer Plattform. 14 Tage kostenlos testen.",
+    "KI-Belegerfassung, EU-konforme E-Rechnung (XRechnung/ZUGFeRD), Rechnungen und Zeiterfassung in einer Plattform. DSGVO- und GoBD-konform. 14 Tage gratis testen.",
   alternates: { canonical: SITE_URL },
   openGraph: {
     type: "website",
-    locale: "de_AT",
+    locale: "de_DE",
     url: SITE_URL,
     siteName: "Orange Octo",
     title: "Orange Octo — Buchhaltung, die sich selbst erledigt",
     description:
-      "KI-Belegerfassung, EU-konforme E-Rechnung und Zeiterfassung in einer Plattform. 14 Tage kostenlos testen.",
+      "KI-Belegerfassung, EU-konforme E-Rechnung (XRechnung/ZUGFeRD), Rechnungen und Zeiterfassung in einer Plattform. DSGVO- und GoBD-konform. 14 Tage gratis testen.",
     images: [{ url: "/brand/octo-logo-full-white.png", width: 1200, height: 630, alt: "Orange Octo" }],
   },
 };
@@ -53,6 +55,19 @@ const SOFTWARE_JSON_LD = {
   inLanguage: ["de", "en"],
 };
 
+const FAQ_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.a,
+    },
+  })),
+};
+
 export default async function LandingPage() {
   const supabase = await createClient();
   const {
@@ -69,7 +84,7 @@ export default async function LandingPage() {
         "Unsere KI liest Betrag, Datum, Lieferant und Kategorie automatisch aus. Kein Abtippen, keine Fehler. Direkt verbucht und archiviert.",
       detailed:
         "Fotografiere den Beleg mit dem Handy, ziehe PDF-Rechnungen per Drag & Drop rein oder leite E-Mail-Belege an deine Orange-Octo-Adresse weiter. Die KI erkennt innerhalb von Sekunden Lieferant, Datum, Betrag, Steuersatz und Kategorie — und schlägt die passende SKR03- oder SKR04-Buchung vor. Du bestätigst mit einem Klick, der Beleg landet GoBD-konform im 10-Jahres-Archiv und ist später per Volltextsuche auffindbar.",
-      bullets: ["OCR + KI in einem Schritt", "Auto-Verbuchung auf SKR03/SKR04", "10-jähriges GoBD-Archiv"],
+      bullets: ["Foto knipsen — Beleg ist verbucht", "Auto-Vorschlag auf SKR03/SKR04", "10-jähriges GoBD-Archiv inklusive"],
       mock: <ReceiptMock />,
     },
     {
@@ -85,10 +100,10 @@ export default async function LandingPage() {
     },
     {
       reverse: false,
-      label: "E-Rechnung",
+      label: "E-Rechnung (Pflicht ab 2025)",
       title: "XRechnung & ZUGFeRD — automatisch.",
       body:
-        "Pflichtformat ab 2025 für B2B in Deutschland. Orange Octo erzeugt EN 16931-konforme XML im Hintergrund — kein Setup nötig.",
+        "Seit 2025 Pflicht im B2B-Versand in Deutschland. Orange Octo erzeugt EN 16931-konforme XML im Hintergrund — kein Setup, kein Extra-Tool.",
       detailed:
         "Seit 2025 müssen B2B-Rechnungen in Deutschland elektronisch sein. Orange Octo erzeugt zu jeder Rechnung im Hintergrund EN-16931-konforme XML in XRechnung 3.0 oder als ZUGFeRD 2.3 Hybrid-PDF — inklusive Leitweg-ID, Käuferreferenz und eingebautem Validator, der Fehler vor dem Versand meldet. Kein separates Tool, kein Setup: du erstellst eine normale Rechnung, das E-Rechnungs-XML liegt automatisch dabei.",
       bullets: ["XRechnung 3.0 validiert", "ZUGFeRD 2.3 Hybrid-PDF", "Leitweg-ID-Verwaltung"],
@@ -139,6 +154,10 @@ export default async function LandingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(SOFTWARE_JSON_LD) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSON_LD) }}
+      />
       <link
         href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap"
         rel="stylesheet"
@@ -181,7 +200,7 @@ export default async function LandingPage() {
           <div className={styles.heroText}>
             <div className={styles.heroBadge}>
               <span className={styles.heroBadgeDot} />
-              KI-gestützte Buchhaltung · Made in Austria
+              KI-gestützte Buchhaltung · Hosted in EU
             </div>
 
             <h1>
@@ -193,9 +212,8 @@ export default async function LandingPage() {
             </h1>
 
             <p className={styles.heroSub}>
-              Belege scannen, Rechnungen erstellen, Angebote gestalten —{" "}
-              <strong>alles automatisch.</strong> Orange Octo verbindet KI-Belegerfassung, EU-konforme E-Rechnung und
-              Zeiterfassung in einer übersichtlichen Plattform.
+              Foto vom Beleg machen — die KI verbucht automatisch. Rechnungen mit XRechnung-XML im Hintergrund.
+              Zeiten erfassen, mit einem Klick in eine Rechnung. <strong>Stunden sparen, jede Woche.</strong>
             </p>
 
             <div className={styles.heroActions}>
@@ -210,7 +228,7 @@ export default async function LandingPage() {
                   <circle cx="12" cy="12" r="10" />
                   <polygon points="10 8 16 12 10 16 10 8" />
                 </svg>
-                Demo ansehen
+                Funktionen ansehen
               </a>
             </div>
 
@@ -219,7 +237,7 @@ export default async function LandingPage() {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
-              &nbsp;14 Tage kostenlos · Keine Kreditkarte · Kündigung jederzeit
+              &nbsp;14 Tage gratis · Keine Kreditkarte · Monatlich kündbar · DSGVO &amp; GoBD-konform
             </p>
           </div>
 
@@ -319,19 +337,18 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <LandingInlineLogin />
-
       <section className={styles.features} id="features">
         <div className={styles.container}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionLabel}>Funktionen</div>
             <h2>
-              Alles was du brauchst,
+              Sechs Werkzeuge,
               <br />
-              nichts was du nicht brauchst.
+              eine Plattform.
             </h2>
             <p className={styles.sectionSub}>
-              Von der Belegerfassung bis zur DATEV-Übergabe — Orange Octo deckt den gesamten Buchhaltungsablauf ab.
+              Beleg, Rechnung, Angebot, E-Rechnung, Zeit, DATEV — kein Tool-Hopping, kein Daten-Hin-und-Her.
+              Alles greift ineinander.
             </p>
           </div>
 
@@ -340,6 +357,10 @@ export default async function LandingPage() {
       </section>
 
       <LandingPricingSection />
+
+      <LandingFaqSection />
+
+      <LandingInlineLogin />
 
       <section className={styles.bigLogo} aria-hidden="true">
         <Image

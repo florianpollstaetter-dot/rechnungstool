@@ -13,6 +13,7 @@ export async function PATCH(request: Request) {
         action?: unknown;
         email?: unknown;
         display_name?: unknown;
+        work_time_model_id?: unknown;
       }
     | null;
   const targetAuthUserId = typeof body?.auth_user_id === "string" ? body.auth_user_id : null;
@@ -57,9 +58,36 @@ export async function PATCH(request: Request) {
   if (
     userAction !== "set_temp_password" &&
     userAction !== "send_temp_password_email" &&
-    userAction !== "update_user"
+    userAction !== "update_user" &&
+    userAction !== "assign_work_time_model"
   ) {
     return Response.json({ error: "Unbekannte Aktion" }, { status: 400 });
+  }
+
+  // SCH-2280 — assign work time model to user via service role so RLS on
+  // user_profiles cannot silently block the update.
+  if (userAction === "assign_work_time_model") {
+    const rawModelId = body?.work_time_model_id;
+    const modelId = typeof rawModelId === "string" && rawModelId ? rawModelId : null;
+
+    const { error: assignErr } = await service
+      .from("user_profiles")
+      .update({ work_time_model_id: modelId })
+      .eq("auth_user_id", targetAuthUserId);
+
+    if (assignErr) {
+      return Response.json({ error: assignErr.message }, { status: 500 });
+    }
+
+    await logCompanyAuditAction(
+      auth.user!.id,
+      companyId,
+      "user.assign_work_time_model",
+      "user",
+      targetAuthUserId,
+    );
+
+    return Response.json({ assigned: true });
   }
 
   // SCH-918 K3-V3 — Admin-Edit-Always: change email + profile fields on
