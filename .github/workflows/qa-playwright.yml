@@ -71,6 +71,8 @@ jobs:
       # ORA-2286 — bypass header for Vercel Deployment Protection on
       # preview URLs. Read by playwright.config.ts → use.extraHTTPHeaders.
       VERCEL_PROTECTION_BYPASS: ${{ secrets.VERCEL_PROTECTION_BYPASS }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       CI: "true"
     steps:
       - name: Guard — Supabase secrets must be present
@@ -97,10 +99,8 @@ jobs:
       # not master prod. Requires VERCEL_TOKEN + VERCEL_PROJECT_ID; if absent,
       # falls back gracefully to the static BASE_URL set in the job env.
       - name: Resolve Vercel preview URL for PR
-        if: github.event_name == 'pull_request' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_PROJECT_ID != ''
+        if: github.event_name == 'pull_request' && env.VERCEL_TOKEN != '' && env.VERCEL_PROJECT_ID != ''
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
           COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
