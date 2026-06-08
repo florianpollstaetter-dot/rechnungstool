@@ -205,9 +205,12 @@ jobs:
           fi
       - name: Apply pending Supabase migrations
         # Runs on push-to-master always, and on PRs only when the PR itself
-        # adds/edits migration files. Idempotent: skips versions already in
-        # supabase_migrations.schema_migrations.
-        if: github.event_name != 'pull_request' || steps.migcheck.outputs.changed == 'true'
+        # adds/edits migration files. ORA-2471: workflow_dispatch runs SKIP this
+        # step — manual verification runs must not depend on the (expired,
+        # CTO-owned) Supabase PAT (ORA-2390/2391), which 401s here and aborts
+        # the job before any spec executes. Idempotent: skips versions already
+        # in supabase_migrations.schema_migrations.
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && steps.migcheck.outputs.changed == 'true')
         run: python3 .github/scripts/apply_migrations.py
       # ORA-2471 — the suite runs serially (workers:1) and a systemic auth/env
       # failure burns ~2 min/spec (60 s timeout × 1 retry), exhausting the
