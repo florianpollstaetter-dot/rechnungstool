@@ -74,13 +74,18 @@ test("Phase A: time-entry create modal exposes inline '+ Neues Projekt' trigger 
   await expect(inlineCreate).toBeVisible();
 
   // Clicking it must open the NewProjectModal — header "Neues Projekt"
-  // with a name input + "Anlegen" save button.
+  // with a name input + "Anlegen" save button. The NewProjectModal renders
+  // its own overlay (z-[60]) nested inside the z-50 time-entry modal, so we
+  // anchor on its heading and take the innermost overlay (.last()) to avoid
+  // matching the underlying create modal's own "Abbrechen" button.
   await inlineCreate.click();
   const newProjectModal = page
-    .locator("div.fixed.inset-0.z-50")
-    .filter({ has: page.getByRole("button", { name: /Anlegen|Wird erstellt/ }) })
-    .first();
+    .locator("div.fixed.inset-0")
+    .filter({ has: page.getByRole("heading", { name: "Neues Projekt" }) })
+    .last();
   await expect(newProjectModal).toBeVisible({ timeout: 10_000 });
+  await expect(newProjectModal.getByRole("heading", { name: "Neues Projekt" })).toBeVisible();
+  await expect(newProjectModal.getByRole("button", { name: /Anlegen|Wird erstellt/ })).toBeVisible();
   await expect(newProjectModal.getByRole("button", { name: "Abbrechen" })).toBeVisible();
 });
 
