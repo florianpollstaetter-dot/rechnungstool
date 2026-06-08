@@ -54,8 +54,12 @@ async function seedProducts(companyId: string): Promise<void> {
     description: "",
     name_en: "",
     description_en: "",
-    name_translations: {},
-    description_translations: {},
+    // name_translations / description_translations (migration 20260417211313)
+    // are intentionally omitted: both are NOT NULL DEFAULT '{}', so the DB fills
+    // them, and SCH-930 sorts/searches by `name` only. Setting them here makes
+    // the seed hard-fail with "column does not exist" whenever the shared QA
+    // Supabase is behind on that migration (PAT-gated, see ORA-2390/2391),
+    // which would block this spec from yielding a real sort/search result.
     unit: "Stueck",
     unit_price: 100,
     tax_rate: 20,
@@ -78,7 +82,9 @@ async function seedCustomers(companyId: string, runId: string): Promise<void> {
     uid_number: "",
     email: `seed-${runId}-${i}@example.test`,
     phone: "",
-    leitweg_id: "",
+    // leitweg_id (migration 20260417214553) omitted for the same reason as the
+    // product translation columns: NOT NULL DEFAULT '', not under test, and
+    // would hard-fail the seed on a QA Supabase that's behind on the migration.
   }));
   const { error } = await svc().from("customers").insert(rows);
   if (error) throw new Error(`seedCustomers failed: ${error.message}`);
