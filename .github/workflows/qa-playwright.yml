@@ -146,10 +146,34 @@ jobs:
         run: npm ci
       - name: Install Playwright browsers (chromium only)
         run: npx playwright install --with-deps chromium
+      # ORA-2470 — A PR that adds no migration files has nothing to apply, yet
+      # apply_migrations.py still queries the Supabase Management API first to
+      # read schema_migrations. With an expired SUPABASE_ACCESS_TOKEN that query
+      # hard-fails (401) and skips the whole Playwright suite (see ORA-2390/2391
+      # for the PAT rotation). The repo always ships committed migration files,
+      # so the script's "empty dir" guard never triggers. Gate the step on
+      # whether *this PR* actually touches supabase/migrations/ instead.
+      - name: Detect migration changes (PR only)
+        id: migcheck
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          files=$(gh api \
+            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --paginate --jq '.[].filename')
+          if echo "$files" | grep -q '^supabase/migrations/'; then
+            echo "PR touches supabase/migrations/ — migrations will be applied."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "PR adds no migration files — skipping Supabase migration step."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Apply pending Supabase migrations
-        # PR branches need their migrations on the shared QA Supabase before
-        # Playwright runs — otherwise tables that the PR adds don't exist yet.
-        # Idempotent: skips versions already in supabase_migrations.schema_migrations.
+        # Runs on push-to-master always, and on PRs only when the PR itself
+        # adds/edits migration files. Idempotent: skips versions already in
+        # supabase_migrations.schema_migrations.
+        if: github.event_name != 'pull_request' || steps.migcheck.outputs.changed == 'true'
         run: python3 .github/scripts/apply_migrations.py
       - name: Run Playwright suite
         run: npm run test:e2e
