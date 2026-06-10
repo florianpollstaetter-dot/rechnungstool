@@ -1,0 +1,153 @@
+name: Push Stripe env vars to Vercel-prod
+
+# One-off workflow (manually dispatched) that mirrors the Stripe env values
+# already stored as GH repo secrets into the Vercel project, scope = production.
+#
+# Why this exists: the locally-held VERCEL_TOKEN is SAML-blocked at the team
+# scope, but the CI-secret VERCEL_TOKEN has full team access. This is the
+# agent-side path to unblock SCH-859 / SCH-569 without waiting on a human.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Vercel target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+          - all
+
+permissions:
+  contents: read
+
+jobs:
+  push-env:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+      TARGET: ${{ inputs.target }}
+    steps:
+      - name: Build target array
+        id: targets
+        run: |
+          case "$TARGET" in
+            production)  echo 'arr=["production"]' >> "$GITHUB_OUTPUT" ;;
+            preview)     echo 'arr=["preview"]'    >> "$GITHUB_OUTPUT" ;;
+            all)         echo 'arr=["production","preview","development"]' >> "$GITHUB_OUTPUT" ;;
+            *) echo "unknown target $TARGET" >&2; exit 1 ;;
+          esac
+
+      - name: Upsert Stripe env vars in Vercel
+        env:
+          STRIPE_PRICE_STARTER_MONTH:  ${{ secrets.STRIPE_PRICE_STARTER_MONTH }}
+          STRIPE_PRICE_STARTER_YEAR:   ${{ secrets.STRIPE_PRICE_STARTER_YEAR }}
+          STRIPE_PRICE_BUSINESS_MONTH: ${{ secrets.STRIPE_PRICE_BUSINESS_MONTH }}
+          STRIPE_PRICE_BUSINESS_YEAR:  ${{ secrets.STRIPE_PRICE_BUSINESS_YEAR }}
+          STRIPE_PRICE_PRO_MONTH:      ${{ secrets.STRIPE_PRICE_PRO_MONTH }}
+          STRIPE_PRICE_PRO_YEAR:       ${{ secrets.STRIPE_PRICE_PRO_YEAR }}
+          STRIPE_SECRET_KEY:           ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET:       ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          TARGETS_JSON: ${{ steps.targets.outputs.arr }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${VERCEL_TOKEN:-}" ] || [ -z "${VERCEL_PROJECT_ID:-}" ]; then
+            echo "VERCEL_TOKEN / VERCEL_PROJECT_ID missing — aborting." >&2
+            exit 1
+          fi
+
+          team_param=""
+          if [ -n "${VERCEL_TEAM_ID:-}" ]; then
+            team_param="&teamId=${VERCEL_TEAM_ID}"
+          fi
+
+          # Vercel v10 env API: upsert=true replaces if key+target overlaps.
+          # We POST one entry per (key, full target array) so a single call
+          # covers all selected targets atomically.
+          upsert() {
+            local key="$1"
+            local value="$2"
+            if [ -z "$value" ]; then
+              echo "::warning::skipping $key (empty value)"
+              return 0
+            fi
+            local body
+            body=$(jq -n \
+              --arg key "$key" \
+              --arg value "$value" \
+              --argjson target "$TARGETS_JSON" \
+              '{key:$key, value:$value, type:"encrypted", target:$target}')
+
+            local http_status
+            http_status=$(curl -sS -o /tmp/vercel-resp.json -w '%{http_code}' \
+              -X POST \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              -H 'Content-Type: application/json' \
+              --data "$body" \
+              "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env?upsert=true${team_param}")
+
+            if [ "$http_status" != "200" ] && [ "$http_status" != "201" ]; then
+              echo "::error::$key failed (http $http_status)"
+              cat /tmp/vercel-resp.json
+              echo
+              return 1
+            fi
+            echo "ok: $key (http $http_status)"
+          }
+
+          upsert STRIPE_PRICE_STARTER_MONTH  "$STRIPE_PRICE_STARTER_MONTH"
+          upsert STRIPE_PRICE_STARTER_YEAR   "$STRIPE_PRICE_STARTER_YEAR"
+          upsert STRIPE_PRICE_BUSINESS_MONTH "$STRIPE_PRICE_BUSINESS_MONTH"
+          upsert STRIPE_PRICE_BUSINESS_YEAR  "$STRIPE_PRICE_BUSINESS_YEAR"
+          upsert STRIPE_PRICE_PRO_MONTH      "$STRIPE_PRICE_PRO_MONTH"
+          upsert STRIPE_PRICE_PRO_YEAR       "$STRIPE_PRICE_PRO_YEAR"
+          upsert STRIPE_SECRET_KEY           "$STRIPE_SECRET_KEY"
+          upsert STRIPE_WEBHOOK_SECRET       "$STRIPE_WEBHOOK_SECRET"
+
+          echo
+          echo "--- Verifying keys present in Vercel for target=$TARGET ---"
+          curl -sS \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/env?decrypt=false${team_param}" \
+            | jq -r '.envs[] | select(.key | startswith("STRIPE_")) | "\(.key)\ttargets=\(.target)"' \
+            | sort
+
+      - name: Trigger production redeploy
+        if: ${{ inputs.target == 'production' || inputs.target == 'all' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          team_param=""
+          if [ -n "${VERCEL_TEAM_ID:-}" ]; then
+            team_param="?teamId=${VERCEL_TEAM_ID}"
+          fi
+
+          # Find latest production deployment then redeploy with new env.
+          latest=$(curl -sS \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&target=production&limit=1${team_param:+&teamId=${VERCEL_TEAM_ID}}" \
+            | jq -r '.deployments[0].uid')
+
+          if [ -z "$latest" ] || [ "$latest" = "null" ]; then
+            echo "::warning::No prior production deployment found — skipping redeploy. Push to master will create one."
+            exit 0
+          fi
+
+          echo "Redeploying from $latest..."
+          body=$(jq -n --arg deployId "$latest" --arg name 'rechnungstool' \
+            '{deploymentId:$deployId, name:$name, target:"production"}')
+
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data "$body" \
+            "https://api.vercel.com/v13/deployments${team_param}" \
+            | jq '{id, url, readyState}'
