@@ -125,6 +125,12 @@ public class RealEbicsClientFacade implements EbicsClientFacade {
             } catch (Exception loadFailed) {
                 LOG.info("loadUser failed ({}). Creating subscriber {}/{}/{}",
                     loadFailed.getMessage(), hostId, partnerId, userId);
+                // Upstream signature as of 901faa3 (ORA-2527):
+                //   createUser(URL, bankName, hostId, partnerId, userId,
+                //              name, email, country, organization,
+                //              saveCertificates, passwordCallback)
+                // The legacy `useCertificates` boolean was removed by upstream
+                // — H005 always uses certificates.
                 u = c.createUser(
                     URI.create(bankUrl).toURL(),
                     bankName,
@@ -135,7 +141,6 @@ public class RealEbicsClientFacade implements EbicsClientFacade {
                     "treasury@orange-octo.test",
                     "DE",
                     "Orange Octo",
-                    /* useCertificates */ false,
                     /* saveCertificates */ true,
                     () -> keystore.password().toCharArray()
                 );
