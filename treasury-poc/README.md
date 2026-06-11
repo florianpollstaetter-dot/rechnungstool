@@ -78,6 +78,16 @@ Resultate: [`bench/results.md`](bench/results.md).
 | [`docs/04-cost-tco.md`](docs/04-cost-tco.md) | 12/24/36-Monats-TCO inkl. internem Eng-Aufwand |
 | [`docs/05-decision-memo.md`](docs/05-decision-memo.md) | **ADR — Empfehlung an CEO** |
 
+## CVE-Hardening (ORA-2526)
+
+Der PoC-Build läuft unter der **Hybrid A+C CVE-Hardening-Policy** (board-approved 2026-06-11 via [ORA-2324](/ORA/issues/ORA-2324)).
+
+- **CRITICAL** CVEs in der Sidecar-Image-Layer brechen den `treasury-poc-e2e`-Workflow hart (`exit-code: 1`). Eskalation: CEO.
+- **HIGH/MEDIUM** CVEs werden als SARIF an den GitHub Security tab gemeldet (advisory, kein Build-Break). Cadence: Dependabot Maven weekly via [`.github/dependabot.yml`](../.github/dependabot.yml).
+- Allowlist (`.trivyignore`): nur mit CEO-Sign-off, max. 30 Tage Expiry pro Eintrag.
+
+Full policy + Eskalations-Pfade: [`docs/security/cve-policy.md`](../docs/security/cve-policy.md).
+
 ## Scope-Grenzen
 
 - **Kein** Eingriff in `src/lib/treasury/` oder andere Module — PoC bleibt isoliert bis Decision.

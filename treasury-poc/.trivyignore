@@ -1,0 +1,15 @@
+# Treasury PoC — Trivy allowlist
+#
+# Allowlist process: see docs/security/cve-policy.md ("Allowlist-Prozess").
+# Every entry MUST be:
+#   1. Approved by CEO via a comment on the corresponding ORA issue.
+#   2. Annotated below with: CVE-ID, severity, ORA issue link, expiry date
+#      (max 30 days, then re-review or remove).
+#   3. Justified as a true false-positive or risk-accepted exception with a
+#      compensating control (e.g. tomcat shipped but not network-exposed,
+#      vendored binary not actually loaded at runtime).
+#
+# Format: one CVE-ID per line. Lines starting with `#` are comments.
+#
+# === Active entries ===
+# (none — empty allowlist as of ORA-2526 policy rollout, 2026-06-11)
