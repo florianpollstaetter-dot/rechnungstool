@@ -1,7 +1,7 @@
 ---
 title: "§13b UStG Rechnung: Der vollständige Leitfaden für 2025"
 slug: 13b-rechnung-guide
-publishedAt: null
+publishedAt: "2026-07-02"
 category: Steuer & Recht
 tags:
   - §13b UStG

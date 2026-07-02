@@ -19,7 +19,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const TREASURY_PATH_PREFIXES = ["/treasury", "/api/treasury"];
-const PUBLIC_PATHS = ["/impressum", "/agb", "/datenschutz"];
+// ORA-2679 — /blog and /blog/<slug> are public marketing/SEO pages; without
+// this whitelist they return 307 → /login and can't be crawled or indexed.
+const PUBLIC_PATHS = ["/impressum", "/agb", "/datenschutz", "/blog"];
 // SCH-910 — SEO/indexing files MUST resolve without auth-redirect.
 // Without this whitelist /robots.txt and /sitemap.xml return 307 → /login,
 // which blocks Google/Bing crawling.

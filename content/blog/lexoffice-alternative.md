@@ -1,7 +1,7 @@
 ---
 title: "lexoffice Alternative 2025: Die besten Optionen"
 slug: lexoffice-alternative
-publishedAt: null
+publishedAt: "2026-07-02"
 category: Software & Tools
 tags:
   - lexoffice

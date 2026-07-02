@@ -1,7 +1,7 @@
 ---
 title: "Rechnung schreiben online: Der komplette Guide"
 slug: rechnung-schreiben-online
-publishedAt: null
+publishedAt: "2026-07-02"
 category: Rechnung & Vorlagen
 tags:
   - Rechnung schreiben

@@ -1,7 +1,7 @@
 ---
 title: "Buchhaltungssoftware für Kleinunternehmer: Guide 2025"
 slug: buchhaltungssoftware-kleinunternehmer
-publishedAt: null
+publishedAt: "2026-07-02"
 category: Software & Tools
 tags:
   - Buchhaltungssoftware

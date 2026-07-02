@@ -1,7 +1,7 @@
 ---
 title: "Buchhaltungssoftware Österreich: Der Vergleich 2025"
 slug: buchhaltungssoftware-oesterreich
-publishedAt: null
+publishedAt: "2026-07-02"
 category: Software & Tools
 tags:
   - Buchhaltungssoftware

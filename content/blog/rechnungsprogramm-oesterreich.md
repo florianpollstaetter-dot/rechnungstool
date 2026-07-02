@@ -4,7 +4,7 @@ h1: "Rechnungsprogramm Österreich: KI-gestützt, FinanzOnline-tauglich, ab €9
 slug: "rechnungsprogramm-oesterreich"
 route: "/rechnungsprogramm-oesterreich"
 metaDescription: "Das schlanke Rechnungsprogramm für Solos & KMU in Österreich. KI-Belegerfassung, FinanzOnline-tauglich, 14 Tage gratis testen."
-publishedAt: null
+publishedAt: "2026-07-02"
 updatedAt: "2026-07-02"
 category: "Grundlagen"
 type: pillar

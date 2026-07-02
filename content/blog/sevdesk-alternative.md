@@ -1,7 +1,7 @@
 ---
 title: "sevDesk Alternative 2025: Die besten Optionen im Vergleich"
 slug: sevdesk-alternative
-publishedAt: null
+publishedAt: "2026-07-02"
 category: Software & Tools
 tags:
   - sevDesk

@@ -1,7 +1,7 @@
 ---
 title: "ZUGFeRD-Rechnung erstellen: Der komplette Guide 2025"
 slug: zugferd-rechnung
-publishedAt: null
+publishedAt: "2026-07-02"
 category: E-Rechnung
 tags:
   - ZUGFeRD

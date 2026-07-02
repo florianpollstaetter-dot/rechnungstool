@@ -1,7 +1,7 @@
 ---
 title: "KI-Buchhaltung: Wie künstliche Intelligenz Buchhaltung verändert"
 slug: ki-buchhaltung-erklaert
-publishedAt: null
+publishedAt: "2026-07-02"
 category: Software & Tools
 tags:
   - KI-Buchhaltung

@@ -4,7 +4,7 @@ h1: "XRechnung-Pflicht 2025 — was du als Selbstständiger wirklich wissen muss
 slug: "xrechnung-guide"
 route: "/xrechnung-guide"
 metaDescription: "XRechnung-Pflicht ab 2025: was Solos & Kleinunternehmer wissen müssen. Plus kostenlose Checkliste zum Download."
-publishedAt: null
+publishedAt: "2026-07-02"
 updatedAt: "2026-07-02"
 category: "Compliance"
 type: pillar

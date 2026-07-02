@@ -1,7 +1,7 @@
 ---
 title: "Rechnungssoftware für Handwerker: Guide 2025"
 slug: rechnungssoftware-handwerker
-publishedAt: null
+publishedAt: "2026-07-02"
 category: Software & Tools
 tags:
   - Rechnungssoftware

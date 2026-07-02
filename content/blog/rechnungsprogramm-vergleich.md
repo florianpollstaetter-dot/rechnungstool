@@ -1,7 +1,7 @@
 ---
 title: "Rechnungsprogramm Vergleich 2025: Die besten Tools"
 slug: rechnungsprogramm-vergleich
-publishedAt: null
+publishedAt: "2026-07-02"
 category: Software & Tools
 tags:
   - Rechnungsprogramm
