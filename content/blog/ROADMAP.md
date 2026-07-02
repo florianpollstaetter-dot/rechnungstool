@@ -23,8 +23,8 @@ Veröffentlichung aller Drafts wartet auf [SCH-910](/SCH/issues/SCH-910) (robots
 | 8 | Cluster | `buchhaltung-fuer-freelancer` | buchhaltung freelancer | ✅ |
 | 9 | Pillar | `buchhaltungssoftware-oesterreich` | buchhaltungssoftware österreich | ✅ |
 | 9 | Cluster | `finanzonline-export-oesterreich` | finanzonline export | ✅ |
-| 10 | Pillar | `rechnungssoftware-handwerker` | rechnungssoftware handwerker | ⏳ |
-| 10 | Cluster | `rechnung-an-oeffentlichen-auftraggeber` | rechnung öffentlicher auftraggeber | ⏳ |
+| 10 | Pillar | `rechnungssoftware-handwerker` | rechnungssoftware handwerker | ✅ |
+| 10 | Cluster | `rechnung-an-oeffentlichen-auftraggeber` | rechnung öffentlicher auftraggeber | ✅ |
 | 11 | Pillar | `ki-buchhaltung-erklaert` | ki buchhaltung | ⏳ |
 | 11 | Cluster | `automatisierung-buchhaltung-vorteile` | buchhaltung automatisieren | ⏳ |
 | 12 | Pillar | `rechnung-schreiben-online` | rechnung schreiben online | ⏳ |
