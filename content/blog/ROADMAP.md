@@ -9,8 +9,8 @@ Veröffentlichung aller Drafts wartet auf [SCH-910](/SCH/issues/SCH-910) (robots
 | 1 | Cluster | `rechnung-schreiben-oesterreich-anleitung` | rechnung schreiben österreich | ✅ |
 | 2 | Pillar | `xrechnung-guide` | xrechnung pflicht 2025 | ✅ |
 | 2 | Cluster | `xrechnung-kleinunternehmer-pflicht` | xrechnung kleinunternehmer | ✅ |
-| 3 | Pillar | `13b-rechnung-guide` | §13b rechnung vorlage | ⏳ |
-| 3 | Cluster | `reverse-charge-rechnung-erklaert` | reverse charge rechnung | ⏳ |
+| 3 | Pillar | `13b-rechnung-guide` | §13b rechnung vorlage | ✅ |
+| 3 | Cluster | `reverse-charge-rechnung-erklaert` | reverse charge rechnung | ✅ |
 | 4 | Pillar | `buchhaltungssoftware-kleinunternehmer` | buchhaltungssoftware kleinunternehmer | ⏳ |
 | 4 | Cluster | `kleinunternehmer-19-ustg-rechnung` | rechnung kleinunternehmer §19 | ⏳ |
 | 5 | Pillar | `sevdesk-alternative` | sevdesk alternative | ⏳ |
