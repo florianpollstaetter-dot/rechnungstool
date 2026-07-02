@@ -15,8 +15,8 @@ Veröffentlichung aller Drafts wartet auf [SCH-910](/SCH/issues/SCH-910) (robots
 | 4 | Cluster | `kleinunternehmer-19-ustg-rechnung` | rechnung kleinunternehmer §19 | ✅ |
 | 5 | Pillar | `sevdesk-alternative` | sevdesk alternative | ✅ |
 | 5 | Cluster | `sevdesk-vs-lexoffice-vergleich` | sevdesk vs lexoffice | ✅ |
-| 6 | Pillar | `zugferd-rechnung` | zugferd rechnung erstellen | ⏳ |
-| 6 | Cluster | `datev-export-fuer-selbststaendige` | datev export selbstständige | ⏳ |
+| 6 | Pillar | `zugferd-rechnung` | zugferd rechnung erstellen | ✅ |
+| 6 | Cluster | `datev-export-fuer-selbststaendige` | datev export selbstständige | ✅ |
 | 7 | Pillar | `lexoffice-alternative` | lexoffice alternative | ⏳ |
 | 7 | Cluster | `belegerfassung-app-vergleich` | belegerfassung app | ⏳ |
 | 8 | Pillar | `rechnungsprogramm-vergleich` | rechnungsprogramm vergleich | ⏳ |
