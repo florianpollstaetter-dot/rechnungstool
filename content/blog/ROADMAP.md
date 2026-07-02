@@ -21,8 +21,8 @@ Veröffentlichung aller Drafts wartet auf [SCH-910](/SCH/issues/SCH-910) (robots
 | 7 | Cluster | `belegerfassung-app-vergleich` | belegerfassung app | ✅ |
 | 8 | Pillar | `rechnungsprogramm-vergleich` | rechnungsprogramm vergleich | ✅ |
 | 8 | Cluster | `buchhaltung-fuer-freelancer` | buchhaltung freelancer | ✅ |
-| 9 | Pillar | `buchhaltungssoftware-oesterreich` | buchhaltungssoftware österreich | ⏳ |
-| 9 | Cluster | `finanzonline-export-oesterreich` | finanzonline export | ⏳ |
+| 9 | Pillar | `buchhaltungssoftware-oesterreich` | buchhaltungssoftware österreich | ✅ |
+| 9 | Cluster | `finanzonline-export-oesterreich` | finanzonline export | ✅ |
 | 10 | Pillar | `rechnungssoftware-handwerker` | rechnungssoftware handwerker | ⏳ |
 | 10 | Cluster | `rechnung-an-oeffentlichen-auftraggeber` | rechnung öffentlicher auftraggeber | ⏳ |
 | 11 | Pillar | `ki-buchhaltung-erklaert` | ki buchhaltung | ⏳ |
