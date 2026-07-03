@@ -61,6 +61,8 @@ function InvoicesPage() {
   const [eInvoiceError, setEInvoiceError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [cancelModal, setCancelModal] = useState<{ invoice: Invoice } | null>(null);
+  const [cancelPending, setCancelPending] = useState(false);
 
   const loadData = useCallback(async () => {
     const [inv, cust, s, tpl] = await Promise.all([getInvoices(), getCustomers(), getSettings(), getTemplates("invoice")]);
@@ -253,7 +255,6 @@ function InvoicesPage() {
   }
 
   async function handleCancel(id: string) {
-    if (!confirm("Rechnung wirklich stornieren? Es wird automatisch eine Stornorechnung erstellt.")) return;
     const inv = invoices.find((i) => i.id === id);
     if (!inv) return;
     await cancelInvoice(id);
@@ -516,7 +517,7 @@ function InvoicesPage() {
                         )}
                       </button>
                       {!isStorniert && (
-                        <button onClick={() => handleCancel(inv.id)} className="text-rose-500/60 hover:text-rose-400 p-1" title={t("invoices.cancelInvoice")}>
+                        <button data-testid="storno-button" onClick={() => setCancelModal({ invoice: inv })} className="text-rose-500/60 hover:text-rose-400 p-1" title={t("invoices.cancelInvoice")}>
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                           </svg>
@@ -588,6 +589,48 @@ function InvoicesPage() {
                 type="button"
                 onClick={() => setPaymentModal(null)}
                 className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
+              >
+                {t("common.cancel")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Storno Confirmation Modal — replaces native confirm() so the action is
+          testable under CDP/Playwright (native dialogs block the JS thread). */}
+      {cancelModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => !cancelPending && setCancelModal(null)}>
+          <div data-testid="storno-modal" className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">{t("invoices.cancelInvoice")}</h2>
+            <p className="text-sm text-[var(--text-secondary)] mb-1">Rechnung: <span className="text-[var(--text-primary)] font-medium">{cancelModal.invoice.invoice_number}</span></p>
+            <p className="text-sm text-[var(--text-secondary)] mb-4">Rechnung wirklich stornieren? Es wird automatisch eine Stornorechnung erstellt.</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                data-testid="storno-confirm"
+                disabled={cancelPending}
+                onClick={async () => {
+                  const id = cancelModal.invoice.id;
+                  setCancelPending(true);
+                  try {
+                    await handleCancel(id);
+                    setCancelModal(null);
+                  } catch (err) {
+                    console.error("Storno failed:", err);
+                  } finally {
+                    setCancelPending(false);
+                  }
+                }}
+                className="bg-rose-500/15 text-rose-400 px-6 py-2 rounded-lg text-sm font-semibold hover:bg-rose-500/25 transition disabled:opacity-50"
+              >
+                {cancelPending ? t("common.loading") : t("invoices.cancelInvoice")}
+              </button>
+              <button
+                type="button"
+                disabled={cancelPending}
+                onClick={() => setCancelModal(null)}
+                className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition disabled:opacity-50"
               >
                 {t("common.cancel")}
               </button>
