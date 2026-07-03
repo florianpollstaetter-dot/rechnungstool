@@ -47,6 +47,22 @@ on:
         description: "Override BASE_URL (e.g. https://my-preview.vercel.app)"
         required: false
         default: ""
+      # ORA-2471 — run a subset so the spec under verification (e.g. SCH-930 /
+      # spec 19) yields a result without the 25-min budget being consumed by
+      # the full serial suite. Value is a Playwright path/substring filter.
+      spec_filter:
+        description: "Run only specs matching this path/substring (e.g. 19-sch930). Empty = full suite."
+        required: false
+        default: ""
+      # ORA-2471 — bypass the (CTO-owned) Vercel-preview / PLAYWRIGHT_BASE_URL
+      # auth path entirely and test against an in-runner `next dev` server on
+      # the QA Supabase project. Hermetic verification path that does not depend
+      # on a deployed preview being reachable.
+      force_local_dev:
+        description: "Ignore preview/PLAYWRIGHT_BASE_URL; run against in-runner `next dev`."
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   e2e:
@@ -71,6 +87,12 @@ jobs:
       # ORA-2286 — bypass header for Vercel Deployment Protection on
       # preview URLs. Read by playwright.config.ts → use.extraHTTPHeaders.
       VERCEL_PROTECTION_BYPASS: ${{ secrets.VERCEL_PROTECTION_BYPASS }}
+      # ORA-2470 — mapped to job env so the "Resolve Vercel preview URL" step
+      # can gate itself via the `env` context. The `secrets` context is NOT
+      # available in step-level `if:` conditions, so referencing it there made
+      # the whole workflow invalid → 0-job startup failure.
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       CI: "true"
     steps:
       - name: Guard — Supabase secrets must be present
@@ -92,6 +114,15 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      # ORA-2471 — when dispatched with force_local_dev, blank BASE_URL so
+      # playwright.config.ts boots `npm run dev` in-runner instead of targeting
+      # the (currently unreachable) Vercel preview / PLAYWRIGHT_BASE_URL.
+      - name: ORA-2471 — force in-runner dev server
+        if: inputs.force_local_dev
+        run: |
+          echo "force_local_dev=true → clearing BASE_URL; playwright will boot 'npm run dev'."
+          echo "BASE_URL=" >> "$GITHUB_ENV"
+
       # ORA-2286 — Option A: for pull_request events, resolve the Vercel
       # preview URL for the exact HEAD commit so tests run against PR code,
       # not master prod. Requires VERCEL_TOKEN + VERCEL_PROJECT_ID; if absent,
@@ -99,30 +130,37 @@ jobs:
       - name: Resolve Vercel preview URL for PR
         if: github.event_name == 'pull_request' && env.VERCEL_TOKEN != '' && env.VERCEL_PROJECT_ID != ''
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
           COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           team_param=""
           [ -n "$VERCEL_TEAM_ID" ] && team_param="&teamId=$VERCEL_TEAM_ID"
 
-          # Poll up to 3 minutes for the preview deployment to be ready.
-          # Vercel typically completes in ~90 s for a cached Next.js build.
-          for attempt in $(seq 1 18); do
-            response=$(curl -sf \
+          # ORA-2471 — Poll up to 4 minutes for the preview deployment to be
+          # ready. Earlier this step silently swallowed all API errors (curl -sf
+          # + 2>/dev/null), so a wrong token / project / team / SHA was
+          # indistinguishable from "still building" — every attempt just logged
+          # "not ready". We now capture the HTTP status and the deployment
+          # states so a failure to resolve is diagnosable, and we accept both
+          # the `state` and legacy `readyState` field names.
+          for attempt in $(seq 1 24); do
+            body=$(curl -s -w '\n%{http_code}' \
               -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v6/deployments?meta-githubCommitSha=$COMMIT_SHA&projectId=$VERCEL_PROJECT_ID&limit=5$team_param" \
+              "https://api.vercel.com/v6/deployments?meta-githubCommitSha=$COMMIT_SHA&projectId=$VERCEL_PROJECT_ID&limit=10$team_param" \
               2>/dev/null || true)
+            http_code=$(printf '%s' "$body" | tail -n1)
+            response=$(printf '%s' "$body" | sed '$d')
 
-            preview_url=$(echo "$response" | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          deployments = data.get('deployments', [])
-          ready = [d for d in deployments if d.get('state') == 'READY']
-          if ready:
-              print('https://' + ready[0]['url'])
-          " 2>/dev/null || true)
+            # python prints a single "url|states" line; bash splits on the
+            # first '|'. Keeps the parse off heredocs/multiline output, which
+            # are brittle inside a YAML block scalar.
+            # python prints a single "url|states" line; bash splits on the
+            # first '|'. One physical line (no newlines) so YAML block-scalar
+            # indentation can't corrupt the script; a non-JSON body (e.g. an
+            # auth-error page) makes python exit non-zero → "|ERR".
+            parsed=$(printf '%s' "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); deps=d.get('deployments',[]); f=lambda x:(x.get('state') or x.get('readyState') or '?'); r=[x for x in deps if f(x)=='READY']; u=('https://'+r[0]['url']) if (r and r[0].get('url')) else ''; print(u+'|'+(','.join(f(x) for x in deps) or 'NONE'))" 2>/dev/null || printf '|ERR')
+            preview_url=${parsed%%|*}
+            states=${parsed#*|}
 
             if [ -n "$preview_url" ]; then
               echo "✓ Preview URL resolved: $preview_url"
@@ -130,25 +168,68 @@ jobs:
               break
             fi
 
-            echo "Attempt $attempt/18: preview not ready yet, waiting 10 s…"
+            echo "Attempt $attempt/24: http=$http_code deployment_states=[$states] — waiting 10 s…"
             sleep 10
           done
 
           if [ -z "$preview_url" ]; then
-            echo "::warning::Vercel preview URL not found for $COMMIT_SHA after 3 min — falling back to $BASE_URL"
+            echo "::warning::Vercel preview URL not found for $COMMIT_SHA after 4 min (last http=$http_code, states=[$states]) — falling back to $BASE_URL. If http!=200 the VERCEL_TOKEN/PROJECT_ID/TEAM_ID secrets are likely wrong; if states=[NONE] no Vercel preview is being built for this commit (check the Git integration)."
           fi
 
       - name: Install dependencies
         run: npm ci
       - name: Install Playwright browsers (chromium only)
         run: npx playwright install --with-deps chromium
+      # ORA-2470 — A PR that adds no migration files has nothing to apply, yet
+      # apply_migrations.py still queries the Supabase Management API first to
+      # read schema_migrations. With an expired SUPABASE_ACCESS_TOKEN that query
+      # hard-fails (401) and skips the whole Playwright suite (see ORA-2390/2391
+      # for the PAT rotation). The repo always ships committed migration files,
+      # so the script's "empty dir" guard never triggers. Gate the step on
+      # whether *this PR* actually touches supabase/migrations/ instead.
+      - name: Detect migration changes (PR only)
+        id: migcheck
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          files=$(gh api \
+            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --paginate --jq '.[].filename')
+          if echo "$files" | grep -q '^supabase/migrations/'; then
+            echo "PR touches supabase/migrations/ — migrations will be applied."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "PR adds no migration files — skipping Supabase migration step."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Apply pending Supabase migrations
-        # PR branches need their migrations on the shared QA Supabase before
-        # Playwright runs — otherwise tables that the PR adds don't exist yet.
-        # Idempotent: skips versions already in supabase_migrations.schema_migrations.
+        # Runs on push-to-master always, and on PRs only when the PR itself
+        # adds/edits migration files. ORA-2471: workflow_dispatch runs SKIP this
+        # step — manual verification runs must not depend on the (expired,
+        # CTO-owned) Supabase PAT (ORA-2390/2391), which 401s here and aborts
+        # the job before any spec executes. Idempotent: skips versions already
+        # in supabase_migrations.schema_migrations.
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && steps.migcheck.outputs.changed == 'true')
         run: python3 .github/scripts/apply_migrations.py
+      # ORA-2471 — the suite runs serially (workers:1) and a systemic auth/env
+      # failure burns ~2 min/spec (60 s timeout × 1 retry), exhausting the
+      # 25-min job budget before the alphabetically-last spec (19-sch930) ever
+      # runs — leaving SCH-930 with no pass/fail. Run that spec first so it
+      # always produces a result. Skipped when a spec_filter targets a subset.
+      - name: Run SCH-930 verification spec first (ORA-2471)
+        if: ${{ !inputs.spec_filter }}
+        run: npx playwright test tests/e2e/specs/19-sch930-product-customer-sort-search.spec.ts
       - name: Run Playwright suite
-        run: npm run test:e2e
+        env:
+          SPEC_FILTER: ${{ inputs.spec_filter }}
+        run: |
+          if [ -n "$SPEC_FILTER" ]; then
+            echo "Running filtered specs: $SPEC_FILTER"
+            npx playwright test "$SPEC_FILTER"
+          else
+            npm run test:e2e
+          fi
       - name: Upload Playwright artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
