@@ -6,6 +6,7 @@ import { CompanyProvider } from "@/lib/company-context";
 import { I18nProvider } from "@/lib/i18n-context";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import CookieBanner from "@/components/CookieBanner";
+import AnalyticsLoader from "@/components/AnalyticsLoader";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -139,7 +140,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/brand/octo-icon-orange.png" />
       </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-geist-sans)]">
-        <ThemeProvider><I18nProvider><CompanyProvider><ServiceWorkerRegistrar />{children}<CookieBanner /></CompanyProvider></I18nProvider></ThemeProvider>
+        <ThemeProvider><I18nProvider><CompanyProvider><ServiceWorkerRegistrar />{children}<CookieBanner /><AnalyticsLoader /></CompanyProvider></I18nProvider></ThemeProvider>
       </body>
     </html>
   );
