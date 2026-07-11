@@ -9,33 +9,13 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useI18n } from "@/lib/i18n-context";
+import {
+  readCookieConsent,
+  writeCookieConsent,
+  type CookieCategories,
+} from "@/lib/analytics";
 
-const STORAGE_KEY = "octo-cookie-consent-v1";
-
-export type CookieCategories = {
-  essential: true;
-  analytics: boolean;
-  marketing: boolean;
-};
-
-interface StoredConsent {
-  categories: CookieCategories;
-  timestamp: string;
-  version: 1;
-}
-
-export function readCookieConsent(): StoredConsent | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed?.version === 1 && parsed.categories) return parsed as StoredConsent;
-  } catch {
-    /* malformed JSON or localStorage blocked */
-  }
-  return null;
-}
+export { readCookieConsent, type CookieCategories };
 
 export default function CookieBanner() {
   const { t } = useI18n();
@@ -49,16 +29,9 @@ export default function CookieBanner() {
   }, []);
 
   const save = useCallback((categories: CookieCategories) => {
-    const consent: StoredConsent = {
-      categories,
-      timestamp: new Date().toISOString(),
-      version: 1,
-    };
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(consent));
-    } catch {
-      /* localStorage may be unavailable in private mode */
-    }
+    // Persists + broadcasts CONSENT_EVENT so AnalyticsLoader can load/gate
+    // Umami live (ORA-2758).
+    writeCookieConsent(categories);
     setOpen(false);
     setShowSettings(false);
   }, []);

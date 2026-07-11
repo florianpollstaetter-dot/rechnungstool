@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./landing.module.css";
+import { trackPricingView, track } from "@/lib/analytics";
 
 type Billing = "monthly" | "annual";
 
@@ -68,9 +69,29 @@ const TIERS: Tier[] = [
 
 export default function LandingPricingSection() {
   const [billing, setBilling] = useState<Billing>("annual");
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Fire pricing_view once when the pricing section scrolls into view.
+  // No-op unless the user has consented to analytics (track() gates on the
+  // loaded trackers), so this is safe to call unconditionally.
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          trackPricingView({ billing });
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [billing]);
 
   return (
-    <section className={styles.pricing} id="preise">
+    <section ref={sectionRef} className={styles.pricing} id="preise">
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
           <div className={styles.sectionLabel}>Preise</div>
@@ -145,6 +166,7 @@ export default function LandingPricingSection() {
                 <Link
                   href={`/register?plan=${tier.key}&billing=${billing}`}
                   className={tier.featured ? styles.tierCtaFeatured : styles.tierCta}
+                  onClick={() => track("trial_cta_click", { plan: tier.key, billing })}
                 >
                   14 Tage gratis starten
                 </Link>

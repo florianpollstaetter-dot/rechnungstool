@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n-context";
+import { trackTrialSignup } from "@/lib/analytics";
 import styles from "./register.module.css";
 
 type Step = "credentials" | "company";
@@ -86,6 +87,9 @@ export default function RegisterPage() {
       setLoading(false);
       return;
     }
+
+    // Conversion event — fires only if the user consented to analytics (ORA-2758).
+    trackTrialSignup({ plan: new URLSearchParams(window.location.search).get("plan") ?? "unknown" });
 
     router.push("/dashboard");
     router.refresh();

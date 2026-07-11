@@ -139,18 +139,67 @@ export default function DatenschutzPage() {
           gewünschten Dienst — <strong>keine Einwilligung erforderlich</strong>).
         </li>
         <li>
-          <strong>Tracking, Werbung, Analyse-Cookies:</strong> Wir setzen
-          Marketing- und Analyse-Cookies (z.B. LinkedIn Insight Tag, Google
-          Ads Conversion Tracking) ausschließlich nach Ihrer ausdrücklichen
-          Einwilligung über unser Cookie-Banner ein (Art. 6 Abs. 1 lit. a
-          DSGVO, § 165 Abs. 3 TKG 2021). Sie können Ihre Einwilligung
-          jederzeit mit Wirkung für die Zukunft widerrufen.
+          <strong>Tracking, Werbung, Analyse-Cookies:</strong> Der Analyse-Dienst
+          Umami (cookielose, pseudonyme Reichweitenmessung) sowie — nur nach
+          gesonderter Aktivierung — Meta Pixel werden{" "}
+          <strong>ausschließlich nach Ihrer ausdrücklichen Einwilligung</strong>{" "}
+          über unser Consent-Banner geladen (Art. 6 Abs. 1 lit. a DSGVO, § 165
+          Abs. 3 TKG 2021). Bis zur Einwilligung wird kein entsprechendes Skript
+          nachgeladen und es findet kein Tracking statt („Reject-All&ldquo; ≡
+          keine Analyse-/Marketing-Dienste). Umami setzt <strong>keine
+          Cookies</strong> und speichert keine personenbezogenen Kennungen; das
+          Browser-Signal „Do Not Track&ldquo; wird zusätzlich respektiert. Sie
+          können Ihre Einwilligung jederzeit über das Consent-Banner mit Wirkung
+          für die Zukunft widerrufen.
         </li>
         <li>
           <strong>Speicherdauer:</strong> Session- bzw. Login-Dauer;
-          Auth-Cookies in der Regel bis zu 7 Tage (Refresh-Token).
+          Auth-Cookies in der Regel bis zu 7 Tage (Refresh-Token). Ihre
+          Consent-Entscheidung wird bis zu <strong>12 Monate</strong> im
+          Local Storage gespeichert (Re-Consent danach).
         </li>
       </ul>
+      <p>
+        <strong>Eingesetzte Analyse- und Marketing-Dienste (nur nach
+        Einwilligung):</strong>
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Dienst / Anbieter</th>
+            <th>Zweck</th>
+            <th>Cookies / Storage</th>
+            <th>Speicherdauer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <strong>Umami</strong> — cookielose Web-Analyse, gehostet in der
+              EU (Umami Cloud, EU-Region)
+            </td>
+            <td>
+              Reichweiten- und Nutzungsanalyse, Conversion-Messung (pseudonym,
+              keine geräteübergreifende Wiedererkennung)
+            </td>
+            <td>
+              keine Cookies; keine personenbezogene Kennung
+            </td>
+            <td>aggregierte Zählwerte, kein Personenbezug</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Meta Pixel</strong> — Meta Platforms Ireland Ltd.
+              (nur nach gesonderter Aktivierung, derzeit deaktiviert)
+            </td>
+            <td>Conversion-Messung für Meta-Werbeanzeigen</td>
+            <td>
+              <code>_fbp</code>
+            </td>
+            <td>bis zu 90 Tage</td>
+          </tr>
+        </tbody>
+      </table>
 
       <h3>2.5 Server-Logs (Hosting)</h3>
       <ul>
@@ -225,6 +274,15 @@ export default function DatenschutzPage() {
             <td>KI-gestützte Belegauslesung (Claude API)</td>
             <td>USA</td>
             <td>EU-SCC, Anthropic Commercial Terms (kein Training mit Kundendaten)</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Umami Software, Inc.</strong> (Umami Cloud, Verarbeitung
+              über EU-Region) — nur nach Einwilligung
+            </td>
+            <td>Cookielose Reichweiten-/Nutzungsanalyse (pseudonym)</td>
+            <td>EU</td>
+            <td>EU-SCC, Umami-DPA, EU-Data-Residency</td>
           </tr>
           <tr>
             <td>Steuerberater*in, Wirtschaftsprüfer*in, Rechtsvertretung</td>
