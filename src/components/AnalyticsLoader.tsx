@@ -1,142 +1,51 @@
 "use client";
 
-// ORA-2758 — Consent-gated loader for GA4 + PostHog with Google Consent Mode v2.
+// ORA-2758 — Consent-gated loader for Umami web analytics (Cookiebot pivot).
 //
 // Flow (strict, DSGVO/TKG-conform):
-//   1. On mount we install the gtag stub and set Consent Mode v2 defaults to
-//      "denied" for every storage type — before any tag is injected.
+//   1. Nothing loads on mount. Umami is cookieless and stores no identifier,
+//      but we still keep it fully dormant until the user opts in.
 //   2. Only when the user has granted the "analytics" category do we inject the
-//      GA4 gtag.js script + PostHog, then push a consent "update" to "granted".
-//   3. "marketing" consent flips ad_* signals to granted (Meta Pixel itself
-//      stays disabled per scope — config only until Meta-Ads go live).
-//   4. We re-evaluate live on the CONSENT_EVENT the banner dispatches, so a
+//      Umami script (data-auto-track handles pageviews; custom events fire via
+//      window.umami.track from lib/analytics.ts).
+//   3. We re-evaluate live on the CONSENT_EVENT the banner dispatches, so a
 //      user opting in mid-session starts tracking without a page reload.
 //
-// Reject-All never loads GA4/PostHog at all → verifiable in DevTools (no
-// gtag/js or PostHog network request), which is stronger than cookieless pings.
+// Reject-All never loads Umami at all → verifiable in DevTools (no script.js
+// request, no /api/send beacon), which is the DSGVO gold standard.
 
 import { useEffect } from "react";
 import {
   CONSENT_EVENT,
-  GA_MEASUREMENT_ID,
-  POSTHOG_HOST,
-  POSTHOG_KEY,
+  UMAMI_SCRIPT_URL,
+  UMAMI_WEBSITE_ID,
   readCookieConsent,
   type CookieCategories,
 } from "@/lib/analytics";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+let umamiInjected = false;
 
-let gaScriptInjected = false;
-let posthogInjected = false;
-let consentDefaultsSet = false;
-
-function ensureGtag(): (...args: any[]) => void {
-  window.dataLayer = window.dataLayer || [];
-  if (typeof window.gtag !== "function") {
-    window.gtag = function gtag() {
-      // eslint-disable-next-line prefer-rest-params
-      window.dataLayer!.push(arguments);
-    };
-  }
-  return window.gtag;
-}
-
-function setConsentDefaults(): void {
-  if (consentDefaultsSet) return;
-  const gtag = ensureGtag();
-  gtag("consent", "default", {
-    ad_storage: "denied",
-    ad_user_data: "denied",
-    ad_personalization: "denied",
-    analytics_storage: "denied",
-    functionality_storage: "granted",
-    security_storage: "granted",
-    wait_for_update: 500,
-  });
-  gtag("set", "url_passthrough", true);
-  consentDefaultsSet = true;
-}
-
-function loadGa4(): void {
-  if (!GA_MEASUREMENT_ID) return;
-  const gtag = ensureGtag();
-  gtag("consent", "update", {
-    analytics_storage: "granted",
-  });
-  if (gaScriptInjected) return;
+function loadUmami(): void {
+  if (!UMAMI_WEBSITE_ID || umamiInjected) return;
   const s = document.createElement("script");
   s.async = true;
-  s.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+  s.defer = true;
+  s.src = UMAMI_SCRIPT_URL;
+  s.setAttribute("data-website-id", UMAMI_WEBSITE_ID);
+  // Respect the browser Do-Not-Track signal in addition to our consent gate.
+  s.setAttribute("data-do-not-track", "true");
   document.head.appendChild(s);
-  gtag("js", new Date());
-  gtag("config", GA_MEASUREMENT_ID, { anonymize_ip: true });
-  gaScriptInjected = true;
-}
-
-function loadPosthog(): void {
-  if (!POSTHOG_KEY || posthogInjected) return;
-
-  // Minimal array-stub: queue calls until array.js loads, then init flushes.
-  const stub: any = window.posthog || [];
-  window.posthog = stub;
-  const methods = [
-    "init",
-    "capture",
-    "identify",
-    "register",
-    "register_once",
-    "reset",
-    "group",
-    "setPersonProperties",
-    "people",
-  ];
-  for (const m of methods) {
-    if (typeof stub[m] !== "function") {
-      stub[m] = function () {
-        // eslint-disable-next-line prefer-rest-params
-        stub.push([m].concat(Array.prototype.slice.call(arguments, 0)));
-      };
-    }
-  }
-  stub.__SV = 1;
-
-  const scr = document.createElement("script");
-  scr.async = true;
-  scr.src = `${POSTHOG_HOST}/static/array.js`;
-  document.head.appendChild(scr);
-
-  window.posthog.init(POSTHOG_KEY, {
-    api_host: POSTHOG_HOST,
-    person_profiles: "identified_only",
-    capture_pageview: true,
-    autocapture: true,
-  });
-  posthogInjected = true;
+  umamiInjected = true;
 }
 
 function applyConsent(categories: CookieCategories): void {
-  setConsentDefaults();
-  const gtag = ensureGtag();
-  if (categories.analytics) {
-    loadGa4();
-    loadPosthog();
-  }
-  if (categories.marketing) {
-    gtag("consent", "update", {
-      ad_storage: "granted",
-      ad_user_data: "granted",
-      ad_personalization: "granted",
-    });
-  }
+  if (categories.analytics) loadUmami();
 }
 
 export default function AnalyticsLoader() {
   useEffect(() => {
-    // No IDs configured yet → keep everything dormant (safe no-op).
-    if (!GA_MEASUREMENT_ID && !POSTHOG_KEY) return;
-
-    setConsentDefaults();
+    // No website id configured yet → keep everything dormant (safe no-op).
+    if (!UMAMI_WEBSITE_ID) return;
 
     const stored = readCookieConsent();
     if (stored) applyConsent(stored.categories);
@@ -151,4 +60,3 @@ export default function AnalyticsLoader() {
 
   return null;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */

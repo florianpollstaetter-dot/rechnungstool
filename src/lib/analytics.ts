@@ -1,13 +1,17 @@
-// ORA-2758 — Consent-gated analytics stack (GA4 + PostHog) for orange-octo.com.
-// Plain module (no "use client") so it can be imported from both server and
-// client components without the reference-proxy footgun (see AGENTS.md).
+// ORA-2758 — Consent-gated analytics for orange-octo.com. Umami pivot.
+//
+// After 74 days of silence on the Florian-owned Google/PostHog account
+// creation, the stack was pivoted to Umami (MIT-licensed, cookieless,
+// EU-hosted) — no vendor account owned by a third party is required, so the
+// site can ship analytics without an external unblock. Plain module (no
+// "use client") so it can be imported from both server and client components
+// without the reference-proxy footgun (see AGENTS.md).
 //
 // The consent model reuses the existing self-hosted, branded cookie banner
-// (CookieBanner.tsx) as the CMP — free, self-hosted, no vendor fee, which is
-// exactly the goal of the Klaro/Cookiebot pivot. Categories map to services:
-//   analytics -> GA4 + PostHog       marketing -> Meta Pixel (config only, off)
-//
-// Nothing loads until the user opts in, so no tracker fires before consent.
+// (CookieBanner.tsx) as the CMP — free, self-hosted, no vendor fee. Umami is
+// cookieless and does not store any identifier, but we still gate it behind the
+// "analytics" category so nothing loads before the user opts in (strictest
+// DSGVO/TKG reading; Reject-All ≡ no analytics script at all).
 
 export const CONSENT_STORAGE_KEY = "octo-cookie-consent-v1";
 export const CONSENT_EVENT = "octo-consent-changed";
@@ -24,13 +28,12 @@ export interface StoredConsent {
   version: 1;
 }
 
-// Env-driven IDs. Left unset until Florian creates the free GA4 property and
-// PostHog project (see ORA-2758). When unset, the loader is a safe no-op —
-// nothing is injected, so the site ships without waiting on account creation.
-export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID ?? "";
-export const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "";
-export const POSTHOG_HOST =
-  process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
+// Env-driven config. Left unset until the Umami website is provisioned (Umami
+// Cloud EU free tier or agent-hosted instance). When unset, the loader is a
+// safe no-op — nothing is injected, so the site ships without waiting on setup.
+export const UMAMI_WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID ?? "";
+export const UMAMI_SCRIPT_URL =
+  process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL ?? "https://eu.umami.is/script.js";
 
 export function readCookieConsent(): StoredConsent | null {
   if (typeof window === "undefined") return null;
@@ -67,26 +70,27 @@ export function writeCookieConsent(categories: CookieCategories): void {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare global {
   interface Window {
-    dataLayer?: any[];
-    gtag?: (...args: any[]) => void;
-    posthog?: any;
+    umami?: {
+      track: (
+        eventOrProps?: string | ((props: any) => any),
+        data?: Record<string, unknown>,
+      ) => void;
+      identify?: (data: Record<string, unknown>) => void;
+    };
   }
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ---- Conversion / product events -----------------------------------------
-// Fire into whichever trackers the user consented to. Safe to call anytime:
-// if a tracker isn't loaded (no consent / no ID), that arm is a no-op.
+// Fire into Umami if it consented + loaded. Safe to call anytime: if Umami
+// isn't loaded (no consent / no website id), this is a no-op.
 
 type EventParams = Record<string, string | number | boolean | undefined>;
 
 export function track(event: string, params: EventParams = {}): void {
   if (typeof window === "undefined") return;
-  if (typeof window.gtag === "function") {
-    window.gtag("event", event, params);
-  }
-  if (window.posthog && typeof window.posthog.capture === "function") {
-    window.posthog.capture(event, params);
+  if (window.umami && typeof window.umami.track === "function") {
+    window.umami.track(event, params);
   }
 }
 

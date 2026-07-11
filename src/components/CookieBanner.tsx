@@ -30,7 +30,7 @@ export default function CookieBanner() {
 
   const save = useCallback((categories: CookieCategories) => {
     // Persists + broadcasts CONSENT_EVENT so AnalyticsLoader can load/gate
-    // GA4 + PostHog live (ORA-2758).
+    // Umami live (ORA-2758).
     writeCookieConsent(categories);
     setOpen(false);
     setShowSettings(false);

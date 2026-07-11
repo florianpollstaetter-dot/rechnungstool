@@ -139,18 +139,18 @@ export default function DatenschutzPage() {
           gewünschten Dienst — <strong>keine Einwilligung erforderlich</strong>).
         </li>
         <li>
-          <strong>Tracking, Werbung, Analyse-Cookies:</strong> Analyse- und
-          Marketing-Dienste (Google Analytics 4, PostHog Product Analytics und
-          — nur nach Aktivierung — Meta Pixel) werden{" "}
+          <strong>Tracking, Werbung, Analyse-Cookies:</strong> Der Analyse-Dienst
+          Umami (cookielose, pseudonyme Reichweitenmessung) sowie — nur nach
+          gesonderter Aktivierung — Meta Pixel werden{" "}
           <strong>ausschließlich nach Ihrer ausdrücklichen Einwilligung</strong>{" "}
           über unser Consent-Banner geladen (Art. 6 Abs. 1 lit. a DSGVO, § 165
           Abs. 3 TKG 2021). Bis zur Einwilligung wird kein entsprechendes Skript
           nachgeladen und es findet kein Tracking statt („Reject-All&ldquo; ≡
-          keine Analyse-/Marketing-Dienste). Für Google-Dienste ist der{" "}
-          <strong>Google Consent Mode v2</strong> aktiv (Standard: alle
-          Einwilligungsarten <code>denied</code>; erst bei Einwilligung{" "}
-          <code>granted</code>). Sie können Ihre Einwilligung jederzeit über das
-          Consent-Banner mit Wirkung für die Zukunft widerrufen.
+          keine Analyse-/Marketing-Dienste). Umami setzt <strong>keine
+          Cookies</strong> und speichert keine personenbezogenen Kennungen; das
+          Browser-Signal „Do Not Track&ldquo; wird zusätzlich respektiert. Sie
+          können Ihre Einwilligung jederzeit über das Consent-Banner mit Wirkung
+          für die Zukunft widerrufen.
         </li>
         <li>
           <strong>Speicherdauer:</strong> Session- bzw. Login-Dauer;
@@ -175,31 +175,17 @@ export default function DatenschutzPage() {
         <tbody>
           <tr>
             <td>
-              <strong>Google Analytics 4</strong> — Google Ireland Ltd.,
-              Gordon House, Barrow Street, Dublin 4, Irland
+              <strong>Umami</strong> — cookielose Web-Analyse, gehostet in der
+              EU (Umami Cloud, EU-Region)
             </td>
             <td>
-              Reichweiten- und Nutzungsanalyse, Conversion-Messung
-              (pseudonym, IP-Anonymisierung aktiv)
+              Reichweiten- und Nutzungsanalyse, Conversion-Messung (pseudonym,
+              keine geräteübergreifende Wiedererkennung)
             </td>
             <td>
-              <code>_ga</code>, <code>_ga_*</code>
+              keine Cookies; keine personenbezogene Kennung
             </td>
-            <td>bis zu 24 Monate</td>
-          </tr>
-          <tr>
-            <td>
-              <strong>PostHog</strong> — PostHog Inc.; Verarbeitung über
-              EU-Region (<code>eu.i.posthog.com</code>)
-            </td>
-            <td>
-              Produkt-Analyse (Funnels, Feature-Nutzung), pseudonyme
-              Event-Erfassung
-            </td>
-            <td>
-              <code>ph_*</code> (Local Storage / Cookie)
-            </td>
-            <td>bis zu 12 Monate</td>
+            <td>aggregierte Zählwerte, kein Personenbezug</td>
           </tr>
           <tr>
             <td>
@@ -291,21 +277,12 @@ export default function DatenschutzPage() {
           </tr>
           <tr>
             <td>
-              <strong>Google Ireland Ltd.</strong>, Dublin, Irland (Google
-              Analytics 4) — nur nach Einwilligung
+              <strong>Umami Software, Inc.</strong> (Umami Cloud, Verarbeitung
+              über EU-Region) — nur nach Einwilligung
             </td>
-            <td>Reichweiten-/Nutzungsanalyse, Conversion-Messung</td>
-            <td>EU/USA</td>
-            <td>EU-SCC, Google-DPA, DPF-zertifiziert (Google LLC)</td>
-          </tr>
-          <tr>
-            <td>
-              <strong>PostHog Inc.</strong>, San Francisco, CA, USA
-              (Verarbeitung über EU-Region) — nur nach Einwilligung
-            </td>
-            <td>Produkt-Analyse (pseudonyme Events)</td>
-            <td>EU/USA</td>
-            <td>EU-SCC, PostHog-DPA, EU-Data-Residency</td>
+            <td>Cookielose Reichweiten-/Nutzungsanalyse (pseudonym)</td>
+            <td>EU</td>
+            <td>EU-SCC, Umami-DPA, EU-Data-Residency</td>
           </tr>
           <tr>
             <td>Steuerberater*in, Wirtschaftsprüfer*in, Rechtsvertretung</td>
