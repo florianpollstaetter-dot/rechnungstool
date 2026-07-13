@@ -120,7 +120,7 @@ export function TableView({
       )}
 
       <div className="overflow-x-auto border border-[var(--border)] rounded-lg">
-        <table className="w-full text-sm">
+        <table data-pm-table className="w-full text-sm">
           <thead className="bg-[var(--surface)] text-[var(--text-muted)] text-xs uppercase tracking-wide">
             <tr>
               <th className="text-left font-medium px-3 py-2 w-32">Status</th>
@@ -137,7 +137,12 @@ export function TableView({
                 ? memberById.get(t.assignee_user_id)
                 : null;
               return (
-                <tr key={t.id} className="hover:bg-[var(--surface-hover)]">
+                <tr
+                  key={t.id}
+                  data-table-row={t.id}
+                  data-table-row-status={t.status}
+                  className="hover:bg-[var(--surface-hover)]"
+                >
                   {/* Status */}
                   <td
                     className={`px-3 py-2 ${canWrite ? "cursor-pointer" : ""}`}
