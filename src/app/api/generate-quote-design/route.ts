@@ -12,9 +12,11 @@
 // Per-generation budget target: < $0.10. Typical expected cost ~$0.03-0.07
 // at Opus 4.7 pricing ($15/M input, $75/M output). Cached input is ~$1.50/M.
 
+import { ANTHROPIC_DESIGN_MODEL } from "@/lib/ai-model";
+
 export const maxDuration = 60;
 
-const MODEL = "claude-opus-4-7";
+const MODEL = ANTHROPIC_DESIGN_MODEL;
 
 // Opus 4 family pricing per million tokens (USD).
 const INPUT_PRICE_PER_M_USD = 15;

@@ -2,10 +2,15 @@
 // direct API returns 404 not_found for a dropped id) must be a one-line change
 // here or an ENV override — never a hunt through every feature that calls Claude.
 //
-// ANTHROPIC_MODEL  — direct Anthropic API (used when no AWS/Bedrock creds).
-// BEDROCK_MODEL    — AWS Bedrock inference profile for EU data residency.
+// ANTHROPIC_MODEL         — direct Anthropic API (used when no AWS/Bedrock creds).
+// ANTHROPIC_DESIGN_MODEL  — premium model for quality-sensitive generation
+//                           (AI quote design). Higher-tier than the default.
+// BEDROCK_MODEL           — AWS Bedrock inference profile for EU data residency.
 
 export const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+
+export const ANTHROPIC_DESIGN_MODEL =
+  process.env.ANTHROPIC_DESIGN_MODEL || "claude-opus-4-7";
 
 // Bedrock only serves prod when AWS creds are set (currently direct API in prod).
 // Override via BEDROCK_MODEL when the EU inference profile is upgraded.
