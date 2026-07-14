@@ -86,8 +86,8 @@ class DirectPostgresBackend:
 
     name = "direct Postgres (psql)"
 
-    def __init__(self) -> None:
-        self._db_url = _env("SUPABASE_DB_URL")
+    def __init__(self, db_url: str | None = None) -> None:
+        self._db_url = db_url or _env("SUPABASE_DB_URL")
 
     def _psql(self, sql: str, *, extra_args: list[str] | None = None) -> str:
         cmd = [
@@ -126,14 +126,29 @@ class DirectPostgresBackend:
         return {line.strip() for line in out.splitlines() if line.strip()}
 
 
+def _looks_like_pg_url(value: str) -> bool:
+    return value.startswith(("postgres://", "postgresql://"))
+
+
 def select_backend():
-    if os.environ.get("SUPABASE_DB_URL"):
-        return DirectPostgresBackend()
-    if os.environ.get("SUPABASE_ACCESS_TOKEN"):
+    # Preferred: an explicit durable Postgres URL in its own secret.
+    db_url = os.environ.get("SUPABASE_DB_URL")
+    if db_url:
+        return DirectPostgresBackend(db_url)
+    # The workflow already maps SUPABASE_ACCESS_TOKEN into the job env. To
+    # reach the durable Postgres path without a workflow-yaml change (which
+    # needs a workflow-scoped token) or a brand-new secret, allow that same
+    # secret to carry a Postgres connection string: if the value looks like a
+    # pg URL use the direct backend, otherwise treat it as a Management API PAT.
+    access = os.environ.get("SUPABASE_ACCESS_TOKEN")
+    if access:
+        if _looks_like_pg_url(access):
+            return DirectPostgresBackend(access)
         return ManagementApiBackend()
     sys.exit(
-        "No migration backend configured: set SUPABASE_DB_URL (preferred) "
-        "or SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF."
+        "No migration backend configured: set SUPABASE_DB_URL (preferred), "
+        "put a Postgres connection string in SUPABASE_ACCESS_TOKEN for the "
+        "durable path, or a Management API PAT + SUPABASE_PROJECT_REF."
     )
 
 
