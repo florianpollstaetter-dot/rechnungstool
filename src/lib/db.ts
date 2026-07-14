@@ -310,9 +310,14 @@ export async function getActiveProducts(): Promise<Product[]> {
 export async function createProduct(
   product: Omit<Product, "id" | "created_at">
 ): Promise<Product> {
+  // Strip JSONB translation columns — they don't exist in prod until the
+  // ORA-2812 migration pipeline is unblocked. Legacy name/name_en columns
+  // carry DE/EN; mapProduct() falls back to them on read.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { name_translations, description_translations, ...rest } = product;
   const result = await supabase()
     .from("products")
-    .insert({ ...product, company_id: getActiveCompanyId() })
+    .insert({ ...rest, company_id: getActiveCompanyId() })
     .select()
     .single();
   return mapProduct(requireRow(result, "createProduct"));
@@ -322,9 +327,13 @@ export async function updateProduct(
   id: string,
   updates: Partial<Product>
 ): Promise<Product> {
+  // Strip JSONB translation columns — they don't exist in prod until the
+  // ORA-2812 migration pipeline is unblocked.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { name_translations, description_translations, ...rest } = updates;
   const result = await supabase()
     .from("products")
-    .update(updates)
+    .update(rest)
     .eq("id", id)
     .select()
     .single();
