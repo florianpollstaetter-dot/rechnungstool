@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { Product, UNIT_OPTIONS, UnitType } from "@/lib/types";
 import { createProduct, getSettings } from "@/lib/db";
+import { humanizeDbError } from "@/lib/db-error";
 import { useI18n } from "@/lib/i18n-context";
 
 interface Props {
@@ -45,7 +46,7 @@ export default function ProductCreateModal({ initialName, onClose, onCreated }: 
       onCreated(product);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(humanizeDbError(err));
     } finally {
       setSaving(false);
     }

@@ -8,6 +8,7 @@ import { BlockedCompanyGate } from "@/components/BlockedCompanyGate";
 import { ChatWidget } from "@/components/ChatWidget";
 import OnboardingTour from "@/components/OnboardingTour";
 import AppSidebar from "@/components/AppSidebar";
+import { GlobalErrorToaster } from "@/components/GlobalErrorToaster";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -32,6 +33,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
       <ChatWidget />
       <OnboardingTour />
+      <GlobalErrorToaster />
     </>
   );
 }

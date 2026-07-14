@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Product, UNIT_OPTIONS, UnitType, CompanyRole, ContentLocale, TranslationMap } from "@/lib/types";
 import { getProducts, createProduct, updateProduct, deleteProduct, getCompanyRoles } from "@/lib/db";
+import { humanizeDbError } from "@/lib/db-error";
 import { formatCurrency } from "@/lib/format";
 import { useI18n } from "@/lib/i18n-context";
 import { CONTENT_LOCALES } from "@/lib/i18n-content";
@@ -38,6 +39,8 @@ export default function ProductsPage() {
   const [showTranslationsPanel, setShowTranslationsPanel] = useState(false);
   const [translatingLocale, setTranslatingLocale] = useState<ContentLocale | "all" | null>(null);
   const [translateError, setTranslateError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   // SCH-929 P1.2 — board reported "Bearbeiten button doesn't work". The form
   // renders above the product table so a click on a row far down the list
   // appeared to do nothing. Scroll the form into view on edit.
@@ -60,6 +63,7 @@ export default function ProductsPage() {
     setDescriptionTranslations({});
     setShowTranslationsPanel(false);
     setTranslateError(null);
+    setSaveError(null);
     setTranslatingLocale(null);
     setEditingId(null);
     setShowForm(false);
@@ -125,13 +129,21 @@ export default function ProductsPage() {
       name_translations: nameMap,
       description_translations: descMap,
     };
-    if (editingId) {
-      await updateProduct(editingId, data);
-    } else {
-      await createProduct(data);
+    setSaving(true);
+    setSaveError(null);
+    try {
+      if (editingId) {
+        await updateProduct(editingId, data);
+      } else {
+        await createProduct(data);
+      }
+      resetForm();
+      await loadData();
+    } catch (err) {
+      setSaveError(humanizeDbError(err));
+    } finally {
+      setSaving(false);
     }
-    resetForm();
-    await loadData();
   }
 
   // SCH-447 — AI-translate helper. Uses DE name/description as source; falls back to EN if DE is empty.
@@ -452,12 +464,19 @@ export default function ProductsPage() {
             )}
           </div>
 
+          {saveError && (
+            <div className="mt-4 px-3 py-2 rounded-lg text-sm bg-rose-500/10 text-rose-400">
+              {saveError}
+            </div>
+          )}
+
           <div className="flex gap-3 mt-4">
             <button
               type="submit"
-              className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
+              disabled={saving}
+              className="bg-[var(--accent)] text-black px-6 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50"
             >
-              {editingId ? t("common.save") : t("common.create")}
+              {saving ? t("common.saving") : editingId ? t("common.save") : t("common.create")}
             </button>
             <button
               type="button"
