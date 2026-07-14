@@ -78,6 +78,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [pendingTypeChange, setPendingTypeChange] = useState<CompanyType | null>(null);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -169,12 +170,19 @@ export default function SettingsPage() {
     e.preventDefault();
     if (!settings) return;
     setSaving(true);
+    setSaveError(null);
     try {
       const { id, ...rest } = settings;
       void id;
       await updateSettings(rest);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      // ORA-2808 #10 — updateSettings throws when the row-level update matches
+      // no row (e.g. missing company_settings row or an RLS denial). Without a
+      // catch the failure was invisible: no "Gespeichert" confirmation AND no
+      // error, so the save looked like it worked but never persisted.
+      setSaveError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
@@ -779,6 +787,7 @@ export default function SettingsPage() {
             {saving ? t("settings.savingSettings") : t("settings.saveSettings")}
           </button>
           {saved && <span className="text-sm text-emerald-400 font-medium self-center">{t("common.saved")}</span>}
+          {saveError && <span className="text-sm text-rose-400 font-medium self-center">{saveError}</span>}
         </div>
       </form>
       )}
