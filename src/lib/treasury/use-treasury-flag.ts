@@ -21,10 +21,18 @@ export interface TreasuryFlagState {
 }
 
 export function useTreasuryFlag(): TreasuryFlagState {
-  const { company } = useCompany();
+  const { company, authed, roleLoaded } = useCompany();
   const [state, setState] = useState<TreasuryFlagState>({ hasTreasury: false, loaded: false });
 
   useEffect(() => {
+    // ORA-2810 H1 — do not query until the real active company is resolved.
+    // On first render `company.id` is the hardcoded `FALLBACK_COMPANIES[0]`
+    // slug ("vrthefans"); firing here produced a stray
+    // `company_subscriptions?company_id=eq.vrthefans` request. Waiting for
+    // `authed && roleLoaded` guarantees `company.id` reflects the signed-in
+    // user's DB company before we hit the wire.
+    if (!authed || !roleLoaded) return;
+
     let cancelled = false;
     const supabase = createClient();
     supabase
@@ -39,7 +47,7 @@ export function useTreasuryFlag(): TreasuryFlagState {
     return () => {
       cancelled = true;
     };
-  }, [company.id]);
+  }, [company.id, authed, roleLoaded]);
 
   return state;
 }
