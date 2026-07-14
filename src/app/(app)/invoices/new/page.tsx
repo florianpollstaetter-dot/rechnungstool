@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Customer, InvoiceItem, Product, UNIT_OPTIONS, Language, EInvoiceFormat, E_INVOICE_FORMAT_OPTIONS } from "@/lib/types";
 import { getCustomers, getSettings, getActiveProducts, createInvoice, getTemplate, getCurrentUserName, getUserAccompanyingText } from "@/lib/db";
 import { useAutosave } from "@/lib/use-autosave";
-import { addDays, formatCurrency } from "@/lib/format";
+import { addDays, formatCurrency, todayLocalISO } from "@/lib/format";
 import { calcItemTotal, calcTotals } from "@/lib/calc";
 import { useI18n } from "@/lib/i18n-context";
 
@@ -28,8 +28,8 @@ function NewInvoicePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
-  const [deliveryDate, setDeliveryDate] = useState(new Date().toISOString().split("T")[0]);
+  const [invoiceDate, setInvoiceDate] = useState(todayLocalISO());
+  const [deliveryDate, setDeliveryDate] = useState(todayLocalISO());
   const [taxRate, setTaxRate] = useState(20);
   const [paymentTermsDays, setPaymentTermsDays] = useState(14);
   const [notes, setNotes] = useState("");
@@ -49,8 +49,10 @@ function NewInvoicePage() {
   const { clearDraft } = useAutosave("new-invoice", formData, (saved) => {
     if (saved.customerId) setCustomerId(saved.customerId);
     if (saved.projectDescription) setProjectDescription(saved.projectDescription);
-    if (saved.invoiceDate) setInvoiceDate(saved.invoiceDate);
-    if (saved.deliveryDate) setDeliveryDate(saved.deliveryDate);
+    // H2: never restore a stale invoice/service date from a draft — a fresh
+    // invoice must default to today, otherwise a day-old draft resurfaces with
+    // a past date and the invoice is created already "overdue". Dates stay at
+    // the todayLocalISO() defaults set above.
     if (saved.taxRate) setTaxRate(saved.taxRate);
     if (saved.paymentTermsDays) setPaymentTermsDays(saved.paymentTermsDays);
     if (saved.notes) setNotes(saved.notes);
