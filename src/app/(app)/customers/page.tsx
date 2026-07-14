@@ -13,6 +13,7 @@ import { useI18n } from "@/lib/i18n-context";
 import SevDeskImportModal from "@/components/SevDeskImportModal";
 import AngeboteTabBar from "@/components/AngeboteTabBar";
 import { customerEInvoiceReadiness } from "@/lib/einvoice/customer-ready";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const emptyCustomer = {
   name: "",
@@ -47,6 +48,7 @@ export default function CustomersPage() {
   const [aiFilledKeys, setAiFilledKeys] = useState<Set<keyof typeof emptyCustomer>>(new Set());
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const loadCustomers = useCallback(async () => {
     const data = await getCustomers();
@@ -104,10 +106,7 @@ export default function CustomersPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm(t("customers.confirmDelete"))) {
-      await deleteCustomer(id);
-      await loadCustomers();
-    }
+    setDeleteConfirmId(id);
   }
 
   async function handleAiComplete() {
@@ -519,6 +518,17 @@ export default function CustomersPage() {
           </tbody>
         </table>
       </div>
+      {deleteConfirmId && (
+        <ConfirmModal
+          message={t("customers.confirmDelete")}
+          onCancel={() => setDeleteConfirmId(null)}
+          onConfirm={async () => {
+            await deleteCustomer(deleteConfirmId);
+            setDeleteConfirmId(null);
+            await loadCustomers();
+          }}
+        />
+      )}
     </div>
   );
 }

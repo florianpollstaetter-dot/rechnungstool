@@ -14,6 +14,7 @@ import { TimeAbsencesView } from "@/components/time/TimeAbsencesView";
 import { TimeSettingsView } from "@/components/time/TimeSettingsView";
 import type { ModalResult } from "@/components/time/TimeCalendarCreateModal";
 import { useI18n } from "@/lib/i18n-context";
+import PromptModal from "@/components/PromptModal";
 
 function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -111,6 +112,7 @@ function TimePageInner() {
   // SCH-921 K3-Q1 — projects for inline new-project flow + quote-without-project filter.
   const [projects, setProjects] = useState<Project[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [showNewProjectPrompt, setShowNewProjectPrompt] = useState(false);
 
   useEffect(() => {
     const v = searchParams.get("view");
@@ -199,11 +201,8 @@ function TimePageInner() {
     ),
   ).sort((a, b) => (projectFreq.get(b) || 0) - (projectFreq.get(a) || 0));
 
-  async function handleNewProject() {
-    const label = window.prompt(t("time.newProjectPrompt"));
-    if (label && label.trim()) {
-      await handleStart(label.trim());
-    }
+  function handleNewProject() {
+    setShowNewProjectPrompt(true);
   }
 
   async function handleStart(label: string) {
@@ -811,6 +810,13 @@ function TimePageInner() {
           <div className="text-center text-[var(--text-muted)] py-8 text-sm">{t("time.noEntries")}</div>
         )}
       </div>}
+      {showNewProjectPrompt && (
+        <PromptModal
+          title={t("time.newProjectPrompt")}
+          onCancel={() => setShowNewProjectPrompt(false)}
+          onConfirm={async (label) => { setShowNewProjectPrompt(false); await handleStart(label); }}
+        />
+      )}
     </div>
   );
 }

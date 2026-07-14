@@ -20,6 +20,7 @@ import {
 } from "@/lib/db";
 import type { UserProfile, WorkTimeModel } from "@/lib/types";
 import { WEEKDAY_LABELS_LONG } from "@/lib/types";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type DayDraft = {
   weekday: number;
@@ -106,6 +107,7 @@ export default function ArbeitszeitmodelleAdminPage() {
   const [editSaving, setEditSaving] = useState(false);
 
   const [assignedByModel, setAssignedByModel] = useState<Record<string, string[]>>({});
+  const [deleteConfirmModel, setDeleteConfirmModel] = useState<WorkTimeModel | null>(null);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -312,12 +314,12 @@ export default function ArbeitszeitmodelleAdminPage() {
     }
   }
 
-  async function handleDelete(model: WorkTimeModel) {
-    const assigned = assignedByModel[model.id]?.length ?? 0;
-    const msg = assigned > 0
-      ? `${model.name} ist ${assigned} Mitarbeiter${assigned === 1 ? "" : "n"} zugewiesen. Wirklich löschen? Die MA verlieren ihr Arbeitszeitmodell.`
-      : `${model.name} wirklich löschen?`;
-    if (!confirm(msg)) return;
+  function handleDelete(model: WorkTimeModel) {
+    setDeleteConfirmModel(model);
+  }
+
+  async function confirmDeleteModel(model: WorkTimeModel) {
+    setDeleteConfirmModel(null);
     setError(null);
     try {
       await deleteWorkTimeModel(model.id);
@@ -410,6 +412,17 @@ export default function ArbeitszeitmodelleAdminPage() {
           onSave={handleEditSave}
           onClose={() => { setEditing(null); setEditDraft(null); }}
           onToggleAssign={(userId, on) => toggleAssign(userId, editing.id, on)}
+        />
+      )}
+      {deleteConfirmModel && (
+        <ConfirmModal
+          message={
+            (assignedByModel[deleteConfirmModel.id]?.length ?? 0) > 0
+              ? `${deleteConfirmModel.name} ist ${assignedByModel[deleteConfirmModel.id].length} Mitarbeiter${assignedByModel[deleteConfirmModel.id].length === 1 ? "" : "n"} zugewiesen. Wirklich löschen? Die MA verlieren ihr Arbeitszeitmodell.`
+              : `${deleteConfirmModel.name} wirklich löschen?`
+          }
+          onCancel={() => setDeleteConfirmModel(null)}
+          onConfirm={() => confirmDeleteModel(deleteConfirmModel)}
         />
       )}
     </div>
