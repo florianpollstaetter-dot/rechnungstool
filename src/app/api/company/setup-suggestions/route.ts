@@ -13,6 +13,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { logAndSanitize } from "@/lib/api-errors";
+import { ANTHROPIC_MODEL } from "@/lib/ai-model";
 import {
   refineMissingFields,
   type AiCompleteFieldSpec,
@@ -158,7 +159,7 @@ Wichtig:
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: ANTHROPIC_MODEL,
         max_tokens: 4096,
         tools: [
           {
@@ -233,7 +234,7 @@ Wichtig:
           input_tokens: inputTokens,
           output_tokens: outputTokens,
           cost_eur: costEUR,
-          model: "claude-sonnet-4-20250514",
+          model: ANTHROPIC_MODEL,
           web_search: true,
           passes: totalPasses,
           missing_company_fields: missingCompanyFields,

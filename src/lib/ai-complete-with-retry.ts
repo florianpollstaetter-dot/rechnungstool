@@ -13,6 +13,7 @@
 // Cost note: each extra pass adds ~$0.002-0.005 (web_search + Sonnet 4).
 
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+import { ANTHROPIC_MODEL } from "@/lib/ai-model";
 
 export interface AiCompleteFieldSpec {
   /** JSON key in the parsed response, also used as the missing-field id. */
@@ -65,7 +66,7 @@ export interface AiCompleteRetryResult {
 /** Anthropic Claude content block (text or tool_use/tool_result). */
 type ClaudeBlock = { type: string; text?: string };
 
-const DEFAULT_MODEL = "claude-sonnet-4-20250514";
+const DEFAULT_MODEL = ANTHROPIC_MODEL;
 const DEFAULT_MAX_TOKENS = 1024;
 const DEFAULT_WEB_SEARCH_USES = 3;
 const DEFAULT_TIMEOUT_MS = 60_000;

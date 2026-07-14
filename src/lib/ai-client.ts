@@ -1,4 +1,5 @@
 import AnthropicBedrock from "@anthropic-ai/bedrock-sdk";
+import { ANTHROPIC_MODEL, BEDROCK_MODEL } from "./ai-model";
 
 /**
  * Creates the Claude AI client. Uses AWS Bedrock (eu-central-1) when AWS
@@ -16,7 +17,7 @@ export function createAIClient(): { client: AnthropicBedrock; model: string } | 
         awsSecretKey: process.env.AWS_SECRET_ACCESS_KEY,
         awsRegion,
       }),
-      model: `eu.claude-sonnet-4-20250514-v1:0`,
+      model: BEDROCK_MODEL,
     };
   }
 
@@ -69,7 +70,7 @@ export async function callClaude(
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: ANTHROPIC_MODEL,
       max_tokens: maxTokens,
       messages: [{ role: "user", content: contentBlocks }],
     }),
@@ -137,7 +138,7 @@ export async function callClaudeChat(
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: ANTHROPIC_MODEL,
       max_tokens: maxTokens,
       system,
       messages,

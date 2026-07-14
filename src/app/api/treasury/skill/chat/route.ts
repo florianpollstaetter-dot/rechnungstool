@@ -32,6 +32,7 @@ import {
   runTreasuryTool,
   type SkillContext,
 } from "@/lib/treasury/skill-tools";
+import { BEDROCK_MODEL } from "@/lib/ai-model";
 
 export const runtime = "nodejs";
 
@@ -157,7 +158,7 @@ export async function POST(
     awsSecretKey: awsSecret,
     awsRegion: process.env.AWS_REGION || "eu-central-1",
   });
-  const model = "eu.claude-sonnet-4-20250514-v1:0";
+  const model = BEDROCK_MODEL;
 
   const tools = buildAnthropicToolDefinitions();
   const systemBlocks = [
