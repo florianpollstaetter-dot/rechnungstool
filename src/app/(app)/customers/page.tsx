@@ -21,7 +21,7 @@ const emptyCustomer = {
   address: "",
   city: "",
   zip: "",
-  country: "Oesterreich",
+  country: "Österreich",
   uid_number: "",
   leitweg_id: "",
   email: "",

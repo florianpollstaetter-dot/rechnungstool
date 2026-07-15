@@ -184,7 +184,7 @@ export function parseCustomersCsv(text: string): ParseResult<CustomerRow> {
       address: streetCol >= 0 ? (r[streetCol] ?? "").trim() : "",
       zip: colZip >= 0 ? (r[colZip] ?? "").trim() : "",
       city: colCity >= 0 ? (r[colCity] ?? "").trim() : "",
-      country: colCountry >= 0 ? ((r[colCountry] ?? "").trim() || "Oesterreich") : "Oesterreich",
+      country: colCountry >= 0 ? ((r[colCountry] ?? "").trim() || "Österreich") : "Österreich",
       uid_number: colUid >= 0 ? (r[colUid] ?? "").trim() : "",
       email: colEmail >= 0 ? (r[colEmail] ?? "").trim() : "",
       phone,

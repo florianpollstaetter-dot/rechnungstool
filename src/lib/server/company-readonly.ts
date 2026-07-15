@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 const READ_ONLY_MESSAGE =
-  "Rechnung ueberfaellig — Funktionen eingeschraenkt. Bitte ausstehende Rechnung begleichen.";
+  "Rechnung überfällig — Funktionen eingeschränkt. Bitte ausstehende Rechnung begleichen.";
 
 /**
  * Returns true when the company is past the 60-day overdue threshold.

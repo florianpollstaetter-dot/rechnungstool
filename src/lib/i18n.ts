@@ -22,7 +22,7 @@ const translations = {
   vat: { de: "USt", en: "VAT" },
   gross: { de: "BRUTTO", en: "GROSS" },
   paymentText: {
-    de: "Bitte ueberweisen Sie den Rechnungsbetrag innerhalb von 14 Tagen nach Erhalt der Rechnung auf das unten angegebene Konto. Bitte geben Sie dabei die Rechnungsnummer {number} an.",
+    de: "Bitte überweisen Sie den Rechnungsbetrag innerhalb von 14 Tagen nach Erhalt der Rechnung auf das unten angegebene Konto. Bitte geben Sie dabei die Rechnungsnummer {number} an.",
     en: "Please transfer the invoice amount within 14 days of receipt to the account below. Please reference invoice number {number}.",
   },
   contact: { de: "Kontakt", en: "Contact" },

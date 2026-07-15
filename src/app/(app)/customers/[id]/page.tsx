@@ -164,7 +164,7 @@ export default function CustomerDetailPage() {
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">{customer.company || customer.name}</h1>
           {customer.company && <p className="text-sm text-[var(--text-secondary)]">{customer.name}</p>}
-          <p className="text-sm text-[var(--text-muted)]">{customer.address}, {customer.zip} {customer.city}</p>
+          <p className="text-sm text-[var(--text-muted)]">{[customer.address, [customer.zip, customer.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</p>
           {customer.uid_number && <p className="text-xs text-[var(--text-muted)]">UID: {customer.uid_number}</p>}
           <div className="mt-1.5 flex items-center gap-2">
             {readiness.ready ? (

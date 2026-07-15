@@ -9,7 +9,7 @@ import type { ReceiptImageData } from "@/components/SteuerblattPDF";
 import { useI18n } from "@/lib/i18n-context";
 import { useCompany } from "@/lib/company-context";
 
-const READ_ONLY_TITLE = "Rechnung ueberfaellig — Funktionen eingeschraenkt. Bitte ausstehende Rechnung begleichen.";
+const READ_ONLY_TITLE = "Rechnung überfällig — Funktionen eingeschränkt. Bitte ausstehende Rechnung begleichen.";
 
 export default function ExportPage() {
   const { t } = useI18n();
@@ -83,7 +83,7 @@ export default function ExportPage() {
           inv.paid_at ? inv.paid_at.split("T")[0] : "",
           cust ? (cust.company || cust.name) : "",
           cust?.uid_number || "",
-          cust ? `${cust.address}, ${cust.zip} ${cust.city}` : "",
+          cust ? [cust.address, [cust.zip, cust.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") : "",
           inv.project_description || "",
           String(inv.subtotal),
           String(inv.tax_rate),

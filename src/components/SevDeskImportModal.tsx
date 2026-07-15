@@ -97,7 +97,7 @@ export default function SevDeskImportModal({ kind, onClose, onImported }: Props)
             address: String(r.address ?? "").trim(),
             zip: String(r.zip ?? "").trim(),
             city: String(r.city ?? "").trim(),
-            country: String(r.country ?? "Oesterreich").trim() || "Oesterreich",
+            country: String(r.country ?? "Österreich").trim() || "Österreich",
             uid_number: String(r.uid_number ?? "").trim(),
             email: String(r.email ?? "").trim(),
             phone: String(r.phone ?? "").trim(),
