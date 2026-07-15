@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { TimeEntry, Quote, UserWorkSchedule, GeneralCategory, Project, UserProfile } from "@/lib/types";
-import { getTimeEntries, getActiveTimer, createTimeEntry, updateTimeEntry, deleteTimeEntry, getQuotes, getCurrentUserName, getCurrentUserWorkSchedules, getGeneralCategories, getProjects, getUserProfilesForMyCompanies } from "@/lib/db";
+import { getTimeEntries, getActiveTimer, createTimeEntry, updateTimeEntry, deleteTimeEntry, getQuotes, getCurrentUserName, getCurrentUserWorkSchedules, getGeneralCategories, getProjects, getUserProfilesForMyCompanies, getUserProfile } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { useCompany } from "@/lib/company-context";
 import { createClient } from "@/lib/supabase/client";
@@ -94,6 +94,10 @@ function TimePageInner() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState("");
+  // ORA-2830 — absences/leave-balances/schedules key on user_profiles.id,
+  // NOT auth.uid(). userId stays auth.uid() for time_entries; profileId is the
+  // user_profiles.id used by the Urlaub/Abwesenheit view.
+  const [profileId, setProfileId] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [selectedProject, setSelectedProject] = useState("");
   const [description, setDescription] = useState("");
@@ -128,11 +132,12 @@ function TimePageInner() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setUserId(user.id);
-    const [e, q, timer, sch, cats, prj, members] = await Promise.all([
+    const [e, q, timer, sch, cats, prj, members, profile] = await Promise.all([
       getTimeEntries(user.id), getQuotes(), getActiveTimer(user.id),
       getCurrentUserWorkSchedules(), getGeneralCategories(), getProjects(),
-      getUserProfilesForMyCompanies(),
+      getUserProfilesForMyCompanies(), getUserProfile(user.id),
     ]);
+    setProfileId(profile?.id ?? "");
     setEntries(e);
     setQuotes(q.filter((qt) => qt.status === "accepted" || qt.status === "sent"));
     setActiveTimerState(timer);
@@ -652,7 +657,7 @@ function TimePageInner() {
       {viewMode === "urlaub" && (
         <TimeAbsencesView
           isAdmin={isAdmin}
-          currentUserId={userId}
+          currentUserId={profileId}
           users={companyUsers}
           ownEntries={entries}
           ownSchedule={workSchedule}
