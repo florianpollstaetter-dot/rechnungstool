@@ -81,6 +81,15 @@ export default function EInvoiceValidationModal({ errors, settings, onSaved, onC
     return keys;
   }, [errors]);
 
+  const sellerErrorMessages = useMemo(() => {
+    const map = new Map<SellerFieldKey, string>();
+    for (const e of errors) {
+      const k = sellerKeyFromPath(e.path);
+      if (k && !map.has(k)) map.set(k, e.message);
+    }
+    return map;
+  }, [errors]);
+
   const nonSellerErrors = useMemo(
     () => errors.filter((e) => sellerKeyFromPath(e.path) === null),
     [errors]
@@ -252,6 +261,11 @@ export default function EInvoiceValidationModal({ errors, settings, onSaved, onC
                     className={`${inputClass} ${isMissing ? "border-rose-500/50" : ""}`}
                     placeholder={FIELD_LABELS[key]}
                   />
+                  {isMissing && (
+                    <p className="text-[11px] text-rose-400 mt-1">
+                      {sellerErrorMessages.get(key) || "Pflichtfeld – bitte ergänzen."}
+                    </p>
+                  )}
                 </div>
               );
             })}

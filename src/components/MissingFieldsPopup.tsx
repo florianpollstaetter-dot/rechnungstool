@@ -130,6 +130,9 @@ export default function MissingFieldsPopup({
                   className={`${inputClass} ${isEmpty ? "border-rose-500/40" : ""}`}
                   autoFocus={f === fields[0]}
                 />
+                {isEmpty && (
+                  <p className="text-[11px] text-rose-400 mt-1">Bitte ausfüllen.</p>
+                )}
                 {f.hint && (
                   <p className="text-[11px] text-[var(--text-muted)] mt-1">{f.hint}</p>
                 )}
