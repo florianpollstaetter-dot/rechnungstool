@@ -12,7 +12,7 @@ export function PaymentOverdueBanner() {
   return (
     <div
       role="alert"
-      className="bg-rose-500/10 border-b border-rose-500/30 text-rose-700 dark:text-rose-300"
+      className="bg-rose-500/10 border-b border-rose-500/30 text-rose-700 dark:text-rose-300 lg:pl-60"
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
         <svg
