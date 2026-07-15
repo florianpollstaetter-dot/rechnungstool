@@ -435,7 +435,7 @@ function InvoicesPage() {
                   </td>
                   <td className="px-3 py-3 text-sm text-right text-orange-400">{formatCurrency(inv.tax_amount)}</td>
                   <td className="px-3 py-3 text-sm text-right">
-                    {(isPaid || isPartial) ? (
+                    {(isPaid || isPartial) && Number(inv.paid_amount) > 0 ? (
                       <span className={isPaid ? "text-emerald-400" : "text-cyan-400"}>{formatCurrency(inv.paid_amount)}</span>
                     ) : <span className="text-[var(--text-muted)]">—</span>}
                   </td>
