@@ -486,7 +486,7 @@ const pl: Record<string, string> = {
   "receipts.totalGross": "Razem brutto",
   "receipts.totalNet": "Razem netto",
   "receipts.totalVat": "Razem VAT",
-  "receipts.apiCosts": "Koszty API Anthropic",
+  "receipts.apiCosts": "Koszty analizy AI",
   "receipts.monthLabel": "Miesiąc:",
   "receipts.searchPlaceholder": "Szukaj wg pliku, wystawcy, kwoty...",
   "receipts.project": "Projekt",

@@ -486,7 +486,7 @@ const ar: Record<string, string> = {
   "receipts.totalGross": "إجمالي شامل",
   "receipts.totalNet": "إجمالي صافي",
   "receipts.totalVat": "إجمالي ض.ق.م",
-  "receipts.apiCosts": "تكاليف Anthropic API",
+  "receipts.apiCosts": "تكاليف تحليل الذكاء الاصطناعي",
   "receipts.monthLabel": "الشهر:",
   "receipts.searchPlaceholder": "بحث بالملف، المُصدِر، المبلغ...",
   "receipts.project": "المشروع",

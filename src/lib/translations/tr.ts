@@ -486,7 +486,7 @@ const tr: Record<string, string> = {
   "receipts.totalGross": "Toplam Brüt",
   "receipts.totalNet": "Toplam Net",
   "receipts.totalVat": "Toplam KDV",
-  "receipts.apiCosts": "Anthropic API Maliyetleri",
+  "receipts.apiCosts": "AI Analiz Maliyetleri",
   "receipts.monthLabel": "Ay:",
   "receipts.searchPlaceholder": "Dosya, düzenleyen, tutar ara...",
   "receipts.project": "Proje",
