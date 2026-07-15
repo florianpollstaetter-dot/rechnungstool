@@ -301,7 +301,7 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
 
           <div>
             <div className="flex gap-0.5 px-0.5 pb-1 border-b border-[var(--border)]">
-              {([["allgemein", "Allgemein"], ["projekte", "Projekte"], ["other", "Other"]] as [PickerTab, string][]).map(([key, label]) => (
+              {([["allgemein", "Allgemein"], ["projekte", "Projekte"], ["other", "Sonstiges"]] as [PickerTab, string][]).map(([key, label]) => (
                 <TabButton key={key} active={pickerTab === key} onClick={() => setPickerTab(key)}>{label}</TabButton>
               ))}
             </div>

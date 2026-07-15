@@ -470,7 +470,7 @@ export default function CustomersPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-400">
-                    {c.address}, {c.zip} {c.city}
+                    {[c.address, [c.zip, c.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-400">
                     {c.uid_number}
