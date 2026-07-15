@@ -129,6 +129,9 @@ export function TimeAbsencesView({
     const map = new Map<number, boolean>();
     for (let i = 0; i < 7; i++) map.set(i, false);
     schedule.forEach((s) => map.set(s.weekday, s.daily_target_minutes > 0));
+    // No schedule configured → treat Mon–Fri as working days so a single-day
+    // absence (Von=Bis on a weekday) counts as 1, not 0.
+    if (![...map.values()].some(Boolean)) for (let i = 0; i < 5; i++) map.set(i, true);
     return map;
   }, [schedule]);
 
