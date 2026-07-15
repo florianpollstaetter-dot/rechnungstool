@@ -471,7 +471,13 @@ export async function generateInvoiceNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const num = settings.next_invoice_number;
   const number = `${year} - A${String(num).padStart(3, "0")}`;
-  await updateSettings({ next_invoice_number: num + 1 });
+  try {
+    await updateSettings({ next_invoice_number: num + 1 });
+  } catch (e) {
+    throw new Error(
+      `Rechnungsnummer konnte nicht reserviert werden: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
   return number;
 }
 
