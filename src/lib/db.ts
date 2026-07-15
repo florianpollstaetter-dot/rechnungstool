@@ -1216,15 +1216,21 @@ export async function replaceUserWorkSchedules(
     await assignWorkTimeModelToUser(userId, modelId);
   }
 
+  // Keep the model's weekly_target_minutes coupled to the day grid so the
+  // Arbeitszeitmodell "Wochenstunden" doesn't drift from the per-user Raster
+  // when this edited via the Zeiterfassung-Einstellungen tab (M2).
+  const modelPatch: Partial<Omit<WorkTimeModel, "id" | "company_id" | "created_at" | "updated_at">> = {
+    weekly_target_minutes: rows.reduce((s, r) => s + Math.max(0, Number(r.daily_target_minutes) || 0), 0),
+  };
   // If any per-day Pause came in, lift the largest value into the model so the
   // derivedTarget helper in the editor stays in sync after save.
   const breaks = rows
     .map((r) => Number(r.unpaid_break_minutes ?? 0))
     .filter((n) => n > 0);
   if (breaks.length > 0) {
-    const maxBreak = Math.max(...breaks);
-    await updateWorkTimeModel(modelId, { unpaid_break_minutes: maxBreak });
+    modelPatch.unpaid_break_minutes = Math.max(...breaks);
   }
+  await updateWorkTimeModel(modelId, modelPatch);
 
   const dayRows = rows.map((r) => ({
     weekday: r.weekday,
