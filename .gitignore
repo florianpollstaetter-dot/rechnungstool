@@ -45,3 +45,6 @@ next-env.d.ts
 
 # treasury-poc bench fixtures (generated; up to ~23 MB for 100k entries)
 treasury-poc/bench/statements/*.xml
+
+__pycache__/
+*.pyc

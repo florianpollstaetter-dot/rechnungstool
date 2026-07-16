@@ -152,14 +152,46 @@ def select_backend():
     )
 
 
+def scan_migrations(mig_dir: Path) -> list[tuple[str, Path]]:
+    """Return (version, path) for every forward migration, sorted by filename.
+
+    Reversal scripts (``*_down.sql``) must never be in the forward-apply set:
+    they DROP what the paired up-migration creates, so applying one during a
+    backlog run destroys data. They are excluded from the scan entirely.
+
+    Fail-fast on duplicate version tokens. The version is the leading token of
+    the filename and the sole key in schema_migrations. If two files share a
+    token, only one can ever be recorded — the other is either applied then
+    masked (data loss) or silently skipped, depending on ordering and DB state.
+    This is unrecoverable at runtime, so abort before touching the DB.
+    """
+    local = [f for f in sorted(mig_dir.glob("*.sql")) if not f.stem.endswith("_down")]
+
+    by_version: dict[str, list[Path]] = {}
+    for f in local:
+        by_version.setdefault(f.stem.split("_", 1)[0], []).append(f)
+    collisions = {v: fs for v, fs in by_version.items() if len(fs) > 1}
+    if collisions:
+        lines = "\n".join(
+            f"  version {v}: {', '.join(p.name for p in fs)}"
+            for v, fs in sorted(collisions.items())
+        )
+        sys.exit(
+            "Duplicate migration version token(s) detected — refusing to apply "
+            "to avoid silent skips / double application:\n" + lines
+        )
+
+    return [(f.stem.split("_", 1)[0], f) for f in local]
+
+
 def main() -> int:
     mig_dir = Path("supabase/migrations")
     if not mig_dir.is_dir():
         print("No supabase/migrations directory — nothing to do.")
         return 0
 
-    local = sorted(mig_dir.glob("*.sql"))
-    if not local:
+    scanned = scan_migrations(mig_dir)
+    if not scanned:
         print("No migration files found — skipping.")
         return 0
 
@@ -169,11 +201,7 @@ def main() -> int:
     applied = backend.applied_versions()
     print(f"Already applied: {len(applied)}")
 
-    pending = []
-    for f in local:
-        version = f.stem.split("_", 1)[0]
-        if version not in applied:
-            pending.append((version, f))
+    pending = [(version, f) for version, f in scanned if version not in applied]
 
     if not pending:
         print("No pending migrations.")
