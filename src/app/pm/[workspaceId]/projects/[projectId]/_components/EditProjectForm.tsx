@@ -12,6 +12,7 @@ import {
   type PmProject,
   type ProjectStatus,
 } from "@/lib/pm/projects";
+import { useDialog } from "@/components/DialogProvider";
 
 export function EditProjectForm({
   project,
@@ -21,6 +22,7 @@ export function EditProjectForm({
   isAdmin: boolean;
 }) {
   const router = useRouter();
+  const { confirm } = useDialog();
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description);
   const [status, setStatus] = useState<ProjectStatus>(project.status);
@@ -56,7 +58,7 @@ export function EditProjectForm({
   }
 
   async function handleDelete() {
-    if (!confirm(`Projekt „${project.name}" wirklich löschen?`)) return;
+    if (!(await confirm({ message: `Projekt „${project.name}" wirklich löschen?`, confirmLabel: "Löschen", tone: "danger" }))) return;
     setError(null);
 
     const res = await fetch(

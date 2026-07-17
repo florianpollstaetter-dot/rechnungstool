@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { NotificationsBell } from "./_components/NotificationsBell";
+import { DialogProvider } from "@/components/DialogProvider";
 
 export default function PmLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -23,7 +24,9 @@ export default function PmLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="flex-1">{children}</main>
+      <main className="flex-1">
+        <DialogProvider>{children}</DialogProvider>
+      </main>
     </div>
   );
 }

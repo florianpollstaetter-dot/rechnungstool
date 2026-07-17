@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AppFooter } from "@/components/AppFooter";
 import { PasswordChangeGate } from "@/components/PasswordChangeGate";
+import { DialogProvider } from "@/components/DialogProvider";
 
 const OPERATOR_NAV = [
   { href: "/operator", label: "Dashboard", exact: true },
@@ -125,7 +126,7 @@ export default function OperatorLayout({ children }: { children: React.ReactNode
         )}
       </nav>
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 w-full flex-1">
-        {children}
+        <DialogProvider>{children}</DialogProvider>
       </main>
       <AppFooter />
     </>

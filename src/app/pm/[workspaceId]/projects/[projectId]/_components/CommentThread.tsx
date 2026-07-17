@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PmTaskComment } from "@/lib/pm/comments";
 import { usePmRealtime } from "@/lib/pm/useRealtime";
+import { useDialog } from "@/components/DialogProvider";
 
 type MemberOption = {
   user_id: string;
@@ -35,6 +36,7 @@ export function CommentThread({
   members: MemberOption[];
 }) {
   const baseUrl = `/api/pm/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}/comments`;
+  const { confirm } = useDialog();
 
   const [comments, setComments] = useState<PmTaskComment[] | null>(null);
   const [draft, setDraft] = useState("");
@@ -99,7 +101,7 @@ export function CommentThread({
   }
 
   async function handleDelete(c: PmTaskComment) {
-    if (!confirm("Kommentar löschen?")) return;
+    if (!(await confirm({ message: "Kommentar löschen?", confirmLabel: "Löschen", tone: "danger" }))) return;
     setError(null);
     const res = await fetch(`${baseUrl}/${c.id}`, { method: "DELETE" });
     if (!res.ok) {

@@ -6,6 +6,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useDialog } from "@/components/DialogProvider";
 
 type Member = {
   user_id: string;
@@ -29,6 +30,7 @@ export function MembersTable({
   isAdmin: boolean;
 }) {
   const router = useRouter();
+  const { confirm } = useDialog();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -57,7 +59,7 @@ export function MembersTable({
     const confirmMsg = isSelf
       ? "Workspace wirklich verlassen?"
       : "Mitglied wirklich entfernen?";
-    if (!window.confirm(confirmMsg)) return;
+    if (!(await confirm({ message: confirmMsg, confirmLabel: isSelf ? "Verlassen" : "Entfernen", tone: "danger" }))) return;
     setError(null);
     setPendingId(userId);
     const res = await fetch(

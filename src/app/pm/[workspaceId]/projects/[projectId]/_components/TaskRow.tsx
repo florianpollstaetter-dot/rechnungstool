@@ -17,6 +17,7 @@ import {
   type TaskStatus,
 } from "@/lib/pm/tasks";
 import { CommentThread } from "./CommentThread";
+import { useDialog } from "@/components/DialogProvider";
 
 type MemberOption = { user_id: string; display_name: string; email: string };
 
@@ -43,6 +44,7 @@ export function TaskRow({
   canWrite: boolean;
 }) {
   const router = useRouter();
+  const { confirm } = useDialog();
   const [editing, setEditing] = useState(false);
   const [showingComments, setShowingComments] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +98,7 @@ export function TaskRow({
   }
 
   async function handleDelete() {
-    if (!confirm(`Aufgabe „${task.title}" wirklich löschen?`)) return;
+    if (!(await confirm({ message: `Aufgabe „${task.title}" wirklich löschen?`, confirmLabel: "Löschen", tone: "danger" }))) return;
     setError(null);
     const res = await fetch(baseUrl, { method: "DELETE" });
     const json = await res.json().catch(() => ({}));

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useDialog } from "@/components/DialogProvider";
 
 interface CompanyUser {
   auth_user_id: string;
@@ -75,6 +76,7 @@ const ROLE_LABELS: Record<string, string> = {
 export default function OperatorCompanyDetail() {
   const router = useRouter();
   const params = useParams();
+  const { confirm } = useDialog();
   const companyId = params.id as string;
 
   const [company, setCompany] = useState<CompanyDetail | null>(null);
@@ -271,8 +273,8 @@ export default function OperatorCompanyDetail() {
           </button>
         ) : (
           <button
-            onClick={() => {
-              if (confirm("Alle aktiven Sessions werden beendet, kein User kann sich mehr einloggen. Fortfahren?")) {
+            onClick={async () => {
+              if (await confirm({ message: "Alle aktiven Sessions werden beendet, kein User kann sich mehr einloggen. Fortfahren?", confirmLabel: "Sperren", tone: "danger" })) {
                 toggleLock(true);
               }
             }}
