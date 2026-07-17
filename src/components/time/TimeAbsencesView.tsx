@@ -220,6 +220,11 @@ export function TimeAbsencesView({
         setSaving(false);
         return;
       }
+      if (!editingId && !selectedUserId) {
+        setError(t("time.absenceErrNoProfile"));
+        setSaving(false);
+        return;
+      }
       const days = workingDaysBetween(form.starts_on, form.ends_on, hasTargetByWeekday);
       if (editingId) {
         await updateAbsence(editingId, {

@@ -698,6 +698,7 @@ const ar: Record<string, string> = {
   "time.absenceNotePlaceholder": "ملاحظة اختيارية",
   "time.absenceComputedDays": "أيام العمل المحسوبة: {days}",
   "time.absenceErrEndBeforeStart": "يجب ألا يسبق تاريخ الانتهاء تاريخ البدء.",
+  "time.absenceErrNoProfile": "لم يتم العثور على ملف تعريف المستخدم. يرجى إعادة تحميل الصفحة أو الاتصال بالمسؤول لإنشاء ملفك الشخصي.",
   "time.absenceConfirmDelete": "هل تريد حقاً حذف هذا الغياب؟",
   "time.absenceEmpty": "لا توجد إدخالات لهذا العام بعد.",
   "time.daysShort": "أيام",

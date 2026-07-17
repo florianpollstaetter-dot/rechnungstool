@@ -698,6 +698,7 @@ const fr: Record<string, string> = {
   "time.absenceNotePlaceholder": "Note facultative",
   "time.absenceComputedDays": "Jours ouvrés calculés : {days}",
   "time.absenceErrEndBeforeStart": "La date de fin ne peut pas précéder la date de début.",
+  "time.absenceErrNoProfile": "Aucun profil utilisateur trouvé. Rechargez la page ou contactez un administrateur pour créer votre profil.",
   "time.absenceConfirmDelete": "Vraiment supprimer cette absence ?",
   "time.absenceEmpty": "Aucune entrée cette année.",
   "time.daysShort": "jours",

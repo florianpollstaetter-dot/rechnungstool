@@ -698,6 +698,7 @@ const tr: Record<string, string> = {
   "time.absenceNotePlaceholder": "İsteğe bağlı not",
   "time.absenceComputedDays": "Hesaplanan iş günü: {days}",
   "time.absenceErrEndBeforeStart": "Bitiş tarihi başlangıç tarihinden önce olamaz.",
+  "time.absenceErrNoProfile": "Kullanıcı profili bulunamadı. Lütfen sayfayı yeniden yükleyin veya profilinizi oluşturmak için bir yöneticiyle iletişime geçin.",
   "time.absenceConfirmDelete": "Bu izin gerçekten silinsin mi?",
   "time.absenceEmpty": "Bu yıl henüz kayıt yok.",
   "time.daysShort": "gün",

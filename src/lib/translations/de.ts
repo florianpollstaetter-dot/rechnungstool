@@ -824,6 +824,7 @@ const de = {
   "time.absenceNotePlaceholder": "Optionale Notiz",
   "time.absenceComputedDays": "Berechnete Werktage: {days}",
   "time.absenceErrEndBeforeStart": "Das Enddatum muss nach dem Startdatum liegen.",
+  "time.absenceErrNoProfile": "Kein Benutzerprofil gefunden. Bitte lade die Seite neu oder wende dich an einen Administrator, um dein Profil anzulegen.",
   "time.absenceConfirmDelete": "Abwesenheit wirklich löschen?",
   "time.absenceEmpty": "Noch keine Einträge dieses Jahr.",
   "time.daysShort": "Tage",

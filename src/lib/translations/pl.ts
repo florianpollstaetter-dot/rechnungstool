@@ -698,6 +698,7 @@ const pl: Record<string, string> = {
   "time.absenceNotePlaceholder": "Notatka opcjonalna",
   "time.absenceComputedDays": "Obliczone dni robocze: {days}",
   "time.absenceErrEndBeforeStart": "Data zakończenia nie może być wcześniejsza niż data rozpoczęcia.",
+  "time.absenceErrNoProfile": "Nie znaleziono profilu użytkownika. Odśwież stronę lub skontaktuj się z administratorem, aby utworzyć profil.",
   "time.absenceConfirmDelete": "Czy na pewno usunąć tę nieobecność?",
   "time.absenceEmpty": "Brak wpisów w tym roku.",
   "time.daysShort": "dni",

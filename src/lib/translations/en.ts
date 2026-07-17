@@ -824,6 +824,7 @@ const en: Record<string, string> = {
   "time.absenceNotePlaceholder": "Optional note",
   "time.absenceComputedDays": "Computed workdays: {days}",
   "time.absenceErrEndBeforeStart": "End date must not be before start date.",
+  "time.absenceErrNoProfile": "No user profile found. Please reload the page or contact an administrator to create your profile.",
   "time.absenceConfirmDelete": "Really delete this absence?",
   "time.absenceEmpty": "No entries this year yet.",
   "time.daysShort": "days",
