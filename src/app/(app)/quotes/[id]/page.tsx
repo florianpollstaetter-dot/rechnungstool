@@ -13,9 +13,11 @@ import QuoteDesignWindow from "@/components/QuoteDesignWindow";
 import InvoiceEditModal from "@/components/InvoiceEditModal";
 import QuoteStatusPicker from "@/components/QuoteStatusPicker";
 import { useI18n } from "@/lib/i18n-context";
+import { useDialog } from "@/components/DialogProvider";
 
 export default function QuoteDetailPage() {
   const { t } = useI18n();
+  const { prompt, notify } = useDialog();
   const params = useParams();
   const router = useRouter();
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -79,7 +81,7 @@ export default function QuoteDetailPage() {
       const updated = await getQuote(quote!.id);
       if (updated) setQuote(updated);
     } catch {
-      alert(t("quoteDetail.languageToggleFailed"));
+      notify(t("quoteDetail.languageToggleFailed"), "error");
     }
   }
 
@@ -91,7 +93,7 @@ export default function QuoteDetailPage() {
   }
 
   async function handleSaveAsTemplate() {
-    const name = prompt(t("quoteDetail.templateName"), quote!.project_description || quote!.quote_number);
+    const name = await prompt({ title: t("quoteDetail.templateName"), defaultValue: quote!.project_description || quote!.quote_number });
     if (!name) return;
     const items: TemplateItem[] = quote!.items.map((i) => ({
       position: i.position, description: i.description, unit: i.unit,
@@ -105,7 +107,7 @@ export default function QuoteDetailPage() {
       overall_discount_amount: quote!.overall_discount_amount,
       notes: quote!.notes, language: quote!.language || "de",
     });
-    alert(t("quoteDetail.templateSaved", { name }));
+    notify(t("quoteDetail.templateSaved", { name }), "success");
   }
 
   // SCH-959 — Restprozent = 100 minus what's already invoiced. Each new

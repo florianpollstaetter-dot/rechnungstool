@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TimeEntry, Quote, UserWorkSchedule, GeneralCategory, Project } from "@/lib/types";
 import { TimeCalendarCreateModal, ModalResult, EditData } from "./TimeCalendarCreateModal";
+import { useDialog } from "@/components/DialogProvider";
 
 type ViewMode = "week" | "day";
 
@@ -121,6 +122,7 @@ export function TimeCalendarView({
   onEdit,
   onDelete,
 }: Props) {
+  const { notify } = useDialog();
   const [mode, setMode] = useState<ViewMode>("week");
   const [anchor, setAnchor] = useState<Date>(() => startOfDay(new Date()));
   const gridRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -270,7 +272,7 @@ export function TimeCalendarView({
       }
 
       if (hasOverlap(newStart, newEnd, entry.id)) {
-        window.alert("Konflikt: ein Eintrag überschneidet sich mit einem bestehenden.");
+        notify("Konflikt: ein Eintrag überschneidet sich mit einem bestehenden.", "error");
         return;
       }
 

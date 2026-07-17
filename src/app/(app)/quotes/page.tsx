@@ -12,6 +12,7 @@ import QuoteStatusPicker from "@/components/QuoteStatusPicker";
 import AngeboteTabBar from "@/components/AngeboteTabBar";
 import { useI18n } from "@/lib/i18n-context";
 import { useCompany } from "@/lib/company-context";
+import { useDialog } from "@/components/DialogProvider";
 
 const READ_ONLY_TITLE = "Rechnung überfällig — Funktionen eingeschränkt. Bitte ausstehende Rechnung begleichen.";
 
@@ -19,6 +20,7 @@ export default function QuotesPage() {
   const { t } = useI18n();
   const router = useRouter();
   const { isReadOnly } = useCompany();
+  const { confirm, notify } = useDialog();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
@@ -109,19 +111,19 @@ export default function QuotesPage() {
       await updateQuote(id, { language: newLang });
       await loadData();
     } catch {
-      alert(t("quotes.languageToggleFailed"));
+      notify(t("quotes.languageToggleFailed"), "error");
     }
   }
 
   async function handleDelete(id: string) {
-    if (confirm(t("quotes.confirmDelete"))) {
+    if (await confirm(t("quotes.confirmDelete"))) {
       await deleteQuote(id);
       await loadData();
     }
   }
 
   async function handleConvert(id: string) {
-    if (confirm(t("quotes.convertToInvoice"))) {
+    if (await confirm({ message: t("quotes.convertToInvoice"), confirmLabel: t("common.confirm"), tone: "primary" })) {
       const invoice = await convertQuoteToInvoice(id);
       router.push(`/invoices/${invoice.id}`);
     }

@@ -9,9 +9,11 @@ import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFDownloadButton from "@/components/PDFDownloadButton";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
 import { useI18n } from "@/lib/i18n-context";
+import { useDialog } from "@/components/DialogProvider";
 
 export default function InvoiceDetailPage() {
   const { t } = useI18n();
+  const { prompt, notify } = useDialog();
   const params = useParams();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -58,7 +60,7 @@ export default function InvoiceDetailPage() {
   }
 
   async function handleSaveAsTemplate() {
-    const name = prompt(`${t("invoiceDetail.templateName")}`, invoice!.project_description || invoice!.invoice_number);
+    const name = await prompt({ title: t("invoiceDetail.templateName"), defaultValue: invoice!.project_description || invoice!.invoice_number });
     if (!name) return;
     const items: TemplateItem[] = invoice!.items.map((i) => ({
       position: i.position, description: i.description, unit: i.unit,
@@ -72,7 +74,7 @@ export default function InvoiceDetailPage() {
       overall_discount_amount: invoice!.overall_discount_amount,
       notes: invoice!.notes, language: invoice!.language,
     });
-    alert("Vorlage gespeichert: " + name);
+    notify("Vorlage gespeichert: " + name, "success");
   }
 
   const hasDiscounts = invoice.items.some((i) => i.discount_percent > 0 || i.discount_amount > 0) ||

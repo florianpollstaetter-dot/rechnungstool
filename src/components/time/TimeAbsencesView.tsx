@@ -25,6 +25,7 @@ import {
   updateAbsence,
 } from "@/lib/db";
 import { useI18n } from "@/lib/i18n-context";
+import { useDialog } from "@/components/DialogProvider";
 
 interface Props {
   isAdmin: boolean;
@@ -78,6 +79,7 @@ export function TimeAbsencesView({
   ownSchedule,
 }: Props) {
   const { t } = useI18n();
+  const { confirm } = useDialog();
   const currentYear = new Date().getFullYear();
 
   const [selectedUserId, setSelectedUserId] = useState<string>(currentUserId);
@@ -248,7 +250,7 @@ export function TimeAbsencesView({
   }
 
   async function handleDelete(id: string) {
-    if (!confirm(t("time.absenceConfirmDelete"))) return;
+    if (!(await confirm(t("time.absenceConfirmDelete")))) return;
     await deleteAbsence(id);
     await loadData();
   }

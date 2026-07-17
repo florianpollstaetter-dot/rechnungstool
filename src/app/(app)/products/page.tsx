@@ -9,12 +9,14 @@ import { useI18n } from "@/lib/i18n-context";
 import { CONTENT_LOCALES } from "@/lib/i18n-content";
 import SevDeskImportModal from "@/components/SevDeskImportModal";
 import AngeboteTabBar from "@/components/AngeboteTabBar";
+import { useDialog } from "@/components/DialogProvider";
 
 // SCH-447 — Extra locales beyond the first-class de/en inputs. Rendered in a collapsible panel.
 const EXTRA_LOCALES: ContentLocale[] = ["fr", "es", "it", "tr", "pl", "ar"];
 
 export default function ProductsPage() {
   const { t, locale } = useI18n();
+  const { confirm } = useDialog();
   const [products, setProducts] = useState<Product[]>([]);
   const [roles, setRoles] = useState<CompanyRole[]>([]);
   const [loading, setLoading] = useState(true);
@@ -218,7 +220,7 @@ export default function ProductsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm(t("products.confirmDelete"))) {
+    if (await confirm(t("products.confirmDelete"))) {
       await deleteProduct(id);
       await loadData();
     }

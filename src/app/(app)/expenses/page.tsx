@@ -10,6 +10,7 @@ import { useCompany } from "@/lib/company-context";
 import { createClient } from "@/lib/supabase/client";
 import ReceiptCaptureModal from "@/components/ReceiptCaptureModal";
 import { useI18n } from "@/lib/i18n-context";
+import { useDialog } from "@/components/DialogProvider";
 
 const EXPENSE_CATEGORY_KEYS: { value: string; key: "expenses.categoryTravel" | "expenses.categoryMeals" | "expenses.categoryOffice" | "expenses.categoryTransport" | "expenses.categoryTelecom" | "expenses.categorySoftware" | "expenses.categoryOther" }[] = [
   { value: "travel", key: "expenses.categoryTravel" },
@@ -31,6 +32,7 @@ const STATUS_KEYS: Record<ExpenseStatus, { key: "expenses.statusDraft" | "expens
 
 export default function ExpensesPage() {
   const { t } = useI18n();
+  const { confirm, prompt, notify } = useDialog();
   const { company, userRole, userName } = useCompany();
   const [reports, setReports] = useState<ExpenseReport[]>([]);
   const [items, setItems] = useState<ExpenseItem[]>([]);
@@ -139,7 +141,7 @@ export default function ExpensesPage() {
       if (fileRef.current) fileRef.current.value = "";
       await loadData();
     } catch (err) {
-      alert(t("expenses.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)));
+      notify(t("expenses.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)), "error");
     } finally { setSaving(false); }
   }
 
@@ -181,7 +183,7 @@ export default function ExpensesPage() {
       analyzeExpenseItem(newItem.id);
       await loadData();
     } catch (err) {
-      alert(t("expenses.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)));
+      notify(t("expenses.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)), "error");
     } finally {
       setUploading(false);
     }
@@ -221,7 +223,7 @@ export default function ExpensesPage() {
       }
       await loadData();
     } catch (err) {
-      alert(t("expenses.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)));
+      notify(t("expenses.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)), "error");
     } finally {
       setUploading(false);
       if (fileUploadRef.current) fileUploadRef.current.value = "";
@@ -302,7 +304,7 @@ export default function ExpensesPage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("PDF generation failed:", err);
-      alert(t("expenses.pdfFailed") + " " + (err instanceof Error ? err.message : String(err)));
+      notify(t("expenses.pdfFailed") + " " + (err instanceof Error ? err.message : String(err)), "error");
     } finally {
       setPdfLoading(false);
     }
@@ -334,7 +336,7 @@ export default function ExpensesPage() {
   }
 
   async function handleDeleteReceiptFile(itemId: string) {
-    if (!confirm(t("expenses.deleteReceipt"))) return;
+    if (!(await confirm(t("expenses.deleteReceipt")))) return;
     const item = items.find((i) => i.id === itemId);
     if (item?.receipt_file_path) {
       const supabase = createClient();
@@ -345,7 +347,7 @@ export default function ExpensesPage() {
   }
 
   async function handleSubmitReport(id: string) {
-    if (confirm(t("expenses.submitConfirm"))) {
+    if (await confirm(t("expenses.submitConfirm"))) {
       await updateExpenseReport(id, { status: "submitted", submitted_at: new Date().toISOString() });
       await loadData();
     }
@@ -357,7 +359,7 @@ export default function ExpensesPage() {
   }
 
   async function handleReject(id: string) {
-    const reason = prompt(t("expenses.rejectReason"));
+    const reason = await prompt({ title: t("expenses.rejectReason"), allowEmpty: true });
     if (reason !== null) {
       await updateExpenseReport(id, { status: "rejected", notes: reason });
       await loadData();
@@ -365,7 +367,7 @@ export default function ExpensesPage() {
   }
 
   async function handleDeleteItem(id: string) {
-    if (confirm(t("expenses.deletePosition"))) {
+    if (await confirm(t("expenses.deletePosition"))) {
       await deleteExpenseItem(id);
       await loadData();
     }
@@ -569,7 +571,7 @@ export default function ExpensesPage() {
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                             </span>
                           ) : item.analysis_status === "error" ? (
-                            <span className="inline-flex items-center gap-1 text-rose-400 cursor-pointer" title={typeof item.analysis_raw?.error === "string" ? item.analysis_raw.error : t("expenses.analysisError")} onClick={() => alert(typeof item.analysis_raw?.error === "string" ? item.analysis_raw.error : t("expenses.analysisFailed"))}>
+                            <span className="inline-flex items-center gap-1 text-rose-400 cursor-pointer" title={typeof item.analysis_raw?.error === "string" ? item.analysis_raw.error : t("expenses.analysisError")} onClick={() => notify(typeof item.analysis_raw?.error === "string" ? item.analysis_raw.error : t("expenses.analysisFailed"), "error")}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                             </span>
                           ) : (

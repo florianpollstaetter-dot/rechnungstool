@@ -5,6 +5,7 @@ import { BankStatement, BankTransaction, Invoice } from "@/lib/types";
 import { getBankStatements, getTransactions, createBankStatement, createTransaction, updateTransaction, deleteBankStatement, getInvoices } from "@/lib/db";
 import { formatCurrency, formatDateLong } from "@/lib/format";
 import { useI18n } from "@/lib/i18n-context";
+import { useDialog } from "@/components/DialogProvider";
 
 function parseCSV(text: string): Record<string, string>[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
@@ -44,6 +45,7 @@ function parseDate(s: string): string | null {
 
 export default function BankPage() {
   const { t } = useI18n();
+  const { confirm, notify } = useDialog();
   const [statements, setStatements] = useState<BankStatement[]>([]);
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -69,7 +71,7 @@ export default function BankPage() {
     try {
       const text = await file.text();
       const rows = parseCSV(text);
-      if (rows.length === 0) { alert(t("bank.noTransactionsInFile")); return; }
+      if (rows.length === 0) { notify(t("bank.noTransactionsInFile"), "error"); return; }
 
       const stmt = await createBankStatement({
         file_name: file.name,
@@ -123,7 +125,7 @@ export default function BankPage() {
 
       await loadData();
     } catch (err) {
-      alert(t("bank.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)));
+      notify(t("bank.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)), "error");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -141,7 +143,7 @@ export default function BankPage() {
   }
 
   async function handleDeleteStatement(id: string) {
-    if (confirm(t("bank.confirmDelete"))) {
+    if (await confirm(t("bank.confirmDelete"))) {
       await deleteBankStatement(id);
       if (selectedStatement === id) setSelectedStatement(null);
       await loadData();

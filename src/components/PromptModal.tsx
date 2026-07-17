@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 interface Props {
   title: string;
   placeholder?: string;
+  defaultValue?: string;
+  allowEmpty?: boolean;
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm: (value: string) => void;
@@ -14,16 +16,19 @@ interface Props {
 export default function PromptModal({
   title,
   placeholder = "",
+  defaultValue = "",
+  allowEmpty = false,
   confirmLabel = "OK",
   cancelLabel = "Abbrechen",
   onConfirm,
   onCancel,
 }: Props) {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(defaultValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
+    inputRef.current?.select();
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onCancel();
     }
@@ -33,7 +38,7 @@ export default function PromptModal({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (value.trim()) onConfirm(value.trim());
+    if (allowEmpty || value.trim()) onConfirm(value.trim());
   }
 
   return (
@@ -65,7 +70,7 @@ export default function PromptModal({
             </button>
             <button
               type="submit"
-              disabled={!value.trim()}
+              disabled={!allowEmpty && !value.trim()}
               className="px-4 py-2 text-sm rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium disabled:opacity-40"
             >
               {confirmLabel}

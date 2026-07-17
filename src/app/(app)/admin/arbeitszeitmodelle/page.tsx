@@ -21,6 +21,7 @@ import {
 import type { UserProfile, WorkTimeModel } from "@/lib/types";
 import { WEEKDAY_LABELS_LONG } from "@/lib/types";
 import ConfirmModal from "@/components/ConfirmModal";
+import { useDialog } from "@/components/DialogProvider";
 
 type DayDraft = {
   weekday: number;
@@ -87,6 +88,7 @@ const INPUT_CLASS =
   "w-full bg-[var(--background)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]";
 
 export default function ArbeitszeitmodelleAdminPage() {
+  const { notify } = useDialog();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [models, setModels] = useState<WorkTimeModel[]>([]);
@@ -197,7 +199,7 @@ export default function ArbeitszeitmodelleAdminPage() {
         const msg =
           (data as { error?: string }).error ||
           `Anlegen fehlgeschlagen (${res.status})`;
-        alert(`Fehler beim Anlegen: ${msg}`);
+        notify(`Fehler beim Anlegen: ${msg}`, "error");
         throw new Error(msg);
       }
 
@@ -225,7 +227,7 @@ export default function ArbeitszeitmodelleAdminPage() {
       days = await getWorkTimeModelDays(model.id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      alert(`Tagespläne konnten nicht geladen werden: ${msg}`);
+      notify(`Tagespläne konnten nicht geladen werden: ${msg}`, "error");
       setError(msg);
       setEditing(null);
       return;
@@ -288,7 +290,7 @@ export default function ArbeitszeitmodelleAdminPage() {
       if (!settingsRes.ok) {
         const data = await settingsRes.json().catch(() => ({}));
         const msg = (data as { error?: string }).error || `Speichern fehlgeschlagen (${settingsRes.status})`;
-        alert(`Fehler beim Speichern: ${msg}`);
+        notify(`Fehler beim Speichern: ${msg}`, "error");
         throw new Error(msg);
       }
 
@@ -300,7 +302,7 @@ export default function ArbeitszeitmodelleAdminPage() {
       if (!daysRes.ok) {
         const data = await daysRes.json().catch(() => ({}));
         const msg = (data as { error?: string }).error || `Tagespläne speichern fehlgeschlagen (${daysRes.status})`;
-        alert(`Fehler beim Speichern der Tagespläne: ${msg}`);
+        notify(`Fehler beim Speichern der Tagespläne: ${msg}`, "error");
         throw new Error(msg);
       }
 

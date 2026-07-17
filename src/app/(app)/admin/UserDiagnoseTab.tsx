@@ -5,6 +5,7 @@
 // Strings are German-only for the initial drop; translations follow once the
 // flow stabilises.
 import { useState } from "react";
+import { useDialog } from "@/components/DialogProvider";
 
 type AuthUserSlim = {
   id: string;
@@ -65,6 +66,7 @@ function formatDate(iso: string | null | undefined): string {
 }
 
 export default function UserDiagnoseTab() {
+  const { confirm } = useDialog();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DiagnoseResult | null>(null);
@@ -112,10 +114,13 @@ export default function UserDiagnoseTab() {
       return;
     }
     if (
-      !window.confirm(
-        `Wirklich alle DB-Einträge für ${result.email} unwiderruflich löschen?\n` +
+      !(await confirm({
+        message:
+          `Wirklich alle DB-Einträge für ${result.email} unwiderruflich löschen?\n` +
           "Diese Aktion ist nicht rückgängig zu machen.",
-      )
+        confirmLabel: "Löschen",
+        tone: "danger",
+      }))
     ) {
       return;
     }

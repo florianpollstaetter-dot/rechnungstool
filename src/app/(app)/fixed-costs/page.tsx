@@ -5,6 +5,7 @@ import { FixedCost, FixedCostInterval, FIXED_COST_INTERVAL_OPTIONS, FIXED_COST_C
 import { getFixedCosts, createFixedCost, updateFixedCost, deleteFixedCost } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { useI18n } from "@/lib/i18n-context";
+import { useDialog } from "@/components/DialogProvider";
 
 function getMonthlyAmount(cost: FixedCost): number {
   if (cost.interval === "monthly") return cost.amount;
@@ -14,6 +15,7 @@ function getMonthlyAmount(cost: FixedCost): number {
 
 export default function FixedCostsPage() {
   const { t } = useI18n();
+  const { confirm } = useDialog();
   const [costs, setCosts] = useState<FixedCost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -93,7 +95,7 @@ export default function FixedCostsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm(t("fixedCosts.confirmDelete"))) {
+    if (await confirm(t("fixedCosts.confirmDelete"))) {
       await deleteFixedCost(id);
       await loadData();
     }

@@ -7,6 +7,7 @@ import NewProjectModal from "@/components/projects/NewProjectModal";
 import { createGeneralCategory } from "@/lib/db";
 import { useCompany } from "@/lib/company-context";
 import { useI18n } from "@/lib/i18n-context";
+import { useDialog } from "@/components/DialogProvider";
 
 type PickerTab = "allgemein" | "projekte" | "other";
 
@@ -85,6 +86,7 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
   const { userRole } = useCompany();
   const isAdmin = userRole === "admin";
   const { t } = useI18n();
+  const { confirm } = useDialog();
   // SCH-921 K2-J1 — split admin-managed labels into the two picker tabs.
   // Empty/undefined input falls back to the hardcoded defaults so the modal
   // is never empty for tenants seeded before this migration.
@@ -221,7 +223,7 @@ export function TimeCalendarCreateModal({ initialStart, initialEnd, quotes, proj
 
   async function handleDelete() {
     if (!editData || !onDelete) return;
-    if (!window.confirm("Eintrag wirklich löschen?")) return;
+    if (!(await confirm({ message: "Eintrag wirklich löschen?", confirmLabel: "Löschen", tone: "danger" }))) return;
     setDeleting(true);
     try {
       await onDelete(editData.id);

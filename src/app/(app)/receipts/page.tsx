@@ -9,6 +9,7 @@ import ReceiptCaptureModal from "@/components/ReceiptCaptureModal";
 import DocumentScannerModal from "@/components/DocumentScannerModal";
 import { useI18n } from "@/lib/i18n-context";
 import { useCompany } from "@/lib/company-context";
+import { useDialog } from "@/components/DialogProvider";
 
 const READ_ONLY_TITLE = "Rechnung überfällig — Funktionen eingeschränkt. Bitte ausstehende Rechnung begleichen.";
 
@@ -36,6 +37,7 @@ const ACCOUNT_OPTIONS = [
 
 export default function ReceiptsPage() {
   const { t } = useI18n();
+  const { confirm, notify } = useDialog();
   const { company, isReadOnly } = useCompany();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +88,7 @@ export default function ReceiptsPage() {
       analyzeReceipt(receipt.id);
       await loadData();
     } catch (err) {
-      alert(t("receipts.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)));
+      notify(t("receipts.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)), "error");
     } finally {
       setUploading(false);
     }
@@ -166,7 +168,7 @@ export default function ReceiptsPage() {
       }
       await loadData();
     } catch (err) {
-      alert(t("receipts.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)));
+      notify(t("receipts.uploadFailed") + " " + (err instanceof Error ? err.message : String(err)), "error");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -183,7 +185,7 @@ export default function ReceiptsPage() {
         const isXml = ext === "xml";
         const isPdf = ext === "pdf";
         if (!isXml && !isPdf) {
-          alert(`${file.name}: ${t("receipts.einvoiceUnsupportedType")}`);
+          notify(`${file.name}: ${t("receipts.einvoiceUnsupportedType")}`, "error");
           continue;
         }
 
@@ -204,7 +206,7 @@ export default function ReceiptsPage() {
         });
         const parsed = await res.json();
         if (!res.ok) {
-          alert(`${file.name}: ${parsed.error || t("receipts.einvoiceParseFailed")}`);
+          notify(`${file.name}: ${parsed.error || t("receipts.einvoiceParseFailed")}`, "error");
           continue;
         }
 
@@ -242,7 +244,7 @@ export default function ReceiptsPage() {
       }
       await loadData();
     } catch (err) {
-      alert(t("receipts.einvoiceImportFailed") + " " + (err instanceof Error ? err.message : String(err)));
+      notify(t("receipts.einvoiceImportFailed") + " " + (err instanceof Error ? err.message : String(err)), "error");
     } finally {
       setImportingEInvoice(false);
       if (eInvoiceInputRef.current) eInvoiceInputRef.current.value = "";
@@ -270,7 +272,7 @@ export default function ReceiptsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm(t("receipts.confirmDelete"))) {
+    if (await confirm(t("receipts.confirmDelete"))) {
       await deleteReceipt(id);
       await loadData();
     }
@@ -506,7 +508,7 @@ export default function ReceiptsPage() {
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor} ${r.analysis_status === "error" ? "cursor-pointer" : ""}`}
                       onClick={() => {
                         if (r.analysis_status === "error" && r.analysis_raw) {
-                          alert(`${t("receipts.analysisError")}\n${(r.analysis_raw as Record<string, string>).error || JSON.stringify(r.analysis_raw)}`);
+                          notify(`${t("receipts.analysisError")}\n${(r.analysis_raw as Record<string, string>).error || JSON.stringify(r.analysis_raw)}`, "error");
                         }
                       }}
                       title={r.analysis_status === "error" ? t("receipts.clickForDetails") : ""}

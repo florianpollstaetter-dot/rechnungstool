@@ -9,10 +9,11 @@ import { ChatWidget } from "@/components/ChatWidget";
 import OnboardingTour from "@/components/OnboardingTour";
 import AppSidebar from "@/components/AppSidebar";
 import { GlobalErrorToaster } from "@/components/GlobalErrorToaster";
+import { DialogProvider } from "@/components/DialogProvider";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <DialogProvider>
       <BlockedCompanyGate />
       <PasswordChangeGate />
       <PaymentOverdueBanner />
@@ -34,6 +35,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <ChatWidget />
       <OnboardingTour />
       <GlobalErrorToaster />
-    </>
+    </DialogProvider>
   );
 }

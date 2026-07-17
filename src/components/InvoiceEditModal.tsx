@@ -6,6 +6,7 @@ import { calcItemTotal, calcTotals } from "@/lib/calc";
 import { formatCurrency } from "@/lib/format";
 import { createInvoice, updateQuote, getUserAccompanyingText, getQuoteItems } from "@/lib/db";
 import { useI18n } from "@/lib/i18n-context";
+import { useDialog } from "@/components/DialogProvider";
 
 type EditableItem = Omit<InvoiceItem, "id"> & { id?: string };
 
@@ -54,6 +55,7 @@ export default function InvoiceEditModal({
   onCreated,
 }: InvoiceEditModalProps) {
   const { t } = useI18n();
+  const { notify } = useDialog();
   const [items, setItems] = useState<EditableItem[]>(() => buildItemsFromQuote(quote, partialFactor));
   const [itemsLoading, setItemsLoading] = useState(false);
   const [taxRate, setTaxRate] = useState(quote.tax_rate);
@@ -206,7 +208,7 @@ export default function InvoiceEditModal({
       onCreated(invoice.id);
     } catch (err) {
       console.error("Failed to create invoice:", err);
-      alert(t("invoiceEdit.createFailed"));
+      notify(t("invoiceEdit.createFailed"), "error");
     } finally {
       setSubmitting(false);
     }

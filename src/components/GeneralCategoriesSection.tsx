@@ -13,6 +13,7 @@ import {
   deleteGeneralCategory,
 } from "@/lib/db";
 import { GeneralCategory, GeneralCategoryGroup } from "@/lib/types";
+import { useDialog } from "@/components/DialogProvider";
 
 interface DraftRow {
   id: string;
@@ -29,6 +30,7 @@ function isPersisted(id: string): boolean {
 }
 
 export default function GeneralCategoriesSection() {
+  const { confirm } = useDialog();
   const [rows, setRows] = useState<DraftRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -98,7 +100,7 @@ export default function GeneralCategoriesSection() {
   }
 
   async function removeRow(row: DraftRow) {
-    if (!window.confirm(`Kategorie "${row.label}" wirklich löschen?`)) return;
+    if (!(await confirm({ message: `Kategorie "${row.label}" wirklich löschen?`, confirmLabel: "Löschen", tone: "danger" }))) return;
     setSavingId(row.id);
     setError(null);
     try {

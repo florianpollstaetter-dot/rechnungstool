@@ -10,6 +10,7 @@ import {
   updateTask,
   getTasks,
 } from "@/lib/db";
+import { useDialog } from "@/components/DialogProvider";
 
 interface TaskAssignment {
   /** Index into quote.items */
@@ -35,6 +36,7 @@ export default function QuoteApprovalPopup({
   onClose,
   onComplete,
 }: Props) {
+  const { notify } = useDialog();
   const [step, setStep] = useState<Step>("confirm");
   const [assignments, setAssignments] = useState<TaskAssignment[]>([]);
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
@@ -102,7 +104,7 @@ export default function QuoteApprovalPopup({
       await updateQuote(quote.id, { status: "accepted" });
       onComplete();
     } catch (err) {
-      alert("Fehler beim Freigeben: " + (err instanceof Error ? err.message : err));
+      notify("Fehler beim Freigeben: " + (err instanceof Error ? err.message : err), "error");
     } finally {
       setCreating(false);
     }
@@ -139,9 +141,10 @@ export default function QuoteApprovalPopup({
 
       onComplete();
     } catch (err) {
-      alert(
+      notify(
         "Fehler beim Erstellen: " +
-          (err instanceof Error ? err.message : err)
+          (err instanceof Error ? err.message : err),
+        "error"
       );
     } finally {
       setCreating(false);

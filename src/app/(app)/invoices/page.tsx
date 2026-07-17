@@ -9,6 +9,7 @@ import { formatCurrency, formatDateLong } from "@/lib/format";
 import PDFPreviewModal from "@/components/PDFPreviewModal";
 import { useI18n } from "@/lib/i18n-context";
 import { useCompany } from "@/lib/company-context";
+import { useDialog } from "@/components/DialogProvider";
 
 const READ_ONLY_TITLE = "Rechnung überfällig — Funktionen eingeschränkt. Bitte ausstehende Rechnung begleichen.";
 
@@ -26,6 +27,7 @@ export default function InvoicesPageWrapper() {
 
 function InvoicesPage() {
   const { t } = useI18n();
+  const { confirm, notify } = useDialog();
 
   const statusConfig: { value: InvoiceStatus; label: string; color: string; activeColor: string }[] = [
     { value: "entwurf", label: t("invoiceStatus.entwurf"), color: "text-gray-500 hover:text-[var(--text-secondary)]", activeColor: "bg-gray-500/20 text-[var(--text-secondary)] ring-1 ring-gray-500/40" },
@@ -242,7 +244,7 @@ function InvoicesPage() {
       await loadData();
     } catch (err) {
       console.error("Payment update failed:", err);
-      alert("Zahlung konnte nicht gespeichert werden. Bitte DB-Migration ausfuehren (teilbezahlt Status).");
+      notify("Zahlung konnte nicht gespeichert werden. Bitte DB-Migration ausfuehren (teilbezahlt Status).", "error");
     }
   }
 
@@ -253,7 +255,7 @@ function InvoicesPage() {
   }
 
   async function handleCancel(id: string) {
-    if (!confirm("Rechnung wirklich stornieren? Es wird automatisch eine Stornorechnung erstellt.")) return;
+    if (!(await confirm({ message: "Rechnung wirklich stornieren? Es wird automatisch eine Stornorechnung erstellt.", confirmLabel: "Stornieren" }))) return;
     const inv = invoices.find((i) => i.id === id);
     if (!inv) return;
     await cancelInvoice(id);
@@ -300,7 +302,7 @@ function InvoicesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Rechnung wirklich löschen?")) { await deleteInvoice(id); await loadData(); }
+    if (await confirm("Rechnung wirklich löschen?")) { await deleteInvoice(id); await loadData(); }
   }
 
   useEffect(() => {

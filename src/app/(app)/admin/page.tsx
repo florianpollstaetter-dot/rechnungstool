@@ -21,6 +21,7 @@ import { useCompany } from "@/lib/company-context";
 import { useI18n } from "@/lib/i18n-context";
 import { SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n-context";
 import type { TranslationKey } from "@/lib/translations/de";
+import { useDialog } from "@/components/DialogProvider";
 
 type ScheduleDraftRow = {
   weekday: number;
@@ -108,6 +109,7 @@ const DEFAULT_ROLE_COLORS = [
 export default function AdminPage() {
   const { accessibleCompanies: COMPANIES, memberPermissions } = useCompany();
   const { t } = useI18n();
+  const { confirm, notify } = useDialog();
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -205,12 +207,12 @@ export default function AdminPage() {
       });
       const result = await res.json();
       if (!res.ok) {
-        alert(result.error || "Arbeitszeitmodell konnte nicht gespeichert werden.");
+        notify(result.error || "Arbeitszeitmodell konnte nicht gespeichert werden.", "error");
         return;
       }
       await loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Unbekannter Fehler beim Speichern");
+      notify(err instanceof Error ? err.message : "Unbekannter Fehler beim Speichern", "error");
     }
   }
 
@@ -312,7 +314,7 @@ export default function AdminPage() {
   }
 
   async function handleDelete(authUserId: string) {
-    if (!confirm(t("admin.confirmDeleteUser"))) return;
+    if (!(await confirm(t("admin.confirmDeleteUser")))) return;
     const res = await fetch("/api/admin/users", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -320,7 +322,7 @@ export default function AdminPage() {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      alert(body?.error || "Löschen fehlgeschlagen.");
+      notify(body?.error || "Löschen fehlgeschlagen.", "error");
       return;
     }
     await loadData();
@@ -469,7 +471,7 @@ export default function AdminPage() {
   }
 
   async function handleDeleteRole(id: string) {
-    if (confirm(t("admin.confirmDeleteRole"))) {
+    if (await confirm(t("admin.confirmDeleteRole"))) {
       await deleteCompanyRole(id);
       await loadRoles();
       await loadUserRoles(users);

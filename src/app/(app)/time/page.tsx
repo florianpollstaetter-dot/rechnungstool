@@ -15,6 +15,7 @@ import { TimeSettingsView } from "@/components/time/TimeSettingsView";
 import type { ModalResult } from "@/components/time/TimeCalendarCreateModal";
 import { useI18n } from "@/lib/i18n-context";
 import PromptModal from "@/components/PromptModal";
+import { useDialog } from "@/components/DialogProvider";
 
 function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -66,6 +67,7 @@ export default function TimePage() {
 
 function TimePageInner() {
   const { t } = useI18n();
+  const { confirm, notify } = useDialog();
   const { userName, userRole } = useCompany();
   const isAdmin = userRole === "admin";
   const searchParams = useSearchParams();
@@ -231,7 +233,7 @@ function TimePageInner() {
       });
     } catch (err) {
       console.error("[Zeiterfassung] handleStart createTimeEntry failed:", err);
-      alert(`Fehler beim Starten: ${err instanceof Error ? err.message : String(err)}`);
+      notify(`Fehler beim Starten: ${err instanceof Error ? err.message : String(err)}`, "error");
       return;
     }
     await loadData();
@@ -313,7 +315,7 @@ function TimePageInner() {
     await loadData();
   }
 
-  async function handleDelete(id: string) { if (confirm(t("time.confirmDelete"))) { await deleteTimeEntry(id); await loadData(); } }
+  async function handleDelete(id: string) { if (await confirm(t("time.confirmDelete"))) { await deleteTimeEntry(id); await loadData(); } }
 
   async function handleCalendarCreate(r: ModalResult) {
     const uid = await resolveUserId();
@@ -333,7 +335,7 @@ function TimePageInner() {
       });
     } catch (err) {
       console.error("[Zeiterfassung] handleCalendarCreate failed:", err);
-      alert(`Fehler beim Erstellen: ${err instanceof Error ? err.message : String(err)}`);
+      notify(`Fehler beim Erstellen: ${err instanceof Error ? err.message : String(err)}`, "error");
       return;
     }
     await loadData();
@@ -353,7 +355,7 @@ function TimePageInner() {
       });
     } catch (err) {
       console.error("[Zeiterfassung] handleCalendarEdit failed:", err);
-      alert(`Fehler beim Ändern: ${err instanceof Error ? err.message : String(err)}`);
+      notify(`Fehler beim Ändern: ${err instanceof Error ? err.message : String(err)}`, "error");
       return;
     }
     await loadData();
