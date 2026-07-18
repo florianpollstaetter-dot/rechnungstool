@@ -855,6 +855,7 @@ const de = {
   "time.settingsMinutes": "min",
   "time.settingsCreateTitle": "Neuen Mitarbeiter anlegen",
   "time.settingsStartingValues": "Startwerte (Urlaub & Stunden)",
+  "time.settingsSharedModelWarning": "Achtung: Dieses Arbeitszeitmodell ist auch {count} weiteren Mitarbeitern zugewiesen ({names}). Änderungen hier ändern deren Wochenraster mit.",
 
   // ── Export ──
   "export.title": "Steuerberater-Export",

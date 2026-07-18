@@ -25,6 +25,7 @@ import {
 import {
   getUserProfilesForMyCompanies,
   getUserWorkSchedules,
+  getUsersAssignedToWorkTimeModel,
   replaceUserWorkSchedules,
   getLeaveBalances,
   upsertLeaveBalance,
@@ -94,6 +95,9 @@ export function TimeSettingsView({ isAdmin }: { isAdmin: boolean }) {
   const [scheduleDraft, setScheduleDraft] = useState<ScheduleDraftRow[]>(emptyDraft());
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleSaved, setScheduleSaved] = useState(false);
+  // warn_shared: other employees who share the same work-time model as scheduleUser.
+  // Editing the grid here mutates the shared model, so we surface who else is affected.
+  const [scheduleSharedWith, setScheduleSharedWith] = useState<UserProfile[]>([]);
 
   // Balance editor modal state
   const [balanceUser, setBalanceUser] = useState<UserProfile | null>(null);
@@ -154,6 +158,12 @@ export function TimeSettingsView({ isAdmin }: { isAdmin: boolean }) {
   async function openSchedule(u: UserProfile) {
     setScheduleUser(u);
     setScheduleSaved(false);
+    setScheduleSharedWith([]);
+    if (u.work_time_model_id) {
+      getUsersAssignedToWorkTimeModel(u.work_time_model_id)
+        .then((assigned) => setScheduleSharedWith(assigned.filter((a) => a.id !== u.id)))
+        .catch(() => setScheduleSharedWith([]));
+    }
     const existing = await getUserWorkSchedules(u.id);
     const draft = emptyDraft();
     existing.forEach((row) => {
@@ -397,6 +407,19 @@ export function TimeSettingsView({ isAdmin }: { isAdmin: boolean }) {
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-3">
               {t("time.settingsScheduleTitle", { name: scheduleUser.display_name || scheduleUser.email })}
             </h3>
+            {scheduleSharedWith.length > 0 && (
+              <div
+                role="alert"
+                className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300"
+              >
+                {t("time.settingsSharedModelWarning", {
+                  count: scheduleSharedWith.length,
+                  names: scheduleSharedWith
+                    .map((s) => s.display_name || s.email)
+                    .join(", "),
+                })}
+              </div>
+            )}
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-[var(--text-muted)]">

@@ -855,6 +855,7 @@ const en: Record<string, string> = {
   "time.settingsMinutes": "min",
   "time.settingsCreateTitle": "Create new employee",
   "time.settingsStartingValues": "Starting values (vacation & hours)",
+  "time.settingsSharedModelWarning": "Note: this work-time model is also assigned to {count} other employee(s) ({names}). Changes here also change their weekly grid.",
 
   // ── Export ──
   "export.title": "Tax advisor export",
