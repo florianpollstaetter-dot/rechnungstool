@@ -143,9 +143,12 @@ jobs:
       - name: Install Playwright browsers (chromium only)
         run: npx playwright install --with-deps chromium
       - name: Apply pending Supabase migrations
-        # PR branches need their migrations on the shared QA Supabase before
-        # Playwright runs — otherwise tables that the PR adds don't exist yet.
-        # Idempotent: skips versions already in supabase_migrations.schema_migrations.
+        # ORA-2901: only run on push-to-master (not on PRs). A PR must not
+        # mutate the shared QA/prod schema pre-merge; migrations belong on
+        # push + supabase-migrations.yml. Skipping on pull_request also
+        # removes the expired SUPABASE_ACCESS_TOKEN 401 from the merge gate
+        # (ORA-2798/ORA-2391 credential rotation is founder-blocked).
+        if: github.event_name != 'pull_request'
         run: python3 .github/scripts/apply_migrations.py
       - name: Run Playwright suite
         run: npm run test:e2e

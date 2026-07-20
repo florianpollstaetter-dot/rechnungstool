@@ -134,8 +134,12 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Apply pending Supabase migrations
-        # Same path qa-playwright uses — the ORA-2307/2308 migrations must be
-        # on the shared QA Supabase before the spec runs.
+        # ORA-2901: only run on push-to-master (not on PRs). A PR must not
+        # mutate the shared QA/prod schema pre-merge; migrations belong on
+        # push + supabase-migrations.yml. Skipping on pull_request also
+        # removes the expired SUPABASE_ACCESS_TOKEN 401 from the merge gate
+        # (ORA-2798/ORA-2391 credential rotation is founder-blocked).
+        if: github.event_name != 'pull_request'
         run: python3 .github/scripts/apply_migrations.py
 
       - name: Boot Next.js (background)
