@@ -24,7 +24,22 @@
 
     <properties>
         <java.version>17</java.version>
-        <ebics.version>master-SNAPSHOT</ebics.version>
+        <!--
+          Pin to a concrete upstream SHA — ORA-2527.
+          master-SNAPSHOT broke our build on 2026-06-11 when upstream removed
+          the `useCertificates` boolean from EbicsClient.createUser. JitPack
+          resolves short or full commit SHAs, so we pin the full one for
+          reproducibility.
+          Current pin: ebics-java/ebics-java-client @ 901faa3 (2026-05-27)
+              "refactor: replace commons-codec with JDK Base64/HexFormat".
+          Bump policy (Dependabot does NOT track JitPack SHAs):
+            * Manual weekly cadence — when bumping, verify the createUser /
+              sendFile / fetchFile signatures we depend on in
+              RealEbicsClientFacade are unchanged.
+            * Track upstream releases via
+              https://github.com/ebics-java/ebics-java-client/commits/master
+        -->
+        <ebics.version>901faa3566ca3e8e78663fb9413e8d024f82913a</ebics.version>
         <!-- Pin Tomcat 10.1.55 to clear all Trivy-flagged HIGH/CRITICAL CVEs
              (CVE-2026-29145 CRITICAL + 4 HIGH). Spring Boot 3.5.14 ships
              10.1.x but not yet 10.1.55, so override explicitly. -->
