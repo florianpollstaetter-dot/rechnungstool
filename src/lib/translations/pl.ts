@@ -1019,6 +1019,7 @@ const pl: Record<string, string> = {
   // ── Footer ──
   "footer.imprint": "Impressum",
   "footer.terms": "Regulamin",
+  "footer.withdrawal": "Odstąpienie",
   "footer.privacy": "Polityka prywatności",
   "footer.settings": "Ustawienia",
   "footer.contact": "Kontakt",

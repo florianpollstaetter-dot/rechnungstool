@@ -1178,6 +1178,7 @@ const de = {
   // ── Footer ──
   "footer.imprint": "Impressum",
   "footer.terms": "AGB",
+  "footer.withdrawal": "Widerruf",
   "footer.privacy": "Datenschutz",
   "footer.settings": "Einstellungen",
   "footer.contact": "Kontakt",

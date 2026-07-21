@@ -20,5 +20,5 @@ export const LEGAL_OPERATOR = {
   managingDirector: "Andreas Aigner, Florian Pollstätter",
   dsbEmail:
     process.env.NEXT_PUBLIC_LEGAL_DSB_EMAIL ?? "office@vrthefans.com",
-  legalDocsRevision: "April 2026",
+  legalDocsRevision: "2026-07-21",
 } as const;

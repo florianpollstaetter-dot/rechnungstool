@@ -1019,6 +1019,7 @@ const ar: Record<string, string> = {
   // ── Footer ──
   "footer.imprint": "بيانات الناشر",
   "footer.terms": "الشروط والأحكام",
+  "footer.withdrawal": "الإلغاء",
   "footer.privacy": "سياسة الخصوصية",
   "footer.settings": "الإعدادات",
   "footer.contact": "اتصل بنا",
