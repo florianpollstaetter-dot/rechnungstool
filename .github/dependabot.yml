@@ -1,0 +1,67 @@
+# Dependabot configuration
+#
+# ORA-2526 — implements the CVE-Hardening Hybrid A+C policy
+# (docs/security/cve-policy.md, board-approved 2026-06-11 via ORA-2324).
+#
+# Scope rationale (minimal, deliberate):
+#   * Maven (treasury-poc/services/ebics-sidecar-java) — weekly. This is where
+#     the Trivy CRITICAL hard gate fires. Weekly cadence keeps Spring Boot /
+#     tomcat / Bouncy Castle floors close to upstream releases so HIGH/MEDIUM
+#     advisories don't pile up into a CRITICAL.
+#   * Maven (treasury-poc/services/ebics-mock-server) — weekly. Same image
+#     surface as the sidecar; not internet-exposed but covered for parity.
+#   * GitHub Actions — monthly. Lower churn; security-relevant action updates
+#     (codeql, trivy-action, upload-sarif) are picked up by the security
+#     advisories that Dependabot raises out-of-band.
+#
+# Security-only auto-PRs are implicit: Dependabot always opens PRs for
+# upstream-published security advisories regardless of `schedule.interval`.
+
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/treasury-poc/services/ebics-sidecar-java"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Vienna"
+    open-pull-requests-limit: 5
+    labels:
+      - "treasury"
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "deps(treasury-sidecar)"
+      include: "scope"
+
+  - package-ecosystem: "maven"
+    directory: "/treasury-poc/services/ebics-mock-server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Vienna"
+    open-pull-requests-limit: 3
+    labels:
+      - "treasury"
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "deps(treasury-mock)"
+      include: "scope"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Vienna"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci(actions)"
+      include: "scope"

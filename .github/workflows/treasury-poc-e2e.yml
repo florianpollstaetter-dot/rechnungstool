@@ -3,8 +3,13 @@ name: treasury-poc-e2e
 # ORA-2297 — productionizes the ebics-java sidecar against the in-house
 # EBICS-3.0 mock server (introduced in ORA-2302 to replace the dead Libeufin
 # upstream). Brings up `treasury-poc/docker-compose.ebics-mock.yml`, runs the
-# smoke script, uploads response artifacts. Trivy scans the sidecar image
-# with the CVSS<7 baseline.
+# smoke script, uploads response artifacts.
+#
+# CVE-Hardening — Hybrid A+C (ORA-2526, board-approved 2026-06-11 in ORA-2324):
+#   * CRITICAL → hard gate (exit-code 1). Build fails. Escalation: CEO review.
+#   * HIGH/MEDIUM → advisory SARIF upload to GitHub Security tab. No build break.
+#     Track via Dependabot + monthly review per docs/security/cve-policy.md.
+# Full policy: docs/security/cve-policy.md.
 
 on:
   push:
@@ -12,14 +17,19 @@ on:
     paths:
       - "treasury-poc/**"
       - ".github/workflows/treasury-poc-e2e.yml"
+      - ".github/dependabot.yml"
+      - "docs/security/cve-policy.md"
   pull_request:
     paths:
       - "treasury-poc/**"
       - ".github/workflows/treasury-poc-e2e.yml"
+      - ".github/dependabot.yml"
+      - "docs/security/cve-policy.md"
   workflow_dispatch:
 
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   e2e-smoke:
@@ -81,22 +91,54 @@ jobs:
           path: treasury-poc/smoke-artifacts/
           retention-days: 14
 
-      # Trivy scan runs as ADVISORY for the PoC: smoke tests prove the EBICS
-      # protocol integration works, which is the actual ORA-2303 acceptance.
-      # Chasing each new upstream CVE on Spring Boot / tomcat blocks the PoC
-      # on a moving target with no functional impact. A separate hardening
-      # gate (with pinned dependency floors + allowlist process) belongs to
-      # the prod build pipeline, tracked as a follow-up.
-      - name: Trivy vulnerability scan (advisory — PoC only)
-        continue-on-error: true
+      # CVE-Hardening Hybrid A+C — see docs/security/cve-policy.md.
+      #
+      # Tier 1 (HARD GATE): CRITICAL CVEs. exit-code=1. CEO is the only escalation
+      # path for an allowlist exception (treasury-poc/.trivyignore + justification).
+      - name: Trivy — CRITICAL hard gate
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ebics-sidecar-java:ci
-          severity: HIGH,CRITICAL
+          severity: CRITICAL
           exit-code: "1"
           ignore-unfixed: true
           vuln-type: os,library
           format: table
+          trivyignores: treasury-poc/.trivyignore
+
+      # Tier 2 (ADVISORY): HIGH+MEDIUM. Emits SARIF for the GitHub Security tab.
+      # Dependabot (.github/dependabot.yml) drives the remediation cadence; CEO
+      # may ad-hoc floor-pin if a HIGH stays open >7d. Never blocks the build.
+      - name: Trivy — HIGH/MEDIUM advisory (SARIF)
+        if: always()
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ebics-sidecar-java:ci
+          severity: HIGH,MEDIUM
+          exit-code: "0"
+          ignore-unfixed: true
+          vuln-type: os,library
+          format: sarif
+          output: trivy-advisory.sarif
+          trivyignores: treasury-poc/.trivyignore
+
+      - name: Upload Trivy advisory SARIF to GitHub Security tab
+        if: always()
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-advisory.sarif
+          category: trivy-treasury-poc-advisory
+
+      - name: Upload Trivy advisory SARIF as workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-advisory-sarif
+          path: trivy-advisory.sarif
+          retention-days: 30
+          if-no-files-found: ignore
 
       - name: Compose down
         if: always()
