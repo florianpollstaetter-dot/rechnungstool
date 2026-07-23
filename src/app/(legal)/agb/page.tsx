@@ -41,7 +41,13 @@ export default function AgbPage() {
       <p>
         1.4 Der Anbieter ist berechtigt, diese AGB mit einer Ankündigungsfrist
         von vier Wochen zu ändern. Die Änderungen gelten als genehmigt, wenn der
-        Nutzer ihnen nicht binnen dieser Frist in Textform widerspricht.
+        Nutzer ihnen nicht binnen dieser Frist in Textform widerspricht. Für
+        Verbraucher gilt zusätzlich: Der Anbieter wird den Verbraucher in der
+        Änderungsmitteilung ausdrücklich auf sein Widerspruchsrecht, die
+        Widerspruchsfrist, die Folgen des Schweigens und die Möglichkeit der
+        Kündigung hinweisen. Widerspricht der Verbraucher der Änderung
+        fristgerecht, kann der Anbieter das Vertragsverhältnis ordentlich zum
+        Wirksamwerden der Änderung kündigen.
       </p>
 
       <h2>2. Vertragsschluss, Zugang</h2>
@@ -251,7 +257,104 @@ export default function AgbPage() {
         Aufbewahrungspflichten (z.B. § 132 BAO, § 212 UGB).
       </p>
 
-      <h2>11. Salvatorische Klausel</h2>
+      <h2 id="p11">11. Vergütung, Zahlungsbedingungen</h2>
+      <p>
+        11.1 Die Nutzung der Anwendung kann unentgeltlich (Free-Tier,
+        Test-Zugänge) oder gegen Entgelt (bezahlte Tarife) erfolgen. Der jeweils
+        geltende Leistungsumfang und die Preise ergeben sich aus der zum
+        Zeitpunkt der Bestellung im Bestellprozess angezeigten Tarifübersicht.
+      </p>
+      <p>
+        11.2 Sämtliche Preise verstehen sich in Euro und{" "}
+        <strong>inklusive</strong> der jeweils geltenden gesetzlichen
+        Umsatzsteuer, sofern nicht ausdrücklich anders ausgewiesen. Bei Kunden
+        mit gültiger UID-Nummer aus dem übrigen Gemeinschaftsgebiet erfolgt die
+        Rechnungslegung im Reverse-Charge-Verfahren nach Art. 196 MwStSystRL.
+      </p>
+      <p>
+        11.3 Bezahlte Tarife werden im <strong>Voraus</strong> für den gewählten
+        Abrechnungszeitraum (monatlich oder jährlich) fällig. Die Zahlung
+        erfolgt über den Zahlungsdienstleister{" "}
+        <strong>Stripe Payments Europe, Ltd.</strong> (Dublin, Irland) mittels
+        der von Stripe unterstützten Zahlungsmittel (insbesondere Kredit- und
+        Debitkarten, SEPA-Lastschriftmandat). Für die Verarbeitung gelten
+        zusätzlich die Nutzungsbedingungen von Stripe.
+      </p>
+      <p>
+        11.4 Der Vertrag verlängert sich am Ende jedes Abrechnungszeitraums{" "}
+        <strong>automatisch</strong> um einen weiteren gleich langen
+        Abrechnungszeitraum, sofern er nicht zuvor gemäß § 10 gekündigt wurde.
+        Eine Kündigung wird zum Ende des laufenden Abrechnungszeitraums wirksam;
+        das Recht zur außerordentlichen Kündigung sowie das Widerrufsrecht für
+        Verbraucher (§ 12) bleiben unberührt.
+      </p>
+      <p>
+        11.5 <strong>Keine anteilige Rückerstattung nach Kündigung.</strong>{" "}
+        Wird ein bezahlter Vertrag durch den Nutzer während eines bereits
+        bezahlten Abrechnungszeitraums nach § 10 gekündigt, besteht{" "}
+        <strong>kein Anspruch auf anteilige Rückerstattung</strong> für den nicht
+        mehr genutzten Restzeitraum. Die Anwendung bleibt bis zum Ende des
+        bezahlten Abrechnungszeitraums nutzbar. Bereits erfolgte Zahlungen werden
+        nicht rückerstattet. Diese Klausel gilt nicht für Widerrufe von
+        Verbrauchern nach § 12 (dort gilt der anteilige Wertersatz nach
+        § 16 FAGG).
+      </p>
+      <p>
+        11.6 <strong>Zahlungsverzug.</strong> Kommt der Nutzer mit einer fälligen
+        Zahlung in Verzug, ist der Anbieter berechtigt, den Zugang zur Anwendung
+        nach vorheriger Ankündigung in Textform (E-Mail an die zuletzt bekannte
+        Adresse, angemessene Nachfrist mindestens 14 Tage) zu sperren, bis die
+        offenen Forderungen ausgeglichen sind. Bei fortgesetztem Verzug ist der
+        Anbieter zur außerordentlichen Kündigung nach § 10.2 berechtigt.
+        Verzugszinsen und Betreibungskosten werden im gesetzlichen Umfang
+        verrechnet (für Verbraucher: § 1000 ABGB iVm § 6a KSchG; für Unternehmer:
+        § 456 UGB iVm § 458 UGB).
+      </p>
+      <p>
+        11.7 <strong>Preisänderungen</strong> werden dem Nutzer mit einer
+        Ankündigungsfrist von mindestens <strong>acht Wochen</strong> in
+        Textform mitgeteilt und gelten erst für den auf die Ankündigung folgenden
+        neuen Abrechnungszeitraum. Bei einer Preiserhöhung von mehr als 10%
+        gegenüber dem bisherigen Preis steht dem Nutzer ein außerordentliches
+        Kündigungsrecht zum Wirksamwerden der Erhöhung zu. Kündigt der Nutzer
+        nicht innerhalb der Ankündigungsfrist, gilt die Preisänderung als
+        angenommen. Diese Klausel gilt entsprechend für Änderungen des
+        Leistungsumfangs zulasten des Nutzers.
+      </p>
+      <p>
+        11.8 <strong>Aufrechnung und Zurückbehaltung.</strong> Der Nutzer kann
+        gegen Forderungen des Anbieters nur mit unbestrittenen oder rechtskräftig
+        festgestellten Gegenforderungen aufrechnen. Ein Zurückbehaltungsrecht
+        kann der Nutzer nur wegen Gegenansprüchen aus demselben
+        Vertragsverhältnis geltend machen. Diese Beschränkung gilt nicht für
+        Verbraucher i.S.d. KSchG.
+      </p>
+
+      <h2 id="p12">12. Widerrufsrecht für Verbraucher</h2>
+      <p>
+        12.1 Verbraucher i.S.d. § 1 KSchG haben ein 14-tägiges Widerrufsrecht
+        nach dem Fern- und Auswärtsgeschäfte-Gesetz (FAGG). Der vollständige
+        Wortlaut der Widerrufsbelehrung nebst Muster-Widerrufsformular ist unter{" "}
+        <Link href="/widerruf">orange-octo.com/widerruf</Link> abrufbar und
+        bildet einen integralen Bestandteil dieser AGB.
+      </p>
+      <p>
+        12.2 Für Unternehmer i.S.d. § 1 UGB besteht kein Widerrufsrecht. Diesen
+        Nutzern steht ausschließlich das ordentliche Kündigungsrecht nach § 10
+        zu.
+      </p>
+      <p>
+        12.3 Möchte der Verbraucher, dass der Anbieter mit der Erbringung der
+        Dienstleistung (Freischaltung des bezahlten Tarifs) bereits vor Ablauf
+        der 14-tägigen Widerrufsfrist beginnt, so hat der Verbraucher dies im
+        Bestellprozess ausdrücklich zu verlangen. In diesem Fall gilt § 16 FAGG:
+        Bei Widerruf ist ein dem Anteil der bis zum Widerruf bereits erbrachten
+        Dienstleistung entsprechender Wertersatz zu leisten. Verlangt der
+        Verbraucher den vorzeitigen Leistungsbeginn nicht, so wird die
+        Freischaltung erst nach Ablauf der Widerrufsfrist wirksam.
+      </p>
+
+      <h2 id="p13">13. Salvatorische Klausel</h2>
       <p>
         Sollten einzelne Bestimmungen dieser AGB unwirksam oder undurchsetzbar
         sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen
@@ -260,23 +363,23 @@ export default function AgbPage() {
         möglichst nahekommt.
       </p>
 
-      <h2>12. Anwendbares Recht, Gerichtsstand</h2>
+      <h2 id="p14">14. Anwendbares Recht, Gerichtsstand</h2>
       <p>
-        12.1 Es gilt österreichisches Recht unter Ausschluss des UN-Kaufrechts
+        14.1 Es gilt österreichisches Recht unter Ausschluss des UN-Kaufrechts
         und der Verweisungsnormen des Internationalen Privatrechts.
       </p>
       <p>
-        12.2 Ausschließlicher Gerichtsstand für alle Streitigkeiten aus oder im
+        14.2 Ausschließlicher Gerichtsstand für alle Streitigkeiten aus oder im
         Zusammenhang mit diesem Vertrag ist — soweit gesetzlich zulässig — das
         sachlich zuständige Gericht in <strong>1010 Wien, Österreich</strong>.
       </p>
       <p>
-        12.3 Verbraucher im Sinne des KSchG können Klagen auch an ihrem
+        14.3 Verbraucher im Sinne des KSchG können Klagen auch an ihrem
         allgemeinen Gerichtsstand einbringen; zwingende
         verbraucherschutzrechtliche Bestimmungen bleiben unberührt.
       </p>
 
-      <h2>13. Kontakt</h2>
+      <h2 id="p15">15. Kontakt</h2>
       <p>
         {L.companyName}
         <br />

@@ -1178,6 +1178,7 @@ const en: Record<string, string> = {
   // ── Footer ──
   "footer.imprint": "Imprint",
   "footer.terms": "Terms & Conditions",
+  "footer.withdrawal": "Withdrawal",
   "footer.privacy": "Privacy",
   "footer.settings": "Settings",
   "footer.contact": "Contact",

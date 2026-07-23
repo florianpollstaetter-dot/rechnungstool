@@ -1019,6 +1019,7 @@ const tr: Record<string, string> = {
   // ── Footer ──
   "footer.imprint": "Künye",
   "footer.terms": "Kullanım Koşulları",
+  "footer.withdrawal": "Cayma",
   "footer.privacy": "Gizlilik Politikası",
   "footer.settings": "Ayarlar",
   "footer.contact": "İletişim",

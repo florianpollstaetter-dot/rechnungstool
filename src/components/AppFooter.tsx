@@ -46,6 +46,7 @@ export function AppFooter() {
           <nav className="flex flex-wrap items-center justify-center sm:justify-around gap-x-6 gap-y-2 flex-1 text-sm">
             <Link href="/impressum" className={linkClass}>{t("footer.imprint")}</Link>
             <Link href="/agb" className={linkClass}>{t("footer.terms")}</Link>
+            <Link href="/widerruf" className={linkClass}>{t("footer.withdrawal")}</Link>
             <Link href="/datenschutz" className={linkClass}>{t("footer.privacy")}</Link>
             <Link href="/settings" className={linkClass}>{t("footer.settings")}</Link>
           </nav>

@@ -14,6 +14,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
           <div className="ml-auto flex items-center gap-3 text-xs">
             <Link href="/impressum" className="text-[var(--text-secondary)] hover:text-[var(--brand-orange)] transition-colors">Impressum</Link>
             <Link href="/agb" className="text-[var(--text-secondary)] hover:text-[var(--brand-orange)] transition-colors">AGB</Link>
+            <Link href="/widerruf" className="text-[var(--text-secondary)] hover:text-[var(--brand-orange)] transition-colors">Widerruf</Link>
             <Link href="/datenschutz" className="text-[var(--text-secondary)] hover:text-[var(--brand-orange)] transition-colors">Datenschutz</Link>
           </div>
         </div>
