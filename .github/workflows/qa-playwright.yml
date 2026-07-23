@@ -107,9 +107,13 @@ jobs:
           team_param=""
           [ -n "$VERCEL_TEAM_ID" ] && team_param="&teamId=$VERCEL_TEAM_ID"
 
-          # Poll up to 3 minutes for the preview deployment to be ready.
-          # Vercel typically completes in ~90 s for a cached Next.js build.
-          for attempt in $(seq 1 18); do
+          # Poll up to 7 minutes for the preview deployment to be ready.
+          # ORA-2946: a cold Next.js preview build routinely exceeds 3 min, so
+          # the previous 18×10s (3 min) window frequently missed a preview that
+          # existed but was still BUILDING — the job then silently ran the whole
+          # suite against the prod fallback URL and burned the full 25-min
+          # timeout. 42×10s = 7 min covers cold builds with margin.
+          for attempt in $(seq 1 42); do
             response=$(curl -sf \
               -H "Authorization: Bearer $VERCEL_TOKEN" \
               "https://api.vercel.com/v6/deployments?meta-githubCommitSha=$COMMIT_SHA&projectId=$VERCEL_PROJECT_ID&limit=5$team_param" \
@@ -127,16 +131,34 @@ jobs:
             if [ -n "$preview_url" ]; then
               echo "✓ Preview URL resolved: $preview_url"
               echo "BASE_URL=$preview_url" >> "$GITHUB_ENV"
+              echo "PREVIEW_RESOLVED=1" >> "$GITHUB_ENV"
               break
             fi
 
-            echo "Attempt $attempt/18: preview not ready yet, waiting 10 s…"
+            echo "Attempt $attempt/42: preview not ready yet, waiting 10 s…"
             sleep 10
           done
 
           if [ -z "$preview_url" ]; then
-            echo "::warning::Vercel preview URL not found for $COMMIT_SHA after 3 min — falling back to $BASE_URL"
+            echo "::warning::Vercel preview URL not found for $COMMIT_SHA after 7 min."
           fi
+
+      # ORA-2946: On PRs, never fall through to the prod BASE_URL. The QA suite
+      # depends on preview-only fixtures/state; running it against prod makes
+      # every spec time out at 60 s and the job hits the 25-min ceiling with a
+      # useless "cancelled" signal. Fail fast with an actionable message instead
+      # so a re-run (with a warm preview) can go green quickly.
+      - name: Require resolved preview on PRs
+        if: github.event_name == 'pull_request' && env.VERCEL_TOKEN != '' && env.VERCEL_PROJECT_ID != '' && env.PREVIEW_RESOLVED != '1'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          echo "::error::No READY Vercel preview for this PR commit after 7 min." >&2
+          echo "The e2e suite is not run against the prod fallback URL (all specs" >&2
+          echo "would time out and burn the 25-min job budget). Re-run this job" >&2
+          echo "once the Vercel preview deployment has finished building." >&2
+          exit 1
 
       - name: Install dependencies
         run: npm ci
