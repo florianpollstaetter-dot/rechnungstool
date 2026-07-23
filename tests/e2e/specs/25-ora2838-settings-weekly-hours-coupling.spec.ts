@@ -143,7 +143,16 @@ test("settings-tab schedule edit recomputes the model's weekly hours (grid coupl
     page.getByRole("heading", { name: /Arbeitszeitmodell —/ }),
   ).toBeVisible();
 
-  const modalRows = page.locator(".fixed table tbody tr");
+  // ORA-2946 — scope to the schedule modal's overlay (`fixed inset-0 … z-50`)
+  // instead of a bare `.fixed`. Bare `.fixed` also matched the always-present
+  // floating "Hilfe" button (`fixed bottom-5 right-5`) — and, since ORA-2918,
+  // the cookie-consent card (now suppressed in loginAs). Anchoring on the modal
+  // heading keeps the locator resolving to exactly one element.
+  const modal = page
+    .locator("div.fixed.inset-0")
+    .filter({ has: page.getByRole("heading", { name: /Arbeitszeitmodell —/ }) });
+
+  const modalRows = modal.locator("table tbody tr");
   await expect(modalRows).toHaveCount(7);
 
   // Monday (weekday 0) seeds at 480. Bump it to 600 → new week total is
@@ -153,10 +162,10 @@ test("settings-tab schedule edit recomputes the model's weekly hours (grid coupl
   await mondayTarget.fill("600");
 
   // The modal's live Wochenpensum total should reflect the change before save.
-  await expect(page.locator(".fixed")).toContainText("42h");
+  await expect(modal).toContainText("42h");
 
   await page.getByRole("button", { name: /^Speichern$/ }).click();
-  await expect(page.locator(".fixed")).toContainText(/Gespeichert/i, { timeout: 10_000 });
+  await expect(modal).toContainText(/Gespeichert/i, { timeout: 10_000 });
 
   // Round-trip check #1 — the coupling wrote the new grid sum to the model.
   await expect
