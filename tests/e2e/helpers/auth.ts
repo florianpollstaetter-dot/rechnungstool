@@ -16,7 +16,35 @@ export interface Credentials {
   password: string;
 }
 
+// ORA-2946 — Pre-seed cookie-consent so CookieBanner (SCH-819/ORA-2918) never
+// opens during the suite. The banner is a `z-[110] fixed` card; without this it
+// collides with `.fixed` locators (e.g. the settings modal in spec 25) and can
+// intercept clicks. CookieBanner only renders when readCookieConsent() is null,
+// so writing a valid StoredConsent to localStorage keeps it closed. Registered
+// as an init script so it re-applies on every navigation, surviving the
+// localStorage.clear() below.
+const CONSENT_STORAGE_KEY = "octo-cookie-consent-v1";
+async function seedCookieConsent(page: Page): Promise<void> {
+  await page.addInitScript((key: string) => {
+    try {
+      if (!window.localStorage.getItem(key)) {
+        window.localStorage.setItem(
+          key,
+          JSON.stringify({
+            categories: { essential: true, analytics: false, marketing: false },
+            timestamp: new Date().toISOString(),
+            version: 1,
+          }),
+        );
+      }
+    } catch {
+      /* localStorage blocked */
+    }
+  }, CONSENT_STORAGE_KEY);
+}
+
 export async function loginAs(page: Page, creds: Credentials): Promise<void> {
+  await seedCookieConsent(page);
   await page.context().clearCookies();
   // localStorage clear has to happen on a same-origin page; clearing it on
   // about:blank silently no-ops. Hit /login first, then clear, then re-enter.

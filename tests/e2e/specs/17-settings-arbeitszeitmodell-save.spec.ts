@@ -11,11 +11,13 @@
 //      values come back unchanged. This catches any future silent-save
 //      regression in either the settings PATCH or the days PATCH.
 //   2. Negative path — invalid time window (Bis <= Von) surfaces as a
-//      user-visible alert and does NOT silently persist. This guards
-//      against a regression that "swallows" backend validation errors
-//      the same way the original 4 regressions swallowed write failures.
+//      user-visible error (notify() toast + inline error) and does NOT
+//      silently persist. This guards against a regression that "swallows"
+//      backend validation errors the same way the original 4 regressions
+//      swallowed write failures. (ORA-2946: the UI moved from alert() to
+//      notify()/setError; the old page.on("dialog") assertion was stale.)
 
-import { expect, test, type Dialog, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   provisionTenant,
@@ -274,16 +276,6 @@ test("admin save with invalid time window (Bis <= Von) surfaces a user-visible e
   const mondayBefore = beforeDays.find((d) => d.weekday === 0);
   expect(mondayBefore?.end_time).toMatch(/^17:30/);
 
-  // Capture the alert() the UI raises when the days-PATCH returns 400.
-  // ModelForm's handleEditSave calls `alert(...)` on non-OK response — we
-  // accept the dialog so the test thread doesn't deadlock.
-  const dialogs: string[] = [];
-  const onDialog = (dialog: Dialog) => {
-    dialogs.push(dialog.message());
-    dialog.accept().catch(() => undefined);
-  };
-  page.on("dialog", onDialog);
-
   await loginAs(page, tenant.admin);
   await openEditModalFor(page, modelName);
 
@@ -306,11 +298,17 @@ test("admin save with invalid time window (Bis <= Von) surfaces a user-visible e
   const body = await resp.json().catch(() => ({}));
   expect(body.error).toMatch(/Bis muss nach Von liegen/i);
 
-  // Alert must have surfaced — this is what the user actually experiences.
-  // If the regression returns (silently swallowed error), `dialogs` stays
-  // empty here and the test fails loudly.
-  await expect.poll(() => dialogs.length, { timeout: 5_000 }).toBeGreaterThan(0);
-  expect(dialogs.join("\n")).toMatch(/Bis muss nach Von liegen/i);
+  // A user-visible error must surface — this is what the user actually
+  // experiences. handleEditSave now calls notify(...) (a role="alert" toast)
+  // and setError(...) (the inline error inside the page) instead of alert().
+  // If the regression returns (silently swallowed error), neither appears and
+  // the test fails loudly.
+  await expect(
+    page.getByRole("alert").filter({ hasText: /Bis muss nach Von liegen/i }),
+  ).toBeVisible({ timeout: 5_000 });
+  await expect(
+    page.getByText(/Bis muss nach Von liegen/i).first(),
+  ).toBeVisible({ timeout: 5_000 });
 
   // Days table in the DB MUST be unchanged for weekday 0. Replace-days runs
   // as a single transactional unit at the API: invalid input is rejected
@@ -319,6 +317,4 @@ test("admin save with invalid time window (Bis <= Von) surfaces a user-visible e
   const mondayAfter = afterDays.find((d) => d.weekday === 0);
   expect(mondayAfter?.end_time).toMatch(/^17:30/);
   expect(mondayAfter?.daily_target_minutes).toBe(480);
-
-  page.off("dialog", onDialog);
 });
