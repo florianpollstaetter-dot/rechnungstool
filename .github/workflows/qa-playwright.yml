@@ -108,39 +108,61 @@ jobs:
           [ -n "$VERCEL_TEAM_ID" ] && team_param="&teamId=$VERCEL_TEAM_ID"
 
           # Poll up to 7 minutes for the preview deployment to be ready.
-          # ORA-2946: a cold Next.js preview build routinely exceeds 3 min, so
-          # the previous 18×10s (3 min) window frequently missed a preview that
-          # existed but was still BUILDING — the job then silently ran the whole
-          # suite against the prod fallback URL and burned the full 25-min
-          # timeout. 42×10s = 7 min covers cold builds with margin.
+          # ORA-2946: a cold Next.js preview build routinely exceeds 3 min, so a
+          # short window misses a preview that exists but is still BUILDING.
+          # 42×10s = 7 min covers cold builds with margin.
+          #
+          # We fetch the project's recent deployments and match the PR head sha
+          # *client-side* instead of relying on the `meta-githubCommitSha` query
+          # filter. A run on 2026-07-23 polled the full 7 min with that filter
+          # and never matched — with no way to tell whether the project id was
+          # wrong, the token lacked access, or the build was merely slow. Each
+          # attempt now logs exactly what Vercel returned (count + per-deploy
+          # sha:state) so any future miss is diagnosable from the log alone.
+          preview_url=""
           for attempt in $(seq 1 42); do
-            response=$(curl -sf \
+            response=$(curl -sS \
               -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v6/deployments?meta-githubCommitSha=$COMMIT_SHA&projectId=$VERCEL_PROJECT_ID&limit=5$team_param" \
+              "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=20$team_param" \
               2>/dev/null || true)
 
-            preview_url=$(echo "$response" | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          deployments = data.get('deployments', [])
-          ready = [d for d in deployments if d.get('state') == 'READY']
-          if ready:
-              print('https://' + ready[0]['url'])
-          " 2>/dev/null || true)
+            out=$(printf '%s' "$response" | COMMIT_SHA="$COMMIT_SHA" python3 -c '
+          import sys, os, json
+          sha = os.environ.get("COMMIT_SHA", "")
+          raw = sys.stdin.read()
+          try:
+              data = json.loads(raw)
+          except Exception:
+              print("DIAG: Vercel response was not valid JSON (auth/network error?)"); sys.exit(0)
+          if isinstance(data, dict) and data.get("error"):
+              e = data["error"]
+              print("DIAG: Vercel API error %s: %s" % (e.get("code"), str(e.get("message"))[:140])); sys.exit(0)
+          deps = data.get("deployments", []) if isinstance(data, dict) else []
+          def dsha(d):
+              m = d.get("meta") or {}
+              return m.get("githubCommitSha") or (d.get("gitSource") or {}).get("sha") or ""
+          states = ", ".join("%s:%s" % ((dsha(d) or "?")[:7], d.get("state")) for d in deps[:8]) or "none"
+          print("DIAG: %d recent deployment(s); [%s]" % (len(deps), states))
+          for d in deps:
+              if dsha(d) == sha and d.get("state") == "READY" and d.get("url"):
+                  print("URL: https://" + d["url"]); break
+          ' 2>/dev/null || true)
+
+            echo "$out" | grep "^DIAG:" | sed "s#^DIAG:#  Attempt $attempt/42 —#" || true
+            preview_url=$(echo "$out" | sed -n 's/^URL: //p' | head -1)
 
             if [ -n "$preview_url" ]; then
-              echo "✓ Preview URL resolved: $preview_url"
+              echo "✓ Preview URL resolved for $COMMIT_SHA: $preview_url"
               echo "BASE_URL=$preview_url" >> "$GITHUB_ENV"
               echo "PREVIEW_RESOLVED=1" >> "$GITHUB_ENV"
               break
             fi
 
-            echo "Attempt $attempt/42: preview not ready yet, waiting 10 s…"
             sleep 10
           done
 
           if [ -z "$preview_url" ]; then
-            echo "::warning::Vercel preview URL not found for $COMMIT_SHA after 7 min."
+            echo "::warning::No READY Vercel preview matching $COMMIT_SHA after 7 min (see per-attempt DIAG lines above for what Vercel returned)."
           fi
 
       # ORA-2946: On PRs, never fall through to the prod BASE_URL. The QA suite
