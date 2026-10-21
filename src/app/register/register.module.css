@@ -14,7 +14,7 @@
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font-family: "DM Sans", system-ui, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   position: relative;
   overflow-x: hidden;
@@ -91,7 +91,7 @@
 }
 
 .logoWord {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -164,7 +164,7 @@
 }
 
 .title {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: clamp(30px, 3.6vw, 42px);
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -218,7 +218,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 12px;
   font-weight: 700;
   color: var(--text-muted);
@@ -264,7 +264,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 14.5px;
   padding: 11px 14px;
   transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
@@ -300,7 +300,7 @@
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 12.5px;
   font-weight: 500;
   padding: 6px 10px;
@@ -327,7 +327,7 @@
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 12.5px;
   font-weight: 500;
   padding: 4px 0;
@@ -404,7 +404,7 @@
   color: #fff;
   border: none;
   border-radius: 10px;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 14.5px;
   font-weight: 600;
   padding: 12px 20px;
@@ -429,7 +429,7 @@
   color: var(--text-sec);
   border: 1px solid var(--border);
   border-radius: 10px;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 14.5px;
   font-weight: 500;
   padding: 12px 20px;
@@ -499,7 +499,7 @@
 }
 
 .asideTitle {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;

@@ -19,7 +19,7 @@
 
   background: var(--bg);
   color: var(--text);
-  font-family: "DM Sans", system-ui, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -35,7 +35,7 @@
   /* SCH-819 Phase 3 — Florian: Hervorhebungen auf Font "Bounded Black" umstellen.
      Falls back to Syne (the previous landing headline font) and finally a
      generic sans-serif if the Google font fails to load. */
-  font-family: var(--font-bounded), "Syne", sans-serif;
+  font-family: var(--font-bounded), var(--font-syne), sans-serif;
   font-weight: 900;
   letter-spacing: -0.02em;
 }
@@ -93,7 +93,7 @@
 }
 
 .navLogoWord {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -305,7 +305,7 @@
   color: #fff;
   padding: 13px 26px;
   border-radius: var(--radius-sm);
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 15px;
   font-weight: 500;
   text-decoration: none;
@@ -328,7 +328,7 @@
   color: var(--text);
   padding: 13px 26px;
   border-radius: var(--radius-sm);
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 15px;
   font-weight: 400;
   text-decoration: none;
@@ -423,7 +423,7 @@
 }
 
 .dashTitle {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--text);
@@ -458,7 +458,7 @@
   margin-bottom: 4px;
 }
 .kpiValue {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 18px;
   font-weight: 700;
   color: var(--text);
@@ -553,7 +553,7 @@
   color: var(--text-muted);
 }
 .rowAmount {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 12px;
   font-weight: 600;
   color: var(--text);
@@ -746,7 +746,7 @@
   letter-spacing: -0.01em;
   margin: 0 0 9px;
   color: var(--text);
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
 }
 
 .featureCard p {
@@ -769,7 +769,7 @@
 }
 
 .headlineNumber {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 56px;
   font-weight: 800;
   color: var(--orange);
@@ -838,7 +838,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: #fff;
@@ -959,7 +959,7 @@
   color: #fff;
   padding: 15px 40px;
   border-radius: var(--radius-sm);
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 16px;
   font-weight: 600;
   text-decoration: none;
@@ -1058,7 +1058,7 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 13.5px;
   padding: 8px 12px;
   width: 150px;
@@ -1080,7 +1080,7 @@
   color: var(--text);
   padding: 8px 16px;
   border-radius: 8px;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 13.5px;
   font-weight: 500;
   border: 1px solid var(--border);
@@ -1176,7 +1176,7 @@
 }
 
 .featureRowText h3 {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: clamp(24px, 2.2vw, 32px);
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -1379,7 +1379,7 @@
 }
 
 .mockLineItem > span:last-child {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-weight: 600;
   color: var(--text);
 }
@@ -1401,7 +1401,7 @@
 }
 
 .mockTotalsGrand {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 14px !important;
   font-weight: 700;
   color: var(--text) !important;
@@ -1459,7 +1459,7 @@
 }
 
 .mockERValidatorTitle {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1526,7 +1526,7 @@
   justify-content: space-between;
   padding: 12px;
   border-top: 1px solid var(--border);
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 16px;
   font-weight: 700;
   margin-top: 4px;
@@ -1569,7 +1569,7 @@
 }
 
 .mockTimeDayHours {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 10.5px;
   font-weight: 600;
   color: var(--text);
@@ -1635,7 +1635,7 @@
   align-items: center;
   background: var(--orange);
   color: #fff;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 13.5px;
   font-weight: 600;
   padding: 11px 14px;
@@ -1703,7 +1703,7 @@
 }
 
 .tierName {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 22px;
   font-weight: 700;
   color: var(--text);
@@ -1724,7 +1724,7 @@
 }
 
 .tierCurrency {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 24px;
   font-weight: 600;
   color: var(--text);
@@ -1733,7 +1733,7 @@
 }
 
 .tierPrice {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 64px;
   font-weight: 800;
   color: var(--text);
@@ -1791,7 +1791,7 @@
   justify-content: center;
   padding: 12px 20px;
   border-radius: var(--radius-sm);
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 14.5px;
   font-weight: 600;
   text-decoration: none;
@@ -1850,7 +1850,7 @@
   padding: 9px 20px;
   border: none;
   background: transparent;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 13.5px;
   font-weight: 600;
   color: var(--text-sec);
@@ -1910,7 +1910,7 @@
 
 /* ─── FOOTER LOGO WORD ─────────────────────── */
 .footerLogoWord {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -2117,7 +2117,7 @@
 }
 
 .modalText h3.modalTitle {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: clamp(26px, 2.6vw, 36px);
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -2187,7 +2187,7 @@
 }
 
 .embeddedLoginHeadline {
-  font-family: "Syne", sans-serif;
+  font-family: var(--font-syne), sans-serif;
   font-size: clamp(26px, 2.6vw, 34px);
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -2241,7 +2241,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 14.5px;
   padding: 11px 14px;
   transition: border-color 160ms ease, background-color 160ms ease;
@@ -2267,7 +2267,7 @@
   color: #fff;
   border: 1px solid var(--orange);
   border-radius: 10px;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 14.5px;
   font-weight: 600;
   cursor: pointer;
@@ -2377,7 +2377,7 @@
   background: transparent;
   border: none;
   text-align: left;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 16px;
   font-weight: 600;
   color: var(--text);
