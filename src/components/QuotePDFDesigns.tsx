@@ -10,7 +10,7 @@ import {
   Font,
 } from "@react-pdf/renderer";
 import { Quote, Customer, CompanySettings, Reference, UNIT_OPTIONS, Language, QuoteDesignKey, QuoteDesignAIPayload } from "@/lib/types";
-import { t } from "@/lib/i18n";
+import { t, kleinunternehmerNote } from "@/lib/i18n";
 
 Font.register({
   family: "Inter",
@@ -126,7 +126,7 @@ function PricingTable({ quote, settings, lang, colors }: { quote: Quote; setting
 
       {isKleinunternehmer && (
         <View style={{ marginTop: 12, padding: 10, backgroundColor: colors.bg, borderLeftWidth: 3, borderLeftColor: colors.accent }}>
-          <Text style={{ fontSize: 8.5, color: colors.black }}>{t("kleinunternehmerExemptionNote", lang)}</Text>
+          <Text style={{ fontSize: 8.5, color: colors.black }}>{kleinunternehmerNote(settings.country, lang)}</Text>
         </View>
       )}
 

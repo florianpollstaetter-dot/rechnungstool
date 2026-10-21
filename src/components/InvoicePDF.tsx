@@ -10,7 +10,7 @@ import {
   Font,
 } from "@react-pdf/renderer";
 import { Invoice, Customer, CompanySettings, UNIT_OPTIONS, Language } from "@/lib/types";
-import { t, getFactOfTheDay } from "@/lib/i18n";
+import { t, getFactOfTheDay, kleinunternehmerNote } from "@/lib/i18n";
 import { resolveTranslation } from "@/lib/i18n-content";
 
 Font.register({
@@ -75,6 +75,7 @@ const s = StyleSheet.create({
   totalValue: { fontSize: 11, fontWeight: 700, color: c.white },
   accompanyingBox: { marginTop: 18, borderLeftWidth: 3, borderLeftColor: c.accent, paddingLeft: 10, backgroundColor: "#FEFDF5", padding: 12, fontSize: 9, color: c.grayDark, lineHeight: 1.6, fontStyle: "italic" },
   paymentBox: { marginTop: 12, borderLeftWidth: 3, borderLeftColor: c.accent, paddingLeft: 10, backgroundColor: c.grayLight, padding: 12, fontSize: 8.5, color: c.grayDark, lineHeight: 1.6 },
+  kleinunternehmerBox: { marginTop: 12, borderLeftWidth: 3, borderLeftColor: c.accent, paddingLeft: 10, backgroundColor: c.grayLight, padding: 10, fontSize: 8.5, color: c.black, lineHeight: 1.6 },
   footer: { position: "absolute", bottom: 30, left: 50, right: 50, borderTopWidth: 0.5, borderTopColor: c.accent, paddingTop: 10 },
   footerTop: { flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: c.grayMid },
   footerColHeader: { fontWeight: 600, color: c.black, marginBottom: 3, fontSize: 7.5 },
@@ -108,6 +109,9 @@ interface Props {
 export default function InvoicePDF({ invoice, customer, settings }: Props) {
   const lang = invoice.language || "de";
   const isStorniert = invoice.status === "storniert";
+  // ORA-3311 — Kleinunternehmer invoices must show no VAT and carry the
+  // country-specific exemption note (§ 6 Abs. 1 Z 27 UStG for AT, § 19 UStG for DE).
+  const isKleinunternehmer = settings.is_kleinunternehmer === true;
   const hasDiscounts = invoice.items.some((i) => i.discount_percent > 0 || i.discount_amount > 0) ||
     invoice.overall_discount_percent > 0 || invoice.overall_discount_amount > 0;
 
@@ -243,15 +247,24 @@ export default function InvoicePDF({ invoice, customer, settings }: Props) {
               <Text style={s.summaryValue}>{fmtEuro(invoice.subtotal)}</Text>
             </View>
           )}
-          <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>{t("vat", lang)} {invoice.tax_rate}%</Text>
-            <Text style={s.summaryValue}>{fmtEuro(invoice.tax_amount)}</Text>
-          </View>
+          {!isKleinunternehmer && (
+            <View style={s.summaryRow}>
+              <Text style={s.summaryLabel}>{t("vat", lang)} {invoice.tax_rate}%</Text>
+              <Text style={s.summaryValue}>{fmtEuro(invoice.tax_amount)}</Text>
+            </View>
+          )}
           <View style={s.totalRow}>
             <Text style={s.totalLabel}>{t("gross", lang)}</Text>
-            <Text style={s.totalValue}>{fmtEuro(invoice.total)}</Text>
+            <Text style={s.totalValue}>{fmtEuro(isKleinunternehmer ? invoice.subtotal : invoice.total)}</Text>
           </View>
         </View>
+
+        {/* ORA-3311 — Kleinunternehmer exemption note (country-dependent) */}
+        {isKleinunternehmer && (
+          <View style={s.kleinunternehmerBox}>
+            <Text>{kleinunternehmerNote(settings.country, lang)}</Text>
+          </View>
+        )}
 
         {/* Accompanying Text (Begleittext) */}
         {accompanyingText && (

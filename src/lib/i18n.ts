@@ -59,6 +59,12 @@ const translations = {
     de: "Umsatzsteuerbefreit gemaess § 6 Abs. 1 Z 27 UStG (Kleinunternehmerregelung).",
     en: "VAT-exempt under § 6 Abs. 1 Z 27 UStG (Austrian small-business regulation).",
   },
+  // ORA-3311 — country-dependent Kleinunternehmer note. German small businesses
+  // invoice under § 19 UStG, not the Austrian § 6 Abs. 1 Z 27 UStG.
+  kleinunternehmerExemptionNoteDE: {
+    de: "Gemaess § 19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).",
+    en: "No VAT charged under § 19 UStG (German small-business regulation).",
+  },
   // UI labels
   invoices: { de: "Rechnungen", en: "Invoices" },
   newInvoice: { de: "+ Neue Rechnung", en: "+ New Invoice" },
@@ -78,6 +84,15 @@ type TranslationKey = keyof typeof translations;
 
 export function t(key: TranslationKey, lang: Language): string {
   return translations[key][lang];
+}
+
+// ORA-3311 — select the legally correct Kleinunternehmer exemption note for the
+// seller's country. `country` is the ISO-3166-1 alpha-2 code from CompanySettings
+// (e.g. "AT", "DE"); it defaults to Austria when unknown.
+export function kleinunternehmerNote(country: string | undefined, lang: Language): string {
+  const code = (country || "").trim().toUpperCase();
+  if (code === "DE") return t("kleinunternehmerExemptionNoteDE", lang);
+  return t("kleinunternehmerExemptionNote", lang);
 }
 
 // Fact of the Day - 365 entries in DE and EN, rotating daily
