@@ -252,11 +252,16 @@ export default function DatenschutzPage() {
           <tr>
             <td>
               <strong>Supabase Inc.</strong>, 970 Toa Payoh North #07-04,
-              Singapore 318992 (mit EU-Hosting über AWS/Frankfurt)
+              Singapore 318992 (Datenspeicherung des Projekts in der EU:
+              AWS-Region Frankfurt, <code>eu-central-1</code>)
             </td>
             <td>Datenbank, Authentifizierung, Datei-Speicherung (Belege)</td>
-            <td>USA/EU</td>
-            <td>EU-SCC, EU-Region konfigurierbar; Supabase-DPA</td>
+            <td>Sitz: Singapur/USA · Datenspeicherung: EU — Frankfurt (AWS eu-central-1)</td>
+            <td>
+              Speicherung und Verarbeitung in der EU; etwaiger administrativer
+              Support-Zugriff aus einem Drittland auf Basis der EU-SCC;
+              Supabase-DPA
+            </td>
           </tr>
           <tr>
             <td>
@@ -305,8 +310,12 @@ export default function DatenschutzPage() {
 
       <h2>4. Drittlandübermittlung</h2>
       <p>
-        Bestimmte Auftragsverarbeiter (Anthropic, Vercel, ggf. Supabase) haben
-        Unternehmenssitz in den USA. Die Übermittlung erfolgt auf Grundlage
+        Die Datenbank-, Authentifizierungs- und Datei-Speicherung bei Supabase
+        erfolgt in der <strong>EU (AWS-Region Frankfurt, eu-central-1)</strong>;
+        es findet insoweit keine Speicherung in einem Drittland statt. Die
+        Auftragsverarbeiter Anthropic und Vercel haben Unternehmenssitz in den
+        USA; ebenso kann ein administrativer Support-Zugriff durch Supabase Inc.
+        aus einem Drittland erfolgen. Diese Übermittlungen erfolgen auf Grundlage
         der <strong>Standardvertragsklauseln (SCC)</strong> gemäß
         Durchführungsbeschluss (EU) 2021/914, ergänzt durch technische und
         organisatorische Maßnahmen (insbesondere Transportverschlüsselung TLS
