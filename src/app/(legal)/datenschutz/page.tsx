@@ -256,7 +256,7 @@ export default function DatenschutzPage() {
               AWS-Region Frankfurt, <code>eu-central-1</code>)
             </td>
             <td>Datenbank, Authentifizierung, Datei-Speicherung (Belege)</td>
-            <td>EU — Frankfurt (AWS eu-central-1)</td>
+            <td>Sitz: Singapur/USA · Datenspeicherung: EU — Frankfurt (AWS eu-central-1)</td>
             <td>
               Speicherung und Verarbeitung in der EU; etwaiger administrativer
               Support-Zugriff aus einem Drittland auf Basis der EU-SCC;
