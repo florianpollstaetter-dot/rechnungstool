@@ -3,6 +3,7 @@
  * Produces XML conforming to CIUS XRechnung 3.0.
  */
 import { EInvoiceData } from "./types";
+import { deriveTaxCategory, taxCategoryContext } from "./tax-category";
 
 function esc(s: string): string {
   return s
@@ -57,6 +58,9 @@ export function generateUblXml(data: EInvoiceData): string {
   const totalBasis = round2(orderedRates.reduce((s, r) => s + byRate.get(r)!.basis, 0));
   const totalTax = round2(orderedRates.reduce((s, r) => s + byRate.get(r)!.tax, 0));
   const grand = round2(totalBasis + totalTax);
+
+  // ORA-3313 — UNCL5305 category + exemption reason derived centrally.
+  const taxCtx = taxCategoryContext(data);
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <ubl:Invoice xmlns:ubl="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
@@ -140,13 +144,14 @@ ${customer.uid_number ? `      <cac:PartyTaxScheme>
 `;
   for (const rate of orderedRates) {
     const entry = byRate.get(rate)!;
+    const cat = deriveTaxCategory(rate, taxCtx);
     xml += `    <cac:TaxSubtotal>
       <cbc:TaxableAmount currencyID="${currency}">${fmtAmount(entry.basis)}</cbc:TaxableAmount>
       <cbc:TaxAmount currencyID="${currency}">${fmtAmount(entry.tax)}</cbc:TaxAmount>
       <cac:TaxCategory>
-        <cbc:ID>${rate === 0 ? "Z" : "S"}</cbc:ID>
+        <cbc:ID>${cat.code}</cbc:ID>
         <cbc:Percent>${fmtAmount(rate)}</cbc:Percent>
-        <cac:TaxScheme>
+${cat.exemptionReason ? `        <cbc:TaxExemptionReason>${esc(cat.exemptionReason)}</cbc:TaxExemptionReason>\n` : ""}        <cac:TaxScheme>
           <cbc:ID>VAT</cbc:ID>
         </cac:TaxScheme>
       </cac:TaxCategory>
@@ -173,7 +178,7 @@ ${customer.uid_number ? `      <cac:PartyTaxScheme>
     <cac:Item>
       <cbc:Name>${esc(item.description)}</cbc:Name>
       <cac:ClassifiedTaxCategory>
-        <cbc:ID>${lineRate === 0 ? "Z" : "S"}</cbc:ID>
+        <cbc:ID>${deriveTaxCategory(lineRate, taxCtx).code}</cbc:ID>
         <cbc:Percent>${fmtAmount(lineRate)}</cbc:Percent>
         <cac:TaxScheme>
           <cbc:ID>VAT</cbc:ID>

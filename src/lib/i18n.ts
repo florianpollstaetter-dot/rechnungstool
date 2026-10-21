@@ -65,6 +65,17 @@ const translations = {
     de: "Gemaess § 19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).",
     en: "No VAT charged under § 19 UStG (German small-business regulation).",
   },
+  // ORA-3313 — E-Rechnung VAT exemption reasons (EN 16931 BT-120). Reverse
+  // charge (category AE) for cross-border B2B services inside the EU.
+  reverseChargeNote: {
+    de: "Übergang der Steuerschuld (Reverse Charge) – die Umsatzsteuer schuldet der Leistungsempfänger.",
+    en: "Reverse charge – VAT is to be accounted for by the recipient.",
+  },
+  // ORA-3313 — intra-community supply of goods (category K), VAT-exempt.
+  intraCommunitySupplyNote: {
+    de: "Steuerfreie innergemeinschaftliche Lieferung.",
+    en: "Intra-community supply – exempt from VAT.",
+  },
   // UI labels
   invoices: { de: "Rechnungen", en: "Invoices" },
   newInvoice: { de: "+ Neue Rechnung", en: "+ New Invoice" },

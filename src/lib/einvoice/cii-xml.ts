@@ -3,6 +3,7 @@
  * Produces Cross Industry Invoice XML conforming to EN 16931.
  */
 import { EInvoiceData } from "./types";
+import { deriveTaxCategory, taxCategoryContext } from "./tax-category";
 
 function esc(s: string): string {
   return s
@@ -66,6 +67,9 @@ export function generateCiiXml(data: EInvoiceData): string {
   const totalTax = round2(orderedRates.reduce((s, r) => s + byRate.get(r)!.tax, 0));
   const grand = round2(totalBasis + totalTax);
 
+  // ORA-3313 — UNCL5305 category + exemption reason derived centrally.
+  const taxCtx = taxCategoryContext(data);
+
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
   xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
@@ -111,7 +115,7 @@ export function generateCiiXml(data: EInvoiceData): string {
       <ram:SpecifiedLineTradeSettlement>
         <ram:ApplicableTradeTax>
           <ram:TypeCode>VAT</ram:TypeCode>
-          <ram:CategoryCode>${lineRate === 0 ? "Z" : "S"}</ram:CategoryCode>
+          <ram:CategoryCode>${deriveTaxCategory(lineRate, taxCtx).code}</ram:CategoryCode>
           <ram:RateApplicablePercent>${fmtAmount(lineRate)}</ram:RateApplicablePercent>
         </ram:ApplicableTradeTax>
         <ram:SpecifiedTradeSettlementLineMonetarySummation>
@@ -174,11 +178,14 @@ ${customer.uid_number ? `        <ram:SpecifiedTaxRegistration>
   // Tax subtotals grouped per rate (BG-23).
   for (const rate of orderedRates) {
     const entry = byRate.get(rate)!;
+    const cat = deriveTaxCategory(rate, taxCtx);
+    // CII TradeTax element order (EN 16931 binding): CalculatedAmount, TypeCode,
+    // ExemptionReason (BT-120), BasisAmount, CategoryCode, RateApplicablePercent.
     xml += `      <ram:ApplicableTradeTax>
         <ram:CalculatedAmount>${fmtAmount(entry.tax)}</ram:CalculatedAmount>
         <ram:TypeCode>VAT</ram:TypeCode>
-        <ram:BasisAmount>${fmtAmount(entry.basis)}</ram:BasisAmount>
-        <ram:CategoryCode>${rate === 0 ? "Z" : "S"}</ram:CategoryCode>
+${cat.exemptionReason ? `        <ram:ExemptionReason>${esc(cat.exemptionReason)}</ram:ExemptionReason>\n` : ""}        <ram:BasisAmount>${fmtAmount(entry.basis)}</ram:BasisAmount>
+        <ram:CategoryCode>${cat.code}</ram:CategoryCode>
         <ram:RateApplicablePercent>${fmtAmount(rate)}</ram:RateApplicablePercent>
       </ram:ApplicableTradeTax>
 `;

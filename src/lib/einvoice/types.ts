@@ -12,6 +12,11 @@ export interface EInvoiceData {
   customer: Customer;
   settings: CompanySettings;
   leitwegId?: string;
+  // ORA-3313 — supply kind for cross-border EU B2B at 0 %. "services" (default)
+  // → reverse charge (category AE); "goods" → intra-community supply (category
+  // K). Our data model has no goods/services marker yet, so this stays optional
+  // and defaults to services; wire a per-invoice toggle to emit K.
+  supply?: "goods" | "services";
 }
 
 /** Result of parsing an incoming e-invoice file. */
