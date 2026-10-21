@@ -13,6 +13,7 @@
 //     die UI besitzt das react-grid-layout-Objekt, kein Server-Schema-Check.
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { companyMemberGuard } from "@/lib/server/require-company-member";
 
 const DEFAULT_DASHBOARD_KEY = "main";
 
@@ -46,6 +47,9 @@ export async function GET(request: Request) {
 
   const bad = missingIds(companyId, userId);
   if (bad) return bad;
+
+  const denied = await companyMemberGuard(companyId!);
+  if (denied) return denied;
 
   const sb = serviceClient();
   if (sb instanceof Response) return sb;
@@ -88,6 +92,9 @@ export async function PUT(request: Request) {
     );
   }
 
+  const denied = await companyMemberGuard(companyId!);
+  if (denied) return denied;
+
   const sb = serviceClient();
   if (sb instanceof Response) return sb;
 
@@ -126,6 +133,9 @@ export async function DELETE(request: Request) {
 
   const bad = missingIds(companyId, userId);
   if (bad) return bad;
+
+  const denied = await companyMemberGuard(companyId!);
+  if (denied) return denied;
 
   const sb = serviceClient();
   if (sb instanceof Response) return sb;

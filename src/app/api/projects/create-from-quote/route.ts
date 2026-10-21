@@ -9,6 +9,7 @@
 // wird das bestehende Projekt zurückgegeben (kein doppeltes Tasks-Insert).
 
 import { createClient } from "@supabase/supabase-js";
+import { companyMemberGuard } from "@/lib/server/require-company-member";
 
 type QuoteRow = {
   id: string;
@@ -38,6 +39,10 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
+  // ORA-3310 — only members of this company may create projects in it.
+  const denied = await companyMemberGuard(companyId);
+  if (denied) return denied;
 
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) {

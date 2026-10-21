@@ -12,6 +12,7 @@
 //   Pass 2-3 (nur Firmendaten): +$0.001-0.003 wenn nötig
 
 import { createClient } from "@supabase/supabase-js";
+import { companyMemberGuard } from "@/lib/server/require-company-member";
 import { logAndSanitize } from "@/lib/api-errors";
 import { ANTHROPIC_MODEL } from "@/lib/ai-model";
 import {
@@ -48,6 +49,11 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
+  // ORA-3310 — this route spends AI budget and writes company_settings under
+  // service-role; require a session that belongs to the company first.
+  const denied = await companyMemberGuard(companyId);
+  if (denied) return denied;
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (!anthropicKey) {

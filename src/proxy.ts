@@ -2,21 +2,27 @@
 //
 // Two responsibilities:
 //   1. App-wide auth gate (Supabase SSR) — preserved from the pre-Treasury
-//      proxy. Unauthenticated visitors hitting a non-public path are
-//      redirected to /login; `/api/*` routes are passed through and handle
-//      their own auth.
+//      proxy. Unauthenticated visitors hitting a non-public page are
+//      redirected to /login.
+//
+//      ORA-3310 — `/api/*` now FAILS CLOSED: an unauthenticated request to any
+//      API route returns 401 unless the path is on the explicit public
+//      allowlist (PUBLIC_API_PATHS). Previously every `/api/*` path was waved
+//      through on the assumption each route "handles its own auth" — several
+//      didn't, so the service-role DATEV export (and others) leaked company
+//      data to anonymous callers. The default is now deny; public endpoints
+//      are opted in one by one and each still enforces its own gate (Stripe
+//      signature, CRON_SECRET bearer, or a pre-login signup flow).
 //   2. Treasury feature-flag gate (ORA-2283) — scoped to `/treasury` and
 //      `/api/treasury` paths only. Reads `company_subscriptions.has_treasury`
 //      for the active company. If false, the module must behave as if it
 //      doesn't exist (404 pages, 404 APIs — no upsell, no leak).
-//
-// The Treasury branch overrides the generic `/api/*` bypass so Treasury APIs
-// are also gated. All other API routes continue to handle their own auth.
 
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isPublicApiPath } from "@/lib/auth/api-access-policy";
 
 const TREASURY_PATH_PREFIXES = ["/treasury", "/api/treasury"];
 // ORA-2679 — /blog and /blog/<slug> are public marketing/SEO pages; without
@@ -26,6 +32,8 @@ const PUBLIC_PATHS = ["/impressum", "/agb", "/datenschutz", "/widerruf", "/blog"
 // Without this whitelist /robots.txt and /sitemap.xml return 307 → /login,
 // which blocks Google/Bing crawling.
 const SEO_PATHS = ["/robots.txt", "/sitemap.xml", "/marketing-briefing.html"];
+// ORA-3310 — the API public allowlist (isPublicApiPath) lives in
+// @/lib/auth/api-access-policy so it can be unit-tested without Next.
 const NOT_FOUND_HTML =
   "<!doctype html><html><head><title>404</title></head><body><h1>404 — Not found</h1></body></html>";
 
@@ -35,6 +43,13 @@ function isTreasuryPath(pathname: string): boolean {
 
 function isApiPath(pathname: string): boolean {
   return pathname.startsWith("/api/");
+}
+
+function unauthenticatedApi(): NextResponse {
+  return new NextResponse(JSON.stringify({ error: "Nicht authentifiziert" }), {
+    status: 401,
+    headers: { "content-type": "application/json" },
+  });
 }
 
 function treasuryNotFound(api: boolean): NextResponse {
@@ -54,6 +69,16 @@ export async function proxy(request: NextRequest) {
   const response = NextResponse.next({
     request: { headers: request.headers },
   });
+
+  const path = request.nextUrl.pathname;
+
+  // ORA-3310 — explicitly public endpoints pass straight through (they enforce
+  // their own Stripe-signature / CRON_SECRET / pre-login gate). This runs
+  // before the Treasury branch so the EBICS cron under /api/treasury/ebics/poll
+  // isn't blocked by the Treasury session gate.
+  if (isPublicApiPath(path)) {
+    return response;
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -77,15 +102,10 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
-
   if (isTreasuryPath(path)) {
     if (!user) {
       if (isApiPath(path)) {
-        return new NextResponse(JSON.stringify({ error: "Nicht authentifiziert" }), {
-          status: 401,
-          headers: { "content-type": "application/json" },
-        });
+        return unauthenticatedApi();
       }
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = "/login";
@@ -134,11 +154,20 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  // ORA-3310 — all remaining /api/* routes require a login. Non-public API
+  // paths failed open before; now an anonymous caller gets 401 and the route's
+  // own fine-grained company/role checks run only for authenticated requests.
+  if (isApiPath(path)) {
+    if (!user) {
+      return unauthenticatedApi();
+    }
+    return response;
+  }
+
   const isPublic =
     path === "/" ||
     path.startsWith("/login") ||
     path.startsWith("/register") ||
-    path.startsWith("/api/") ||
     path.startsWith("/.well-known/") ||
     SEO_PATHS.includes(path) ||
     PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
