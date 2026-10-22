@@ -265,14 +265,43 @@ export async function getCustomer(
   return data ? mapCustomer(data) : undefined;
 }
 
+// ORA-3315 — the uid_vies_* columns ship in a migration that applies
+// independently of this code (GitHub Actions → Supabase). If the code is
+// deployed before the migration lands, PostgREST rejects the unknown columns
+// ("Could not find the 'uid_vies_status' column ... in the schema cache").
+// Rather than break customer saving (the SCH-451 incident pattern), detect
+// that specific error and retry without the VIES fields — the check result
+// simply isn't persisted until the column exists.
+function isMissingUidViesColumn(err: { message: string } | null): boolean {
+  return !!err && err.message.toLowerCase().includes("uid_vies");
+}
+
+function withoutUidVies<T extends object>(obj: T): T {
+  const copy = { ...obj } as T & {
+    uid_vies_status?: unknown;
+    uid_vies_checked_at?: unknown;
+  };
+  delete copy.uid_vies_status;
+  delete copy.uid_vies_checked_at;
+  return copy;
+}
+
 export async function createCustomer(
   customer: Omit<Customer, "id" | "created_at">
 ): Promise<Customer> {
-  const result = await supabase()
+  const companyId = getActiveCompanyId();
+  let result = await supabase()
     .from("customers")
-    .insert({ ...customer, company_id: getActiveCompanyId() })
+    .insert({ ...customer, company_id: companyId })
     .select()
     .single();
+  if (result.error && isMissingUidViesColumn(result.error)) {
+    result = await supabase()
+      .from("customers")
+      .insert({ ...withoutUidVies(customer), company_id: companyId })
+      .select()
+      .single();
+  }
   return mapCustomer(requireRow(result, "createCustomer"));
 }
 
@@ -280,12 +309,20 @@ export async function updateCustomer(
   id: string,
   updates: Partial<Customer>
 ): Promise<Customer> {
-  const result = await supabase()
+  let result = await supabase()
     .from("customers")
     .update(updates)
     .eq("id", id)
     .select()
     .single();
+  if (result.error && isMissingUidViesColumn(result.error)) {
+    result = await supabase()
+      .from("customers")
+      .update(withoutUidVies(updates))
+      .eq("id", id)
+      .select()
+      .single();
+  }
   return mapCustomer(requireRow(result, "updateCustomer"));
 }
 

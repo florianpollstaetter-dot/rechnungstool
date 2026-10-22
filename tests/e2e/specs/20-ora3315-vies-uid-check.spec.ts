@@ -78,3 +78,26 @@ test("VIES outage shows amber 'not reachable' warning, never blocks", async ({ p
   await expect(page.getByRole("button", { name: /^Speichern$/ })).toBeEnabled();
   await page.screenshot({ path: "tests/e2e/.artifacts/ora3315-uid-unavailable.png", fullPage: false });
 });
+
+// ORA-3315 — regression guard for the db.ts self-healing fallback: saving a
+// customer after a VIES check must succeed even when the uid_vies_* columns
+// have not been migrated yet (PostgREST would otherwise reject the unknown
+// columns and break customer creation — the SCH-451 incident pattern).
+test("saving after a check succeeds even if uid_vies columns are absent", async ({ page }) => {
+  const uniqueName = `ORA3315 VIES Test ${Date.now()}`;
+  await openNewCustomerWithUid(page, "ATU12345678");
+  await page.getByLabel(/^Name$/i).fill(uniqueName);
+  await mockVies(page, {
+    status: "valid",
+    uid: "ATU12345678",
+    name: "VR the Fans GmbH",
+    checkedAt: new Date().toISOString(),
+  });
+  await page.getByRole("button", { name: /UID prüfen/i }).click();
+  await expect(page.getByText(/UID gültig/i)).toBeVisible();
+
+  await page.getByRole("button", { name: /^Speichern$/ }).click();
+  // No save error, and the new customer shows up in the list.
+  await expect(page.getByText(/Fehler beim Speichern/i)).toHaveCount(0);
+  await expect(page.getByText(uniqueName)).toBeVisible();
+});
