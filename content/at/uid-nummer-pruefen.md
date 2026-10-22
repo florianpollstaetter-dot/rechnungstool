@@ -1,10 +1,9 @@
 ---
-# KIN-6527/KIN-6528 — ENTWURF (publishedAt: "2026-10-23"). Text vom Editor (KIN-6528), Quelle: Kinwords-Repo content/orange-octo-at/01-uid-nummer-pruefen.md.
 title: "UID-Nummer prüfen: Formular, Aufbau und Nachweis"
 h1: "UID-Nummer prüfen"
 slug: "uid-nummer-pruefen"
 metaDescription: "UID-Nummer eines EU-Geschäftspartners prüfen: Formular, Aufbau der ATU-Nummer, Pflichten auf der Rechnung und was bei „ungültig“ gilt. Stand 22.10.2026."
-publishedAt: null
+publishedAt: "2026-10-23"
 updatedAt: "2026-10-22"
 category: "Umsatzsteuer"
 targetKeyword: "uid nummer prüfen"
