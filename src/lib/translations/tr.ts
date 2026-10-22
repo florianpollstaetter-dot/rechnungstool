@@ -739,6 +739,8 @@ const tr: Record<string, string> = {
   "export.exportingPdf": "PDF dışa aktarılıyor...",
   "export.exporting": "Dışa aktarılıyor...",
   "export.datevExport": "DATEV Dışa Aktarımı",
+  "export.bmdExport": "BMD Dışa Aktarımı",
+  "export.rzlExport": "RZL Dışa Aktarımı",
   "export.revenueGross": "Gelirler brüt",
   "export.invoicesCount": "{count} Fatura",
   "export.vatRevenue": "KDV Gelirler",

@@ -866,6 +866,8 @@ const de = {
   "export.exportingPdf": "Exportiere PDF...",
   "export.exporting": "Exportiere...",
   "export.datevExport": "DATEV Export",
+  "export.bmdExport": "BMD Export",
+  "export.rzlExport": "RZL Export",
   "export.revenueGross": "Einnahmen brutto",
   "export.invoicesCount": "{count} Rechnungen",
   "export.vatRevenue": "USt Einnahmen",

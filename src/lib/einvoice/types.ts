@@ -62,3 +62,46 @@ export interface DatevRow {
   buchungstext: string;
   ustSatz: string;
 }
+
+/**
+ * ORA-3314 — BMD NTCS Buchungssatz row (Austrian tax-advisor software).
+ *
+ * BMD imports a semicolon CSV whose first line carries the column headers; the
+ * FIBU maps columns by header name (no fixed order needed). Split booking with a
+ * leading personal account (Konto) and the Gegenkonto (Gkonto); the `buchcode`
+ * says whether the leading account is booked Soll (1) or Haben (2). `steuercode`
+ * drives BMD's automatic tax split — see at-booking-export.ts for the mapping.
+ */
+export interface BmdRow {
+  satzart: string;      // "0" = normale FIBU-Buchung
+  konto: string;        // führendes (Personen-)Konto
+  gkonto: string;       // Gegenkonto
+  buchsymbol: string;   // AR / ER / BK …
+  belegnr: string;
+  buchdatum: string;    // TT.MM.JJJJ
+  belegdatum: string;   // TT.MM.JJJJ
+  buchcode: string;     // 1 = Soll, 2 = Haben (für das führende Konto)
+  steuercode: string;   // BMD-Steuercode, "" = keine Automatik
+  betrag: string;       // Bruttobetrag des führenden Kontos, "1234,56"
+  prozent: string;      // Steuerprozentsatz, "" = steuerfrei
+  steuer: string;       // Steuerbetrag, "" = keiner
+  text: string;         // Buchungstext
+}
+
+/**
+ * ORA-3314 — RZL FIBU Buchungssatz row.
+ *
+ * RZL uses explicit Soll-/Habenkonto columns (no Soll/Haben flag). `ustSchluessel`
+ * is the mandantenspezifische USt-Schlüssel (1 = Vorsteuer, 2 = Umsatzsteuer,
+ * 0 = steuerfrei als Standard).
+ */
+export interface RzlRow {
+  datum: string;         // TT.MM.JJJJ
+  belegnummer: string;
+  sollkonto: string;
+  habenkonto: string;
+  betrag: string;        // positiver Bruttobetrag, "1234,56"
+  ustSchluessel: string; // USt-Schlüssel (mandantenspezifisch)
+  text: string;          // max. 40 Zeichen
+  kostenstelle: string;
+}

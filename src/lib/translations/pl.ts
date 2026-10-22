@@ -739,6 +739,8 @@ const pl: Record<string, string> = {
   "export.exportingPdf": "Eksportowanie PDF...",
   "export.exporting": "Eksportowanie...",
   "export.datevExport": "Eksport DATEV",
+  "export.bmdExport": "Eksport BMD",
+  "export.rzlExport": "Eksport RZL",
   "export.revenueGross": "Przychody brutto",
   "export.invoicesCount": "{count} faktur",
   "export.vatRevenue": "VAT od przychodów",

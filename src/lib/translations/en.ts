@@ -866,6 +866,8 @@ const en: Record<string, string> = {
   "export.exportingPdf": "Exporting PDF...",
   "export.exporting": "Exporting...",
   "export.datevExport": "DATEV Export",
+  "export.bmdExport": "BMD Export",
+  "export.rzlExport": "RZL Export",
   "export.revenueGross": "Revenue gross",
   "export.invoicesCount": "{count} invoices",
   "export.vatRevenue": "VAT revenue",

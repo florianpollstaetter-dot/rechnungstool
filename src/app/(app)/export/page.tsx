@@ -26,6 +26,8 @@ export default function ExportPage() {
   const [exporting, setExporting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingDatev, setExportingDatev] = useState(false);
+  const [exportingBmd, setExportingBmd] = useState(false);
+  const [exportingRzl, setExportingRzl] = useState(false);
 
   const loadData = useCallback(async () => {
     const [inv, cust, rec, s] = await Promise.all([getInvoices(), getCustomers(), getReceipts(), getSettings()]);
@@ -231,6 +233,53 @@ export default function ExportPage() {
     }
   }
 
+  function downloadBlob(bytes: BlobPart, type: string, filename: string) {
+    const blob = new Blob([bytes], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ORA-3314 — BMD NTCS booking export (Austrian tax-advisor software).
+  async function handleExportBmd() {
+    setExportingBmd(true);
+    try {
+      const { invoicesToBmdRows, receiptsToBmdRows, bmdRowsToCsv } = await import("@/lib/einvoice/at-booking-export");
+      const bookingSettings = { country: settings?.country || "AT", is_kleinunternehmer: settings?.is_kleinunternehmer === true };
+      const customerMap = new Map(customers.map((c) => [c.id, c]));
+      const rows = [
+        ...invoicesToBmdRows(monthInvoices, customerMap, bookingSettings),
+        ...receiptsToBmdRows(monthReceipts),
+      ];
+      downloadBlob(bmdRowsToCsv(rows), "text/csv;charset=utf-8", `BMD_Export_${selectedMonth}.csv`);
+    } finally {
+      setExportingBmd(false);
+    }
+  }
+
+  // ORA-3314 — RZL booking export. RZL expects ANSI (Windows-1252), so we encode
+  // the CSV to CP1252 bytes before download.
+  async function handleExportRzl() {
+    setExportingRzl(true);
+    try {
+      const { invoicesToRzlRows, receiptsToRzlRows, rzlRowsToCsv, encodeCp1252 } = await import("@/lib/einvoice/at-booking-export");
+      const bookingSettings = { country: settings?.country || "AT", is_kleinunternehmer: settings?.is_kleinunternehmer === true };
+      const customerMap = new Map(customers.map((c) => [c.id, c]));
+      const rows = [
+        ...invoicesToRzlRows(monthInvoices, customerMap, bookingSettings),
+        ...receiptsToRzlRows(monthReceipts),
+      ];
+      downloadBlob(encodeCp1252(rzlRowsToCsv(rows)), "text/csv;charset=windows-1252", `RZL_Export_${selectedMonth}.csv`);
+    } finally {
+      setExportingRzl(false);
+    }
+  }
+
   const months: string[] = [];
   for (let i = 0; i < 12; i++) {
     const d = new Date();
@@ -256,6 +305,12 @@ export default function ExportPage() {
           </button>
           <button onClick={handleExportDatev} disabled={exportingDatev || isReadOnly} title={isReadOnly ? READ_ONLY_TITLE : undefined} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed">
             {exportingDatev ? t("export.exporting") : t("export.datevExport")}
+          </button>
+          <button onClick={handleExportBmd} disabled={exportingBmd || isReadOnly} title={isReadOnly ? READ_ONLY_TITLE : undefined} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed">
+            {exportingBmd ? t("export.exporting") : t("export.bmdExport")}
+          </button>
+          <button onClick={handleExportRzl} disabled={exportingRzl || isReadOnly} title={isReadOnly ? READ_ONLY_TITLE : undefined} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed">
+            {exportingRzl ? t("export.exporting") : t("export.rzlExport")}
           </button>
         </div>
       </div>
