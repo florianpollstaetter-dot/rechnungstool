@@ -1,5 +1,6 @@
 import { generateCiiXml } from "@/lib/einvoice/cii-xml";
 import { generateUblXml } from "@/lib/einvoice/ubl-xml";
+import { generateEbInterfaceXml } from "@/lib/einvoice/ebinterface-xml";
 import { embedZugferdXml } from "@/lib/einvoice/zugferd-embed";
 import { validateEInvoice } from "@/lib/einvoice/validator";
 import { requireCompanyMembership } from "@/lib/api-auth";
@@ -90,6 +91,11 @@ export async function POST(request: Request) {
     if (format === "xrechnung") {
       const xml = generateUblXml(eInvoiceData);
       return Response.json({ xml, format: "xrechnung", validation });
+    }
+
+    if (format === "ebinterface") {
+      const xml = generateEbInterfaceXml(eInvoiceData);
+      return Response.json({ xml, format: "ebinterface", validation });
     }
 
     // ZUGFeRD: generate CII XML

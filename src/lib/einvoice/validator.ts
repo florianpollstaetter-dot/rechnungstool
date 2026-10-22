@@ -172,6 +172,21 @@ export function validateEInvoice(data: EInvoiceData): ValidationResult {
     }
   }
 
+  // ebInterface to the Austrian Bund (e-rechnung.gv.at) is normally rejected
+  // without an Auftragsreferenz (order reference) — we map it from the same
+  // reference field (customer.leitweg_id) into the recipient's OrderID.
+  if (invoice.e_invoice_format === "ebinterface") {
+    const ref = (customer.leitweg_id || "").trim();
+    if (!ref && buyerCountry === "AT") {
+      warn(
+        "BT-10",
+        "AT-10",
+        "customer.leitweg_id",
+        "ebInterface an österreichische Behörden (e-rechnung.gv.at) erfordert üblicherweise eine Auftragsreferenz.",
+      );
+    }
+  }
+
   const errors = issues.filter((i) => i.severity === "error");
   const warnings = issues.filter((i) => i.severity === "warning");
   return { ok: errors.length === 0, errors, warnings };

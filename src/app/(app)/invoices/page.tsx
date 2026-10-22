@@ -132,21 +132,25 @@ function InvoicesPage() {
     setEInvoiceLoading(inv.id);
     setEInvoiceError(null);
     try {
-      // Auto-select: XRechnung for DE + Leitweg-ID, else ZUGFeRD. Respect an
+      // Auto-select: national B2G format for a public-authority reference
+      // (ebInterface for AT, XRechnung for DE), else ZUGFeRD. Respect an
       // already-set format on the invoice.
       const existing = inv.e_invoice_format;
+      const hasAuthorityRef = (customer.leitweg_id || "").trim().length > 0;
       const chosen: Exclude<EInvoiceFormat, "none"> =
-        existing === "xrechnung" || existing === "zugferd"
+        existing === "xrechnung" || existing === "zugferd" || existing === "ebinterface"
           ? existing
-          : customer.country === "DE" && (customer.leitweg_id || "").trim()
-            ? "xrechnung"
-            : "zugferd";
+          : customer.country === "AT" && hasAuthorityRef
+            ? "ebinterface"
+            : customer.country === "DE" && hasAuthorityRef
+              ? "xrechnung"
+              : "zugferd";
 
       if (!existing || existing === "none") {
         await updateInvoice(inv.id, { e_invoice_format: chosen });
       }
 
-      if (chosen === "xrechnung") {
+      if (chosen === "xrechnung" || chosen === "ebinterface") {
         const res = await fetch("/api/einvoice/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -154,8 +158,9 @@ function InvoicesPage() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(formatValidation(data));
+        const prefix = chosen === "ebinterface" ? "ebInterface" : "XRechnung";
         const blob = new Blob([data.xml], { type: "application/xml" });
-        downloadBlob(blob, `XRechnung_${inv.invoice_number.replace(/\s/g, "_")}.xml`);
+        downloadBlob(blob, `${prefix}_${inv.invoice_number.replace(/\s/g, "_")}.xml`);
       } else {
         const pdfResult = await generatePdfBlob(inv);
         if (!pdfResult) throw new Error("PDF Erstellung fehlgeschlagen");
@@ -426,7 +431,7 @@ function InvoicesPage() {
               return (
                 <tr key={inv.id} className={`hover:bg-[var(--surface-hover)] transition cursor-pointer ${isStorniert ? "opacity-50" : ""}`} onClick={() => router.push(`/invoices/${inv.id}`)}>
                   <td className="px-3 py-3">
-                    <div className="font-medium text-[var(--text-primary)] text-sm flex items-center gap-1.5">{inv.invoice_number}{inv.e_invoice_format && inv.e_invoice_format !== "none" && <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">{inv.e_invoice_format === "zugferd" ? "ZUGFeRD" : "XR"}</span>}</div>
+                    <div className="font-medium text-[var(--text-primary)] text-sm flex items-center gap-1.5">{inv.invoice_number}{inv.e_invoice_format && inv.e_invoice_format !== "none" && <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">{inv.e_invoice_format === "zugferd" ? "ZUGFeRD" : inv.e_invoice_format === "ebinterface" ? "eb" : "XR"}</span>}</div>
                     {inv.project_description && <div className="text-[10px] text-[var(--text-muted)] truncate max-w-[140px]">{inv.project_description}</div>}
                   </td>
                   <td className="px-3 py-3 text-sm text-[var(--text-secondary)] max-w-[120px] truncate">{getCustomerName(inv.customer_id)}</td>
@@ -504,7 +509,7 @@ function InvoicesPage() {
                         disabled={eInvoiceLoading === inv.id || isStorniert}
                         className="text-emerald-500 hover:text-emerald-400 p-1 disabled:opacity-50"
                         title={inv.e_invoice_format && inv.e_invoice_format !== "none"
-                          ? `E-Rechnung (${inv.e_invoice_format === "zugferd" ? "ZUGFeRD" : "XRechnung"}) herunterladen`
+                          ? `E-Rechnung (${inv.e_invoice_format === "zugferd" ? "ZUGFeRD" : inv.e_invoice_format === "ebinterface" ? "ebInterface" : "XRechnung"}) herunterladen`
                           : "E-Rechnung erstellen"}
                       >
                         {eInvoiceLoading === inv.id ? (

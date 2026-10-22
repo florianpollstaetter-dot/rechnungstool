@@ -36,10 +36,17 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
   const createMenuRef = useRef<HTMLDivElement>(null);
 
   const eFormat = invoice?.e_invoice_format;
-  const isEInvoice = eFormat === "zugferd" || eFormat === "xrechnung";
-  // Suggest XRechnung for German customers with a Leitweg-ID (B2G), ZUGFeRD otherwise.
+  const isEInvoice = eFormat === "zugferd" || eFormat === "xrechnung" || eFormat === "ebinterface";
+  // Suggest the national B2G format when a customer reference points at a public
+  // authority: ebInterface for Austria (e-rechnung.gv.at), XRechnung for Germany.
+  // Otherwise ZUGFeRD (hybrid PDF) for ordinary B2B.
+  const hasAuthorityRef = (customer.leitweg_id || "").trim().length > 0;
   const suggestedFormat: Exclude<EInvoiceFormat, "none"> =
-    customer.country === "DE" && (customer.leitweg_id || "").trim() ? "xrechnung" : "zugferd";
+    customer.country === "AT" && hasAuthorityRef
+      ? "ebinterface"
+      : customer.country === "DE" && hasAuthorityRef
+        ? "xrechnung"
+        : "zugferd";
 
   useEffect(() => {
     if (!createMenuOpen) return;
@@ -159,7 +166,8 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
     overrideSettings?: CompanySettings,
   ) {
     if (!invoice) return;
-    if (format === "xrechnung") {
+    // XRechnung (DE) and ebInterface (AT) are both pure-XML downloads.
+    if (format === "xrechnung" || format === "ebinterface") {
       const res = await fetch("/api/einvoice/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -176,8 +184,9 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
         throw new Error(formatValidationMessage(data));
       }
 
+      const prefix = format === "ebinterface" ? "ebInterface" : "XRechnung";
       const blob = new Blob([data.xml], { type: "application/xml" });
-      triggerDownload(blob, `XRechnung_${invoice.invoice_number.replace(/\s/g, "_")}.xml`);
+      triggerDownload(blob, `${prefix}_${invoice.invoice_number.replace(/\s/g, "_")}.xml`);
       await persistFormatIfChanged(format);
     } else {
       const pdfResult = await generateBlob(overrideSettings);
@@ -282,6 +291,8 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
               ? "Wird erstellt..."
               : eFormat === "xrechnung"
               ? "XRechnung XML"
+              : eFormat === "ebinterface"
+              ? "ebInterface XML"
               : "ZUGFeRD PDF"}
           </button>
         )}
@@ -309,13 +320,23 @@ export default function PDFDownloadButton({ invoice, quote, customer, settings, 
                 </button>
                 <button
                   onClick={() => handleCreateEInvoice("xrechnung")}
-                  className={`w-full text-left px-3 py-2 hover:bg-[var(--surface-hover)] transition ${suggestedFormat === "xrechnung" ? "bg-emerald-500/10" : ""}`}
+                  className={`w-full text-left px-3 py-2 hover:bg-[var(--surface-hover)] transition border-b border-[var(--border)] ${suggestedFormat === "xrechnung" ? "bg-emerald-500/10" : ""}`}
                 >
                   <div className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
                     XRechnung (XML)
                     {suggestedFormat === "xrechnung" && <span className="text-[10px] text-emerald-400 font-medium">empfohlen</span>}
                   </div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Reines XML — für öffentliche Auftraggeber (B2G)</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Reines XML — für deutsche Behörden (B2G)</div>
+                </button>
+                <button
+                  onClick={() => handleCreateEInvoice("ebinterface")}
+                  className={`w-full text-left px-3 py-2 hover:bg-[var(--surface-hover)] transition ${suggestedFormat === "ebinterface" ? "bg-emerald-500/10" : ""}`}
+                >
+                  <div className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                    ebInterface 6.1 (XML)
+                    {suggestedFormat === "ebinterface" && <span className="text-[10px] text-emerald-400 font-medium">empfohlen</span>}
+                  </div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Reines XML — für österreichische Behörden (e-rechnung.gv.at)</div>
                 </button>
               </div>
             )}

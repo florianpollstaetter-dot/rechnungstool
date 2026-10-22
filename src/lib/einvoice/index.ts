@@ -1,5 +1,6 @@
 export { generateCiiXml } from "./cii-xml";
 export { generateUblXml } from "./ubl-xml";
+export { generateEbInterfaceXml } from "./ebinterface-xml";
 export { embedZugferdXml } from "./zugferd-embed";
 export { parseEInvoiceXml, extractXmlFromPdf } from "./parser";
 export {

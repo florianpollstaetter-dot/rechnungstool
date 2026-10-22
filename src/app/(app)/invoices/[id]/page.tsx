@@ -95,7 +95,7 @@ export default function InvoiceDetailPage() {
           </span>
           {invoice.e_invoice_format && invoice.e_invoice_format !== "none" && (
             <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400">
-              {invoice.e_invoice_format === "zugferd" ? "ZUGFeRD" : "XRechnung"}
+              {invoice.e_invoice_format === "zugferd" ? "ZUGFeRD" : invoice.e_invoice_format === "ebinterface" ? "ebInterface" : "XRechnung"}
             </span>
           )}
           {isStorniert ? (

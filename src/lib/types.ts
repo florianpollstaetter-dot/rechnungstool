@@ -90,12 +90,13 @@ export interface InvoiceItem {
 
 export type InvoiceStatus = "entwurf" | "offen" | "bezahlt" | "teilbezahlt" | "ueberfaellig" | "storniert";
 
-export type EInvoiceFormat = "none" | "zugferd" | "xrechnung";
+export type EInvoiceFormat = "none" | "zugferd" | "xrechnung" | "ebinterface";
 
 export const E_INVOICE_FORMAT_OPTIONS: { value: EInvoiceFormat; label: string; description: string }[] = [
   { value: "none", label: "Standard PDF", description: "Klassische PDF-Rechnung ohne E-Rechnung" },
   { value: "zugferd", label: "ZUGFeRD", description: "PDF mit eingebettetem XML (Hybrid) — empfohlen für B2B" },
-  { value: "xrechnung", label: "XRechnung", description: "Reines XML-Format — für öffentliche Auftraggeber (B2G)" },
+  { value: "xrechnung", label: "XRechnung", description: "Reines XML-Format — für deutsche öffentliche Auftraggeber (B2G)" },
+  { value: "ebinterface", label: "ebInterface 6.1", description: "Reines XML-Format — für österreichische Behörden (e-rechnung.gv.at)" },
 ];
 
 export interface Invoice {
