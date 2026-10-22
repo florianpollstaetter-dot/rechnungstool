@@ -15,6 +15,13 @@ import AngeboteTabBar from "@/components/AngeboteTabBar";
 import { customerEInvoiceReadiness } from "@/lib/einvoice/customer-ready";
 import ConfirmModal from "@/components/ConfirmModal";
 
+// ORA-3315 — dieselbe Normalisierung wie src/lib/einvoice/vies.ts (Leerzeichen
+// raus, Großschrift), damit ein gespeicherter Prüfstatus exakt an die UID
+// gebunden werden kann.
+function normalizeUid(raw: string): string {
+  return (raw || "").replace(/\s/g, "").toUpperCase();
+}
+
 const emptyCustomer = {
   name: "",
   company: "",
@@ -49,6 +56,17 @@ export default function CustomersPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  // ORA-3315 — VIES-UID-Prüfung. `uidCheck` ist immer an eine bestimmte
+  // (normalisierte) UID gebunden; ändert der Nutzer das UID-Feld, wird es
+  // geleert, damit die Statusanzeige nicht zur falschen Nummer lügt.
+  const [uidCheck, setUidCheck] = useState<{
+    uid: string;
+    status: string;
+    checkedAt: string | null;
+    name?: string;
+    detail?: string;
+  } | null>(null);
+  const [uidChecking, setUidChecking] = useState(false);
 
   const loadCustomers = useCallback(async () => {
     const data = await getCustomers();
@@ -64,10 +82,19 @@ export default function CustomersPage() {
     setSaving(true);
     setSaveError(null);
     try {
+      // ORA-3315 — VIES-Prüfergebnis nur mitspeichern, wenn es zur aktuell
+      // eingegebenen UID gehört (uidCheck wird bei UID-Änderung geleert).
+      const normUid = normalizeUid(form.uid_number);
+      const viesFields = {
+        uid_vies_status: uidCheck && uidCheck.uid === normUid ? uidCheck.status : "",
+        uid_vies_checked_at:
+          uidCheck && uidCheck.uid === normUid ? uidCheck.checkedAt : null,
+      };
+      const payload = { ...form, ...viesFields };
       if (editing) {
-        await updateCustomer(editing, form);
+        await updateCustomer(editing, payload);
       } else {
-        await createCustomer(form);
+        await createCustomer(payload);
       }
       await loadCustomers();
       setForm(emptyCustomer);
@@ -76,6 +103,7 @@ export default function CustomersPage() {
       setShowAllFields(false);
       setAiResult(null);
       setAiFilledKeys(new Set());
+      setUidCheck(null);
     } catch (err) {
       setSaveError(
         err instanceof Error ? err.message : t("customers.saveError")
@@ -103,6 +131,48 @@ export default function CustomersPage() {
     setShowAllFields(true);
     setAiResult(null);
     setAiFilledKeys(new Set());
+    // ORA-3315 — zuvor gespeichertes VIES-Ergebnis an die gespeicherte UID
+    // binden, damit die Statusanzeige beim Öffnen stimmt.
+    if (customer.uid_vies_status && customer.uid_number) {
+      setUidCheck({
+        uid: normalizeUid(customer.uid_number),
+        status: customer.uid_vies_status,
+        checkedAt: customer.uid_vies_checked_at || null,
+      });
+    } else {
+      setUidCheck(null);
+    }
+  }
+
+  // ORA-3315 — UID gegen VIES prüfen. Nicht-blockierend: Dienstausfälle kommen
+  // als status:"unavailable" zurück und werden nur als Warnung angezeigt.
+  async function handleVerifyUid() {
+    const uid = form.uid_number.trim();
+    if (!uid) return;
+    setUidChecking(true);
+    try {
+      const res = await fetch("/api/customers/verify-uid", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setUidCheck({ uid: normalizeUid(uid), status: "unavailable", checkedAt: null });
+        return;
+      }
+      setUidCheck({
+        uid: data.uid || normalizeUid(uid),
+        status: data.status,
+        checkedAt: data.checkedAt || null,
+        name: data.name,
+        detail: data.detail,
+      });
+    } catch {
+      setUidCheck({ uid: normalizeUid(uid), status: "unavailable", checkedAt: null });
+    } finally {
+      setUidChecking(false);
+    }
   }
 
   async function handleDelete(id: string) {
@@ -224,6 +294,7 @@ export default function CustomersPage() {
               setShowForm(true);
               setShowAllFields(false);
               setAiResult(null);
+              setUidCheck(null);
             }}
             className="bg-[var(--accent)] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:brightness-110 transition"
           >
@@ -250,7 +321,7 @@ export default function CustomersPage() {
               const aiFilled = aiFilledKeys.has(f.key);
               return (
                 <div key={f.key}>
-                  <label className="block text-sm font-medium text-gray-400 mb-1 flex items-center gap-1.5">
+                  <label htmlFor={`customer-${f.key}`} className="block text-sm font-medium text-gray-400 mb-1 flex items-center gap-1.5">
                     {f.label}
                     {aiFilled && (
                       <span className="text-[10px] font-semibold text-purple-400 bg-purple-500/15 px-1.5 py-0.5 rounded">
@@ -259,10 +330,20 @@ export default function CustomersPage() {
                     )}
                   </label>
                   <input
+                    id={`customer-${f.key}`}
                     type="text"
                     value={form[f.key]}
                     onChange={(e) => {
                       setForm({ ...form, [f.key]: e.target.value });
+                      // ORA-3315 — UID geändert → alten VIES-Status verwerfen,
+                      // sonst zeigt die Anzeige ein Ergebnis zur alten Nummer.
+                      if (
+                        f.key === "uid_number" &&
+                        uidCheck &&
+                        normalizeUid(e.target.value) !== uidCheck.uid
+                      ) {
+                        setUidCheck(null);
+                      }
                       // User touched an AI-filled field — clear the highlight
                       // so the badge doesn't lie about where the value came from.
                       if (aiFilled) {
@@ -281,6 +362,54 @@ export default function CustomersPage() {
               );
             })}
           </div>
+
+          {/* ORA-3315 — UID gegen EU-VIES prüfen. Nur sichtbar, wenn das
+              UID-Feld eingeblendet ist und etwas enthält. Nicht-blockierend. */}
+          {(showAllFields || !isNewCustomer) && form.uid_number.trim() && (
+            <div className="flex flex-wrap items-center gap-3 mt-4">
+              <button
+                onClick={handleVerifyUid}
+                disabled={uidChecking}
+                className="bg-[var(--surface-hover)] text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[var(--border)] transition border border-[var(--border)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {uidChecking ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    {t("customers.uidChecking")}
+                  </>
+                ) : (
+                  t("customers.uidCheck")
+                )}
+              </button>
+              {uidCheck && (
+                <span
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${
+                    uidCheck.status === "valid"
+                      ? "bg-emerald-500/10 text-emerald-400"
+                      : uidCheck.status === "invalid"
+                      ? "bg-rose-500/10 text-rose-400"
+                      : uidCheck.status === "format_error"
+                      ? "bg-gray-500/10 text-gray-400"
+                      : "bg-amber-500/10 text-amber-400"
+                  }`}
+                >
+                  {uidCheck.status === "valid"
+                    ? t("customers.uidValid")
+                    : uidCheck.status === "invalid"
+                    ? t("customers.uidInvalid")
+                    : uidCheck.status === "format_error"
+                    ? t("customers.uidFormatError")
+                    : t("customers.uidUnavailable")}
+                  {uidCheck.status === "valid" && uidCheck.name && (
+                    <span className="opacity-75 font-normal">— {uidCheck.name}</span>
+                  )}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* AI completion — always available when at least name/company set and
               some field is empty. New-customer mode also keeps the "fill manually"
@@ -406,6 +535,7 @@ export default function CustomersPage() {
                 setAiResult(null);
                 setAiFilledKeys(new Set());
                 setSaveError(null);
+                setUidCheck(null);
               }}
               className="bg-[var(--surface-hover)] text-[var(--text-secondary)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--border)] transition"
             >

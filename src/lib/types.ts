@@ -13,6 +13,10 @@ export interface Customer {
   // SCH-526 — sevDesk `Kunden-Nr` preserved when imported. Empty string
   // for hand-entered rows. Unique within a company when non-empty.
   external_ref?: string;
+  // ORA-3315 — zuletzt gespeichertes Ergebnis der VIES-UID-Prüfung.
+  // "" = nie geprüft, sonst "valid" | "invalid" | "unavailable" | "format_error".
+  uid_vies_status?: string;
+  uid_vies_checked_at?: string | null;
   created_at: string;
 }
 

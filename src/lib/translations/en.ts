@@ -518,6 +518,12 @@ const en: Record<string, string> = {
   "customers.aiError": "Error during AI research",
   "customers.aiNetworkError": "Network error during AI research",
   "customers.saveError": "Failed to save customer",
+  "customers.uidCheck": "Check VAT ID (VIES)",
+  "customers.uidChecking": "Checking...",
+  "customers.uidValid": "VAT ID valid (VIES)",
+  "customers.uidInvalid": "VAT ID invalid (VIES)",
+  "customers.uidUnavailable": "VIES service unreachable — please try again later",
+  "customers.uidFormatError": "Invalid VAT ID format",
   "customers.notFound": "Customer not found.",
   "customers.search": "Search by name, company, VAT ID, email...",
 

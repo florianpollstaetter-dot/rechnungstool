@@ -1934,6 +1934,8 @@ function mapCustomer(row: Record<string, unknown>): Customer {
     phone: row.phone as string,
     leitweg_id: (row.leitweg_id as string) || "",
     external_ref: (row.external_ref as string) || "",
+    uid_vies_status: (row.uid_vies_status as string) || "",
+    uid_vies_checked_at: (row.uid_vies_checked_at as string) || null,
     created_at: row.created_at as string,
   };
 }

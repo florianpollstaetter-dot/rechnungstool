@@ -518,6 +518,12 @@ const de = {
   "customers.aiError": "Fehler bei der AI-Recherche",
   "customers.aiNetworkError": "Netzwerkfehler bei der AI-Recherche",
   "customers.saveError": "Fehler beim Speichern des Kunden",
+  "customers.uidCheck": "UID prüfen (VIES)",
+  "customers.uidChecking": "Prüfe...",
+  "customers.uidValid": "UID gültig (VIES)",
+  "customers.uidInvalid": "UID ungültig (VIES)",
+  "customers.uidUnavailable": "VIES-Dienst nicht erreichbar — bitte später erneut prüfen",
+  "customers.uidFormatError": "UID-Format ungültig",
   "customers.notFound": "Kunde nicht gefunden.",
   "customers.search": "Suche nach Name, Unternehmen, UID, E-Mail...",
 
