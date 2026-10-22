@@ -739,6 +739,8 @@ const ar: Record<string, string> = {
   "export.exportingPdf": "جاري تصدير PDF...",
   "export.exporting": "جاري التصدير...",
   "export.datevExport": "تصدير DATEV",
+  "export.bmdExport": "تصدير BMD",
+  "export.rzlExport": "تصدير RZL",
   "export.revenueGross": "الإيرادات الإجمالية",
   "export.invoicesCount": "{count} فواتير",
   "export.vatRevenue": "ض.ق.م الإيرادات",
