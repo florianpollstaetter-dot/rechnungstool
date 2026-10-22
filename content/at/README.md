@@ -23,8 +23,9 @@ schema: FAQPage        # FAQ-Strukturdaten aus dem Abschnitt „## Häufige Frag
 | Platzhalter | Ergebnis |
 |---|---|
 | `{{UID_PRUEFFORMULAR}}` | UID-Prüf-Formular (VIES), `src/components/at/UidPruefFormular.tsx` |
+| `{{GRUENDER_NAME}}` | Name des Gründers (Textbaustein im Fließtext), Wert `GRUENDER_NAME` in `src/lib/at-ratgeber.ts`. Solange `null`: Platzhalter entfällt samt Klammer, „der Gründer ist Jurist ({{GRUENDER_NAME}}).“ wird zu „… Jurist.“ |
 
-Platzhalter auf eine eigene Zeile setzen. Unbekannte Platzhalter bleiben als Text stehen.
+Bausteine (Formulare) auf eine eigene Zeile setzen. Unbekannte Platzhalter (`{{GFB_RECHNER}}`, `{{DOWNLOAD_…}}`) werden beim Rendern entfernt. Links auf `/at/<slug>`, die es noch nicht gibt, werden zu reinem Text.
 
 ## Entwürfe lokal ansehen
 

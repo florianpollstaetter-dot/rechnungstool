@@ -23,6 +23,19 @@ const AT_DIR = path.join(process.cwd(), "content", "at");
 export const BAUSTEINE = ["UID_PRUEFFORMULAR"] as const;
 export type Baustein = (typeof BAUSTEINE)[number];
 
+// KIN-6532 — Textbausteine: Platzhalter, die im Fließtext durch einen String
+// ersetzt werden (kein eigener Abschnitt). null = Wert noch nicht bekannt →
+// der Platzhalter entfällt; steht er allein in runden Klammern, entfällt die
+// Klammer mit („der Gründer ist Jurist ({{GRUENDER_NAME}}).“ → „… Jurist.“).
+//
+// Name des Gründers für den Vertrauensanker auf allen /at/-Seiten. Sobald er
+// vom Board kommt, hier eintragen — alle Seiten übernehmen ihn beim nächsten Bau.
+export const GRUENDER_NAME: string | null = null;
+
+export const TEXTBAUSTEINE: Readonly<Record<string, string | null>> = {
+  GRUENDER_NAME,
+};
+
 export type AtSeite = {
   slug: string;
   title: string;
@@ -156,18 +169,40 @@ const PLATZHALTER_RE = /\{\{\s*([A-Z_]+)\s*\}\}/g;
 export interface RenderOptionen {
   /** Slugs, die es unter /at/ gibt. Links auf andere /at/-Seiten werden zu Text, damit keine 404-Links live gehen. */
   bekannteSlugs?: Set<string>;
+  /** Textbausteine ({{GRUENDER_NAME}} …); Standard: TEXTBAUSTEINE. */
+  textbausteine?: Readonly<Record<string, string | null>>;
+}
+
+/**
+ * Ersetzt Textbausteine im Markdown. Unbekannte Werte (null) entfallen samt
+ * umschließender Klammer: „Jurist ({{GRUENDER_NAME}}).“ → „Jurist.“
+ */
+export function ersetzeTextbausteine(
+  text: string,
+  bausteine: Readonly<Record<string, string | null>> = TEXTBAUSTEINE,
+): string {
+  let out = text;
+  for (const [name, wert] of Object.entries(bausteine)) {
+    const re = new RegExp(String.raw`[ \t]*\(\s*\{\{\s*${name}\s*\}\}\s*\)|\{\{\s*${name}\s*\}\}`, "g");
+    out = out.replace(re, (m) => {
+      if (wert == null || wert.trim() === "") return "";
+      return m.trimStart().startsWith("(") ? ` (${wert.trim()})` : wert.trim();
+    });
+  }
+  return out;
 }
 
 /**
  * Zerlegt den Markdown-Text an Bausteinen ({{UID_PRUEFFORMULAR}}) und rendert
  * die Textstücke zu bereinigtem HTML.
  * - Die erste H1 im Text entfällt (die Seite setzt die H1 aus dem Front-Matter).
+ * - Textbausteine ({{GRUENDER_NAME}}) werden im Fließtext ersetzt, siehe ersetzeTextbausteine.
  * - Unbekannte Platzhalter ({{GFB_RECHNER}}, {{DOWNLOAD_…}}) werden entfernt,
  *   nicht als Text ausgegeben — sie stehen für Bausteine, die noch fehlen.
  * - Links auf /at/<slug>, die es noch nicht gibt, werden zu reinem Text.
  */
 export function renderAbschnitte(body: string, opt: RenderOptionen = {}): Abschnitt[] {
-  const ohneH1 = body.replace(/^\s*# .+\n/, "");
+  const ohneH1 = ersetzeTextbausteine(body.replace(/^\s*# .+\n/, ""), opt.textbausteine);
   const abschnitte: Abschnitt[] = [];
   let letzte = 0;
   for (const m of ohneH1.matchAll(PLATZHALTER_RE)) {
