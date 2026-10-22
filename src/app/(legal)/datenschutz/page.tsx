@@ -91,36 +91,50 @@ export default function DatenschutzPage() {
         </li>
       </ul>
 
-      <h3>2.3 KI-gestützte Belegauslesung</h3>
+      <h3>2.3 KI-gestützte Funktionen (Belegauslesung, Assistent, Textvorschläge)</h3>
       <ul>
         <li>
           <strong>Daten:</strong> Inhalt hochgeladener Belege (Bilder/PDFs)
           einschließlich darin enthaltener personenbezogener Daten (z.B. Name,
           Adresse, IBAN von Lieferanten oder Kundschaft), dazugehörige
-          Metadaten.
+          Metadaten, sowie Eingaben in KI-gestützte Funktionen (Chat-Assistent,
+          Ausfüllvorschläge für Kunden- und Firmendaten, Übersetzungen,
+          Angebots-Designs, Import von Fremddaten), einschließlich darin
+          enthaltener personenbezogener Daten.
         </li>
         <li>
           <strong>Zweck:</strong> Automatisierte Auslesung strukturierter
           Felder (Betrag, Datum, Empfänger, USt) zur Vereinfachung der
-          Belegerfassung.
+          Belegerfassung sowie Bereitstellung der von Ihnen aktiv aufgerufenen
+          KI-Funktionen.
         </li>
         <li>
           <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO
-          (berechtigtes Interesse an effizienter Belegverarbeitung); soweit
-          Gesundheits- oder sonstige besondere Kategorien enthalten sein
-          könnten, wird der Nutzer angehalten, entsprechende Belege nicht
-          hochzuladen.
+          (berechtigtes Interesse an effizienter Belegverarbeitung); Art. 6
+          Abs. 1 lit. b DSGVO, soweit Sie die KI-Funktion als Teil des
+          Leistungsumfangs aktiv nutzen; soweit Gesundheits- oder sonstige
+          besondere Kategorien enthalten sein könnten, wird der Nutzer
+          angehalten, entsprechende Belege nicht hochzuladen.
         </li>
         <li>
-          <strong>Empfänger/Auftragsverarbeiter:</strong> Anthropic, PBC, 548
-          Market St, PMB 90375, San Francisco, CA 94104, USA („Claude API&ldquo;).
+          <strong>Empfänger/Auftragsverarbeiter:</strong> Die Auslesung erfolgt
+          über das KI-Modell „Claude&ldquo;. Derzeit wird dieses über die direkte
+          Schnittstelle von <strong>Anthropic, PBC</strong>, 548 Market St, PMB
+          90375, San Francisco, CA 94104, USA, angesprochen. Alternativ kann die
+          Verarbeitung über <strong>AWS Bedrock</strong> (Amazon Web Services) in
+          der EU-Region Frankfurt (<code>eu-central-1</code>) erfolgen; in diesem
+          Fall verbleibt die KI-Verarbeitung innerhalb der EU.
         </li>
         <li>
-          <strong>Drittlandübermittlung:</strong> USA. Die Übermittlung erfolgt
-          auf Basis der <strong>EU-Standardvertragsklauseln (SCC)</strong> der
-          Europäischen Kommission (Durchführungsbeschluss 2021/914) und unter
-          ergänzenden Schutzmaßnahmen (Verschlüsselung im Transit, Verbot der
-          Nutzung zu Trainingszwecken gemäß Anthropic Commercial Terms).
+          <strong>Drittlandübermittlung:</strong> Bei Nutzung der direkten
+          Anthropic-Schnittstelle erfolgt eine Übermittlung in die USA auf Basis
+          der <strong>EU-Standardvertragsklauseln (SCC)</strong> der Europäischen
+          Kommission (Durchführungsbeschluss 2021/914) und unter ergänzenden
+          Schutzmaßnahmen (Verschlüsselung im Transit, Verbot der Nutzung zu
+          Trainingszwecken gemäß Anthropic Commercial Terms). Bei Verarbeitung
+          über AWS Bedrock (EU-Region Frankfurt) findet keine Speicherung in
+          einem Drittland statt; ein etwaiger administrativer Support-Zugriff aus
+          einem Drittland stützt sich auf die EU-SCC.
         </li>
       </ul>
 
@@ -234,6 +248,43 @@ export default function DatenschutzPage() {
         12 Monaten gelöscht.
       </p>
 
+      <h3>2.7 Zahlungsabwicklung, E-Mail-Versand und KI-Bildgenerierung</h3>
+      <ul>
+        <li>
+          <strong>Zahlungsabwicklung (Abonnements):</strong> Zur Abwicklung
+          kostenpflichtiger Abonnements verarbeiten wir über den
+          Zahlungsdienstleister <strong>Stripe</strong> Name, E-Mail-Adresse,
+          Zahlungs- bzw. Kartendaten und den Abo-Status. Die Kartendaten werden
+          direkt von Stripe erhoben; wir speichern keine vollständigen
+          Kartennummern. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO
+          (Vertragserfüllung). Soweit Stripe Daten zur Betrugsprävention sowie
+          zur Erfüllung eigener gesetzlicher Pflichten (z.B.
+          Geldwäscheprävention) verarbeitet, ist Stripe hierfür eigenständig
+          Verantwortlicher; es gilt die Datenschutzerklärung von Stripe (
+          <a href="https://stripe.com/at/privacy">https://stripe.com/at/privacy</a>
+          ).
+        </li>
+        <li>
+          <strong>Versand von System-E-Mails:</strong> Für den Versand von
+          System- und Benachrichtigungs-E-Mails (z.B. Einladungen,
+          Benutzerverwaltung) nutzen wir den Dienst <strong>Resend</strong>.
+          Verarbeitet werden E-Mail-Adresse, Name und der jeweilige Mailinhalt.
+          Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) bzw.
+          Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an funktionierender
+          Nutzerkommunikation).
+        </li>
+        <li>
+          <strong>KI-Bildgenerierung für Angebots-Designs:</strong> Wenn Sie
+          diese Funktion nutzen, wird der von Ihnen eingegebene Bild-Text
+          (Freitext-Prompt, der Personenbezug enthalten kann) an den Dienst{" "}
+          <strong>Replicate</strong> zur Erzeugung von Bildern für
+          Angebots-Designs übermittelt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f
+          DSGVO (berechtigtes Interesse an der Gestaltung von Angeboten). Bitte
+          geben Sie keine besonderen Kategorien personenbezogener Daten in den
+          Bild-Text ein.
+        </li>
+      </ul>
+
       <h2>3. Empfänger und Auftragsverarbeiter</h2>
       <p>
         Wir setzen sorgfältig ausgewählte Dienstleister ein, mit denen
@@ -276,9 +327,64 @@ export default function DatenschutzPage() {
             <td>
               <strong>Anthropic, PBC</strong>, San Francisco, CA, USA
             </td>
-            <td>KI-gestützte Belegauslesung (Claude API)</td>
+            <td>KI-gestützte Funktionen (Belegauslesung, Assistent, Textvorschläge) über Claude API, direkte Schnittstelle</td>
             <td>USA</td>
             <td>EU-SCC, Anthropic Commercial Terms (kein Training mit Kundendaten)</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Amazon Web Services EMEA SARL</strong>, 38 Avenue John F.
+              Kennedy, L-1855 Luxemburg (AWS Bedrock)
+            </td>
+            <td>
+              Alternative KI-Verarbeitung — KI-gestützte Funktionen
+              (Belegauslesung, Assistent, Textvorschläge) über Claude, Region
+              Frankfurt — sofern EU-Routing aktiviert
+            </td>
+            <td>EU — Frankfurt (eu-central-1)</td>
+            <td>
+              Verarbeitung in der EU; AWS-DPA; etwaiger administrativer
+              Support-Zugriff durch AWS Inc. (USA) auf Basis EU-SCC
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Stripe Payments Europe, Ltd.</strong>, 1 Grand Canal Street
+              Lower, Dublin, Irland (Datenverarbeitung teils durch Stripe, Inc.,
+              USA)
+            </td>
+            <td>
+              Zahlungsabwicklung der kostenpflichtigen Abonnements (Name,
+              E-Mail, Zahlungs-/Kartendaten, Abo-Status)
+            </td>
+            <td>EU (Dublin) · Zahlungsabwicklung teils USA</td>
+            <td>
+              Art. 6 Abs. 1 lit. b DSGVO; Übermittlung an Stripe, Inc. (USA) auf
+              Basis EU-SCC / EU-U.S. Data Privacy Framework, Stripe-DPA
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Resend, Inc.</strong>, 2261 Market Street #5039, San
+              Francisco, CA 94114, USA
+            </td>
+            <td>
+              Versand von System- und Benachrichtigungs-E-Mails (E-Mail-Adresse,
+              Name, Mailinhalt)
+            </td>
+            <td>USA</td>
+            <td>EU-SCC, Resend-DPA</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Replicate, Inc.</strong>, San Francisco, CA, USA
+            </td>
+            <td>
+              KI-Bildgenerierung für Angebots-Designs (verarbeitet den vom Nutzer
+              eingegebenen Bild-Text)
+            </td>
+            <td>USA</td>
+            <td>EU-SCC, Replicate-DPA</td>
           </tr>
           <tr>
             <td>
@@ -312,16 +418,26 @@ export default function DatenschutzPage() {
       <p>
         Die Datenbank-, Authentifizierungs- und Datei-Speicherung bei Supabase
         erfolgt in der <strong>EU (AWS-Region Frankfurt, eu-central-1)</strong>;
-        es findet insoweit keine Speicherung in einem Drittland statt. Die
-        Auftragsverarbeiter Anthropic und Vercel haben Unternehmenssitz in den
-        USA; ebenso kann ein administrativer Support-Zugriff durch Supabase Inc.
-        aus einem Drittland erfolgen. Diese Übermittlungen erfolgen auf Grundlage
+        es findet insoweit keine Speicherung in einem Drittland statt. Erfolgt
+        die KI-Verarbeitung über AWS Bedrock (EU-Region Frankfurt), verbleibt
+        auch diese in der EU.
+      </p>
+      <p>
+        Folgende Auftragsverarbeiter haben Unternehmenssitz bzw. verarbeiten
+        teilweise in den <strong>USA</strong>: <strong>Vercel</strong>{" "}
+        (Hosting), <strong>Anthropic</strong> (KI-Belegauslesung bei Nutzung der
+        direkten Schnittstelle), <strong>Resend</strong> (E-Mail-Versand),{" "}
+        <strong>Replicate</strong> (KI-Bildgenerierung) sowie{" "}
+        <strong>Stripe, Inc.</strong> (Zahlungsabwicklung; Vertragspartner ist die
+        Stripe Payments Europe, Ltd. mit Sitz in Irland). Ebenso kann ein
+        administrativer Support-Zugriff durch Supabase Inc. bzw. AWS Inc. aus
+        einem Drittland erfolgen. Diese Übermittlungen erfolgen auf Grundlage
         der <strong>Standardvertragsklauseln (SCC)</strong> gemäß
         Durchführungsbeschluss (EU) 2021/914, ergänzt durch technische und
         organisatorische Maßnahmen (insbesondere Transportverschlüsselung TLS
         1.2+, Zugangskontrolle, Pseudonymisierung, soweit möglich). Soweit
         Anbieter unter das <strong>EU-U.S. Data Privacy Framework (DPF)</strong>{" "}
-        zertifiziert sind, stützen wir uns zusätzlich auf den
+        zertifiziert sind (u.a. Stripe), stützen wir uns zusätzlich auf den
         Angemessenheitsbeschluss der Kommission vom 10.07.2023.
       </p>
 

@@ -14,9 +14,9 @@ import { ExpenseReport, ExpenseItem, CompanySettings } from "@/lib/types";
 Font.register({
   family: "Inter",
   fonts: [
-    { src: "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf", fontWeight: 400 },
-    { src: "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYMZg.ttf", fontWeight: 600 },
-    { src: "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZg.ttf", fontWeight: 700 },
+    { src: "/fonts/inter/Inter-Regular.ttf", fontWeight: 400 },
+    { src: "/fonts/inter/Inter-SemiBold.ttf", fontWeight: 600 },
+    { src: "/fonts/inter/Inter-Bold.ttf", fontWeight: 700 },
   ],
 });
 

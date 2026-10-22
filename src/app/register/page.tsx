@@ -97,11 +97,6 @@ export default function RegisterPage() {
 
   return (
     <div className={styles.root}>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet"
-      />
-
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <Link href="/" className={styles.logo} aria-label="orangeocto Startseite">

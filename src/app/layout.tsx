@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Unbounded, Syne } from "next/font/google";
+import { Geist, Unbounded, Syne, DM_Sans } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
 import { CompanyProvider } from "@/lib/company-context";
@@ -26,10 +26,25 @@ const bounded = Unbounded({
 
 // SCH-915 K2-A1 — Syne is the brand wordmark face used across all
 // "orangeocto" lockups (sidebar, mobile header, legal pages, register, login).
+// ORA-3320 — weights widened to 400–800 so the landing/register CSS modules
+// (which previously pulled Syne via a Google Fonts <link>) now resolve every
+// cut from self-hosted next/font instead of leaking visitor IPs to Google.
 const syne = Syne({
   variable: "--font-syne",
   subsets: ["latin"],
-  weight: ["700", "800"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+// ORA-3320 — DM Sans is the body face on the marketing landing + register
+// pages. Previously loaded via a client-side <link> to Google's font CDN,
+// which transmits every visitor's IP to Google without consent (LG München I,
+// 20.01.2022, 3 O 17493/20). Self-hosted via next/font/google — no external
+// request from the browser, so no mention in the privacy policy is required.
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -135,7 +150,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={`${geist.variable} ${bounded.variable} ${syne.variable} h-full antialiased`}>
+    <html lang="de" className={`${geist.variable} ${bounded.variable} ${syne.variable} ${dmSans.variable} h-full antialiased`}>
       <head>
         <link rel="apple-touch-icon" href="/brand/octo-icon-orange.png" />
       </head>
