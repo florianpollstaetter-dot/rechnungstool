@@ -1,7 +1,6 @@
 ---
-# KIN-6527/KIN-6528 — ENTWURF (publishedAt: null). Text vom Editor (KIN-6528), Quelle: Kinwords-Repo content/orange-octo-at/01-uid-nummer-pruefen.md.
-# Vor Livegang: {{GRUENDER_NAME}} ersetzen, Zahlen gegengelesen, publishedAt setzen.
-title: "UID-Nummer prüfen: Gültigkeit abfragen und Nachweis speichern"
+# KIN-6527/KIN-6528 — ENTWURF (publishedAt: "2026-10-23"). Text vom Editor (KIN-6528), Quelle: Kinwords-Repo content/orange-octo-at/01-uid-nummer-pruefen.md.
+title: "UID-Nummer prüfen: Formular, Aufbau und Nachweis"
 h1: "UID-Nummer prüfen"
 slug: "uid-nummer-pruefen"
 metaDescription: "UID-Nummer eines EU-Geschäftspartners prüfen: Formular, Aufbau der ATU-Nummer, Pflichten auf der Rechnung und was bei „ungültig“ gilt. Stand 22.10.2026."
@@ -18,8 +17,6 @@ quellen:
   - "Europäische Kommission, VIES: https://ec.europa.eu/taxation_customs/vies/"
 ---
 # UID-Nummer prüfen
-
-Stand: 22. Oktober 2026 · Inhaltlich geprüft, Quellen am Ende der Seite
 
 {{UID_PRUEFFORMULAR}}
 
@@ -94,4 +91,4 @@ Nein. Die Abfrage läuft serverseitig, und es werden weder die Nummer noch das E
 
 ---
 
-Orange Octo ist eine österreichische GmbH, der Gründer ist Jurist ({{GRUENDER_NAME}}). Die Seite ersetzt keine Steuerberatung; Rechtsstand und Zahlen stammen aus den oben genannten Quellen, abgerufen am 22. Oktober 2026.
+Orange Octo ist eine österreichische GmbH, der Gründer ist Jurist. Die Seite ersetzt keine Steuerberatung; Rechtsstand und Zahlen stammen aus den oben genannten Quellen, abgerufen am 22. Oktober 2026.
