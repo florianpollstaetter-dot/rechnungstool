@@ -29,12 +29,24 @@ check("ohne Platzhalter: ein HTML-Abschnitt", () => {
   assert.equal(a[0].art, "html");
 });
 
-check("unbekannter Platzhalter bleibt Text, Script wird entfernt", () => {
-  const a = renderAbschnitte("{{IRGENDWAS}} <script>alert(1)</script> ok");
-  assert.equal(a.length, 1);
-  const html = (a[0] as { html: string }).html;
-  assert.match(html, /\{\{IRGENDWAS\}\}/);
+check("unbekannter Platzhalter wird entfernt, Script wird entfernt", () => {
+  const a = renderAbschnitte("Vorher {{GFB_RECHNER}} <script>alert(1)</script> ok");
+  assert.equal(a.length, 2);
+  const html = a.map((x) => (x as { html: string }).html).join("");
+  assert.doesNotMatch(html, /\{\{/);
   assert.doesNotMatch(html, /<script/);
+  assert.match(html, /Vorher/);
+  assert.match(html, /ok/);
+});
+
+check("Links auf noch nicht existierende /at/-Seiten werden zu Text", () => {
+  const a = renderAbschnitte("[gibt es](/at/honorarnote) und [fehlt](/at/rechnungsvorlage)", {
+    bekannteSlugs: new Set(["honorarnote"]),
+  });
+  const html = (a[0] as { html: string }).html;
+  assert.match(html, /<a href="\/at\/honorarnote">gibt es<\/a>/);
+  assert.doesNotMatch(html, /rechnungsvorlage/);
+  assert.match(html, /fehlt/);
 });
 
 check("externe Links öffnen in neuem Tab, interne nicht", () => {

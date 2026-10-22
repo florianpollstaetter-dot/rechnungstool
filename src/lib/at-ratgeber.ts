@@ -107,6 +107,12 @@ export async function getVeroeffentlichteAtSeiten(): Promise<AtSeite[]> {
   return all.filter((s) => s.publishedAt != null);
 }
 
+/** Slugs aller Seiten (auch Entwürfe) — für das Entschärfen von Links auf noch nicht existierende Seiten. */
+export async function getAtSlugs(): Promise<Set<string>> {
+  const all = await readAll();
+  return new Set(all.map((s) => s.slug));
+}
+
 export async function getAtSeite(slug: string): Promise<AtSeite | null> {
   const all = await readAll();
   const s = all.find((x) => x.slug === slug);
@@ -147,31 +153,45 @@ const SANITIZE: IOptions = {
 
 const PLATZHALTER_RE = /\{\{\s*([A-Z_]+)\s*\}\}/g;
 
+export interface RenderOptionen {
+  /** Slugs, die es unter /at/ gibt. Links auf andere /at/-Seiten werden zu Text, damit keine 404-Links live gehen. */
+  bekannteSlugs?: Set<string>;
+}
+
 /**
  * Zerlegt den Markdown-Text an Bausteinen ({{UID_PRUEFFORMULAR}}) und rendert
- * die Textstücke zu bereinigtem HTML. Die erste H1 im Text wird entfernt,
- * weil die Seite die H1 aus dem Front-Matter setzt.
+ * die Textstücke zu bereinigtem HTML.
+ * - Die erste H1 im Text entfällt (die Seite setzt die H1 aus dem Front-Matter).
+ * - Unbekannte Platzhalter ({{GFB_RECHNER}}, {{DOWNLOAD_…}}) werden entfernt,
+ *   nicht als Text ausgegeben — sie stehen für Bausteine, die noch fehlen.
+ * - Links auf /at/<slug>, die es noch nicht gibt, werden zu reinem Text.
  */
-export function renderAbschnitte(body: string): Abschnitt[] {
+export function renderAbschnitte(body: string, opt: RenderOptionen = {}): Abschnitt[] {
   const ohneH1 = body.replace(/^\s*# .+\n/, "");
   const abschnitte: Abschnitt[] = [];
   let letzte = 0;
   for (const m of ohneH1.matchAll(PLATZHALTER_RE)) {
     const name = m[1];
-    if (!(BAUSTEINE as readonly string[]).includes(name)) continue; // unbekannt → bleibt Text
     const text = ohneH1.slice(letzte, m.index);
-    if (text.trim()) abschnitte.push({ art: "html", html: md(text) });
-    abschnitte.push({ art: "baustein", name: name as Baustein });
+    if (text.trim()) abschnitte.push({ art: "html", html: md(text, opt) });
+    if ((BAUSTEINE as readonly string[]).includes(name)) {
+      abschnitte.push({ art: "baustein", name: name as Baustein });
+    }
     letzte = (m.index ?? 0) + m[0].length;
   }
   const rest = ohneH1.slice(letzte);
-  if (rest.trim()) abschnitte.push({ art: "html", html: md(rest) });
+  if (rest.trim()) abschnitte.push({ art: "html", html: md(rest, opt) });
   return abschnitte;
 }
 
-function md(text: string): string {
+function md(text: string, opt: RenderOptionen): string {
   const html = marked.parse(text, { async: false }) as string;
-  return sanitizeHtmlLib(html, SANITIZE);
+  const mitLinks = opt.bekannteSlugs
+    ? html.replace(/<a href="\/at\/([a-z0-9-]+)\/?">([^<]*)<\/a>/g, (full, slug: string, label: string) =>
+        opt.bekannteSlugs!.has(slug) ? full : label,
+      )
+    : html;
+  return sanitizeHtmlLib(mitLinks, SANITIZE);
 }
 
 export function atFaqJsonLd(seite: AtSeite): object | null {

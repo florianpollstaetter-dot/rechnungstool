@@ -1,19 +1,22 @@
 ---
-# KIN-6527 — Entwurf. Text und Front-Matter gehören dem Editor (KIN-6528).
-# Live schalten: publishedAt auf das Datum setzen, {{GRUENDER_NAME}} ersetzen,
-# Zahlen gegen BMF/USP geprüft. Der Platzhalter {{UID_PRUEFFORMULAR}} bleibt —
-# dort erscheint das Prüf-Formular (src/components/at/UidPruefFormular.tsx).
-title: "UID-Nummer prüfen: Gültigkeit abfragen (VIES)"
+# KIN-6527/KIN-6528 — ENTWURF (publishedAt: null). Text vom Editor (KIN-6528), Quelle: Kinwords-Repo content/orange-octo-at/01-uid-nummer-pruefen.md.
+# Vor Livegang: {{GRUENDER_NAME}} ersetzen, Zahlen gegengelesen, publishedAt setzen.
+title: "UID-Nummer prüfen: Gültigkeit abfragen und Nachweis speichern"
 h1: "UID-Nummer prüfen"
 slug: "uid-nummer-pruefen"
-metaDescription: "UID-Nummer eines Geschäftspartners in der EU prüfen. Mit Prüf-Formular, Aufbau der österreichischen UID, Pflichten auf der Rechnung und was bei „ungültig“ zu tun ist."
+metaDescription: "UID-Nummer eines EU-Geschäftspartners prüfen: Formular, Aufbau der ATU-Nummer, Pflichten auf der Rechnung und was bei „ungültig“ gilt. Stand 22.10.2026."
 publishedAt: null
 updatedAt: "2026-10-22"
 category: "Umsatzsteuer"
 targetKeyword: "uid nummer prüfen"
 schema: FAQPage
+liveBedingung: "Erst live, wenn das Prüf-Formular aus KIN-6527 eingebettet ist. Text ist fertig."
+quellen:
+  - "§ 11 UStG 1994, RIS (abgerufen 22.10.2026): https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10004873&Paragraf=11"
+  - "USP, UID-Bestätigungsverfahren (abgerufen 22.10.2026): https://www.usp.gv.at/themen/steuern-finanzen/umsatzsteuer-ueberblick/weitere-informationen-zur-umsatzsteuer/umsaetze-mit-auslandsbezug/umsatzsteuer-identifikationsnummer/uid-bestaetigungsverfahren.html"
+  - "WKO, UID-Nummer, Stand 01.04.2026: https://www.wko.at/oe/steuern/uid-nummer-umsatzsteuer-identifikationsnummer"
+  - "Europäische Kommission, VIES: https://ec.europa.eu/taxation_customs/vies/"
 ---
-
 # UID-Nummer prüfen
 
 Stand: 22. Oktober 2026 · Inhaltlich geprüft, Quellen am Ende der Seite
@@ -89,5 +92,6 @@ Nur wenn du sie für Geschäfte innerhalb der EU brauchst und das glaubhaft mach
 **Speichert ihr meine Eingaben?**
 Nein. Die Abfrage läuft serverseitig, und es werden weder die Nummer noch das Ergebnis gespeichert.
 
+---
 
 Orange Octo ist eine österreichische GmbH, der Gründer ist Jurist ({{GRUENDER_NAME}}). Die Seite ersetzt keine Steuerberatung; Rechtsstand und Zahlen stammen aus den oben genannten Quellen, abgerufen am 22. Oktober 2026.

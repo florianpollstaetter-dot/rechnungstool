@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UidPruefFormular } from "@/components/at/UidPruefFormular";
-import { atFaqJsonLd, getAtSeite, getVeroeffentlichteAtSeiten, renderAbschnitte } from "@/lib/at-ratgeber";
+import { atFaqJsonLd, getAtSeite, getAtSlugs, getVeroeffentlichteAtSeiten, renderAbschnitte } from "@/lib/at-ratgeber";
 
 // KIN-6527 — Ratgeberseite Österreich aus content/at/<slug>.md. Der Platzhalter
 // {{UID_PRUEFFORMULAR}} im Text wird durch das Prüf-Formular ersetzt.
@@ -52,7 +52,7 @@ export default async function AtRatgeberPage({ params }: { params: Promise<Param
   const seite = await getAtSeite(slug);
   if (!seite) notFound();
 
-  const abschnitte = renderAbschnitte(seite.body);
+  const abschnitte = renderAbschnitte(seite.body, { bekannteSlugs: await getAtSlugs() });
   const jsonLd = atFaqJsonLd(seite);
 
   return (
