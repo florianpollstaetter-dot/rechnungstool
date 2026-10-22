@@ -91,25 +91,30 @@ export default function DatenschutzPage() {
         </li>
       </ul>
 
-      <h3>2.3 KI-gestützte Belegauslesung</h3>
+      <h3>2.3 KI-gestützte Funktionen (Belegauslesung, Assistent, Textvorschläge)</h3>
       <ul>
         <li>
           <strong>Daten:</strong> Inhalt hochgeladener Belege (Bilder/PDFs)
           einschließlich darin enthaltener personenbezogener Daten (z.B. Name,
           Adresse, IBAN von Lieferanten oder Kundschaft), dazugehörige
-          Metadaten.
+          Metadaten, sowie Eingaben in KI-gestützte Funktionen (Chat-Assistent,
+          Ausfüllvorschläge für Kunden- und Firmendaten, Übersetzungen,
+          Angebots-Designs, Import von Fremddaten), einschließlich darin
+          enthaltener personenbezogener Daten.
         </li>
         <li>
           <strong>Zweck:</strong> Automatisierte Auslesung strukturierter
           Felder (Betrag, Datum, Empfänger, USt) zur Vereinfachung der
-          Belegerfassung.
+          Belegerfassung sowie Bereitstellung der von Ihnen aktiv aufgerufenen
+          KI-Funktionen.
         </li>
         <li>
           <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO
-          (berechtigtes Interesse an effizienter Belegverarbeitung); soweit
-          Gesundheits- oder sonstige besondere Kategorien enthalten sein
-          könnten, wird der Nutzer angehalten, entsprechende Belege nicht
-          hochzuladen.
+          (berechtigtes Interesse an effizienter Belegverarbeitung); Art. 6
+          Abs. 1 lit. b DSGVO, soweit Sie die KI-Funktion als Teil des
+          Leistungsumfangs aktiv nutzen; soweit Gesundheits- oder sonstige
+          besondere Kategorien enthalten sein könnten, wird der Nutzer
+          angehalten, entsprechende Belege nicht hochzuladen.
         </li>
         <li>
           <strong>Empfänger/Auftragsverarbeiter:</strong> Die Auslesung erfolgt
@@ -252,7 +257,12 @@ export default function DatenschutzPage() {
           Zahlungs- bzw. Kartendaten und den Abo-Status. Die Kartendaten werden
           direkt von Stripe erhoben; wir speichern keine vollständigen
           Kartennummern. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO
-          (Vertragserfüllung).
+          (Vertragserfüllung). Soweit Stripe Daten zur Betrugsprävention sowie
+          zur Erfüllung eigener gesetzlicher Pflichten (z.B.
+          Geldwäscheprävention) verarbeitet, ist Stripe hierfür eigenständig
+          Verantwortlicher; es gilt die Datenschutzerklärung von Stripe (
+          <a href="https://stripe.com/at/privacy">https://stripe.com/at/privacy</a>
+          ).
         </li>
         <li>
           <strong>Versand von System-E-Mails:</strong> Für den Versand von
@@ -317,7 +327,7 @@ export default function DatenschutzPage() {
             <td>
               <strong>Anthropic, PBC</strong>, San Francisco, CA, USA
             </td>
-            <td>KI-gestützte Belegauslesung und Chat (Claude API, direkte Schnittstelle)</td>
+            <td>KI-gestützte Funktionen (Belegauslesung, Assistent, Textvorschläge) über Claude API, direkte Schnittstelle</td>
             <td>USA</td>
             <td>EU-SCC, Anthropic Commercial Terms (kein Training mit Kundendaten)</td>
           </tr>
@@ -327,8 +337,9 @@ export default function DatenschutzPage() {
               Kennedy, L-1855 Luxemburg (AWS Bedrock)
             </td>
             <td>
-              Alternative KI-Verarbeitung (Belegauslesung/Chat über Claude),
-              Region Frankfurt — sofern EU-Routing aktiviert
+              Alternative KI-Verarbeitung — KI-gestützte Funktionen
+              (Belegauslesung, Assistent, Textvorschläge) über Claude, Region
+              Frankfurt — sofern EU-Routing aktiviert
             </td>
             <td>EU — Frankfurt (eu-central-1)</td>
             <td>

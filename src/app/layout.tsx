@@ -37,7 +37,7 @@ const syne = Syne({
 });
 
 // ORA-3320 — DM Sans is the body face on the marketing landing + register
-// pages. Previously loaded via a client-side <link> to fonts.googleapis.com,
+// pages. Previously loaded via a client-side <link> to Google's font CDN,
 // which transmits every visitor's IP to Google without consent (LG München I,
 // 20.01.2022, 3 O 17493/20). Self-hosted via next/font/google — no external
 // request from the browser, so no mention in the privacy policy is required.
