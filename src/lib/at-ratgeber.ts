@@ -1,0 +1,190 @@
+// KIN-6527 — Ratgeberseiten Österreich unter /at/<slug>.
+//
+// Inhalte liegen als Markdown in content/at/<slug>.md (Front-Matter wie beim
+// Blog, siehe content/blog/README.md). Zusätzlich darf im Text der Platzhalter
+//   {{UID_PRUEFFORMULAR}}
+// stehen — src/app/at/[slug]/page.tsx setzt dort das UID-Prüf-Formular ein.
+// Dafür wird der Text in Abschnitte zerlegt: HTML-Stücke und Bausteine.
+//
+// Entwürfe (publishedAt: null) sind nur sichtbar, wenn AT_RATGEBER_ENTWUERFE=1
+// gesetzt ist (lokale Vorschau, E2E-Tests). Im Produktivbetrieb → 404.
+//
+// Server-only (fs). Alle veröffentlichten Seiten werden beim Bau vorgerendert.
+
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import matter from "gray-matter";
+import { marked } from "marked";
+import sanitizeHtmlLib, { type IOptions } from "sanitize-html";
+import { extractFaqs, type FaqEntry } from "@/lib/blog";
+
+const AT_DIR = path.join(process.cwd(), "content", "at");
+
+export const BAUSTEINE = ["UID_PRUEFFORMULAR"] as const;
+export type Baustein = (typeof BAUSTEINE)[number];
+
+export type AtSeite = {
+  slug: string;
+  title: string;
+  h1: string;
+  metaDescription: string;
+  publishedAt: string | null;
+  updatedAt: string | null;
+  category: string | null;
+  excerpt: string;
+  faqSchema: boolean;
+  body: string;
+};
+
+export type Abschnitt = { art: "html"; html: string } | { art: "baustein"; name: Baustein };
+
+function str(v: unknown): string | null {
+  return typeof v === "string" && v.length > 0 ? v : null;
+}
+
+function normalizeDate(v: unknown): string | null {
+  if (v == null) return null;
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "string" && v !== "null" && v.length > 0) return v;
+  return null;
+}
+
+function entwuerfeSichtbar(): boolean {
+  return process.env.AT_RATGEBER_ENTWUERFE === "1";
+}
+
+async function readAll(): Promise<AtSeite[]> {
+  let entries: string[];
+  try {
+    entries = await fs.readdir(AT_DIR);
+  } catch {
+    return [];
+  }
+  const files = entries.filter((f) => f.endsWith(".md") && f !== "README.md");
+  return Promise.all(
+    files.map(async (file) => {
+      const raw = await fs.readFile(path.join(AT_DIR, file), "utf8");
+      const { data, content } = matter(raw);
+      const d = data as Record<string, unknown>;
+      const slug = str(d.slug) ?? file.replace(/\.md$/, "");
+      const schema = d.schema;
+      const faqSchema =
+        schema === true ||
+        schema === "FAQPage" ||
+        (typeof schema === "object" && schema !== null && (schema as { type?: unknown }).type === "FAQPage") ||
+        d.faq_schema === true;
+      return {
+        slug,
+        title: str(d.title) ?? slug,
+        h1: str(d.h1) ?? str(d.title) ?? slug,
+        metaDescription: str(d.metaDescription) ?? str(d.meta) ?? str(d.excerpt) ?? "",
+        publishedAt: normalizeDate(d.publishedAt),
+        updatedAt: normalizeDate(d.updatedAt) ?? normalizeDate(d.stand),
+        category: str(d.category),
+        excerpt: str(d.excerpt) ?? "",
+        faqSchema,
+        body: content,
+      };
+    }),
+  );
+}
+
+function sichtbar(s: AtSeite): boolean {
+  return s.publishedAt != null || entwuerfeSichtbar();
+}
+
+/** Veröffentlichte Seiten (plus Entwürfe bei AT_RATGEBER_ENTWUERFE=1), neueste zuerst. */
+export async function getAtSeiten(): Promise<AtSeite[]> {
+  const all = await readAll();
+  return all
+    .filter(sichtbar)
+    .sort((a, b) => (b.updatedAt ?? b.publishedAt ?? "").localeCompare(a.updatedAt ?? a.publishedAt ?? ""));
+}
+
+/** Nur wirklich veröffentlichte Seiten — für Sitemap und Vorrendern. */
+export async function getVeroeffentlichteAtSeiten(): Promise<AtSeite[]> {
+  const all = await readAll();
+  return all.filter((s) => s.publishedAt != null);
+}
+
+export async function getAtSeite(slug: string): Promise<AtSeite | null> {
+  const all = await readAll();
+  const s = all.find((x) => x.slug === slug);
+  return s && sichtbar(s) ? s : null;
+}
+
+const ALLOWED_TAGS = [
+  "p", "br", "hr",
+  "h1", "h2", "h3", "h4", "h5", "h6",
+  "ul", "ol", "li",
+  "strong", "em", "b", "i", "u", "s", "del", "ins",
+  "blockquote",
+  "code", "pre", "kbd", "samp",
+  "a", "img",
+  "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption",
+  "span", "div",
+];
+
+const SANITIZE: IOptions = {
+  allowedTags: ALLOWED_TAGS,
+  allowedAttributes: {
+    a: ["href", "name", "target", "rel"],
+    img: ["src", "alt", "title", "width", "height"],
+    "*": ["class", "id"],
+  },
+  allowedSchemes: ["http", "https", "mailto"],
+  transformTags: {
+    a: (tagName, attribs) => {
+      const href = attribs.href ?? "";
+      const isExternal = /^https?:\/\//i.test(href);
+      return {
+        tagName,
+        attribs: isExternal ? { ...attribs, target: "_blank", rel: "noopener noreferrer" } : attribs,
+      };
+    },
+  },
+};
+
+const PLATZHALTER_RE = /\{\{\s*([A-Z_]+)\s*\}\}/g;
+
+/**
+ * Zerlegt den Markdown-Text an Bausteinen ({{UID_PRUEFFORMULAR}}) und rendert
+ * die Textstücke zu bereinigtem HTML. Die erste H1 im Text wird entfernt,
+ * weil die Seite die H1 aus dem Front-Matter setzt.
+ */
+export function renderAbschnitte(body: string): Abschnitt[] {
+  const ohneH1 = body.replace(/^\s*# .+\n/, "");
+  const abschnitte: Abschnitt[] = [];
+  let letzte = 0;
+  for (const m of ohneH1.matchAll(PLATZHALTER_RE)) {
+    const name = m[1];
+    if (!(BAUSTEINE as readonly string[]).includes(name)) continue; // unbekannt → bleibt Text
+    const text = ohneH1.slice(letzte, m.index);
+    if (text.trim()) abschnitte.push({ art: "html", html: md(text) });
+    abschnitte.push({ art: "baustein", name: name as Baustein });
+    letzte = (m.index ?? 0) + m[0].length;
+  }
+  const rest = ohneH1.slice(letzte);
+  if (rest.trim()) abschnitte.push({ art: "html", html: md(rest) });
+  return abschnitte;
+}
+
+function md(text: string): string {
+  const html = marked.parse(text, { async: false }) as string;
+  return sanitizeHtmlLib(html, SANITIZE);
+}
+
+export function atFaqJsonLd(seite: AtSeite): object | null {
+  if (!seite.faqSchema) return null;
+  const faqs: FaqEntry[] = extractFaqs(seite.body);
+  if (faqs.length === 0) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.question,
+      acceptedAnswer: { "@type": "Answer", text: f.answer },
+    })),
+  };
+}

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getPublishedPosts } from "@/lib/blog";
+import { getVeroeffentlichteAtSeiten } from "@/lib/at-ratgeber";
 
 // SCH-819 Phase-6 — sitemap.xml generated at build time. Only public-facing
 // surfaces; authenticated app routes are excluded (they require login and
@@ -33,5 +34,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticEntries, ...blogEntries];
+  // KIN-6527 — published Austrian guide pages (content/at/*.md).
+  const atSeiten = await getVeroeffentlichteAtSeiten();
+  const atEntries: MetadataRoute.Sitemap = [
+    ...(atSeiten.length > 0
+      ? [{ url: `${baseUrl}/at`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.7 }]
+      : []),
+    ...atSeiten.map((s) => ({
+      url: `${baseUrl}/at/${s.slug}`,
+      lastModified: s.updatedAt ? new Date(s.updatedAt) : now,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+  ];
+
+  return [...staticEntries, ...blogEntries, ...atEntries];
 }

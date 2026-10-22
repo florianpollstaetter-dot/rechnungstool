@@ -13,6 +13,7 @@ export const PUBLIC_API_PATHS = [
   "/api/register-company", // signup — no session exists yet
   "/api/stripe/webhook", // Stripe → verified via the stripe-signature header
   "/api/treasury/ebics/poll", // Vercel-Cron → verified via CRON_SECRET bearer
+  "/api/at/uid-pruefen", // KIN-6527 — public VIES UID check for /at/ guides; no tenant data, rate-limited per IP
 ];
 
 export function isPublicApiPath(pathname: string): boolean {

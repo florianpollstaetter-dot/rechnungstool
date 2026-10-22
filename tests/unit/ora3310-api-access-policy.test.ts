@@ -25,10 +25,12 @@ function check(name: string, fn: () => void) {
 }
 
 // --- 1. public allowlist --------------------------------------------------
-check("the three intended webhooks/cron/signup paths are public", () => {
+check("the intended webhooks/cron/signup/VIES paths are public", () => {
   assert.equal(isPublicApiPath("/api/register-company"), true);
   assert.equal(isPublicApiPath("/api/stripe/webhook"), true);
   assert.equal(isPublicApiPath("/api/treasury/ebics/poll"), true);
+  // KIN-6527 — public UID check (reads no tenant data, rate-limited per IP)
+  assert.equal(isPublicApiPath("/api/at/uid-pruefen"), true);
 });
 
 check("the four leaky service-role routes are NOT public", () => {
@@ -39,7 +41,7 @@ check("the four leaky service-role routes are NOT public", () => {
 });
 
 check("allowlist stays minimal (guard against accidental additions)", () => {
-  assert.equal(PUBLIC_API_PATHS.length, 3);
+  assert.equal(PUBLIC_API_PATHS.length, 4);
 });
 
 check("a path that merely starts with a public name is not public", () => {

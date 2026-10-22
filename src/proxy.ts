@@ -27,7 +27,8 @@ import { isPublicApiPath } from "@/lib/auth/api-access-policy";
 const TREASURY_PATH_PREFIXES = ["/treasury", "/api/treasury"];
 // ORA-2679 — /blog and /blog/<slug> are public marketing/SEO pages; without
 // this whitelist they return 307 → /login and can't be crawled or indexed.
-const PUBLIC_PATHS = ["/impressum", "/agb", "/datenschutz", "/widerruf", "/blog"];
+// KIN-6527 — /at and /at/<slug> are the public Austrian guide pages (UID check etc.).
+const PUBLIC_PATHS = ["/impressum", "/agb", "/datenschutz", "/widerruf", "/blog", "/at"];
 // SCH-910 — SEO/indexing files MUST resolve without auth-redirect.
 // Without this whitelist /robots.txt and /sitemap.xml return 307 → /login,
 // which blocks Google/Bing crawling.
