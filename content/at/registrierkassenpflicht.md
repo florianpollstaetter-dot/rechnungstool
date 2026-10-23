@@ -6,7 +6,7 @@ h1: "Registrierkassenpflicht in Österreich"
 slug: "registrierkassenpflicht"
 metaDescription: "Brauche ich eine Registrierkasse? Grenzen (15.000 und 7.500 Euro), Ausnahmen, Belegpflicht ab dem ersten Euro und Strafen. Stand 22.10.2026."
 publishedAt: null
-updatedAt: "2026-10-22"
+updatedAt: "2026-10-23"
 category: "Registrierkasse"
 targetKeyword: "registrierkassenpflicht"
 schema: FAQPage
@@ -14,7 +14,7 @@ liveBedingung: "sofort live. Kein Produktversprechen zur Registrierkasse (RKSV) 
 quellen:
   - "USP, Registrierkassenpflicht (BMF, letzte Aktualisierung 1. Oktober 2026, abgerufen 22.10.2026): https://www.usp.gv.at/themen/steuern-finanzen/steuerliche-rechte-und-pflichten/registrierkassen/registrierkassenpflicht.html"
   - "USP, Kassenbelege und Manipulationsschutz (abgerufen 22.10.2026): https://www.usp.gv.at/themen/steuern-finanzen/steuerliche-rechte-und-pflichten/registrierkassen/kassenbelege.html"
-  - "Barumsatzverordnung 2015 und § 131b BAO (Definition Barumsatz; über WKO-Leitfaden und gesetzefinden.at gelesen, vor Livegang im RIS-Original gegenlesen)"
+  - "§ 132a BAO (Karten-, elektronische Zahlungen, Barschecks und eigene Gutscheine gelten als Barzahlung), § 131b BAO (Registrierkassenpflicht und Grenzen), Barumsatzverordnung 2015 (Ausnahmen und Erleichterungen); jusline, gegengelesen 23.10.2026"
 ---
 # Registrierkassenpflicht in Österreich
 
@@ -28,7 +28,7 @@ Du brauchst eine Registrierkasse, wenn dein Betrieb im Jahr mindestens 15.000 Eu
 
 Betriebe aus Gewerbe, selbstständiger Tätigkeit und Land- und Forstwirtschaft müssen ab einem Jahresumsatz von 15.000 Euro je Betrieb und Barumsätzen über 7.500 Euro im Jahr eine Registrierkasse verwenden, um die Barumsätze einzeln zu erfassen. Hast du mehrere Betriebe, zählt jeder für sich.
 
-Als Barumsatz zählt mehr als Bargeld. Nach der Barumsatzverordnung 2015 gehören Zahlungen mit Bankomat- und Kreditkarte, vergleichbare elektronische Zahlungsmittel, Schecks und vom Unternehmen ausgegebene Gutscheine dazu. Überweisungen auf dein Konto sind kein Barumsatz. Ein Friseur, der fast alles mit Karte kassiert, liegt trotzdem schnell über den 7.500 Euro.
+Als Barumsatz zählt mehr als Bargeld. Nach § 132a BAO gelten auch Zahlungen mit Bankomat- oder Kreditkarte oder vergleichbaren elektronischen Zahlungsformen sowie Barschecks und selbst ausgegebene Gutscheine, die du an Zahlungs statt annimmst, als Barzahlung. Die Kassenpflicht selbst und ihre Grenzen stehen in § 131b BAO; die Barumsatzverordnung 2015 regelt Ausnahmen und Erleichterungen. Überweisungen auf dein Konto sind kein Barumsatz. Ein Friseur, der fast alles mit Karte kassiert, liegt trotzdem schnell über den 7.500 Euro.
 
 Wann beginnt die Pflicht? Überschreitest du die Grenzen erstmals, besteht die Registrierkassenpflicht mit Beginn des viertfolgenden Monats nach Ablauf des Umsatzsteuer-Voranmeldungszeitraums. Das USP nennt zwei Beispiele. Bei monatlicher Voranmeldung und Überschreitung im Februar 2023 gilt die Pflicht ab 1. Juni 2023; bei vierteljährlicher Voranmeldung und Überschreitung im April 2016 ab 1. Oktober 2016.
 
@@ -93,7 +93,7 @@ Hast du im Jahr weniger als 15.000 Euro Umsatz? Dann keine Kasse. Liegt dein Ums
 Es kommt allein auf die beiden Grenzen an, nicht auf die Kleinunternehmerregelung. Auch Kleinunternehmer brauchen ab 15.000 Euro Umsatz und über 7.500 Euro Barumsatz eine Kasse.
 
 **Zählen Kartenzahlungen als Barumsatz?**
-Ja. Die Barumsatzverordnung rechnet Zahlungen mit Bankomat- und Kreditkarte dazu.
+Ja. § 132a BAO stellt Zahlungen mit Bankomat- und Kreditkarte der Barzahlung gleich.
 
 **Gilt die Pflicht für Online-Shops?**
 Nicht, wenn die Kundschaft das Unternehmen nicht direkt mit Bargeld bezahlt. Belege müssen trotzdem ausgestellt oder nachweislich übermittelt werden.

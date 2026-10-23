@@ -6,7 +6,7 @@ h1: "E-Rechnung in Österreich"
 slug: "e-rechnung"
 metaDescription: "Muss ich E-Rechnungen schreiben? Pflicht beim Bund, ebInterface, Peppol, PDF-Unterschied und was für Rechnungen an deutsche Kunden gilt. Stand 22.10.2026."
 publishedAt: null
-updatedAt: "2026-10-22"
+updatedAt: "2026-10-23"
 category: "E-Rechnung"
 targetKeyword: "e-rechnung"
 schema: FAQPage
@@ -17,7 +17,8 @@ quellen:
   - "WKO, E-Rechnung und E-Vergabe: https://www.wko.at/service/innovation-technologie-digitalisierung/e-rechnung-e-vergabe.html"
   - "§ 11 Abs. 2 UStG 1994, RIS (abgerufen 22.10.2026)"
   - "IHK Chemnitz, E-Rechnung für inländische B2B-Umsätze (Zeitplan, Anwendungsbereich; abgerufen 22.10.2026): https://www.ihk.de/chemnitz/e-rechnung"
-  - "BMF Deutschland, Schreiben vom 15.10.2024 zur Einführung der obligatorischen E-Rechnung (Quelle über IHK; vor Veröffentlichung im Original gegenlesen)"
+  - "BMF Deutschland, Schreiben vom 15.10.2024 zur Einführung der obligatorischen E-Rechnung (Quelle über IHK; Zeitplan gegengelesen an § 14 und § 27 Abs. 38 dUStG, gesetze-im-internet.de, 23.10.2026)"
+  - "§ 5 Abs. 1 Nr. 1 E-Rechnungsverordnung des Bundes (ERechV, Leitweg-ID), gesetze-im-internet.de (abgerufen 23.10.2026)"
 ---
 # E-Rechnung in Österreich
 
@@ -75,7 +76,7 @@ Viele österreichische Selbstständige und Firmen haben Kunden in Deutschland, u
 
 **Warum fragen deutsche Kunden trotzdem?** Weil sie selbst betroffen sind. Seit 1. Jänner 2025 müssen alle in Deutschland ansässigen Unternehmen E-Rechnungen empfangen können. Ausstellen müssen sie diese nach einer Übergangszeit: Bis Ende 2026 dürfen andere Rechnungsformate weiter genutzt werden. Im Jahr 2027 gilt das Wahlrecht weiter für Unternehmer mit höchstens 800.000 Euro Gesamtumsatz im Vorjahr. Ab 1. Jänner 2028 ist die E-Rechnung für alle relevanten inländischen Umsätze Pflicht (IHK Chemnitz, abgerufen 22.10.2026). Ein deutscher Kunde möchte deshalb nicht, dass bei ihm Rechnungen im Postfach landen, die er händisch erfassen muss.
 
-**Welche Formate sind gefragt?** Zwei sind verbreitet. XRechnung ist eine reine XML-Datei ohne Bildanteil, die ein Mensch nicht ohne Hilfsprogramm lesen kann. ZUGFeRD ist ein PDF, in das die XML-Daten eingebettet sind; es sieht aus wie eine normale Rechnung und enthält trotzdem die maschinenlesbaren Daten. Nach dem BMF-Schreiben vom 15.10.2024 erfüllen beide, ab XRechnung-Version 2.0.1, grundsätzlich die europäische Norm EN 16931 (IHK Chemnitz). Gibt dein Kunde ein Format vor, richtest du dich danach. Deutsche Behörden verlangen bei XRechnung außerdem eine Leitweg-ID, die sie dir mitteilen.
+**Welche Formate sind gefragt?** Zwei sind verbreitet. XRechnung ist eine reine XML-Datei ohne Bildanteil, die ein Mensch nicht ohne Hilfsprogramm lesen kann. ZUGFeRD ist ein PDF, in das die XML-Daten eingebettet sind; es sieht aus wie eine normale Rechnung und enthält trotzdem die maschinenlesbaren Daten. Nach dem BMF-Schreiben vom 15.10.2024 erfüllen beide, ab XRechnung-Version 2.0.1, grundsätzlich die europäische Norm EN 16931 (IHK Chemnitz). Gibt dein Kunde ein Format vor, richtest du dich danach. Bei Rechnungen an Behörden des Bundes ist die Leitweg-ID Pflichtangabe (§ 5 Abs. 1 Nr. 1 ERechV); in der XRechnung steht sie im Feld Käuferreferenz. Länder und Kommunen haben teils eigene Vorgaben, verlangen die Leitweg-ID in der Praxis aber ebenfalls. Die Nummer teilt dir der Auftraggeber mit.
 
 **Woher weiß ich, ob mein Kunde in Deutschland ansässig ist?** Frag ihn schriftlich und heb die Antwort auf. Hängt von der Antwort ab, ob du ein bestimmtes Format liefern musst, klärst du den Einzelfall mit deiner Steuerberatung, bevor du Verträge änderst.
 

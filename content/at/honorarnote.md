@@ -6,7 +6,7 @@ h1: "Honorarnote: Muster und Pflichtangaben"
 slug: "honorarnote"
 metaDescription: "Honorarnote schreiben: Muster für Freiberufler und Kleinunternehmer, Pflichtangaben nach § 11 UStG und der Unterschied zur Rechnung. Stand 22.10.2026."
 publishedAt: null
-updatedAt: "2026-10-22"
+updatedAt: "2026-10-23"
 category: "Rechnung"
 targetKeyword: "honorarnote"
 schema: FAQPage
@@ -62,11 +62,11 @@ Ein Detail macht manchmal Unterschiede: Manche Berufsgruppen sind von der Umsatz
 
 Eine Trainerin hält am 14. September 2026 einen Workshop für eine Firma in Graz. Ihre Honorarnote trägt die Nummer 2026-014 und das Datum 30. September 2026. Als Leistung steht dort „Workshop Konfliktgespräche, 14.9.2026, 6 Stunden“, das Honorar beträgt 1.200 Euro netto. Dazu kommen 20 Prozent Umsatzsteuer, also 240 Euro, der Gesamtbetrag liegt bei 1.440 Euro. Ihre UID und die Anschrift beider Seiten stehen oben. Das sind alle Merkmale aus dem Gesetz, mehr braucht das Finanzamt nicht.
 
-Zum Vergleich dieselbe Honorarnote als Kleinunternehmerin: Das Honorar bleibt bei 1.200 Euro, die Steuerzeilen entfallen, und stattdessen steht dort ein Satz wie „Umsatzsteuerbefreit gemäß § 6 Abs. 1 Z 27 UStG“. Eine feste Formulierung gibt das Gesetz dafür nicht vor.
+Zum Vergleich dieselbe Honorarnote als Kleinunternehmerin: Das Honorar bleibt bei 1.200 Euro, die Steuerzeilen entfallen, und stattdessen steht dort der Pflichthinweis auf die Steuerbefreiung, zum Beispiel „Der Rechnungsbetrag enthält gemäß § 6 Abs. 1 Z 27 UStG 1994 keine Umsatzsteuer“. Eine feste Formulierung gibt das Gesetz nicht vor, der Hinweis selbst ist aber Pflicht (§ 11 Abs. 1 Z 3 lit. e UStG).
 
 ## Honorarnote als Kleinunternehmer
 
-Bleibt dein Umsatz unter der Kleinunternehmergrenze von 55.000 Euro im Vorjahr und im laufenden Jahr, bist du nach § 6 Abs. 1 Z 27 UStG von der Umsatzsteuer befreit und weist keine aus. Auf der Honorarnote steht dann üblicherweise ein Hinweis, dass keine Umsatzsteuer verrechnet wird, mit dem Verweis auf die Befreiung. Die Grenze von 55.000 Euro steht im Gesetzestext (RIS, § 6 Abs. 1 Z 27 UStG, abgerufen 22.10.2026); sie gilt in dieser Höhe seit 1. Jänner 2025.
+Bleibt dein Umsatz unter der Kleinunternehmergrenze von 55.000 Euro im Vorjahr und im laufenden Jahr, bist du nach § 6 Abs. 1 Z 27 UStG von der Umsatzsteuer befreit und weist keine aus. Auf der Honorarnote musst du auf die Steuerbefreiung hinweisen (§ 11 Abs. 1 Z 3 lit. e UStG), zum Beispiel: „Der Rechnungsbetrag enthält gemäß § 6 Abs. 1 Z 27 UStG 1994 keine Umsatzsteuer.“ Weise keine Umsatzsteuer aus, sonst schuldest du sie dem Finanzamt (§ 11 Abs. 12 UStG). Die Grenze von 55.000 Euro steht im Gesetzestext (RIS, § 6 Abs. 1 Z 27 UStG, abgerufen 22.10.2026); sie gilt in dieser Höhe seit 1. Jänner 2025.
 
 Beachte, dass du als Kleinunternehmer keinen Vorsteuerabzug hast. Wer Rechnungen bis 400 Euro Gesamtbetrag ausstellt, darf zudem vereinfachen (siehe die Seite zu den Pflichtangaben).
 

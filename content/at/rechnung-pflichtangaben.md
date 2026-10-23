@@ -6,7 +6,7 @@ h1: "Rechnungsmerkmale in Österreich"
 slug: "rechnung-pflichtangaben"
 metaDescription: "Welche Angaben auf eine Rechnung in Österreich gehören (§ 11 UStG), was bis 400 Euro entfallen darf und wo der Vorsteuerabzug scheitert. Stand 22.10.2026."
 publishedAt: null
-updatedAt: "2026-10-22"
+updatedAt: "2026-10-23"
 category: "Rechnung"
 targetKeyword: "rechnungsmerkmale österreich"
 schema: FAQPage
@@ -79,7 +79,7 @@ Bei Reverse Charge, also wenn der Kunde die Steuer schuldet, nennst du seine UID
 
 Bei steuerbefreiten Umsätzen schreibst du einen Hinweis auf die Befreiung statt eines Steuerbetrags, zum Beispiel bei einer innergemeinschaftlichen Lieferung, wo zusätzlich die UID des Empfängers hinzukommt.
 
-Kleinunternehmer weisen keine Umsatzsteuer aus. Die Grenze liegt bei 55.000 Euro Umsatz im vorangegangenen Kalenderjahr und im laufenden Jahr noch nicht darüber (§ 6 Abs. 1 Z 27 UStG, RIS, abgerufen 22.10.2026). Auch Kleinunternehmer kommen mit den Angaben der Kleinbetragsrechnung aus; üblich ist zusätzlich ein Hinweis auf die Befreiung. Eine Beispiel-Honorarnote für Freiberufler findest du unter [Honorarnote](/at/honorarnote).
+Kleinunternehmer weisen keine Umsatzsteuer aus. Die Grenze liegt bei 55.000 Euro Umsatz im vorangegangenen Kalenderjahr und im laufenden Jahr noch nicht darüber (§ 6 Abs. 1 Z 27 UStG, RIS, abgerufen 22.10.2026). Auch Kleinunternehmer kommen mit den Angaben der Kleinbetragsrechnung aus. Pflicht ist zusätzlich ein Hinweis auf die Steuerbefreiung (§ 11 Abs. 1 Z 3 lit. e UStG), zum Beispiel: „Der Rechnungsbetrag enthält gemäß § 6 Abs. 1 Z 27 UStG 1994 keine Umsatzsteuer.“ Weist du trotzdem Umsatzsteuer aus, schuldest du sie (§ 11 Abs. 12 UStG). Eine Beispiel-Honorarnote für Freiberufler findest du unter [Honorarnote](/at/honorarnote).
 
 ## Storno, Korrektur und Gutschrift
 
