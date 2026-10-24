@@ -2,14 +2,14 @@
 title: "Stundenzettel Vorlage und Arbeitszeitaufzeichnung Österreich"
 h1: "Stundenzettel und Arbeitszeitaufzeichnung: Vorlage"
 slug: "stundenzettel-vorlage"
-metaDescription: "Stundenzettel-Vorlage für Österreich als Excel und PDF. Was § 26 AZG für die Arbeitszeitaufzeichnung verlangt. Stand 24.10.2026."
+metaDescription: "Stundenzettel-Vorlage für Österreich als Word und PDF. Was § 26 AZG für die Arbeitszeitaufzeichnung verlangt. Stand 24.10.2026."
 publishedAt: "2026-11-07"
 updatedAt: "2026-10-24"
 category: "Vorlagen"
 rubrik: "Vorlagen und Rechner"
 targetKeyword: "stundenzettel vorlage"
 schema: FAQPage
-liveBedingung: "Seite braucht die Dateien {{DOWNLOAD_STUNDENZETTEL_*}} (Excel, PDF) vom Engineer/Design. Ohne Dateien nicht freischalten."
+liveBedingung: "Seite braucht die Dateien {{DOWNLOAD_STUNDENZETTEL_*}} (Word, PDF) vom Engineer/Design. Ohne Dateien nicht freischalten."
 quellen:
   - "§ 26 Arbeitszeitgesetz (AZG), RIS (Fassung vom 24.10.2026): https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10008238&Paragraf=26"
   - "WKO, Arbeitszeitaufzeichnung (abgerufen 24.10.2026): https://www.wko.at/oe/gewerbe-handwerk/gewerbliche-dienstleister/-26-azg-beachtungen-bei-aufzeichnungen.pdf"

@@ -1,15 +1,15 @@
 ---
-title: "Rechnungsvorlage Österreich: Word, Excel, PDF zum Download"
+title: "Rechnungsvorlage Österreich: Word und PDF zum Download"
 h1: "Rechnungsvorlage für Österreich"
 slug: "rechnungsvorlage"
-metaDescription: "Rechnungsvorlage Österreich: drei Varianten als Word, Excel und PDF, mit Pflichtangaben nach § 11 UStG. Stand 24.10.2026."
+metaDescription: "Rechnungsvorlage Österreich: drei Varianten als Word und PDF, mit Pflichtangaben nach § 11 UStG. Stand 24.10.2026."
 publishedAt: "2026-11-04"
 updatedAt: "2026-10-24"
 category: "Rechnung"
 rubrik: "Vorlagen und Rechner"
 targetKeyword: "rechnungsvorlage österreich"
 schema: FAQPage
-liveBedingung: "Seite braucht die Dateien (Word, Excel, PDF je Variante) vom Engineer/Design. Platzhalter {{DOWNLOAD_RECHNUNGSVORLAGE_*}} werden dort eingesetzt. Ohne Dateien nicht freischalten."
+liveBedingung: "Seite braucht die Dateien (Word, PDF je Variante) vom Engineer/Design. Platzhalter {{DOWNLOAD_RECHNUNGSVORLAGE_*}} werden dort eingesetzt. Ohne Dateien nicht freischalten."
 quellen:
   - "§ 11 UStG 1994, RIS (Fassung vom 24.10.2026): https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10004873&Paragraf=11"
   - "USP, Kleinunternehmen (Regelung seit 1. Jänner 2025), abgerufen 24.10.2026: https://www.usp.gv.at/themen/steuern-finanzen/umsatzsteuer-ueberblick/weitere-informationen-zur-umsatzsteuer/weitere-steuertatbestaende-und-befreiungen/kleinunternehmen.html"
@@ -55,7 +55,7 @@ Dann die Rechnungsnummer. Vergib sie fortlaufend, ohne Lücken, jeder Wert genau
 
 Dann die Leistung. Schreib so konkret, dass ein Dritter versteht, was geliefert wurde: „Logo-Entwurf, 3 Varianten, geliefert am 12.9.2026“ statt „Grafikarbeiten“. Dazu den Leistungstag oder Zeitraum.
 
-Zum Schluss die Beträge. In Excel prüfst du, ob die Formeln greifen: Nettosumme mal Steuersatz ergibt den Steuerbetrag, beides zusammen den Gesamtbetrag. Wenn du Zeilen einfügst, kontrollierst du, ob die Summenformel sie mitnimmt.
+Zum Schluss die Beträge. Rechne nach, bevor du die Rechnung verschickst: Nettosumme mal Steuersatz ergibt den Steuerbetrag, beides zusammen den Gesamtbetrag. Wenn du Zeilen einfügst, kontrollierst du, ob die Summe sie mitnimmt.
 
 ## Welche Variante brauche ich?
 
@@ -67,7 +67,7 @@ Rechnest du an einen Unternehmer im EU-Ausland ab, brauchst du meist eine der Vo
 
 ## Warum Vorlagen Fehler begünstigen
 
-Wir bieten die Dateien an, weil viele sie suchen, und wir sagen dir dazu, wo sie Probleme machen. Eine Word-Datei rechnet nicht. Du tippst die Summe selbst ein, und ein Zahlendreher fällt oft erst dem Kunden auf. Eine Excel-Datei rechnet, kennt aber keine Nummernkreise; sie vergibt keine Rechnungsnummern und warnt nicht bei Duplikaten. Beides sind Fehlerquellen, die bei wenigen Rechnungen im Jahr kaum ins Gewicht fallen und bei fünfzig im Monat schnell teuer werden.
+Wir bieten die Dateien an, weil viele sie suchen, und wir sagen dir dazu, wo sie Probleme machen. Eine Word-Datei rechnet nicht. Du tippst die Summe selbst ein, und ein Zahlendreher fällt oft erst dem Kunden auf. Auch eine Tabellenkalkulation wie Excel rechnet zwar, kennt aber keine Nummernkreise; sie vergibt keine Rechnungsnummern und warnt nicht bei Duplikaten. Beides sind Fehlerquellen, die bei wenigen Rechnungen im Jahr kaum ins Gewicht fallen und bei fünfzig im Monat schnell teuer werden.
 
 Als Faustregel funktionieren Vorlagen gut für einen Start, für wenige Rechnungen und für Kleinunternehmer ohne Vorsteuerfragen. Sobald Nummern, Zahlungseingänge und Mahnungen dazukommen, lohnt sich ein Programm, das mitzählt.
 

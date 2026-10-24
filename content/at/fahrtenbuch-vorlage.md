@@ -2,14 +2,14 @@
 title: "Fahrtenbuch Vorlage Österreich: Pflichtangaben und Muster"
 h1: "Fahrtenbuch: Vorlage und Pflichtangaben"
 slug: "fahrtenbuch-vorlage"
-metaDescription: "Fahrtenbuch Vorlage für Österreich als Excel und PDF. Welche Angaben du brauchst, wann es Pflicht ist und wie es zum Kilometergeld passt. Stand 24.10.2026."
+metaDescription: "Fahrtenbuch Vorlage für Österreich als Word und PDF. Welche Angaben du brauchst, wann es Pflicht ist und wie es zum Kilometergeld passt. Stand 24.10.2026."
 publishedAt: "2026-11-08"
 updatedAt: "2026-10-24"
 category: "Vorlagen"
 rubrik: "Vorlagen und Rechner"
 targetKeyword: "fahrtenbuch vorlage"
 schema: FAQPage
-liveBedingung: "Seite braucht die Dateien {{DOWNLOAD_FAHRTENBUCH_*}} (Excel, PDF). Ohne Dateien nicht freischalten."
+liveBedingung: "Seite braucht die Dateien {{DOWNLOAD_FAHRTENBUCH_*}} (Word, PDF). Ohne Dateien nicht freischalten."
 quellen:
   - "BMF, Kilometergeld (abgerufen 24.10.2026): https://www.bmf.gv.at/themen/steuern/kraftfahrzeuge/kilometergeld.html"
   - "§ 26 Z 4 EStG 1988, RIS (Fassung vom 24.10.2026): https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10004570&Paragraf=26"

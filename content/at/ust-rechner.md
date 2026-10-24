@@ -2,7 +2,7 @@
 title: "USt-Rechner Österreich: Brutto, Netto und UVA-Fristen"
 h1: "USt-Rechner für Österreich"
 slug: "ust-rechner"
-metaDescription: "Umsatzsteuer berechnen: Brutto zu Netto und zurück mit 20, 13 und 10 Prozent. Dazu die Fristen der Umsatzsteuervoranmeldung (UVA). Stand 24.10.2026."
+metaDescription: "Umsatzsteuer berechnen: Brutto zu Netto und zurück mit 20, 13, 10 und 4,9 Prozent. Dazu die Fristen der Umsatzsteuervoranmeldung (UVA). Stand 24.10.2026."
 publishedAt: "2026-11-09"
 updatedAt: "2026-10-24"
 category: "Umsatzsteuer"
@@ -26,7 +26,7 @@ Gib einen Betrag ein, wähle den Steuersatz und den Rechenweg (von netto zu brut
 
 ## Kurzantwort
 
-Der normale Umsatzsteuersatz in Österreich beträgt 20 Prozent. Daneben gibt es ermäßigte Sätze von 10 und 13 Prozent. Von netto zu brutto rechnest du so: Nettobetrag mal 1,20. Von brutto zu netto: Bruttobetrag durch 1,20. Die Steuer selbst ist Brutto minus Netto.
+Der normale Umsatzsteuersatz in Österreich beträgt 20 Prozent. Daneben gibt es ermäßigte Sätze von 13 und 10 Prozent. Seit 1. Juli 2026 gilt für ausgewählte Grundnahrungsmittel außerdem 4,9 Prozent (§ 10 Abs. 1a UStG). Von netto zu brutto rechnest du so: Nettobetrag mal 1,20. Von brutto zu netto: Bruttobetrag durch 1,20. Die Steuer selbst ist Brutto minus Netto.
 
 ## Die Formeln
 
@@ -45,10 +45,11 @@ Ein häufiger Fehler: Wer aus 1.200 Euro brutto die Steuer berechnen will, nimmt
 | 20 % | 1,20 | 1.200,00 € | 833,33 € |
 | 13 % | 1,13 | 1.130,00 € | 884,96 € |
 | 10 % | 1,10 | 1.100,00 € | 909,09 € |
+| 4,9 % | 1,049 | 1.049,00 € | 953,29 € |
 
 ## Welcher Steuersatz gilt?
 
-Der Regelsatz von 20 Prozent gilt für die meisten Leistungen und Lieferungen (§ 10 UStG, RIS). Ermäßigt besteuert sind unter anderem Lebensmittel, Bücher, Zeitungen und die Vermietung von Wohnraum zu 10 Prozent, bestimmte kulturelle Leistungen und lebende Tiere zu 13 Prozent. Welche Leistung unter welchen Satz fällt, zählt § 10 UStG einzeln auf; im Zweifel fragst du die Steuerberatung, bevor du die erste Rechnung schreibst. Falsche Sätze kosten Geld: Weist du zu wenig Steuer aus, zahlst du die Differenz aus eigener Tasche.
+Der Regelsatz von 20 Prozent gilt für die meisten Leistungen und Lieferungen (§ 10 UStG, RIS). Ermäßigt besteuert sind unter anderem viele Lebensmittel, Bücher, Zeitungen und die Vermietung von Wohnraum zu 10 Prozent, bestimmte kulturelle Leistungen und lebende Tiere zu 13 Prozent. Dazu kommt seit 1. Juli 2026 der Satz von 4,9 Prozent für die Gegenstände, die Anlage 3 zum UStG aufzählt (ausgewählte Grundnahrungsmittel); er gilt nur, wenn eine Lieferung ausschließlich solche Gegenstände betrifft. Welche Leistung unter welchen Satz fällt, zählt § 10 UStG einzeln auf; im Zweifel fragst du die Steuerberatung, bevor du die erste Rechnung schreibst. Falsche Sätze kosten Geld: Weist du zu wenig Steuer aus, zahlst du die Differenz aus eigener Tasche.
 
 Dazu kommt der Satz 0 Prozent für steuerfreie Umsätze und Ausfuhren. Und für Kleinunternehmer entfällt die Steuer ganz; mehr dazu auf der Seite [Kleinunternehmer-Rechnung](/at/kleinunternehmer-rechnung).
 
@@ -82,7 +83,7 @@ Brutto wird mit dem Prozentsatz multipliziert statt durch den Faktor geteilt. Di
 ## Häufige Fragen
 
 **Wie hoch ist die Umsatzsteuer in Österreich?**
-20 Prozent im Regelfall, 10 oder 13 Prozent für bestimmte Leistungen und Waren.
+20 Prozent im Regelfall, 13 oder 10 Prozent für bestimmte Leistungen und Waren. Seit 1. Juli 2026 gelten 4,9 Prozent für ausgewählte Grundnahrungsmittel.
 
 **Wie rechne ich 20 Prozent Umsatzsteuer heraus?**
 Bruttobetrag durch 1,2 teilen. Aus 600 Euro brutto werden 500 Euro netto, die Steuer beträgt 100 Euro.

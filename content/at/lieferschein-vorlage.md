@@ -2,14 +2,14 @@
 title: "Lieferschein Vorlage Österreich: Muster zum Download"
 h1: "Lieferschein: Vorlage und Pflichtangaben"
 slug: "lieferschein-vorlage"
-metaDescription: "Lieferschein-Vorlage für Österreich als Excel und PDF. Was draufstehen sollte, wie er zur Rechnung passt und wie lange du ihn aufbewahrst. Stand 24.10.2026."
+metaDescription: "Lieferschein-Vorlage für Österreich als Word und PDF. Was draufstehen sollte, wie er zur Rechnung passt und wie lange du ihn aufbewahrst. Stand 24.10.2026."
 publishedAt: "2026-11-10"
 updatedAt: "2026-10-24"
 category: "Vorlagen"
 rubrik: "Vorlagen und Rechner"
 targetKeyword: "lieferschein vorlage"
 schema: FAQPage
-liveBedingung: "Seite braucht die Dateien {{DOWNLOAD_LIEFERSCHEIN_*}} (Excel, PDF). Ohne Dateien nicht freischalten."
+liveBedingung: "Seite braucht die Dateien {{DOWNLOAD_LIEFERSCHEIN_*}} (Word, PDF). Ohne Dateien nicht freischalten."
 quellen:
   - "§ 11 UStG 1994, RIS (Fassung vom 24.10.2026): https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10004873&Paragraf=11"
   - "§ 132 BAO (Aufbewahrung), RIS: https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10003940&Paragraf=132"
