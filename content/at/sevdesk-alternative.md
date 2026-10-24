@@ -27,7 +27,7 @@ Stand: 24. Oktober 2026
 
 ## Kurzantwort
 
-sevdesk bietet eine eigene Österreich-Version mit österreichischen Steuersätzen und Kassabuch; Lexware Office (früher lexoffice) ist nach Angabe des Herstellers ausschließlich für Deutschland geeignet. Für einen Betrieb mit Sitz in Österreich scheidet Lexware Office damit aus. sevdesk ist eine ernsthafte Option, mit einem Gratis-Tarif; wer für die Steuerberatung BMD oder RZL braucht, sollte vorher nachfragen, denn sevdesk nennt auf den geprüften Seiten DATEV und ADDISON.
+sevdesk bietet eine eigene Österreich-Version mit österreichischen Steuersätzen und Kassabuch; Lexware Office (früher lexoffice) ist nach Angabe des Herstellers ausschließlich für Deutschland geeignet. Nach Angabe des Herstellers ist Lexware Office also nicht für den Einsatz in Österreich vorgesehen. sevdesk hat einen Gratis-Tarif; wer für die Steuerberatung BMD oder RZL braucht, sollte vorher nachfragen, denn sevdesk nennt auf den geprüften Seiten DATEV und ADDISON.
 
 ## sevdesk in Österreich
 
@@ -44,7 +44,7 @@ sevdesk betreibt für Österreich die Seite sevdesk.at. Dort beschreibt der Anbi
 
 Auf der Preisseite lief am Abrufdatum eine Aktion mit bis zu 50 Prozent Rabatt bei 24 Monaten Laufzeit; mit ihr stehen dort 4,45 €, 9,95 € und 13,95 € pro Monat. Aktionen enden, achte auf das, was du nach der ersten Laufzeit zahlst.
 
-**Für wen passt es?** Für Selbstständige und Kleinunternehmer, die ein verbreitetes Programm mit Gratis-Einstieg suchen und deren Steuerberatung mit DATEV oder ADDISON arbeitet.
+**Für wen passt es?** Für Selbstständige und Kleinunternehmer, die ein Programm mit Gratis-Einstieg suchen und deren Steuerberatung mit DATEV oder ADDISON arbeitet.
 
 **Was du klären solltest:** Welches Exportformat deine Steuerberatung verlangt. In Österreich ist BMD verbreitet, daneben RZL. Beide nennt sevdesk auf den geprüften Seiten nicht; dort stehen DATEV und ADDISON als Exporte. Frag bei sevdesk oder deiner Steuerberatung nach, bevor du dich festlegst. Ebenso solltest du klären, ob du eine Registrierkasse nach RKSV brauchst: sevdesk bietet ein Kassabuch, ein Kassensystem im Sinne einer Registrierkasse nennt es auf den geprüften Seiten nicht.
 
@@ -52,11 +52,11 @@ Auf der Preisseite lief am Abrufdatum eine Aktion mit bis zu 50 Prozent Rabatt b
 
 Der Hersteller beantwortet die Frage im eigenen Help Center eindeutig: „Die Anwendung Lexware Office ist ausschließlich für die Nutzung in Deutschland geeignet. Sie können keine gültigen länderspezifischen Steuersätze, Währungen oder das Onlinebanking außerhalb Deutschlands verwenden“ (Lexware Office Help Center, Artikel vom 4. Februar 2026, abgerufen 24.10.2026).
 
-Für dich heißt das: Ein Betrieb mit Sitz in Österreich, der 20 Prozent Umsatzsteuer ausweisen muss, kann sich auf das Programm nicht verlassen. Der Hersteller sieht den Einsatz außerhalb Deutschlands nicht vor. Wenn du ausschließlich in Deutschland tätig bist, ist das eine andere Frage, die diese Seite nicht beantwortet.
+Der Hersteller nennt nur diese Einschränkung; zu einzelnen Funktionen wie Registrierkasse, FinanzOnline oder BMD sagt er nichts, und wir haben sie nicht geprüft. Orange-Octo-Angaben stammen aus unserem eigenen Produkt, Angaben zu anderen Programmen von deren Webseiten. Wenn du ausschließlich in Deutschland tätig bist, ist das eine andere Frage, die diese Seite nicht beantwortet.
 
 ## Orange Octo als Alternative
 
-Orange Octo ist für Selbstständige und kleine Betriebe gedacht, die Rechnungen schreiben, Belege erfassen und der Steuerberatung Daten liefern. Die Tarife kosten netto 12 € (Starter), 26 € (Business) und 44 € (Pro) pro Monat, bei Jahreszahlung 9 €, 21 € und 36 €; 14 Tage lang kannst du ohne Kreditkarte testen (Orange Octo, abgerufen 24.10.2026).
+Orange Octo ist für Selbstständige und kleine Betriebe gedacht, die Rechnungen schreiben, Belege erfassen und der Steuerberatung Daten liefern. Die Tarife kosten netto 12 € (Starter), 26 € (Business) und 44 € (Pro) pro Monat, bei Jahreszahlung 9 €, 21 € und 36 € pro Monat; 14 Tage lang kannst du ohne Kreditkarte testen (Orange Octo, abgerufen 24.10.2026).
 
 Für Österreich bieten wir:
 

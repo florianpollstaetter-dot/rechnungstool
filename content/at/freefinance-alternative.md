@@ -50,9 +50,9 @@ Alle Preise netto pro Monat. FreeFinance rechnet im Voraus für die gesamte Lauf
 | Laufzeit | 12 oder 36 Monate, im Voraus | monatlich kündbar |
 | Test | kostenlos testen | 14 Tage, keine Kreditkarte |
 
-Zwei Dinge fallen auf. Der Einstiegspreis ist ähnlich, aber bei FreeFinance fehlt dort die Rechnungsstellung; wer Rechnungen schreibt, zahlt für das Paket Plus 25 Euro statt 12. Und bei FreeFinance steigt der Preis mit dem Jahresumsatz: Der Basispreis gilt bis 700.000 Euro, darüber kommen Zuschläge von 12 Euro und mehr dazu (FreeFinance, abgerufen 24.10.2026).
+Zwei Dinge fallen auf. Der Einstiegspreis ist ähnlich, aber bei FreeFinance fehlt dort die Rechnungsstellung; wer Rechnungen schreibt, zahlt für das Paket Plus 25 Euro statt 12. Plus enthält darüber hinaus Buchhaltung und Bankanbindung und ist deshalb mit unserem Starter nicht gleichwertig. Und bei FreeFinance steigt der Preis mit dem Jahresumsatz: Der Basispreis gilt bis 700.000 Euro, darüber kommen Zuschläge von 12 Euro und mehr dazu (FreeFinance, abgerufen 24.10.2026).
 
-Bei den Orange-Octo-Preisen gilt: Starter 12 €, Business 26 €, Pro 44 € monatlich; bei Jahreszahlung 9 €, 21 € und 36 € (Orange Octo, abgerufen 24.10.2026).
+Bei den Orange-Octo-Preisen gilt: Starter 12 €, Business 26 €, Pro 44 € monatlich; bei Jahreszahlung 9 €, 21 € und 36 € pro Monat (Orange Octo, abgerufen 24.10.2026).
 
 ## Was Orange Octo für Österreich kann
 

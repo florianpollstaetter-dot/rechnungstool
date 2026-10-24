@@ -28,7 +28,7 @@ Stand: 24. Oktober 2026
 
 ## Kurzantwort
 
-Ein Rechnungsprogramm für Österreich muss mehr können als hübsche PDFs schreiben. Der Unterschied liegt in den Dingen, die es nur hier gibt: Kleinunternehmer-Hinweis nach österreichischem Recht, Registrierkasse nach RKSV, Voranmeldung über FinanzOnline, ebInterface für Rechnungen an den Bund, Export für die Steuerberatung (BMD, RZL). Wer eine Registrierkasse braucht, ist bei FreeFinance gut aufgehoben. Wer vor allem günstig Rechnungen schreiben und der Steuerberatung Daten liefern will, schaut auf everbill, sevdesk oder Orange Octo. Lexware Office scheidet aus, weil der Hersteller es selbst nur für Deutschland vorsieht.
+Ein Rechnungsprogramm für Österreich muss mehr können als hübsche PDFs schreiben. Der Unterschied liegt in den Dingen, die es nur hier gibt: Kleinunternehmer-Hinweis nach österreichischem Recht, Registrierkasse nach RKSV, Voranmeldung über FinanzOnline, ebInterface für Rechnungen an den Bund, Export für die Steuerberatung (BMD, RZL). Wer eine Registrierkasse braucht, ist bei FreeFinance gut aufgehoben. Wer vor allem günstig Rechnungen schreiben und der Steuerberatung Daten liefern will, schaut auf everbill, sevdesk oder Orange Octo. Lexware Office ist nach Angabe des Herstellers nicht für den Einsatz in Österreich vorgesehen.
 
 ## Die Programme im Überblick
 
@@ -40,7 +40,7 @@ Alle Preise netto (ohne Umsatzsteuer), pro Monat, Stand 24.10.2026.
 | everbill | 9,90 € (Rechnung) | monatlich; 8,90 € bei jährlicher, 7,90 € bei zweijähriger Zahlung |
 | sevdesk | 11,90 € (Rechnung); kostenloser Tarif mit 3 Rechnungen pro Monat | monatlich kündbar; Rabatte bei längerer Laufzeit |
 | Lexware Office | nicht verglichen | nur für Deutschland vorgesehen |
-| Orange Octo | 12 € (Starter) | monatlich; 9 € bei Jahreszahlung |
+| Orange Octo | 12 € (Starter) | monatlich; 9 € pro Monat bei Jahreszahlung |
 
 Zwei Hinweise zu den Zahlen. Bei FreeFinance enthält der günstigste Tarif Buchhaltung, aber keine Rechnungsstellung; die Rechnungen gehören zum Paket Plus (25 € bei 12 Monaten, 22 € bei 36 Monaten). Bei sevdesk und everbill laufen auf den Preisseiten zeitlich begrenzte Rabattaktionen (bei sevdesk bis zu 50 Prozent bei 24 Monaten Laufzeit); in der Tabelle stehen die Listenpreise.
 
@@ -50,14 +50,14 @@ Diese Merkmale unterscheiden Programme für Österreich von deutscher Software:
 
 | Merkmal | FreeFinance | everbill | sevdesk | Lexware Office | Orange Octo |
 |---|---|---|---|---|---|
-| Registrierkasse (RKSV) | ja, im Paket Premium oder als Zusatz (11 € pro Monat, einmalig 119 € für die Signatur) | auf der Preisseite nicht genannt | nicht geprüft; Kassabuch vorhanden | laut Hersteller nicht vorgesehen | nein |
-| UVA über FinanzOnline | ja, Direktschnittstelle zu FinanzOnline | auf der Preisseite nicht genannt | nicht geprüft | laut Hersteller nicht vorgesehen | nein |
-| E-Rechnung für den Bund (ebInterface) | „auf Wunsch“ elektronische Rechnung, etwa an den Bund | nicht geprüft | nicht geprüft; ZUGFeRD und XRechnung | laut Hersteller nicht vorgesehen | ja, Export im Format ebInterface 6.1 |
-| Export für die Steuerberatung | Zusammenarbeit mit dem Berater online | BMD-Export in allen Tarifen | DATEV und ADDISON | laut Hersteller nicht vorgesehen | BMD- und RZL-Export |
-| Kleinunternehmer | als Zielgruppe genannt | nicht geprüft | als Zielgruppe genannt, eigene Seite | laut Hersteller nicht vorgesehen | Hinweis nach § 6 Abs. 1 Z 27 UStG auf der Rechnung |
-| UID-Prüfung | ja, Abfrage direkt im Programm | nicht geprüft | nicht geprüft | laut Hersteller nicht vorgesehen | ja, über die EU-Datenbank VIES |
+| Registrierkasse (RKSV) | ja, im Paket Premium oder als Zusatz (11 € pro Monat, einmalig 119 € für die Signatur) | auf der Preisseite nicht genannt | nicht geprüft; Kassabuch vorhanden | nicht geprüft | nein |
+| UVA über FinanzOnline | ja, Direktschnittstelle zu FinanzOnline | auf der Preisseite nicht genannt | nicht geprüft | nicht geprüft | nein |
+| E-Rechnung für den Bund (ebInterface) | „auf Wunsch“ elektronische Rechnung, etwa an den Bund | nicht geprüft | nicht geprüft; ZUGFeRD und XRechnung | nicht geprüft | ja, Export im Format ebInterface 6.1 |
+| Export für die Steuerberatung | Zusammenarbeit mit dem Berater online | BMD-Export in allen Tarifen | DATEV und ADDISON | nicht geprüft | BMD- und RZL-Export |
+| Kleinunternehmer | als Zielgruppe genannt | nicht geprüft | als Zielgruppe genannt, eigene Seite | nicht geprüft | Hinweis nach § 6 Abs. 1 Z 27 UStG auf der Rechnung |
+| UID-Prüfung | ja, Abfrage direkt im Programm | nicht geprüft | nicht geprüft | nicht geprüft | ja, über die EU-Datenbank VIES |
 
-„Nicht geprüft“ heißt: Die Funktion kann es geben; wir haben sie auf den Seiten des Anbieters nicht gefunden oder nicht nachprüfen können. Wir behaupten nichts, was wir nicht belegen können. Wenn du eine Funktion brauchst, frag beim Anbieter nach.
+Bei Lexware Office nennt der Hersteller nur, dass das Programm ausschließlich für Deutschland geeignet ist; zu den einzelnen Funktionen sagt er nichts, und wir haben sie nicht geprüft. „Nicht geprüft“ und „auf der Preisseite nicht genannt“ heißen: Die Funktion kann es geben; wir haben sie auf den Seiten des Anbieters nicht gefunden oder nicht nachprüfen können. Die Angaben zu Orange Octo stammen aus unserem eigenen Produkt, die Angaben zu den anderen Programmen von deren Webseiten. Wir behaupten nichts, was wir nicht belegen können. Wenn du eine Funktion brauchst, frag beim Anbieter nach.
 
 ## FreeFinance: der Allrounder für Österreich
 
@@ -79,13 +79,13 @@ everbill ist ein österreichisches Programm; die Daten liegen auf einem Server i
 
 sevdesk hat eine eigene Seite für Österreich (sevdesk.at) mit österreichischen Steuersätzen und einem Kassabuch. Es gibt einen dauerhaft kostenlosen Tarif mit drei Rechnungen oder E-Rechnungen im Monat; darüber liegen die Tarife Rechnung (11,90 €), Buchhaltung (25,90 €) und Buchhaltung Pro (34,90 €), jeweils bei monatlicher Zahlung (sevdesk, abgerufen 24.10.2026). Als Exportformate für die Steuerberatung nennt sevdesk DATEV und ADDISON; BMD und RZL stehen auf den von uns geprüften Seiten nicht.
 
-**Wer dort gut aufgehoben ist:** Wer ein bekanntes, vielfach bewertetes Programm sucht und dessen Steuerberatung mit DATEV arbeitet, oder wer mit dem kostenlosen Tarif anfangen will.
+**Wer dort gut aufgehoben ist:** Wer mit dem kostenlosen Tarif anfangen will oder dessen Steuerberatung mit DATEV arbeitet.
 
 **Wo es weniger passt:** Wenn deine Steuerberatung BMD oder RZL verlangt, solltest du vorher klären, wie die Daten dort ankommen.
 
 ## Lexware Office (früher lexoffice): nur für Deutschland
 
-Der Hersteller schreibt im eigenen Help Center: „Die Anwendung Lexware Office ist ausschließlich für die Nutzung in Deutschland geeignet. Sie können keine gültigen länderspezifischen Steuersätze, Währungen oder das Onlinebanking außerhalb Deutschlands verwenden“ (Lexware Office Help Center, Artikel vom 4. Februar 2026, abgerufen 24.10.2026). Für einen Betrieb mit Sitz in Österreich ist das Programm daher keine Option. Wer trotzdem lexoffice kennt, findet auf der Seite [sevdesk und lexoffice in Österreich](/at/sevdesk-alternative) mehr dazu.
+Der Hersteller schreibt im eigenen Help Center: „Die Anwendung Lexware Office ist ausschließlich für die Nutzung in Deutschland geeignet. Sie können keine gültigen länderspezifischen Steuersätze, Währungen oder das Onlinebanking außerhalb Deutschlands verwenden“ (Lexware Office Help Center, Artikel vom 4. Februar 2026, abgerufen 24.10.2026). Nach Angabe des Herstellers ist Lexware Office also nicht für den Einsatz in Österreich vorgesehen. Wer trotzdem lexoffice kennt, findet auf der Seite [sevdesk und lexoffice in Österreich](/at/sevdesk-alternative) mehr dazu.
 
 ## Orange Octo: schlank, mit den Österreich-Funktionen für Rechnung und Steuerberatung
 
@@ -99,7 +99,7 @@ Das können wir nicht: Wir bieten keine Registrierkasse nach RKSV, und die Umsat
 
 ## Welches Programm passt zu dir?
 
-Brauchst du eine Registrierkasse, dann FreeFinance. Arbeitet deine Steuerberatung mit BMD und du willst vor allem Rechnungen schreiben, sind everbill und Orange Octo die engeren Kandidaten. Möchtest du kostenlos anfangen, hilft der Gratis-Tarif von sevdesk. Sitzt du in Österreich, lass Lexware Office aus.
+Brauchst du eine Registrierkasse, dann FreeFinance. Arbeitet deine Steuerberatung mit BMD und du willst vor allem Rechnungen schreiben, sind everbill und Orange Octo die engeren Kandidaten. Möchtest du kostenlos anfangen, hilft der Gratis-Tarif von sevdesk. Lexware Office ist nach Angabe des Herstellers nicht für Österreich vorgesehen.
 
 Frag zuerst deine Steuerberatung, womit sie am liebsten arbeitet. Das spart dir den Umstieg, wenn die Daten sonst abgetippt werden müssten.
 
@@ -112,7 +112,7 @@ Beim Listenpreis liegt everbill (ab 7,90 € bei zweijähriger Zahlung) vor Oran
 Nein, eine Vorlage genügt am Anfang; die Seite [Rechnungsvorlage](/at/rechnungsvorlage) hilft dir dabei. Ein Programm lohnt sich, sobald du Nummern, Zahlungseingänge und Mahnungen im Blick behalten willst.
 
 **Kann ich deutsche Software in Österreich nutzen?**
-Das hängt vom Programm ab. Lexware Office schließt es selbst aus; sevdesk bietet eine Österreich-Version. Prüfe Steuersätze, Kleinunternehmer-Hinweis, Voranmeldung und Registrierkasse.
+Das hängt vom Programm ab. Lexware Office ist laut Hersteller nur für Deutschland geeignet; sevdesk bietet eine Österreich-Version. Prüfe Steuersätze, Kleinunternehmer-Hinweis, Voranmeldung und Registrierkasse.
 
 **Was ist ebInterface?**
 Das österreichische Format für strukturierte Rechnungen, das der Bund akzeptiert. Mehr dazu auf der Seite [E-Rechnung in Österreich](/at/e-rechnung).
