@@ -231,15 +231,18 @@ function md(text: string, opt: RenderOptionen): string {
 
 export function atFaqJsonLd(seite: AtSeite): object | null {
   if (!seite.faqSchema) return null;
-  const faqs: FaqEntry[] = extractFaqs(seite.body);
+  // Textbausteine wie im Fließtext ersetzen; übrige Platzhalter dürfen nicht
+  // roh in den strukturierten Daten für Google landen.
+  const faqs: FaqEntry[] = extractFaqs(ersetzeTextbausteine(seite.body));
   if (faqs.length === 0) return null;
+  const ohnePlatzhalter = (t: string) => t.replace(PLATZHALTER_RE, "").replace(/[ \t]{2,}/g, " ").trim();
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     mainEntity: faqs.map((f) => ({
       "@type": "Question",
-      name: f.question,
-      acceptedAnswer: { "@type": "Answer", text: f.answer },
+      name: ohnePlatzhalter(f.question),
+      acceptedAnswer: { "@type": "Answer", text: ohnePlatzhalter(f.answer) },
     })),
   };
 }

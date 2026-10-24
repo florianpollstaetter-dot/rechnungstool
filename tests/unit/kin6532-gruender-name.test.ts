@@ -4,7 +4,7 @@
 //   npx tsx tests/unit/kin6532-gruender-name.test.ts
 
 import assert from "node:assert/strict";
-import { ersetzeTextbausteine, renderAbschnitte, GRUENDER_NAME } from "../../src/lib/at-ratgeber";
+import { atFaqJsonLd, ersetzeTextbausteine, getVeroeffentlichteAtSeiten, renderAbschnitte, GRUENDER_NAME } from "../../src/lib/at-ratgeber";
 
 let passed = 0;
 function check(name: string, fn: () => void) {
@@ -50,4 +50,19 @@ check("renderAbschnitte: Name per Option, Formular-Baustein bleibt erhalten", ()
   assert.deepEqual(a[1], { art: "baustein", name: "UID_PRUEFFORMULAR" });
 });
 
-console.log(`\n${passed} checks passed`);
+void (async () => {
+  const seiten = await getVeroeffentlichteAtSeiten();
+  check("FAQ-Daten für Google (JSON-LD): kein {{ und keine leere Klammer auf veröffentlichten Seiten", () => {
+    assert.ok(seiten.length > 0);
+    for (const seite of seiten) {
+      const json = JSON.stringify(atFaqJsonLd(seite) ?? {});
+      assert.doesNotMatch(json, /\{\{/, seite.slug);
+      assert.doesNotMatch(json, /\(\s*\)/, seite.slug);
+    }
+  });
+
+  console.log(`\n${passed} checks passed`);
+})().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
