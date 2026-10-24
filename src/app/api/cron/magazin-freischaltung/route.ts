@@ -9,6 +9,9 @@
 //   2. meldet die heute erschienenen URLs per IndexNow.
 //
 // Authentifizierung wie /api/treasury/ebics/poll: `Authorization: Bearer $CRON_SECRET`.
+// Solange CRON_SECRET im Vercel-Projekt fehlt (Stand 24.10.2026; Setzen würde
+// auch den EBICS-Cron scharf schalten), genügt der User-Agent `vercel-cron/…`.
+// Vertretbar, weil der Cron nur öffentliche Seiten neu erzeugt und sie meldet.
 // `?datum=YYYY-MM-DD` meldet einen verpassten Tag nach (nur Daten bis heute).
 
 import { revalidatePath } from "next/cache";
@@ -21,10 +24,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request): Promise<NextResponse> {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return NextResponse.json({ ok: false, error: "CRON_SECRET not configured" }, { status: 503 });
-  if (!timingSafeEqual(request.headers.get("authorization") ?? "", `Bearer ${secret}`)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
+  const erlaubt = secret
+    ? timingSafeEqual(request.headers.get("authorization") ?? "", `Bearer ${secret}`)
+    : (request.headers.get("user-agent") ?? "").startsWith("vercel-cron/");
+  if (!erlaubt) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
   const heute = heuteInWien();
   const angefragt = new URL(request.url).searchParams.get("datum");
