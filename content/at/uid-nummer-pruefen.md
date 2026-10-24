@@ -6,6 +6,7 @@ metaDescription: "UID-Nummer eines EU-Geschäftspartners prüfen: Formular, Aufb
 publishedAt: "2026-10-23"
 updatedAt: "2026-10-22"
 category: "Umsatzsteuer"
+rubrik: "Steuern und Abgaben"
 targetKeyword: "uid nummer prüfen"
 schema: FAQPage
 liveBedingung: "Erst live, wenn das Prüf-Formular aus KIN-6527 eingebettet ist. Text ist fertig."

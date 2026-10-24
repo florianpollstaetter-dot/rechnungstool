@@ -23,6 +23,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isPublicApiPath } from "@/lib/auth/api-access-policy";
+import { INDEXNOW_KEY } from "@/lib/magazin/indexnow";
 
 const TREASURY_PATH_PREFIXES = ["/treasury", "/api/treasury"];
 // ORA-2679 — /blog and /blog/<slug> are public marketing/SEO pages; without
@@ -32,7 +33,8 @@ const PUBLIC_PATHS = ["/impressum", "/agb", "/datenschutz", "/widerruf", "/blog"
 // SCH-910 — SEO/indexing files MUST resolve without auth-redirect.
 // Without this whitelist /robots.txt and /sitemap.xml return 307 → /login,
 // which blocks Google/Bing crawling.
-const SEO_PATHS = ["/robots.txt", "/sitemap.xml", "/marketing-briefing.html"];
+// KIN-6649 — the IndexNow key file must be reachable for search engines too.
+const SEO_PATHS = ["/robots.txt", "/sitemap.xml", "/marketing-briefing.html", `/${INDEXNOW_KEY}.txt`];
 // ORA-3310 — the API public allowlist (isPublicApiPath) lives in
 // @/lib/auth/api-access-policy so it can be unit-tested without Next.
 const NOT_FOUND_HTML =

@@ -31,6 +31,8 @@ check("the intended webhooks/cron/signup/VIES paths are public", () => {
   assert.equal(isPublicApiPath("/api/treasury/ebics/poll"), true);
   // KIN-6527 — public UID check (reads no tenant data, rate-limited per IP)
   assert.equal(isPublicApiPath("/api/at/uid-pruefen"), true);
+  // KIN-6649 — magazine publishing cron (CRON_SECRET bearer)
+  assert.equal(isPublicApiPath("/api/cron/magazin-freischaltung"), true);
 });
 
 check("the four leaky service-role routes are NOT public", () => {
@@ -41,7 +43,7 @@ check("the four leaky service-role routes are NOT public", () => {
 });
 
 check("allowlist stays minimal (guard against accidental additions)", () => {
-  assert.equal(PUBLIC_API_PATHS.length, 4);
+  assert.equal(PUBLIC_API_PATHS.length, 5);
 });
 
 check("a path that merely starts with a public name is not public", () => {

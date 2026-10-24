@@ -6,6 +6,7 @@ metaDescription: "Welche Angaben auf eine Rechnung in Österreich gehören (§ 1
 publishedAt: "2026-10-24"
 updatedAt: "2026-10-23"
 category: "Rechnung"
+rubrik: "Rechnungen schreiben"
 targetKeyword: "rechnungsmerkmale österreich"
 schema: FAQPage
 liveBedingung: "sofort live"

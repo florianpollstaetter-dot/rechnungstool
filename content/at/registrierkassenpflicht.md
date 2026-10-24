@@ -6,6 +6,7 @@ metaDescription: "Brauche ich eine Registrierkasse? Grenzen (15.000 und 7.500 Eu
 publishedAt: "2026-10-24"
 updatedAt: "2026-10-23"
 category: "Registrierkasse"
+rubrik: "Steuern und Abgaben"
 targetKeyword: "registrierkassenpflicht"
 schema: FAQPage
 liveBedingung: "sofort live. Kein Produktversprechen zur Registrierkasse (RKSV) bis ORA-3311 sie enthält."

@@ -16,6 +16,13 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@react-pdf/renderer"],
+  // KIN-6649 — Magazin-Seiten werden zur Laufzeit neu erzeugt (ISR, Cron) und
+  // lesen dabei content/at/*.md; die Dateien müssen mit ausgeliefert werden.
+  outputFileTracingIncludes: {
+    "/at/**": ["./content/at/*.md"],
+    "/sitemap.xml": ["./content/at/*.md", "./content/blog/*.md"],
+    "/api/cron/magazin-freischaltung": ["./content/at/*.md"],
+  },
   turbopack: {
     resolveAlias: {
       canvas: "./empty-module.ts",

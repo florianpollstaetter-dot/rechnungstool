@@ -6,6 +6,7 @@ metaDescription: "Honorarnote schreiben: Muster für Freiberufler und Kleinunter
 publishedAt: "2026-10-24"
 updatedAt: "2026-10-23"
 category: "Rechnung"
+rubrik: "Rechnungen schreiben"
 targetKeyword: "honorarnote"
 schema: FAQPage
 liveBedingung: "Text sofort live. Download-Platzhalter {{DOWNLOAD_HONORARNOTE_*}} werden mit den Dateien aus dem Design-Folgeticket (zusammen mit Rechnungsvorlage) befüllt; bis dahin Muster als Bild/Tabelle im Text."

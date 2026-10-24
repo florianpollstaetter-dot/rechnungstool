@@ -12,6 +12,7 @@ export default function BlogLayout({ children }: { children: React.ReactNode }) 
             <span className="brand-wordmark text-sm hidden sm:inline">orange<span>octo</span></span>
           </Link>
           <div className="ml-auto flex items-center gap-3 text-xs">
+            <Link href="/at/magazin" className="text-[var(--text-secondary)] hover:text-[var(--brand-orange)] transition-colors">Magazin</Link>
             <Link href="/blog" className="text-[var(--text-secondary)] hover:text-[var(--brand-orange)] transition-colors">Blog</Link>
             <Link href="/register" className="text-[var(--text-secondary)] hover:text-[var(--brand-orange)] transition-colors">Gratis testen</Link>
           </div>

@@ -6,6 +6,7 @@ metaDescription: "Muss ich E-Rechnungen schreiben? Pflicht beim Bund, ebInterfac
 publishedAt: "2026-10-24"
 updatedAt: "2026-10-23"
 category: "E-Rechnung"
+rubrik: "Rechnungen schreiben"
 targetKeyword: "e-rechnung"
 schema: FAQPage
 liveBedingung: "sofort live. Kein Produktbezug (ebInterface-Export nur erwähnen, wenn ORA-3311 ihn enthält)."

@@ -44,6 +44,8 @@ export function AppFooter() {
 
           {/* Links distributed across remaining width */}
           <nav className="flex flex-wrap items-center justify-center sm:justify-around gap-x-6 gap-y-2 flex-1 text-sm">
+            {/* KIN-6649 — Orange Octo Magazin (Ratgeber Österreich). */}
+            <Link href="/at/magazin" className={linkClass}>Magazin</Link>
             <Link href="/impressum" className={linkClass}>{t("footer.imprint")}</Link>
             <Link href="/agb" className={linkClass}>{t("footer.terms")}</Link>
             <Link href="/widerruf" className={linkClass}>{t("footer.withdrawal")}</Link>

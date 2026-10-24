@@ -9,6 +9,12 @@
 // Entwürfe (publishedAt: null) sind nur sichtbar, wenn AT_RATGEBER_ENTWUERFE=1
 // gesetzt ist (lokale Vorschau, E2E-Tests). Im Produktivbetrieb → 404.
 //
+// KIN-6649 — Magazin: Seiten mit publishedAt in der Zukunft gelten bis zu diesem
+// Tag (Kalendertag in Wien) als Entwurf: 404, nicht in Sitemap und Magazin. Die
+// Seiten werden stündlich neu erzeugt (revalidate), der Cron
+// /api/cron/magazin-freischaltung schaltet sie um 06:00 sofort frei und meldet
+// sie per IndexNow.
+//
 // Server-only (fs). Alle veröffentlichten Seiten werden beim Bau vorgerendert.
 
 import { promises as fs } from "node:fs";
@@ -36,6 +42,40 @@ export const TEXTBAUSTEINE: Readonly<Record<string, string | null>> = {
   GRUENDER_NAME,
 };
 
+// KIN-6649 — Rubriken des Magazins in Anzeigereihenfolge. Front-Matter-Feld
+// `rubrik`; fehlt es, wird es aus `category` abgeleitet (rubrikAus).
+export const RUBRIKEN = [
+  { slug: "rechnungen-schreiben", name: "Rechnungen schreiben" },
+  { slug: "steuern-und-abgaben", name: "Steuern und Abgaben" },
+  { slug: "vorlagen-und-rechner", name: "Vorlagen und Rechner" },
+  { slug: "rechnungsprogramme-im-vergleich", name: "Rechnungsprogramme im Vergleich" },
+] as const;
+export type Rubrik = (typeof RUBRIKEN)[number];
+
+const STEUER_KATEGORIEN = /steuer|abgabe|registrierkasse|sozialversicherung|svs/i;
+
+export function rubrikAus(rubrik: string | null, category: string | null): Rubrik {
+  const r = rubrik?.trim().toLowerCase();
+  const treffer = r ? RUBRIKEN.find((x) => x.name.toLowerCase() === r || x.slug === r) : undefined;
+  if (treffer) return treffer;
+  return category && STEUER_KATEGORIEN.test(category) ? RUBRIKEN[1] : RUBRIKEN[0];
+}
+
+/** Heutiges Datum in Wien als YYYY-MM-DD (Freischaltung erfolgt nach österreichischem Kalendertag). */
+export function heuteInWien(jetzt: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Vienna",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(jetzt);
+}
+
+/** Live = publishedAt gesetzt und nicht in der Zukunft (Wiener Kalendertag). */
+export function istVeroeffentlicht(s: Pick<AtSeite, "publishedAt">, heute: string = heuteInWien()): boolean {
+  return s.publishedAt != null && s.publishedAt.slice(0, 10) <= heute;
+}
+
 export type AtSeite = {
   slug: string;
   title: string;
@@ -44,6 +84,7 @@ export type AtSeite = {
   publishedAt: string | null;
   updatedAt: string | null;
   category: string | null;
+  rubrik: Rubrik;
   excerpt: string;
   faqSchema: boolean;
   body: string;
@@ -94,6 +135,7 @@ async function readAll(): Promise<AtSeite[]> {
         publishedAt: normalizeDate(d.publishedAt),
         updatedAt: normalizeDate(d.updatedAt) ?? normalizeDate(d.stand),
         category: str(d.category),
+        rubrik: rubrikAus(str(d.rubrik), str(d.category)),
         excerpt: str(d.excerpt) ?? "",
         faqSchema,
         body: content,
@@ -103,7 +145,7 @@ async function readAll(): Promise<AtSeite[]> {
 }
 
 function sichtbar(s: AtSeite): boolean {
-  return s.publishedAt != null || entwuerfeSichtbar();
+  return istVeroeffentlicht(s) || entwuerfeSichtbar();
 }
 
 /** Veröffentlichte Seiten (plus Entwürfe bei AT_RATGEBER_ENTWUERFE=1), neueste zuerst. */
@@ -117,7 +159,22 @@ export async function getAtSeiten(): Promise<AtSeite[]> {
 /** Nur wirklich veröffentlichte Seiten — für Sitemap und Vorrendern. */
 export async function getVeroeffentlichteAtSeiten(): Promise<AtSeite[]> {
   const all = await readAll();
-  return all.filter((s) => s.publishedAt != null);
+  const heute = heuteInWien();
+  return all.filter((s) => istVeroeffentlicht(s, heute));
+}
+
+/** Seiten, die heute (Wiener Kalendertag) erscheinen — für den Freischalt-Cron. */
+export async function getHeuteErscheinendeAtSeiten(heute: string = heuteInWien()): Promise<AtSeite[]> {
+  const all = await readAll();
+  return all.filter((s) => s.publishedAt?.slice(0, 10) === heute);
+}
+
+/** Bis zu `anzahl` andere Seiten, zuerst aus derselben Rubrik, dann die übrigen (neueste zuerst). */
+export function mehrAusDemMagazin(seite: AtSeite, alle: AtSeite[], anzahl = 3): AtSeite[] {
+  const andere = alle.filter((s) => s.slug !== seite.slug);
+  const gleich = andere.filter((s) => s.rubrik.slug === seite.rubrik.slug);
+  const rest = andere.filter((s) => s.rubrik.slug !== seite.rubrik.slug);
+  return [...gleich, ...rest].slice(0, anzahl);
 }
 
 /** Slugs aller Seiten (auch Entwürfe) — für das Entschärfen von Links auf noch nicht existierende Seiten. */
@@ -244,5 +301,42 @@ export function atFaqJsonLd(seite: AtSeite): object | null {
       name: ohnePlatzhalter(f.question),
       acceptedAnswer: { "@type": "Answer", text: ohnePlatzhalter(f.answer) },
     })),
+  };
+}
+
+// KIN-6649 — Magazin: absolute URLs für Strukturdaten und IndexNow.
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://orange-octo.com";
+
+/** Registrierungslink des Orange-Octo-Kastens, UTM je Artikel. */
+export function registrierungsLink(slug: string): string {
+  return `/register?utm_source=magazin&utm_campaign=${encodeURIComponent(slug)}`;
+}
+
+export function atBreadcrumbJsonLd(seite: AtSeite): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Magazin", item: `${SITE_URL}/at/magazin` },
+      { "@type": "ListItem", position: 2, name: seite.rubrik.name, item: `${SITE_URL}/at/magazin#${seite.rubrik.slug}` },
+      { "@type": "ListItem", position: 3, name: seite.h1, item: `${SITE_URL}/at/${seite.slug}` },
+    ],
+  };
+}
+
+export function atArticleJsonLd(seite: AtSeite): object {
+  const orangeOcto = { "@type": "Organization", name: "Orange Octo", url: SITE_URL };
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: seite.h1,
+    description: seite.metaDescription,
+    inLanguage: "de-AT",
+    articleSection: seite.rubrik.name,
+    mainEntityOfPage: `${SITE_URL}/at/${seite.slug}`,
+    ...(seite.publishedAt ? { datePublished: seite.publishedAt } : {}),
+    ...(seite.updatedAt ?? seite.publishedAt ? { dateModified: seite.updatedAt ?? seite.publishedAt } : {}),
+    author: orangeOcto,
+    publisher: { ...orangeOcto, logo: { "@type": "ImageObject", url: `${SITE_URL}/brand/octo-icon-orange.png` } },
   };
 }

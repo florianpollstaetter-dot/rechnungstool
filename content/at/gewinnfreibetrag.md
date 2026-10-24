@@ -6,6 +6,7 @@ metaDescription: "Gewinnfreibetrag 2026: 15 % Grundfreibetrag bis 33.000 Euro Ge
 publishedAt: "2026-10-24"
 updatedAt: "2026-10-22"
 category: "Steuern"
+rubrik: "Steuern und Abgaben"
 targetKeyword: "gewinnfreibetrag"
 schema: FAQPage
 liveBedingung: "sofort live. Optional: kleiner Rechner (Dev-Folgeticket); Seite funktioniert mit den Rechenbeispielen im Text. Platzhalter {{GFB_RECHNER}} bleibt leer, bis der Rechner existiert."

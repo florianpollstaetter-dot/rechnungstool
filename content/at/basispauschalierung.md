@@ -6,6 +6,7 @@ metaDescription: "Basispauschalierung 2026: Umsatzgrenze 420.000 Euro, Pauschale
 publishedAt: "2026-10-24"
 updatedAt: "2026-10-22"
 category: "Steuern"
+rubrik: "Steuern und Abgaben"
 targetKeyword: "basispauschalierung"
 schema: FAQPage
 liveBedingung: "sofort live. Produktbezug dünn, Seite dient Reichweite und Verlinkung."
