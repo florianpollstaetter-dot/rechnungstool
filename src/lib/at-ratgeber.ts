@@ -23,11 +23,17 @@ import matter from "gray-matter";
 import { marked } from "marked";
 import sanitizeHtmlLib, { type IOptions } from "sanitize-html";
 import { extractFaqs, type FaqEntry } from "@/lib/blog";
+import { DOWNLOAD_BAUSTEINE } from "@/lib/at-vorlagen/vorlagen";
 
 const AT_DIR = path.join(process.cwd(), "content", "at");
 
-export const BAUSTEINE = ["UID_PRUEFFORMULAR"] as const;
-export type Baustein = (typeof BAUSTEINE)[number];
+// KIN-6650 — Rechner ({{SKONTO_RECHNER}} …) und Download-Kästen ({{DOWNLOAD_RECHNUNG}} …,
+// Liste in src/lib/at-vorlagen/vorlagen.ts). Sie erscheinen nur in Artikeln, die
+// sichtbar sind — damit gehen sie automatisch mit dem Artikel live.
+export const RECHNER_BAUSTEINE = ["SKONTO_RECHNER", "VERZUGSZINSEN_RECHNER", "UST_RECHNER", "GFB_RECHNER"] as const;
+
+export const BAUSTEINE = ["UID_PRUEFFORMULAR", ...RECHNER_BAUSTEINE, ...DOWNLOAD_BAUSTEINE] as const;
+export type Baustein = string;
 
 // KIN-6532 — Textbausteine: Platzhalter, die im Fließtext durch einen String
 // ersetzt werden (kein eigener Abschnitt). null = Wert noch nicht bekannt →
@@ -183,6 +189,16 @@ export async function getAtSlugs(): Promise<Set<string>> {
   return new Set(all.map((s) => s.slug));
 }
 
+/**
+ * KIN-6650 — Eine Vorlage ist abrufbar, sobald ein sichtbarer Artikel ihren
+ * Baustein ({{DOWNLOAD_…}}) enthält. Vorher liefert /at/vorlagen/… 404.
+ */
+export async function istBausteinSichtbar(baustein: string): Promise<boolean> {
+  const re = new RegExp(String.raw`\{\{\s*${baustein}\s*\}\}`);
+  const seiten = await getAtSeiten();
+  return seiten.some((s) => re.test(s.body));
+}
+
 export async function getAtSeite(slug: string): Promise<AtSeite | null> {
   const all = await readAll();
   const s = all.find((x) => x.slug === slug);
@@ -254,8 +270,8 @@ export function ersetzeTextbausteine(
  * die Textstücke zu bereinigtem HTML.
  * - Die erste H1 im Text entfällt (die Seite setzt die H1 aus dem Front-Matter).
  * - Textbausteine ({{GRUENDER_NAME}}) werden im Fließtext ersetzt, siehe ersetzeTextbausteine.
- * - Unbekannte Platzhalter ({{GFB_RECHNER}}, {{DOWNLOAD_…}}) werden entfernt,
- *   nicht als Text ausgegeben — sie stehen für Bausteine, die noch fehlen.
+ * - Unbekannte Platzhalter werden entfernt, nicht als Text ausgegeben — sie
+ *   stehen für Bausteine, die noch fehlen.
  * - Links auf /at/<slug>, die es noch nicht gibt, werden zu reinem Text.
  */
 export function renderAbschnitte(body: string, opt: RenderOptionen = {}): Abschnitt[] {
@@ -267,7 +283,7 @@ export function renderAbschnitte(body: string, opt: RenderOptionen = {}): Abschn
     const text = ohneH1.slice(letzte, m.index);
     if (text.trim()) abschnitte.push({ art: "html", html: md(text, opt) });
     if ((BAUSTEINE as readonly string[]).includes(name)) {
-      abschnitte.push({ art: "baustein", name: name as Baustein });
+      abschnitte.push({ art: "baustein", name });
     }
     letzte = (m.index ?? 0) + m[0].length;
   }

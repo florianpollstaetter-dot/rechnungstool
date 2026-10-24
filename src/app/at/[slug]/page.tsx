@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UidPruefFormular } from "@/components/at/UidPruefFormular";
+import { VorlageDownload } from "@/components/at/VorlageDownload";
+import { GewinnfreibetragRechner } from "@/components/at/rechner/GewinnfreibetragRechner";
+import { SkontoRechner } from "@/components/at/rechner/SkontoRechner";
+import { UstRechner } from "@/components/at/rechner/UstRechner";
+import { VerzugszinsenRechner } from "@/components/at/rechner/VerzugszinsenRechner";
+import { findeVorlageNachBaustein } from "@/lib/at-vorlagen/vorlagen";
 import {
   atArticleJsonLd,
   atBreadcrumbJsonLd,
@@ -20,6 +26,7 @@ import {
 // {{UID_PRUEFFORMULAR}} im Text wird durch das Prüf-Formular ersetzt.
 // KIN-6649 — Teil des Magazins: Brotkrumen, Article-/BreadcrumbList-Schema,
 // „Mehr aus dem Magazin“ und Orange-Octo-Kasten am Ende.
+// KIN-6650 — dazu Rechner ({{SKONTO_RECHNER}} …) und Download-Kästen ({{DOWNLOAD_…}}).
 
 type Params = { slug: string };
 
@@ -151,7 +158,7 @@ export default async function AtRatgeberPage({
           a.art === "html" ? (
             <div key={i} dangerouslySetInnerHTML={{ __html: a.html }} />
           ) : (
-            <UidPruefFormular key={i} />
+            <BausteinKomponente key={i} name={a.name} />
           ),
         )}
       </div>
@@ -202,4 +209,21 @@ export default async function AtRatgeberPage({
       </aside>
     </article>
   );
+}
+
+function BausteinKomponente({ name }: { name: string }) {
+  switch (name) {
+    case "UID_PRUEFFORMULAR":
+      return <UidPruefFormular />;
+    case "SKONTO_RECHNER":
+      return <SkontoRechner />;
+    case "VERZUGSZINSEN_RECHNER":
+      return <VerzugszinsenRechner />;
+    case "UST_RECHNER":
+      return <UstRechner />;
+    case "GFB_RECHNER":
+      return <GewinnfreibetragRechner />;
+  }
+  const vorlage = findeVorlageNachBaustein(name);
+  return vorlage ? <VorlageDownload vorlage={vorlage} /> : null;
 }

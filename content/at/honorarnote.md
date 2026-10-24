@@ -25,7 +25,7 @@ Eine Honorarnote ist die Rechnung eines Freiberuflers oder freien Dienstnehmers.
 
 ## Muster zum Herunterladen
 
-Zwei Varianten, beide als Word, Excel und PDF.
+Zwei Varianten, beide als Word-Datei zum Bearbeiten und als PDF zum Ausfüllen am Handy oder Computer.
 
 {{DOWNLOAD_HONORARNOTE_MIT_UST}}
 Für Selbstständige, die Umsatzsteuer ausweisen. Enthält Zeilen für Nettobetrag, Steuersatz, Steuerbetrag und Gesamtbetrag.

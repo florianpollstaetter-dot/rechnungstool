@@ -23,11 +23,8 @@ Stand: 24. Oktober 2026 · Inhaltlich geprüft, Quellen am Ende der Seite
 
 Eine Rechnung ist offen, der Kunde hat nicht gezahlt. Du brauchst keine förmliche Mahnung, um Zinsen zu verlangen: Der Verzug beginnt mit dem Tag nach dem vereinbarten Zahlungsziel (§ 1334 ABGB). Trotzdem lohnt sich ein Stufenplan, denn die meisten Kunden haben die Rechnung schlicht übersehen. Beginne mit einer freundlichen Zahlungserinnerung, dann folgt die Mahnung mit Frist, Zinsen und Pauschale.
 
-{{DOWNLOAD_ZAHLUNGSERINNERUNG_WORD}}
-Freundliche Zahlungserinnerung, kurz, ohne Kosten. Word und PDF.
-
-{{DOWNLOAD_MAHNUNG_WORD}}
-Mahnung mit Zahlungsfrist, Verzugszinsen und Hinweis auf die Pauschale. Word und PDF.
+{{DOWNLOAD_ZAHLUNGSERINNERUNG}}
+Eine Datei, zwei Stufen: Seite 1 ist die freundliche Zahlungserinnerung, kurz und ohne Kosten. Seite 2 ist die Mahnung mit Zahlungsfrist, Verzugszinsen und Hinweis auf die Pauschale. Word und PDF.
 
 ## Der Stufenplan
 

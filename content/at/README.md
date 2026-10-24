@@ -26,7 +26,27 @@ schema: FAQPage        # FAQ-Strukturdaten aus dem Abschnitt „## Häufige Frag
 | `{{UID_PRUEFFORMULAR}}` | UID-Prüf-Formular (VIES), `src/components/at/UidPruefFormular.tsx` |
 | `{{GRUENDER_NAME}}` | Name des Gründers (Textbaustein im Fließtext), Wert `GRUENDER_NAME` in `src/lib/at-ratgeber.ts`. Solange `null`: Platzhalter entfällt samt Klammer, „der Gründer ist Jurist ({{GRUENDER_NAME}}).“ wird zu „… Jurist.“ |
 
-Bausteine (Formulare) auf eine eigene Zeile setzen. Unbekannte Platzhalter (`{{GFB_RECHNER}}`, `{{DOWNLOAD_…}}`) werden beim Rendern entfernt. Links auf `/at/<slug>`, die es noch nicht gibt, werden zu reinem Text.
+| `{{SKONTO_RECHNER}}` | Skonto-Rechner (KIN-6650), `src/components/at/rechner/SkontoRechner.tsx` |
+| `{{VERZUGSZINSEN_RECHNER}}` | Verzugszinsen-Rechner mit Basiszinssatz-Tabelle der OeNB und 40-€-Pauschale (KIN-6650) |
+| `{{UST_RECHNER}}` | USt-Rechner netto/brutto 20/13/10/4,9/0 % (KIN-6650) |
+| `{{GFB_RECHNER}}` | Gewinnfreibetrag-Rechner (KIN-6650) |
+| `{{DOWNLOAD_RECHNUNG}}` | Download-Kasten Rechnungsvorlage (Word + PDF) |
+| `{{DOWNLOAD_RECHNUNG_KLEINUNTERNEHMER}}` | Rechnungsvorlage für Kleinunternehmer |
+| `{{DOWNLOAD_RECHNUNG_KLEINBETRAG}}` | Kleinbetragsrechnung bis 400 € brutto |
+| `{{DOWNLOAD_HONORARNOTE_MIT_UST}}` | Honorarnote mit 20 % USt |
+| `{{DOWNLOAD_HONORARNOTE_KLEINUNTERNEHMER}}` | Honorarnote als Kleinunternehmer |
+| `{{DOWNLOAD_STUNDENZETTEL}}` | Stundenzettel / Arbeitszeitaufzeichnung (Querformat) |
+| `{{DOWNLOAD_STUNDENZETTEL_KUNDEN}}` | Stundennachweis für Kunden (Anlage zur Rechnung) |
+| `{{DOWNLOAD_FAHRTENBUCH}}` | Fahrtenbuch (Querformat) |
+| `{{DOWNLOAD_LIEFERSCHEIN}}` | Lieferschein |
+| `{{DOWNLOAD_ZAHLUNGSERINNERUNG}}` | Zahlungserinnerung (Seite 1) und Mahnung (Seite 2) |
+| `{{DOWNLOAD_KOSTENVORANSCHLAG}}` | Kostenvoranschlag, verbindlich/unverbindlich zum Ankreuzen |
+
+Bausteine (Formulare) auf eine eigene Zeile setzen. Unbekannte Platzhalter werden beim Rendern entfernt.
+
+**Rechner und Vorlagen gehen mit dem Artikel live:** Ein Rechner erscheint nur in einem sichtbaren Artikel. Die Dateien unter `/at/vorlagen/<datei>.docx|.pdf` liefern 404, bis ein sichtbarer Artikel den passenden `{{DOWNLOAD_…}}`-Baustein enthält. Inhalt der Vorlagen: `src/lib/at-vorlagen/vorlagen.ts`; Zinssätze und Steuersätze der Rechner mit Quelle in `src/lib/at-rechner/*.ts`. Tests: `npx tsx tests/unit/kin6650-at-rechner.test.ts` und `kin6650-at-vorlagen.test.ts`.
+
+**Basiszinssatz pflegen:** Ändert die OeNB den Basiszinssatz, in `src/lib/at-rechner/verzugszinsen.ts` den Wert für das nächste Halbjahr (Stand am 1. Jänner bzw. 1. Juli) eintragen. Bis dahin rechnet der Rechner für unbekannte Halbjahre mit dem aktuellen Wert und markiert das Ergebnis als vorläufig. Links auf `/at/<slug>`, die es noch nicht gibt, werden zu reinem Text.
 
 ## Entwürfe lokal ansehen
 

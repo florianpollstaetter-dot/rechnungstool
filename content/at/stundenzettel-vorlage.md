@@ -22,11 +22,11 @@ Stand: 24. Oktober 2026 · Inhaltlich geprüft, Quellen am Ende der Seite
 
 Wer „Stundenzettel“ sucht, meint in Österreich zwei verschiedene Dinge. Das eine ist die Aufzeichnung der Arbeitszeit von Mitarbeitern; dafür verlangt das Gesetz bestimmte Angaben. Das andere ist die Abrechnung von Stunden gegenüber einem Kunden; dafür verlangt niemand etwas, aber ohne Nachweis gibt es Streit. Diese Seite deckt beides ab, mit einer Vorlage je Fall.
 
-{{DOWNLOAD_STUNDENZETTEL_ARBEITSZEIT}}
-Für Arbeitgeber und Mitarbeiter. Beginn, Ende, Pause und Gesamtdauer pro Tag, mit Wochen- und Monatssumme.
+{{DOWNLOAD_STUNDENZETTEL}}
+Für Arbeitgeber und Mitarbeiter. Beginn, Ende, Pause und Gesamtdauer pro Tag, mit Monatssumme. Word und PDF.
 
 {{DOWNLOAD_STUNDENZETTEL_KUNDEN}}
-Für Selbstständige, die nach Stunden abrechnen. Datum, Tätigkeit, Dauer und Stundensatz, mit Summe für die Rechnung.
+Für Selbstständige, die nach Stunden abrechnen. Datum, Tätigkeit, Dauer und Stundensatz, mit Summe für die Rechnung. Word und PDF.
 
 ## Was das Gesetz bei der Arbeitszeit verlangt
 

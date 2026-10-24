@@ -23,11 +23,8 @@ Stand: 24. Oktober 2026 · Inhaltlich geprüft, Quellen am Ende der Seite
 
 Ein Lieferschein ist der Beleg, dass du Ware geliefert hast und was genau im Paket war. Das Gesetz verlangt ihn nicht, aber im Alltag ist er unverzichtbar: Er klärt am Tag der Lieferung, was angekommen ist, und er bildet später die Grundlage der Rechnung. Eine Vorlage mit den wichtigsten Feldern bekommst du hier.
 
-{{DOWNLOAD_LIEFERSCHEIN_EXCEL}}
-Excel-Vorlage mit Positionen, Mengen und Summe der Stücke. Eine Spalte für den Preis ist ausblendbar.
-
-{{DOWNLOAD_LIEFERSCHEIN_PDF}}
-PDF zum Ausdrucken und Ausfüllen von Hand, mit Feld für die Unterschrift des Empfängers.
+{{DOWNLOAD_LIEFERSCHEIN}}
+Mit Positionen, Artikelnummer, Mengen und Feld für die Unterschrift des Empfängers. Word zum Bearbeiten, PDF zum Ausfüllen oder Ausdrucken.
 
 ## Was auf den Lieferschein gehört
 

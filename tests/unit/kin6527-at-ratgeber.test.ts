@@ -30,7 +30,7 @@ check("ohne Platzhalter: ein HTML-Abschnitt", () => {
 });
 
 check("unbekannter Platzhalter wird entfernt, Script wird entfernt", () => {
-  const a = renderAbschnitte("Vorher {{GFB_RECHNER}} <script>alert(1)</script> ok");
+  const a = renderAbschnitte("Vorher {{NOCH_NICHT_GEBAUT}} <script>alert(1)</script> ok");
   assert.equal(a.length, 2);
   const html = a.map((x) => (x as { html: string }).html).join("");
   assert.doesNotMatch(html, /\{\{/);

@@ -23,11 +23,8 @@ Stand: 24. Oktober 2026 · Inhaltlich geprüft, Quellen am Ende der Seite
 
 Ein Fahrtenbuch hält fest, wann du mit welchem Fahrzeug wohin gefahren bist und warum. In Österreich gibt es keine allgemeine gesetzliche Pflicht dazu. Du brauchst es trotzdem, sobald du betriebliche Fahrten mit dem Privatauto absetzen willst oder ein Fahrzeug teilweise betrieblich und teilweise privat nutzt: Das Finanzamt erkennt nur an, was du belegen kannst.
 
-{{DOWNLOAD_FAHRTENBUCH_EXCEL}}
-Excel-Vorlage mit Summen pro Monat und Jahr. Die Kilometer rechnet die Datei aus Anfangs- und Endstand.
-
-{{DOWNLOAD_FAHRTENBUCH_PDF}}
-PDF zum Ausdrucken, wenn du handschriftlich im Auto führst.
+{{DOWNLOAD_FAHRTENBUCH}}
+Word zum Bearbeiten am Computer, PDF zum Ausfüllen am Handy oder zum Ausdrucken, wenn du handschriftlich im Auto führst. Mit Spalten für betriebliche und private Kilometer und Monatssumme.
 
 ## Wann du ein Fahrtenbuch brauchst
 

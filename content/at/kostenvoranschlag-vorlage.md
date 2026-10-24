@@ -22,11 +22,8 @@ Stand: 24. Oktober 2026 · Inhaltlich geprüft, Quellen am Ende der Seite
 
 Ein Kostenvoranschlag nennt vorab, was ein Auftrag voraussichtlich kostet. Ob die Zahl hält, hängt von einem Wort ab: Steht im Kostenvoranschlag ausdrücklich, dass du für die Richtigkeit einstehst, ist er verbindlich, und du kannst auch bei unvorhergesehenem Mehraufwand nicht mehr verlangen (§ 1170a Abs. 1 ABGB). Fehlt diese Gewährleistung, ist er eine Schätzung, aber eine mit Grenzen.
 
-{{DOWNLOAD_KOSTENVORANSCHLAG_WORD}}
-Word-Vorlage mit Positionen, Summen, Gültigkeitsdauer und einem Feld, in dem du „verbindlich“ oder „unverbindlich“ wählst.
-
-{{DOWNLOAD_KOSTENVORANSCHLAG_PDF}}
-PDF zum Ausdrucken und Ausfüllen.
+{{DOWNLOAD_KOSTENVORANSCHLAG}}
+Mit Positionen, Summen, Gültigkeitsdauer und einem Feld, in dem du „verbindlich“ oder „unverbindlich“ ankreuzt. Word zum Bearbeiten, PDF zum Ausfüllen oder Ausdrucken.
 
 ## Verbindlich oder unverbindlich
 

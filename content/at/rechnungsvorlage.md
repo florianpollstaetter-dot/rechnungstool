@@ -20,15 +20,15 @@ Stand: 24. Oktober 2026 · Inhaltlich geprüft, Quellen am Ende der Seite
 
 ## Drei Vorlagen, die zu dir passen
 
-Eine gute Rechnungsvorlage ist kein hübsches Layout. Sie enthält alle Angaben, die das Gesetz verlangt, und sie rechnet richtig. Hier findest du drei Varianten, jede als Word, Excel und PDF.
+Eine gute Rechnungsvorlage ist kein hübsches Layout. Sie enthält alle Angaben, die das Gesetz verlangt, und sie rechnet richtig. Hier findest du drei Varianten, jede als Word-Datei zum Bearbeiten und als PDF zum Ausfüllen am Handy oder Computer.
 
-{{DOWNLOAD_RECHNUNGSVORLAGE_REGELBESTEUERT}}
+{{DOWNLOAD_RECHNUNG}}
 Für alle, die Umsatzsteuer ausweisen. Mit Zeilen für Nettobetrag, Steuersatz, Steuerbetrag und Gesamtbetrag.
 
-{{DOWNLOAD_RECHNUNGSVORLAGE_KLEINUNTERNEHMER}}
+{{DOWNLOAD_RECHNUNG_KLEINUNTERNEHMER}}
 Für Kleinunternehmer. Keine Steuerzeilen, dafür der Hinweis auf die Befreiung. Wie das genau aussieht, steht auf der Seite [Kleinunternehmer-Rechnung](/at/kleinunternehmer-rechnung).
 
-{{DOWNLOAD_RECHNUNGSVORLAGE_KLEINBETRAG}}
+{{DOWNLOAD_RECHNUNG_KLEINBETRAG}}
 Für Rechnungen bis 400 Euro Gesamtbetrag. Kürzer, weil der Gesetzgeber hier Angaben erlässt.
 
 Die Dateien sind Vorlagen und keine Beratung. Vor dem ersten Einsatz trägst du deine Daten ein und prüfst, ob deine Tätigkeit besondere Angaben braucht.

@@ -38,7 +38,7 @@ Die Tabelle zeigt, was auf einer Kleinunternehmer-Rechnung steht und was nicht.
 | Hinweis auf die Befreiung von der Umsatzsteuer | |
 | Deine UID, falls du eine hast | |
 
-{{DOWNLOAD_KLEINUNTERNEHMER_RECHNUNG}}
+{{DOWNLOAD_RECHNUNG_KLEINUNTERNEHMER}}
 
 Eine ausführlichere Erklärung jeder Angabe findest du unter [Rechnung: Pflichtangaben in Österreich](/at/rechnung-pflichtangaben). Eine fertige Vorlage zum Ausfüllen gibt es bei der [Rechnungsvorlage](/at/rechnungsvorlage).
 
