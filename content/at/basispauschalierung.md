@@ -1,11 +1,9 @@
 ---
-# KIN-6527/KIN-6528 — ENTWURF (publishedAt: null). Text vom Editor (KIN-6528), Quelle: Kinwords-Repo content/orange-octo-at/07-basispauschalierung.md.
-# Vor Livegang: {{GRUENDER_NAME}} ersetzen, Zahlen gegengelesen, publishedAt setzen.
 title: "Basispauschalierung 2026: 6 oder 15 Prozent, Grenze 420.000 €"
 h1: "Basispauschalierung 2026"
 slug: "basispauschalierung"
 metaDescription: "Basispauschalierung 2026: Umsatzgrenze 420.000 Euro, Pauschale 6 oder 15 Prozent, was zusätzlich absetzbar bleibt, Beispiel und Bindung. Stand 22.10.2026."
-publishedAt: null
+publishedAt: "2026-10-24"
 updatedAt: "2026-10-22"
 category: "Steuern"
 targetKeyword: "basispauschalierung"

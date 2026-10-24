@@ -1,11 +1,9 @@
 ---
-# KIN-6527/KIN-6528 — ENTWURF (publishedAt: null). Text vom Editor (KIN-6528), Quelle: Kinwords-Repo content/orange-octo-at/06-gewinnfreibetrag.md.
-# Vor Livegang: {{GRUENDER_NAME}} ersetzen, Zahlen gegengelesen, publishedAt setzen.
 title: "Gewinnfreibetrag 2026: Grundfreibetrag, Investitionen und Beispiele"
 h1: "Gewinnfreibetrag 2026"
 slug: "gewinnfreibetrag"
 metaDescription: "Gewinnfreibetrag 2026: 15 % Grundfreibetrag bis 33.000 Euro Gewinn, investitionsbedingter Teil, Höchstbetrag 46.400 Euro, Beispiele. Stand 22.10.2026."
-publishedAt: null
+publishedAt: "2026-10-24"
 updatedAt: "2026-10-22"
 category: "Steuern"
 targetKeyword: "gewinnfreibetrag"

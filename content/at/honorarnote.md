@@ -1,11 +1,9 @@
 ---
-# KIN-6527/KIN-6528 — ENTWURF (publishedAt: null). Text vom Editor (KIN-6528), Quelle: Kinwords-Repo content/orange-octo-at/02-honorarnote.md.
-# Vor Livegang: {{GRUENDER_NAME}} ersetzen, Zahlen gegengelesen, publishedAt setzen.
 title: "Honorarnote: Muster, Pflichtangaben und Unterschied zur Rechnung"
 h1: "Honorarnote: Muster und Pflichtangaben"
 slug: "honorarnote"
 metaDescription: "Honorarnote schreiben: Muster für Freiberufler und Kleinunternehmer, Pflichtangaben nach § 11 UStG und der Unterschied zur Rechnung. Stand 22.10.2026."
-publishedAt: null
+publishedAt: "2026-10-24"
 updatedAt: "2026-10-23"
 category: "Rechnung"
 targetKeyword: "honorarnote"

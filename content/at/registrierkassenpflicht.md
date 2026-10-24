@@ -1,11 +1,9 @@
 ---
-# KIN-6527/KIN-6528 — ENTWURF (publishedAt: null). Text vom Editor (KIN-6528), Quelle: Kinwords-Repo content/orange-octo-at/05-registrierkassenpflicht.md.
-# Vor Livegang: {{GRUENDER_NAME}} ersetzen, Zahlen gegengelesen, publishedAt setzen.
 title: "Registrierkassenpflicht in Österreich: Grenzen, Ausnahmen, Belegpflicht"
 h1: "Registrierkassenpflicht in Österreich"
 slug: "registrierkassenpflicht"
 metaDescription: "Brauche ich eine Registrierkasse? Grenzen (15.000 und 7.500 Euro), Ausnahmen, Belegpflicht ab dem ersten Euro und Strafen. Stand 22.10.2026."
-publishedAt: null
+publishedAt: "2026-10-24"
 updatedAt: "2026-10-23"
 category: "Registrierkasse"
 targetKeyword: "registrierkassenpflicht"

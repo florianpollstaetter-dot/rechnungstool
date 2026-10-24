@@ -1,11 +1,9 @@
 ---
-# KIN-6527/KIN-6528 — ENTWURF (publishedAt: null). Text vom Editor (KIN-6528), Quelle: Kinwords-Repo content/orange-octo-at/04-e-rechnung.md.
-# Vor Livegang: {{GRUENDER_NAME}} ersetzen, Zahlen gegengelesen, publishedAt setzen.
 title: "E-Rechnung Österreich: Pflicht, ebInterface, deutsche Kunden"
 h1: "E-Rechnung in Österreich"
 slug: "e-rechnung"
 metaDescription: "Muss ich E-Rechnungen schreiben? Pflicht beim Bund, ebInterface, Peppol, PDF-Unterschied und was für Rechnungen an deutsche Kunden gilt. Stand 22.10.2026."
-publishedAt: null
+publishedAt: "2026-10-24"
 updatedAt: "2026-10-23"
 category: "E-Rechnung"
 targetKeyword: "e-rechnung"

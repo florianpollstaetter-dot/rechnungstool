@@ -1,11 +1,9 @@
 ---
-# KIN-6527/KIN-6528 — ENTWURF (publishedAt: null). Text vom Editor (KIN-6528), Quelle: Kinwords-Repo content/orange-octo-at/03-rechnung-pflichtangaben.md.
-# Vor Livegang: {{GRUENDER_NAME}} ersetzen, Zahlen gegengelesen, publishedAt setzen.
 title: "Rechnungsmerkmale Österreich: Pflichtangaben, Kleinbetrag"
 h1: "Rechnungsmerkmale in Österreich"
 slug: "rechnung-pflichtangaben"
 metaDescription: "Welche Angaben auf eine Rechnung in Österreich gehören (§ 11 UStG), was bis 400 Euro entfallen darf und wo der Vorsteuerabzug scheitert. Stand 22.10.2026."
-publishedAt: null
+publishedAt: "2026-10-24"
 updatedAt: "2026-10-23"
 category: "Rechnung"
 targetKeyword: "rechnungsmerkmale österreich"
