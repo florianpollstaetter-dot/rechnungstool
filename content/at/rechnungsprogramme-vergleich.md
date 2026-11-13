@@ -1,30 +1,30 @@
 ---
-# KIN-6651: geplant für 14.11.2026. Vergleichsseite: NICHT freischalten ohne Freigabe des Law Agent (§ 2a UWG, vergleichende Werbung). publishedAt bleibt null.
+# KIN-6651: Law-Freigabe KIN-6654 liegt vor (§ 2a UWG). KIN-6658: Preise, Lexware-Wortlaut und Orange-Octo-Funktionen am 13.11.2026 neu geprüft; live ab 14.11.2026.
 title: "Rechnungsprogramm Österreich im Vergleich 2026"
 h1: "Rechnungsprogramme für Österreich im Vergleich"
 slug: "rechnungsprogramme-vergleich"
-metaDescription: "Rechnungsprogramme für Österreich im Vergleich: FreeFinance, everbill, sevdesk, Lexware Office und Orange Octo. Preise mit Abrufdatum. Stand 24.10.2026."
-publishedAt: null
+metaDescription: "Rechnungsprogramme für Österreich im Vergleich: FreeFinance, everbill, sevdesk, Lexware Office und Orange Octo. Preise mit Abrufdatum. Stand 13.11.2026."
+publishedAt: "2026-11-14"
 geplantAm: "2026-11-14"
-updatedAt: "2026-10-24"
+updatedAt: "2026-11-13"
 category: "Rechnungsprogramme"
 rubrik: "Rechnungsprogramme im Vergleich"
 targetKeyword: "rechnungsprogramm österreich"
 schema: FAQPage
 liveBedingung: "Law-Freigabe (vergleichende Werbung) und Neuabruf aller Preise am Tag vor der Freischaltung. Orange-Octo-Aussagen nur, solange sie live sind."
 quellen:
-  - "FreeFinance, Preise, abgerufen 24.10.2026: https://freefinance.at/preise.html"
-  - "everbill, Preise, abgerufen 24.10.2026: https://www.everbill.com/preise/"
-  - "sevdesk, Preise, abgerufen 24.10.2026: https://sevdesk.at/preise/"
-  - "sevdesk, Buchhaltungssoftware für Österreich, abgerufen 24.10.2026: https://sevdesk.at/buchhaltungssoftware/"
-  - "Lexware Office Help Center, Österreich / Schweiz, Artikel vom 4. Februar 2026, abgerufen 24.10.2026: https://help.lexware.de/de-form/articles/548411-osterreich-schweiz"
-  - "Orange Octo, Preise, abgerufen 24.10.2026: https://orange-octo.com"
+  - "FreeFinance, Preise, abgerufen 13.11.2026: https://freefinance.at/preise.html"
+  - "everbill, Preise, abgerufen 13.11.2026: https://www.everbill.com/preise/"
+  - "sevdesk, Preise, abgerufen 13.11.2026: https://sevdesk.at/preise/"
+  - "sevdesk, Buchhaltungssoftware für Österreich, abgerufen 13.11.2026: https://sevdesk.at/buchhaltungssoftware/"
+  - "Lexware Office Help Center, Österreich / Schweiz, Artikel vom 4. Februar 2026, abgerufen 13.11.2026: https://help.lexware.de/de-form/articles/548411-osterreich-schweiz"
+  - "Orange Octo, Preise, abgerufen 13.11.2026: https://orange-octo.com"
 ---
 # Rechnungsprogramme für Österreich im Vergleich
 
-Stand: 24. Oktober 2026
+Stand: 13. November 2026
 
-**Orange Octo ist unser eigenes Produkt.** Wir stellen es in diesem Vergleich neben vier andere Programme und sagen dir dazu, wo die anderen besser passen. Alle Preise haben wir am 24. Oktober 2026 auf den Webseiten der Anbieter abgelesen; Preise ändern sich, prüfe sie vor dem Kauf dort nach.
+**Orange Octo ist unser eigenes Produkt.** Wir stellen es in diesem Vergleich neben vier andere Programme und sagen dir dazu, wo die anderen besser passen. Alle Preise haben wir am 13. November 2026 auf den Webseiten der Anbieter abgelesen; Preise ändern sich, prüfe sie vor dem Kauf dort nach.
 
 ## Kurzantwort
 
@@ -32,7 +32,7 @@ Ein Rechnungsprogramm für Österreich muss mehr können als hübsche PDFs schre
 
 ## Die Programme im Überblick
 
-Alle Preise netto (ohne Umsatzsteuer), pro Monat, Stand 24.10.2026.
+Alle Preise netto (ohne Umsatzsteuer), pro Monat, Stand 13.11.2026.
 
 | Programm | Preis ab | Abrechnung |
 |---|---|---|
@@ -42,7 +42,7 @@ Alle Preise netto (ohne Umsatzsteuer), pro Monat, Stand 24.10.2026.
 | Lexware Office | nicht verglichen | nur für Deutschland vorgesehen |
 | Orange Octo | 12 € (Starter) | monatlich; 9 € pro Monat bei Jahreszahlung |
 
-Zwei Hinweise zu den Zahlen. Bei FreeFinance enthält der günstigste Tarif Buchhaltung, aber keine Rechnungsstellung; die Rechnungen gehören zum Paket Plus (25 € bei 12 Monaten, 22 € bei 36 Monaten). Bei sevdesk und everbill laufen auf den Preisseiten zeitlich begrenzte Rabattaktionen (bei sevdesk bis zu 50 Prozent bei 24 Monaten Laufzeit); in der Tabelle stehen die Listenpreise.
+Zwei Hinweise zu den Zahlen. Bei FreeFinance enthält der günstigste Tarif Buchhaltung, aber keine Rechnungsstellung; die Rechnungen gehören zum Paket Plus (25 € bei 12 Monaten, 22 € bei 36 Monaten). Bei sevdesk und everbill laufen auf den Preisseiten zeitlich begrenzte Rabattaktionen (bei sevdesk am Abruftag eine Black-Friday-Aktion); in der Tabelle stehen die Listenpreise.
 
 ## Was zählt in Österreich
 
@@ -61,7 +61,7 @@ Bei Lexware Office nennt der Hersteller nur, dass das Programm ausschließlich f
 
 ## FreeFinance: der Allrounder für Österreich
 
-FreeFinance ist ein Programm, das erkennbar für Österreich gebaut ist. Es bietet Einnahmen-Ausgaben-Rechnung und doppelte Buchführung, eine Registrierkasse nach RKSV mit Signatureinrichtung, die direkte Übermittlung der UVA und der Zusammenfassenden Meldung an FinanzOnline und eine Reisekosten-Erweiterung mit Fahrtenbuch und Diäten (FreeFinance, abgerufen 24.10.2026). Die Preise gelten bei Zahlung im Voraus für 12 oder 36 Monate; monatliche Zahlung gibt es dort nicht. Bei höherem Umsatz kommen Zuschläge dazu: Der Basispreis gilt bis 700.000 Euro Jahresumsatz.
+FreeFinance ist ein Programm, das erkennbar für Österreich gebaut ist. Es bietet Einnahmen-Ausgaben-Rechnung und doppelte Buchführung, eine Registrierkasse nach RKSV mit Signatureinrichtung, die direkte Übermittlung der UVA und der Zusammenfassenden Meldung an FinanzOnline und eine Reisekosten-Erweiterung mit Fahrtenbuch und Diäten (FreeFinance, abgerufen 13.11.2026). Die Preise gelten bei Zahlung im Voraus für 12 oder 36 Monate; monatliche Zahlung gibt es dort nicht. Bei höherem Umsatz kommen Zuschläge dazu: Der Basispreis gilt bis 700.000 Euro Jahresumsatz.
 
 **Wer dort gut aufgehoben ist:** Alle, die eine Registrierkasse brauchen oder die Voranmeldung direkt aus dem Programm abgeben wollen. Wenn das bei dir zutrifft, ist FreeFinance die richtige Wahl, und wir bieten das derzeit nicht an.
 
@@ -69,7 +69,7 @@ FreeFinance ist ein Programm, das erkennbar für Österreich gebaut ist. Es biet
 
 ## everbill: Rechnungen mit Blick auf die Steuerberatung
 
-everbill ist ein österreichisches Programm; die Daten liegen auf einem Server in Österreich (everbill, abgerufen 24.10.2026). Schon der kleinste Tarif Rechnung enthält BMD-Export und Steuerberaterzugang, bei 10 Dokumenten pro Monat und 10 Kunden. Ab dem Tarif Buchhaltung (25,90 € monatlich) gibt es unbegrenzte Dokumente, Eingangsrechnungen und ein Kassenbuch. Der Support ist Montag bis Freitag von 9 bis 17 Uhr telefonisch und per Chat erreichbar. Testen kannst du 14 Tage ohne Kreditkarte.
+everbill ist ein österreichisches Programm; die Daten liegen auf einem Server in Österreich (everbill, abgerufen 13.11.2026). Schon der kleinste Tarif Rechnung enthält BMD-Export und Steuerberaterzugang, bei 10 Dokumenten pro Monat und 10 Kunden. Ab dem Tarif Buchhaltung (25,90 € monatlich) gibt es unbegrenzte Dokumente, Eingangsrechnungen und ein Kassenbuch. Der Support ist Montag bis Freitag von 9 bis 17 Uhr telefonisch und per Chat erreichbar. Testen kannst du 14 Tage ohne Kreditkarte.
 
 **Wer dort gut aufgehoben ist:** Selbstständige, deren Steuerberatung mit BMD arbeitet und die ein schlankes österreichisches Programm wollen.
 
@@ -77,7 +77,7 @@ everbill ist ein österreichisches Programm; die Daten liegen auf einem Server i
 
 ## sevdesk: breit aufgestellt, mit Österreich-Version
 
-sevdesk hat eine eigene Seite für Österreich (sevdesk.at) mit österreichischen Steuersätzen und einem Kassabuch. Es gibt einen dauerhaft kostenlosen Tarif mit drei Rechnungen oder E-Rechnungen im Monat; darüber liegen die Tarife Rechnung (11,90 €), Buchhaltung (25,90 €) und Buchhaltung Pro (34,90 €), jeweils bei monatlicher Zahlung (sevdesk, abgerufen 24.10.2026). Als Exportformate für die Steuerberatung nennt sevdesk DATEV und ADDISON; BMD und RZL stehen auf den von uns geprüften Seiten nicht.
+sevdesk hat eine eigene Seite für Österreich (sevdesk.at) mit österreichischen Steuersätzen und einem Kassabuch. Es gibt einen dauerhaft kostenlosen Tarif mit drei Rechnungen oder E-Rechnungen im Monat; darüber liegen die Tarife Rechnung (11,90 €), Buchhaltung (25,90 €) und Buchhaltung Pro (34,90 €), jeweils bei monatlicher Zahlung (sevdesk, abgerufen 13.11.2026). Als Exportformate für die Steuerberatung nennt sevdesk DATEV und ADDISON; BMD und RZL stehen auf den von uns geprüften Seiten nicht.
 
 **Wer dort gut aufgehoben ist:** Wer mit dem kostenlosen Tarif anfangen will oder dessen Steuerberatung mit DATEV arbeitet.
 
@@ -85,11 +85,11 @@ sevdesk hat eine eigene Seite für Österreich (sevdesk.at) mit österreichische
 
 ## Lexware Office (früher lexoffice): nur für Deutschland
 
-Der Hersteller schreibt im eigenen Help Center: „Die Anwendung Lexware Office ist ausschließlich für die Nutzung in Deutschland geeignet. Sie können keine gültigen länderspezifischen Steuersätze, Währungen oder das Onlinebanking außerhalb Deutschlands verwenden“ (Lexware Office Help Center, Artikel vom 4. Februar 2026, abgerufen 24.10.2026). Nach Angabe des Herstellers ist Lexware Office also nicht für den Einsatz in Österreich vorgesehen. Wer trotzdem lexoffice kennt, findet auf der Seite [sevdesk und lexoffice in Österreich](/at/sevdesk-alternative) mehr dazu.
+Der Hersteller schreibt im eigenen Help Center: „Die Anwendung Lexware Office ist ausschließlich für die Nutzung in Deutschland geeignet. Sie können keine gültigen länderspezifischen Steuersätze, Währungen oder das Onlinebanking außerhalb Deutschlands verwenden“ (Lexware Office Help Center, Artikel vom 4. Februar 2026, abgerufen 13.11.2026). Nach Angabe des Herstellers ist Lexware Office also nicht für den Einsatz in Österreich vorgesehen. Wer trotzdem lexoffice kennt, findet auf der Seite [sevdesk und lexoffice in Österreich](/at/sevdesk-alternative) mehr dazu.
 
 ## Orange Octo: schlank, mit den Österreich-Funktionen für Rechnung und Steuerberatung
 
-Orange Octo bietet drei Tarife: Starter für 12 Euro monatlich (9 Euro bei Jahreszahlung) mit unbegrenzten Rechnungen und Angeboten für eine Person, Business für 26 Euro (21 Euro) mit zwei Nutzern, KI-Belegerfassung und Online-Banking, Pro für 44 Euro (36 Euro) mit fünf Nutzern. Alle Preise netto; 14 Tage kostenlos testen ohne Kreditkarte (Orange Octo, abgerufen 24.10.2026).
+Orange Octo bietet drei Tarife: Starter für 12 Euro monatlich (9 Euro bei Jahreszahlung) mit unbegrenzten Rechnungen und Angeboten für eine Person, Business für 26 Euro (21 Euro) mit zwei Nutzern, KI-Belegerfassung und Online-Banking, Pro für 44 Euro (36 Euro) mit fünf Nutzern. Alle Preise netto; 14 Tage kostenlos testen ohne Kreditkarte (Orange Octo, abgerufen 13.11.2026).
 
 Das können wir für Österreich: den Kleinunternehmer-Hinweis nach § 6 Abs. 1 Z 27 UStG auf der Rechnung, Rechnungen im Format ebInterface 6.1 für Auftraggeber des Bundes, den Export deiner Buchungen für die Steuerberatung im Format BMD und RZL und die Prüfung von UID-Nummern über die EU-Datenbank VIES. Rechnungen im Format XRechnung und ZUGFeRD sind in allen Tarifen enthalten.
 
@@ -118,8 +118,8 @@ Das hängt vom Programm ab. Lexware Office ist laut Hersteller nur für Deutschl
 Das österreichische Format für strukturierte Rechnungen, das der Bund akzeptiert. Mehr dazu auf der Seite [E-Rechnung in Österreich](/at/e-rechnung).
 
 **Wie aktuell sind die Preise?**
-Sie stammen vom 24. Oktober 2026. Die Anbieter ändern sie regelmäßig; maßgeblich ist immer die Webseite des Anbieters.
+Sie stammen vom 13. November 2026. Die Anbieter ändern sie regelmäßig; maßgeblich ist immer die Webseite des Anbieters.
 
 ---
 
-Orange Octo ist eine österreichische GmbH, der Gründer ist Jurist ({{GRUENDER_NAME}}). Dieser Vergleich bildet den Stand der Anbieter-Webseiten vom 24. Oktober 2026 ab und ersetzt keine Beratung. Hast du einen Fehler gefunden, schreib uns; wir korrigieren ihn.
+Orange Octo ist eine österreichische GmbH, der Gründer ist Jurist ({{GRUENDER_NAME}}). Dieser Vergleich bildet den Stand der Anbieter-Webseiten vom 13. November 2026 ab und ersetzt keine Beratung. Hast du einen Fehler gefunden, schreib uns; wir korrigieren ihn.
