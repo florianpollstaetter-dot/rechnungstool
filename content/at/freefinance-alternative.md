@@ -1,26 +1,26 @@
 ---
-# KIN-6651: geplant für 15.11.2026. Vergleichsseite: NICHT freischalten ohne Freigabe des Law Agent (§ 2a UWG, vergleichende Werbung). publishedAt bleibt null.
+# KIN-6651: Law-Freigabe KIN-6654 liegt vor (§ 2a UWG). KIN-6658: FreeFinance-Preise und Orange-Octo-Funktionen am 14.11.2026 neu geprüft; live ab 15.11.2026.
 title: "FreeFinance Alternative: Preise und Funktionen im Vergleich"
 h1: "FreeFinance-Alternative: wann sich ein Wechsel lohnt"
 slug: "freefinance-alternative"
-metaDescription: "FreeFinance Alternative für Österreich: Preise, Funktionen und für wen FreeFinance passt. Mit Orange Octo im Vergleich, Stand 24.10.2026."
-publishedAt: null
+metaDescription: "FreeFinance Alternative für Österreich: Preise, Funktionen und für wen FreeFinance passt. Mit Orange Octo im Vergleich, Stand 14.11.2026."
+publishedAt: "2026-11-15"
 geplantAm: "2026-11-15"
-updatedAt: "2026-10-24"
+updatedAt: "2026-11-14"
 category: "Rechnungsprogramme"
 rubrik: "Rechnungsprogramme im Vergleich"
 targetKeyword: "freefinance alternative"
 schema: FAQPage
 liveBedingung: "Law-Freigabe (vergleichende Werbung) und Neuabruf der FreeFinance-Preise am Tag vor der Freischaltung. Orange-Octo-Aussagen nur, solange sie live sind."
 quellen:
-  - "FreeFinance, Preise, abgerufen 24.10.2026: https://freefinance.at/preise.html"
-  - "Orange Octo, Preise, abgerufen 24.10.2026: https://orange-octo.com"
+  - "FreeFinance, Preise, abgerufen 14.11.2026: https://freefinance.at/preise.html"
+  - "Orange Octo, Preise, abgerufen 14.11.2026: https://orange-octo.com"
 ---
 # FreeFinance-Alternative: wann sich ein Wechsel lohnt
 
-Stand: 24. Oktober 2026
+Stand: 14. November 2026
 
-**Orange Octo ist unser eigenes Produkt.** Diese Seite vergleicht es mit FreeFinance, einem in Österreich etablierten Buchhaltungsprogramm. Wir sagen dir zuerst, wann du bei FreeFinance bleiben solltest. Die Preise haben wir am 24. Oktober 2026 auf den Webseiten beider Anbieter abgelesen.
+**Orange Octo ist unser eigenes Produkt.** Diese Seite vergleicht es mit FreeFinance, einem in Österreich etablierten Buchhaltungsprogramm. Wir sagen dir zuerst, wann du bei FreeFinance bleiben solltest. Die Preise haben wir am 14. November 2026 auf den Webseiten beider Anbieter abgelesen.
 
 ## Kurzantwort
 
@@ -28,7 +28,7 @@ FreeFinance deckt mehr ab als Orange Octo: Registrierkasse nach RKSV, direkte Ü
 
 ## Wann FreeFinance passt
 
-FreeFinance ist eine Cloud-Buchhaltung für Österreich. Laut den Angaben des Anbieters (abgerufen 24.10.2026) enthält sie:
+FreeFinance ist eine Cloud-Buchhaltung für Österreich. Laut den Angaben des Anbieters (abgerufen 14.11.2026) enthält sie:
 
 - Einnahmen-Ausgaben-Rechnung und doppelte Buchführung. Der Anbieter nennt als Zielgruppen Selbstständige, Kleinunternehmer, Vereine und Vermieter.
 - eine Direktschnittstelle zu FinanzOnline für die Umsatzsteuervoranmeldung (Formular U30) und die Zusammenfassende Meldung, dazu die Abfrage von UID-Nummern und der FinanzOnline-Databox.
@@ -50,9 +50,9 @@ Alle Preise netto pro Monat. FreeFinance rechnet im Voraus für die gesamte Lauf
 | Laufzeit | 12 oder 36 Monate, im Voraus | monatlich kündbar |
 | Test | kostenlos testen | 14 Tage, keine Kreditkarte |
 
-Zwei Dinge fallen auf. Der Einstiegspreis ist ähnlich, aber bei FreeFinance fehlt dort die Rechnungsstellung; wer Rechnungen schreibt, zahlt für das Paket Plus 25 Euro statt 12. Plus enthält darüber hinaus Buchhaltung und Bankanbindung und ist deshalb mit unserem Starter nicht gleichwertig. Und bei FreeFinance steigt der Preis mit dem Jahresumsatz: Der Basispreis gilt bis 700.000 Euro, darüber kommen Zuschläge von 12 Euro und mehr dazu (FreeFinance, abgerufen 24.10.2026).
+Zwei Dinge fallen auf. Der Einstiegspreis ist ähnlich, aber bei FreeFinance fehlt dort die Rechnungsstellung; wer Rechnungen schreibt, zahlt für das Paket Plus 25 Euro statt 12. Plus enthält darüber hinaus Buchhaltung und Bankanbindung und ist deshalb mit unserem Starter nicht gleichwertig. Und bei FreeFinance steigt der Preis mit dem Jahresumsatz: Der Basispreis gilt bis 700.000 Euro, darüber kommen Zuschläge von 12 Euro und mehr dazu (FreeFinance, abgerufen 14.11.2026).
 
-Bei den Orange-Octo-Preisen gilt: Starter 12 €, Business 26 €, Pro 44 € monatlich; bei Jahreszahlung 9 €, 21 € und 36 € pro Monat (Orange Octo, abgerufen 24.10.2026).
+Bei den Orange-Octo-Preisen gilt: Starter 12 €, Business 26 €, Pro 44 € monatlich; bei Jahreszahlung 9 €, 21 € und 36 € pro Monat (Orange Octo, abgerufen 14.11.2026).
 
 ## Was Orange Octo für Österreich kann
 
@@ -75,17 +75,17 @@ Behalte außerdem deine alten Belege: Unternehmer bewahren Bücher und Belege si
 Nicht zwingend. Als Kleinunternehmer gibst du keine Voranmeldung ab (siehe [Kleinunternehmer-Rechnung](/at/kleinunternehmer-rechnung)), und eine Registrierkasse brauchst du nur bei Barumsätzen über der Grenze. Für Rechnungen genügt ein schlankes Programm.
 
 **Kann ich bei FreeFinance monatlich zahlen?**
-Laut der Preisseite nicht: Dort sind 12 oder 36 Monate im Voraus vorgesehen (FreeFinance, abgerufen 24.10.2026).
+Laut der Preisseite nicht: Dort sind 12 oder 36 Monate im Voraus vorgesehen (FreeFinance, abgerufen 14.11.2026).
 
 **Was kostet die Registrierkasse bei FreeFinance?**
-Im Paket Premium enthalten oder als Zusatz für 11 Euro pro Monat (9 Euro bei 36 Monaten), dazu einmalig 119 Euro für die Signatur (FreeFinance, abgerufen 24.10.2026).
+Im Paket Premium enthalten oder als Zusatz für 11 Euro pro Monat (9 Euro bei 36 Monaten), dazu einmalig 119 Euro für die Signatur (FreeFinance, abgerufen 14.11.2026).
 
 **Kann ich beides parallel nutzen?**
 Ja. Manche behalten die Buchhaltung dort und schreiben Rechnungen anderswo. Dann musst du die Rechnungsdaten allerdings doppelt führen.
 
 **Wie aktuell sind diese Angaben?**
-Stand 24. Oktober 2026. Die Preise ändern sich; maßgeblich ist die Seite des Anbieters.
+Stand 14. November 2026. Die Preise ändern sich; maßgeblich ist die Seite des Anbieters.
 
 ---
 
-Orange Octo ist eine österreichische GmbH, der Gründer ist Jurist ({{GRUENDER_NAME}}). Dieser Vergleich gibt den Stand der Anbieter-Webseiten vom 24. Oktober 2026 wieder und ersetzt keine Beratung. Hast du einen Fehler gefunden, schreib uns; wir korrigieren ihn.
+Orange Octo ist eine österreichische GmbH, der Gründer ist Jurist ({{GRUENDER_NAME}}). Dieser Vergleich gibt den Stand der Anbieter-Webseiten vom 14. November 2026 wieder und ersetzt keine Beratung. Hast du einen Fehler gefunden, schreib uns; wir korrigieren ihn.
